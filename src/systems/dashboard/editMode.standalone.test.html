@@ -352,10 +352,18 @@
                 const dragHandle = element;
                 const mouseDownHandler = (e) => {
                     if (e.button !== 0) return;
+                    // Don't drag if clicking on resize handle or widget controls
+                    if (e.target.closest('.resize-handle') || e.target.closest('.widget-edit-controls')) {
+                        return;
+                    }
                     e.preventDefault();
                     this.startDrag(e, element, widget, onDragEnd);
                 };
                 const touchStartHandler = (e) => {
+                    // Don't drag if touching resize handle or widget controls
+                    if (e.target.closest('.resize-handle') || e.target.closest('.widget-edit-controls')) {
+                        return;
+                    }
                     this.touchTimer = setTimeout(() => {
                         e.preventDefault();
                         this.startDrag(e.touches[0], element, widget, onDragEnd);
@@ -484,25 +492,40 @@
             }
         }
 
-        // ResizeHandler (simplified for demo)
+        // ResizeHandler (functional version)
         class ResizeHandler {
-            constructor(gridEngine) {
+            constructor(gridEngine, options = {}) {
                 this.gridEngine = gridEngine;
+                this.options = { minWidth: 2, minHeight: 2, maxWidth: 12, maxHeight: 10, ...options };
                 this.resizeHandlers = new Map();
+                this.resizeState = null;
+                this.boundMouseMove = this.onMouseMove.bind(this);
+                this.boundMouseUp = this.onMouseUp.bind(this);
+                this.boundTouchMove = this.onTouchMove.bind(this);
+                this.boundTouchEnd = this.onTouchEnd.bind(this);
             }
 
-            initWidget(element, widget, onResizeEnd) {
-                // Simplified - just create handles
+            initWidget(element, widget, onResizeEnd, constraints = {}) {
                 const handles = document.createElement('div');
                 handles.className = 'resize-handles';
                 handles.style.position = 'absolute';
                 handles.style.inset = '0';
                 handles.style.pointerEvents = 'none';
 
-                const handleTypes = ['nw', 'ne', 'se', 'sw'];
-                handleTypes.forEach(type => {
+                const widgetConstraints = {
+                    minW: constraints.minW || this.options.minWidth,
+                    minH: constraints.minH || this.options.minHeight,
+                    maxW: constraints.maxW || this.options.maxWidth,
+                    maxH: constraints.maxH || this.options.maxHeight
+                };
+
+                const handleTypes = { nw: 'nwse-resize', ne: 'nesw-resize', se: 'nwse-resize', sw: 'nesw-resize', n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize' };
+                const handleListeners = [];
+
+                Object.entries(handleTypes).forEach(([type, cursor]) => {
                     const handle = document.createElement('div');
                     handle.className = `resize-handle resize-handle-${type}`;
+                    handle.dataset.handle = type;
                     handle.style.position = 'absolute';
                     handle.style.width = '12px';
                     handle.style.height = '12px';
@@ -510,24 +533,156 @@
                     handle.style.border = '2px solid white';
                     handle.style.borderRadius = '3px';
                     handle.style.pointerEvents = 'auto';
-                    handle.style.cursor = type + '-resize';
+                    handle.style.cursor = cursor;
+                    handle.style.zIndex = '101';
+
                     if (type.includes('n')) handle.style.top = '-6px';
                     if (type.includes('s')) handle.style.bottom = '-6px';
                     if (type.includes('w')) handle.style.left = '-6px';
                     if (type.includes('e')) handle.style.right = '-6px';
+                    if (type === 'n' || type === 's') {
+                        handle.style.left = '50%';
+                        handle.style.transform = 'translateX(-50%)';
+                    }
+                    if (type === 'w' || type === 'e') {
+                        handle.style.top = '50%';
+                        handle.style.transform = 'translateY(-50%)';
+                    }
+
+                    const mouseDownHandler = (e) => {
+                        if (e.button !== 0) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.startResize(e, type, element, widget, onResizeEnd, widgetConstraints);
+                    };
+
+                    const touchStartHandler = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.startResize(e.touches[0], type, element, widget, onResizeEnd, widgetConstraints);
+                    };
+
+                    handle.addEventListener('mousedown', mouseDownHandler);
+                    handle.addEventListener('touchstart', touchStartHandler, { passive: false });
+                    handleListeners.push({ element: handle, mouseDownHandler, touchStartHandler });
                     handles.appendChild(handle);
                 });
 
                 element.appendChild(handles);
-                this.resizeHandlers.set(element, handles);
+                this.resizeHandlers.set(element, { handles, handleListeners });
+            }
+
+            startResize(e, handleType, element, widget, onResizeEnd, constraints) {
+                this.resizeState = {
+                    element,
+                    widget: { ...widget },
+                    handle: handleType,
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    startWidth: widget.w,
+                    startHeight: widget.h,
+                    startGridX: widget.x,
+                    startGridY: widget.y,
+                    onResizeEnd,
+                    constraints
+                };
+
+                document.addEventListener('mousemove', this.boundMouseMove);
+                document.addEventListener('mouseup', this.boundMouseUp);
+                document.addEventListener('touchmove', this.boundTouchMove, { passive: false });
+                document.addEventListener('touchend', this.boundTouchEnd);
+                element.classList.add('resizing');
+            }
+
+            onMouseMove(e) {
+                if (!this.resizeState) return;
+                e.preventDefault();
+                this.updateResizeSize(e.clientX, e.clientY);
+            }
+
+            onTouchMove(e) {
+                if (!this.resizeState) return;
+                e.preventDefault();
+                this.updateResizeSize(e.touches[0].clientX, e.touches[0].clientY);
+            }
+
+            updateResizeSize(clientX, clientY) {
+                const { widget, handle, startX, startY, startWidth, startHeight, startGridX, startGridY, constraints, element } = this.resizeState;
+                const deltaX = clientX - startX;
+                const deltaY = clientY - startY;
+
+                this.gridEngine.updateContainerWidth();
+                const totalGaps = this.gridEngine.gap * (this.gridEngine.columns + 1);
+                const colWidth = (this.gridEngine.containerWidth - totalGaps) / this.gridEngine.columns;
+                const rowHeight = this.gridEngine.rowHeight;
+
+                const deltaGridX = Math.round(deltaX / (colWidth + this.gridEngine.gap));
+                const deltaGridY = Math.round(deltaY / (rowHeight + this.gridEngine.gap));
+
+                let newW = startWidth, newH = startHeight, newX = startGridX, newY = startGridY;
+
+                if (handle.includes('e')) newW = startWidth + deltaGridX;
+                else if (handle.includes('w')) { newW = startWidth - deltaGridX; newX = startGridX + deltaGridX; }
+                if (handle.includes('s')) newH = startHeight + deltaGridY;
+                else if (handle.includes('n')) { newH = startHeight - deltaGridY; newY = startGridY + deltaGridY; }
+
+                newW = Math.max(constraints.minW, Math.min(newW, constraints.maxW));
+                newH = Math.max(constraints.minH, Math.min(newH, constraints.maxH));
+                newW = Math.min(newW, this.gridEngine.columns - newX);
+
+                if (handle.includes('w') && newW === constraints.minW) newX = startGridX + startWidth - constraints.minW;
+                if (handle.includes('n') && newH === constraints.minH) newY = startGridY + startHeight - constraints.minH;
+
+                this.resizeState.widget.w = newW;
+                this.resizeState.widget.h = newH;
+                this.resizeState.widget.x = newX;
+                this.resizeState.widget.y = newY;
+
+                const pos = this.gridEngine.getPixelPosition(this.resizeState.widget);
+                element.style.width = pos.width + 'px';
+                element.style.height = pos.height + 'px';
+                element.style.left = pos.left + 'px';
+                element.style.top = pos.top + 'px';
+            }
+
+            onMouseUp(e) {
+                if (!this.resizeState) return;
+                e.preventDefault();
+                this.endResize();
+            }
+
+            onTouchEnd(e) {
+                if (!this.resizeState) return;
+                e.preventDefault();
+                this.endResize();
+            }
+
+            endResize() {
+                if (!this.resizeState) return;
+                const { element, widget, onResizeEnd } = this.resizeState;
+                element.classList.remove('resizing');
+                if (onResizeEnd) onResizeEnd(widget, widget.w, widget.h, widget.x, widget.y);
+                this.cleanup();
+            }
+
+            cleanup() {
+                document.removeEventListener('mousemove', this.boundMouseMove);
+                document.removeEventListener('mouseup', this.boundMouseUp);
+                document.removeEventListener('touchmove', this.boundTouchMove);
+                document.removeEventListener('touchend', this.boundTouchEnd);
+                this.resizeState = null;
             }
 
             destroyWidget(element) {
-                const handles = this.resizeHandlers.get(element);
-                if (handles) {
-                    handles.remove();
-                    this.resizeHandlers.delete(element);
-                }
+                const data = this.resizeHandlers.get(element);
+                if (!data) return;
+                const { handles, handleListeners } = data;
+                handleListeners.forEach(({ element: h, mouseDownHandler, touchStartHandler }) => {
+                    h.removeEventListener('mousedown', mouseDownHandler);
+                    h.removeEventListener('touchstart', touchStartHandler);
+                });
+                handles.remove();
+                this.resizeHandlers.delete(element);
             }
         }
 

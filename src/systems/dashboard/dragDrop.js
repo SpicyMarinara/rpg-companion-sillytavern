@@ -58,11 +58,22 @@ export class DragDropHandler {
 
         const mouseDownHandler = (e) => {
             if (e.button !== 0) return; // Only left mouse button
+
+            // Don't drag if clicking on resize handle or widget controls
+            if (e.target.closest('.resize-handle') || e.target.closest('.widget-edit-controls')) {
+                return;
+            }
+
             e.preventDefault();
             this.startDrag(e, element, widget, onDragEnd);
         };
 
         const touchStartHandler = (e) => {
+            // Don't drag if touching resize handle or widget controls
+            if (e.target.closest('.resize-handle') || e.target.closest('.widget-edit-controls')) {
+                return;
+            }
+
             // Delay touch drag to allow scrolling
             this.touchTimer = setTimeout(() => {
                 e.preventDefault();
