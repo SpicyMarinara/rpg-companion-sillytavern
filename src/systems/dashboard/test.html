@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GridEngine Test Harness</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #e94560;
+        }
+
+        .controls {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .controls button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .controls button:hover {
+            background: #d63651;
+        }
+
+        #grid-container {
+            position: relative;
+            width: 1200px;
+            min-height: 600px;
+            background: #0f3460;
+            border: 2px solid #e94560;
+            margin-bottom: 20px;
+        }
+
+        .grid-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .grid-lines line {
+            stroke: rgba(233, 69, 96, 0.2);
+            stroke-width: 1;
+        }
+
+        .grid-lines text {
+            fill: rgba(233, 69, 96, 0.6);
+            font-size: 10px;
+        }
+
+        .widget {
+            position: absolute;
+            background: linear-gradient(135deg, #e94560, #d63651);
+            border: 2px solid #fff;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: move;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .widget.dragging {
+            opacity: 0.7;
+            z-index: 100;
+        }
+
+        .widget.colliding {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            border-color: #ffeb3b;
+        }
+
+        .widget-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .widget-info {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        .widget-coords {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        #console {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        #console .log {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-left: 3px solid #4ecca3;
+        }
+
+        #console .warn {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-left: 3px solid #ffeb3b;
+            color: #ffeb3b;
+        }
+
+        #console .error {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-left: 3px solid #e94560;
+            color: #ff6b6b;
+        }
+
+        .stats {
+            background: #16213e;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-item {
+            flex: 1;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4ecca3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 GridEngine Test Harness</h1>
+
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-label">Widgets</div>
+            <div class="stat-value" id="stat-widgets">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Collisions</div>
+            <div class="stat-value" id="stat-collisions">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Grid Height</div>
+            <div class="stat-value" id="stat-height">0px</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="addTestWidget()">➕ Add Widget</button>
+        <button onclick="testReflow()">🔄 Test Reflow</button>
+        <button onclick="testCollisions()">💥 Test Collisions</button>
+        <button onclick="clearWidgets()">🗑️ Clear All</button>
+        <button onclick="clearConsole()">📋 Clear Console</button>
+    </div>
+
+    <div id="grid-container">
+        <svg class="grid-lines" id="grid-lines"></svg>
+    </div>
+
+    <div id="console"></div>
+
+    <script type="module">
+        import { GridEngine } from './gridEngine.js';
+
+        // Initialize grid engine
+        const gridEngine = new GridEngine({
+            columns: 12,
+            rowHeight: 80,
+            gap: 12,
+            snapToGrid: true
+        });
+
+        // Set container width
+        const container = document.getElementById('grid-container');
+        gridEngine.setContainerWidth(container.offsetWidth);
+
+        // Widgets array
+        let widgets = [];
+        let widgetIdCounter = 0;
+
+        // Drag state
+        let draggedWidget = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // Console logging
+        function log(message, type = 'log') {
+            const consoleEl = document.getElementById('console');
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleEl.appendChild(entry);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        // Override console methods to capture in UI
+        const originalConsole = {
+            log: console.log,
+            warn: console.warn,
+            error: console.error
+        };
+
+        console.log = (...args) => {
+            originalConsole.log(...args);
+            log(args.join(' '), 'log');
+        };
+
+        console.warn = (...args) => {
+            originalConsole.warn(...args);
+            log(args.join(' '), 'warn');
+        };
+
+        console.error = (...args) => {
+            originalConsole.error(...args);
+            log(args.join(' '), 'error');
+        };
+
+        // Draw grid lines
+        function drawGridLines() {
+            const svg = document.getElementById('grid-lines');
+            svg.innerHTML = '';
+
+            const width = container.offsetWidth;
+            const height = gridEngine.calculateGridHeight(widgets) || 600;
+            svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+            // Calculate column width
+            const totalGaps = gridEngine.gap * (gridEngine.columns + 1);
+            const colWidth = (width - totalGaps) / gridEngine.columns;
+
+            // Draw vertical column lines
+            for (let i = 0; i <= gridEngine.columns; i++) {
+                const x = i * (colWidth + gridEngine.gap) + gridEngine.gap;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x);
+                line.setAttribute('y1', 0);
+                line.setAttribute('x2', x);
+                line.setAttribute('y2', height);
+                svg.appendChild(line);
+
+                // Column number label
+                if (i < gridEngine.columns) {
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', x + colWidth / 2);
+                    text.setAttribute('y', 15);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.textContent = i;
+                    svg.appendChild(text);
+                }
+            }
+
+            // Draw horizontal row lines
+            const rows = Math.ceil(height / (gridEngine.rowHeight + gridEngine.gap));
+            for (let i = 0; i <= rows; i++) {
+                const y = i * (gridEngine.rowHeight + gridEngine.gap) + gridEngine.gap;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', 0);
+                line.setAttribute('y1', y);
+                line.setAttribute('x2', width);
+                line.setAttribute('y2', y);
+                svg.appendChild(line);
+            }
+        }
+
+        // Add test widget
+        window.addTestWidget = function() {
+            const widget = {
+                id: `widget-${widgetIdCounter++}`,
+                x: Math.floor(Math.random() * 9), // Random column (0-8)
+                y: Math.floor(Math.random() * 3), // Random row (0-2)
+                w: Math.floor(Math.random() * 3) + 2, // Width 2-4
+                h: Math.floor(Math.random() * 2) + 2  // Height 2-3
+            };
+
+            // Validate widget
+            const validated = gridEngine.validateWidget(widget, { w: 2, h: 2 });
+            widgets.push(validated);
+
+            console.log(`Added widget: ${validated.id} at (${validated.x}, ${validated.y}) size ${validated.w}x${validated.h}`);
+
+            renderWidgets();
+        };
+
+        // Render all widgets
+        function renderWidgets() {
+            // Clear existing widgets
+            document.querySelectorAll('.widget').forEach(el => el.remove());
+
+            // Render each widget
+            widgets.forEach(widget => {
+                const pixels = gridEngine.getPixelPosition(widget);
+                const colliding = gridEngine.detectCollision(widget, widgets);
+
+                const div = document.createElement('div');
+                div.className = 'widget' + (colliding ? ' colliding' : '');
+                div.dataset.widgetId = widget.id;
+                div.style.left = pixels.left + 'px';
+                div.style.top = pixels.top + 'px';
+                div.style.width = pixels.width + 'px';
+                div.style.height = pixels.height + 'px';
+
+                div.innerHTML = `
+                    <div class="widget-header">${widget.id}</div>
+                    <div class="widget-info">
+                        Grid: (${widget.x}, ${widget.y})<br>
+                        Size: ${widget.w} × ${widget.h}
+                    </div>
+                    <div class="widget-coords">
+                        Pixels: ${Math.round(pixels.left)}, ${Math.round(pixels.top)}<br>
+                        ${Math.round(pixels.width)} × ${Math.round(pixels.height)}
+                    </div>
+                `;
+
+                // Add drag listeners
+                div.addEventListener('mousedown', startDrag);
+
+                container.appendChild(div);
+            });
+
+            drawGridLines();
+            updateStats();
+        }
+
+        // Start dragging
+        function startDrag(e) {
+            const widgetId = e.currentTarget.dataset.widgetId;
+            draggedWidget = widgets.find(w => w.id === widgetId);
+
+            if (!draggedWidget) return;
+
+            const rect = e.currentTarget.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+
+            e.currentTarget.classList.add('dragging');
+
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+
+        // Drag widget
+        function onDrag(e) {
+            if (!draggedWidget) return;
+
+            const containerRect = container.getBoundingClientRect();
+            const pixelX = e.clientX - containerRect.left - dragOffset.x;
+            const pixelY = e.clientY - containerRect.top - dragOffset.y;
+
+            // Snap to grid
+            const gridPos = gridEngine.snapToCell(pixelX, pixelY);
+            draggedWidget.x = gridPos.x;
+            draggedWidget.y = gridPos.y;
+
+            renderWidgets();
+        }
+
+        // Stop dragging
+        function stopDrag(e) {
+            if (draggedWidget) {
+                console.log(`Dropped ${draggedWidget.id} at (${draggedWidget.x}, ${draggedWidget.y})`);
+                document.querySelector('.dragging')?.classList.remove('dragging');
+                draggedWidget = null;
+            }
+
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('mouseup', stopDrag);
+
+            renderWidgets();
+        }
+
+        // Test reflow
+        window.testReflow = function() {
+            console.log('--- Testing Reflow ---');
+            const before = widgets.map(w => `${w.id}: (${w.x}, ${w.y})`).join(', ');
+            console.log('Before reflow:', before);
+
+            gridEngine.reflow(widgets);
+
+            const after = widgets.map(w => `${w.id}: (${w.x}, ${w.y})`).join(', ');
+            console.log('After reflow:', after);
+
+            renderWidgets();
+        };
+
+        // Test collisions
+        window.testCollisions = function() {
+            console.log('--- Testing Collision Detection ---');
+            widgets.forEach(widget => {
+                const collides = gridEngine.detectCollision(widget, widgets);
+                console.log(`${widget.id}: ${collides ? 'COLLIDING ⚠️' : 'OK ✓'}`);
+            });
+
+            renderWidgets();
+        };
+
+        // Clear widgets
+        window.clearWidgets = function() {
+            widgets = [];
+            widgetIdCounter = 0;
+            console.log('All widgets cleared');
+            renderWidgets();
+        };
+
+        // Clear console
+        window.clearConsole = function() {
+            document.getElementById('console').innerHTML = '';
+        };
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('stat-widgets').textContent = widgets.length;
+
+            const collisions = widgets.filter(w => gridEngine.detectCollision(w, widgets)).length;
+            document.getElementById('stat-collisions').textContent = collisions;
+
+            const height = gridEngine.calculateGridHeight(widgets);
+            document.getElementById('stat-height').textContent = height + 'px';
+        }
+
+        // Initial render
+        drawGridLines();
+        console.log('GridEngine test harness initialized');
+        console.log('Click "Add Widget" to create test widgets');
+        console.log('Drag widgets to test snapping and collision detection');
+    </script>
+</body>
+</html>
