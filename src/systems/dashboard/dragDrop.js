@@ -1,0 +1,451 @@
+/**
+ * Drag-and-Drop Handler
+ *
+ * Handles widget dragging and repositioning with both mouse and touch support.
+ * Provides visual feedback, grid snapping, and collision detection.
+ */
+
+/**
+ * @typedef {Object} DragState
+ * @property {HTMLElement} element - Element being dragged
+ * @property {Object} widget - Widget data object
+ * @property {number} startX - Initial pointer X
+ * @property {number} startY - Initial pointer Y
+ * @property {number} offsetX - Pointer offset from element top-left
+ * @property {number} offsetY - Pointer offset from element top-left
+ * @property {HTMLElement} ghost - Ghost/preview element
+ * @property {boolean} isDragging - Whether drag is in progress
+ */
+
+export class DragDropHandler {
+    /**
+     * @param {Object} gridEngine - GridEngine instance
+     * @param {Object} options - Configuration options
+     */
+    constructor(gridEngine, options = {}) {
+        this.gridEngine = gridEngine;
+        this.options = {
+            showGrid: true,
+            showCollisions: true,
+            enableSnap: true,
+            ghostOpacity: 0.5,
+            touchDelay: 150, // Delay before touch drag starts (ms)
+            ...options
+        };
+
+        this.dragState = null;
+        this.dragHandlers = new Map();
+        this.gridOverlay = null;
+        this.touchTimer = null;
+
+        // Bound event handlers for cleanup
+        this.boundMouseMove = this.onMouseMove.bind(this);
+        this.boundMouseUp = this.onMouseUp.bind(this);
+        this.boundTouchMove = this.onTouchMove.bind(this);
+        this.boundTouchEnd = this.onTouchEnd.bind(this);
+        this.boundKeyDown = this.onKeyDown.bind(this);
+    }
+
+    /**
+     * Initialize drag functionality on a widget element
+     * @param {HTMLElement} element - Widget DOM element
+     * @param {Object} widget - Widget data object
+     * @param {Function} onDragEnd - Callback when drag completes (widget, newX, newY)
+     */
+    initWidget(element, widget, onDragEnd) {
+        // Store handler reference for cleanup
+        const dragHandle = element.querySelector('.drag-handle') || element;
+
+        const mouseDownHandler = (e) => {
+            if (e.button !== 0) return; // Only left mouse button
+            e.preventDefault();
+            this.startDrag(e, element, widget, onDragEnd);
+        };
+
+        const touchStartHandler = (e) => {
+            // Delay touch drag to allow scrolling
+            this.touchTimer = setTimeout(() => {
+                e.preventDefault();
+                this.startDrag(e.touches[0], element, widget, onDragEnd);
+            }, this.options.touchDelay);
+        };
+
+        const touchCancelHandler = () => {
+            if (this.touchTimer) {
+                clearTimeout(this.touchTimer);
+                this.touchTimer = null;
+            }
+        };
+
+        dragHandle.addEventListener('mousedown', mouseDownHandler);
+        dragHandle.addEventListener('touchstart', touchStartHandler, { passive: false });
+        dragHandle.addEventListener('touchcancel', touchCancelHandler);
+        dragHandle.addEventListener('touchend', touchCancelHandler);
+
+        // Store handlers for cleanup
+        this.dragHandlers.set(element, {
+            mouseDownHandler,
+            touchStartHandler,
+            touchCancelHandler,
+            dragHandle
+        });
+
+        // Add draggable cursor
+        dragHandle.style.cursor = 'grab';
+    }
+
+    /**
+     * Remove drag functionality from a widget element
+     * @param {HTMLElement} element - Widget DOM element
+     */
+    destroyWidget(element) {
+        const handlers = this.dragHandlers.get(element);
+        if (!handlers) return;
+
+        const { dragHandle, mouseDownHandler, touchStartHandler, touchCancelHandler } = handlers;
+
+        dragHandle.removeEventListener('mousedown', mouseDownHandler);
+        dragHandle.removeEventListener('touchstart', touchStartHandler);
+        dragHandle.removeEventListener('touchcancel', touchCancelHandler);
+        dragHandle.removeEventListener('touchend', touchCancelHandler);
+
+        this.dragHandlers.delete(element);
+    }
+
+    /**
+     * Start drag operation
+     * @param {MouseEvent|Touch} e - Pointer event
+     * @param {HTMLElement} element - Element being dragged
+     * @param {Object} widget - Widget data
+     * @param {Function} onDragEnd - Callback when drag completes
+     */
+    startDrag(e, element, widget, onDragEnd) {
+        // Calculate pointer offset from element top-left
+        const rect = element.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+
+        // Create ghost element
+        const ghost = this.createGhost(element);
+
+        this.dragState = {
+            element,
+            widget: { ...widget }, // Clone widget data
+            startX: e.clientX,
+            startY: e.clientY,
+            offsetX,
+            offsetY,
+            ghost,
+            isDragging: true,
+            onDragEnd
+        };
+
+        // Change cursor
+        const dragHandle = element.querySelector('.drag-handle') || element;
+        dragHandle.style.cursor = 'grabbing';
+
+        // Add event listeners
+        document.addEventListener('mousemove', this.boundMouseMove);
+        document.addEventListener('mouseup', this.boundMouseUp);
+        document.addEventListener('touchmove', this.boundTouchMove, { passive: false });
+        document.addEventListener('touchend', this.boundTouchEnd);
+        document.addEventListener('keydown', this.boundKeyDown);
+
+        // Show grid overlay if enabled
+        if (this.options.showGrid) {
+            this.showGridOverlay();
+        }
+
+        // Hide original element
+        element.style.opacity = '0.3';
+
+        console.log('[DragDrop] Started dragging widget:', widget.id);
+    }
+
+    /**
+     * Handle mouse move during drag
+     * @param {MouseEvent} e - Mouse event
+     */
+    onMouseMove(e) {
+        if (!this.dragState?.isDragging) return;
+        e.preventDefault();
+        this.updateDragPosition(e.clientX, e.clientY);
+    }
+
+    /**
+     * Handle touch move during drag
+     * @param {TouchEvent} e - Touch event
+     */
+    onTouchMove(e) {
+        if (!this.dragState?.isDragging) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        this.updateDragPosition(touch.clientX, touch.clientY);
+    }
+
+    /**
+     * Update drag position and visual feedback
+     * @param {number} clientX - Pointer X coordinate
+     * @param {number} clientY - Pointer Y coordinate
+     */
+    updateDragPosition(clientX, clientY) {
+        const { ghost, offsetX, offsetY, widget } = this.dragState;
+
+        // Position ghost at pointer
+        ghost.style.left = (clientX - offsetX) + 'px';
+        ghost.style.top = (clientY - offsetY) + 'px';
+
+        // Calculate grid position
+        const containerRect = this.gridEngine.container.getBoundingClientRect();
+        const relativeX = clientX - containerRect.left - offsetX;
+        const relativeY = clientY - containerRect.top - offsetY;
+
+        // Snap to grid
+        const snapped = this.gridEngine.snapToCell(relativeX, relativeY);
+
+        // Update widget position for collision detection
+        this.dragState.widget.x = snapped.x;
+        this.dragState.widget.y = snapped.y;
+
+        // Update grid overlay highlighting
+        if (this.gridOverlay) {
+            this.highlightGridCells(snapped.x, snapped.y, widget.w, widget.h);
+        }
+    }
+
+    /**
+     * Handle mouse up - end drag
+     * @param {MouseEvent} e - Mouse event
+     */
+    onMouseUp(e) {
+        if (!this.dragState?.isDragging) return;
+        e.preventDefault();
+        this.endDrag();
+    }
+
+    /**
+     * Handle touch end - end drag
+     * @param {TouchEvent} e - Touch event
+     */
+    onTouchEnd(e) {
+        if (!this.dragState?.isDragging) return;
+        e.preventDefault();
+        this.endDrag();
+    }
+
+    /**
+     * Handle keyboard during drag (Escape to cancel)
+     * @param {KeyboardEvent} e - Keyboard event
+     */
+    onKeyDown(e) {
+        if (!this.dragState?.isDragging) return;
+
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            this.cancelDrag();
+        }
+    }
+
+    /**
+     * End drag operation and commit position
+     */
+    endDrag() {
+        if (!this.dragState) return;
+
+        const { element, widget, onDragEnd } = this.dragState;
+
+        // Restore original element
+        element.style.opacity = '1';
+
+        // Change cursor back
+        const dragHandle = element.querySelector('.drag-handle') || element;
+        dragHandle.style.cursor = 'grab';
+
+        // Call callback with new position
+        if (onDragEnd) {
+            onDragEnd(widget, widget.x, widget.y);
+        }
+
+        this.cleanup();
+        console.log('[DragDrop] Drag completed:', widget.id, `(${widget.x}, ${widget.y})`);
+    }
+
+    /**
+     * Cancel drag operation and restore original position
+     */
+    cancelDrag() {
+        if (!this.dragState) return;
+
+        const { element } = this.dragState;
+
+        // Restore original element
+        element.style.opacity = '1';
+
+        // Change cursor back
+        const dragHandle = element.querySelector('.drag-handle') || element;
+        dragHandle.style.cursor = 'grab';
+
+        this.cleanup();
+        console.log('[DragDrop] Drag cancelled');
+    }
+
+    /**
+     * Cleanup after drag ends
+     */
+    cleanup() {
+        // Remove ghost element
+        if (this.dragState?.ghost) {
+            this.dragState.ghost.remove();
+        }
+
+        // Remove grid overlay
+        this.hideGridOverlay();
+
+        // Remove event listeners
+        document.removeEventListener('mousemove', this.boundMouseMove);
+        document.removeEventListener('mouseup', this.boundMouseUp);
+        document.removeEventListener('touchmove', this.boundTouchMove);
+        document.removeEventListener('touchend', this.boundTouchEnd);
+        document.removeEventListener('keydown', this.boundKeyDown);
+
+        // Clear touch timer
+        if (this.touchTimer) {
+            clearTimeout(this.touchTimer);
+            this.touchTimer = null;
+        }
+
+        this.dragState = null;
+    }
+
+    /**
+     * Create ghost/preview element
+     * @param {HTMLElement} element - Original element
+     * @returns {HTMLElement} Ghost element
+     */
+    createGhost(element) {
+        const ghost = element.cloneNode(true);
+        ghost.style.position = 'fixed';
+        ghost.style.opacity = this.options.ghostOpacity;
+        ghost.style.pointerEvents = 'none';
+        ghost.style.zIndex = '10000';
+        ghost.style.width = element.offsetWidth + 'px';
+        ghost.style.height = element.offsetHeight + 'px';
+        ghost.style.transition = 'none';
+        ghost.classList.add('drag-ghost');
+
+        document.body.appendChild(ghost);
+        return ghost;
+    }
+
+    /**
+     * Show grid overlay
+     */
+    showGridOverlay() {
+        if (this.gridOverlay) return;
+
+        this.gridOverlay = document.createElement('div');
+        this.gridOverlay.className = 'grid-overlay';
+        this.gridOverlay.style.position = 'absolute';
+        this.gridOverlay.style.top = '0';
+        this.gridOverlay.style.left = '0';
+        this.gridOverlay.style.width = '100%';
+        this.gridOverlay.style.height = '100%';
+        this.gridOverlay.style.pointerEvents = 'none';
+        this.gridOverlay.style.zIndex = '9999';
+
+        this.gridEngine.container.appendChild(this.gridOverlay);
+    }
+
+    /**
+     * Hide grid overlay
+     */
+    hideGridOverlay() {
+        if (this.gridOverlay) {
+            this.gridOverlay.remove();
+            this.gridOverlay = null;
+        }
+    }
+
+    /**
+     * Highlight grid cells where widget will be placed
+     * @param {number} x - Grid X coordinate
+     * @param {number} y - Grid Y coordinate
+     * @param {number} w - Widget width in grid units
+     * @param {number} h - Widget height in grid units
+     */
+    highlightGridCells(x, y, w, h) {
+        if (!this.gridOverlay) return;
+
+        // Clear previous highlights
+        this.gridOverlay.innerHTML = '';
+
+        // Get pixel positions for cells
+        const colWidth = (this.gridEngine.containerWidth - (this.gridEngine.gap * (this.gridEngine.columns + 1))) / this.gridEngine.columns;
+
+        for (let row = y; row < y + h; row++) {
+            for (let col = x; col < x + w; col++) {
+                const cell = document.createElement('div');
+                cell.style.position = 'absolute';
+                cell.style.left = (col * (colWidth + this.gridEngine.gap) + this.gridEngine.gap) + 'px';
+                cell.style.top = (row * (this.gridEngine.rowHeight + this.gridEngine.gap) + this.gridEngine.gap) + 'px';
+                cell.style.width = colWidth + 'px';
+                cell.style.height = this.gridEngine.rowHeight + 'px';
+                cell.style.backgroundColor = 'rgba(78, 204, 163, 0.3)';
+                cell.style.border = '2px solid rgba(78, 204, 163, 0.6)';
+                cell.style.borderRadius = '4px';
+                cell.style.boxSizing = 'border-box';
+
+                this.gridOverlay.appendChild(cell);
+            }
+        }
+    }
+
+    /**
+     * Check if current drag position has collisions
+     * @param {Array<Object>} widgets - Array of other widgets
+     * @returns {boolean} True if collision detected
+     */
+    hasCollision(widgets) {
+        if (!this.dragState) return false;
+
+        const { widget } = this.dragState;
+
+        // Filter out the widget being dragged
+        const otherWidgets = widgets.filter(w => w.id !== widget.id);
+
+        return this.gridEngine.detectCollision(widget, otherWidgets);
+    }
+
+    /**
+     * Get current drag state
+     * @returns {DragState|null} Current drag state or null
+     */
+    getDragState() {
+        return this.dragState;
+    }
+
+    /**
+     * Check if currently dragging
+     * @returns {boolean} True if drag in progress
+     */
+    isDragging() {
+        return this.dragState?.isDragging || false;
+    }
+
+    /**
+     * Destroy drag handler and cleanup
+     */
+    destroy() {
+        // Cancel any ongoing drag
+        if (this.isDragging()) {
+            this.cancelDrag();
+        }
+
+        // Remove all widget handlers
+        for (const element of this.dragHandlers.keys()) {
+            this.destroyWidget(element);
+        }
+
+        this.dragHandlers.clear();
+    }
+}
