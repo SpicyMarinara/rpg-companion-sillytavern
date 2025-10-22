@@ -1,0 +1,261 @@
+/**
+ * Default Dashboard Layout Generator
+ *
+ * Generates the default dashboard configuration for new users or when resetting layout.
+ * Maps existing v1.x panel structure to v2.0 widget dashboard.
+ */
+
+/**
+ * Generate default dashboard configuration
+ *
+ * Creates a two-tab layout:
+ * - "Status" tab: User stats, info box, present characters
+ * - "Inventory" tab: Full inventory widget
+ *
+ * @returns {Object} Default dashboard configuration
+ */
+export function generateDefaultDashboard() {
+    const dashboard = {
+        version: 2,
+
+        gridConfig: {
+            columns: 12,
+            rowHeight: 80,
+            gap: 12,
+            snapToGrid: true,
+            showGrid: true
+        },
+
+        tabs: [
+            {
+                id: 'tab-status',
+                name: 'Status',
+                icon: '📊',
+                order: 0,
+                widgets: [
+                    {
+                        id: 'widget-userstats',
+                        type: 'userStats',
+                        x: 0,
+                        y: 0,
+                        w: 6,
+                        h: 3,
+                        config: {
+                            showClassicStats: true,
+                            statBarStyle: 'gradient'
+                        }
+                    },
+                    {
+                        id: 'widget-infobox',
+                        type: 'infoBox',
+                        x: 6,
+                        y: 0,
+                        w: 6,
+                        h: 2,
+                        config: {
+                            layout: 'horizontal'
+                        }
+                    },
+                    {
+                        id: 'widget-presentchars',
+                        type: 'presentCharacters',
+                        x: 0,
+                        y: 3,
+                        w: 12,
+                        h: 3,
+                        config: {
+                            cardLayout: 'grid',
+                            showThoughtBubbles: true
+                        }
+                    }
+                ]
+            },
+            {
+                id: 'tab-inventory',
+                name: 'Inventory',
+                icon: '🎒',
+                order: 1,
+                widgets: [
+                    {
+                        id: 'widget-inventory',
+                        type: 'inventory',
+                        x: 0,
+                        y: 0,
+                        w: 12,
+                        h: 6,
+                        config: {
+                            defaultSubTab: 'onPerson',
+                            defaultViewMode: 'list'
+                        }
+                    }
+                ]
+            }
+        ],
+
+        defaultTab: 'tab-status'
+    };
+
+    console.log('[DefaultLayout] Generated default dashboard configuration');
+    return dashboard;
+}
+
+/**
+ * Migrate v1.x settings to v2.0 dashboard
+ *
+ * Converts existing hardcoded panel structure to widget-based layout.
+ * Preserves user's visibility preferences and data.
+ *
+ * @param {Object} oldSettings - v1.x extension settings
+ * @returns {Object} Migrated dashboard configuration
+ */
+export function migrateV1ToV2Dashboard(oldSettings) {
+    console.log('[DefaultLayout] Migrating v1.x settings to v2.0 dashboard');
+
+    const dashboard = generateDefaultDashboard();
+
+    // Respect user's visibility preferences from v1.x
+    const statusTab = dashboard.tabs[0];
+
+    // Remove widgets that were hidden in v1.x
+    if (!oldSettings.showUserStats) {
+        statusTab.widgets = statusTab.widgets.filter(w => w.type !== 'userStats');
+        console.log('[DefaultLayout] Removed userStats widget (was hidden in v1.x)');
+    }
+
+    if (!oldSettings.showInfoBox) {
+        statusTab.widgets = statusTab.widgets.filter(w => w.type !== 'infoBox');
+        console.log('[DefaultLayout] Removed infoBox widget (was hidden in v1.x)');
+    }
+
+    if (!oldSettings.showCharacterThoughts) {
+        statusTab.widgets = statusTab.widgets.filter(w => w.type !== 'presentCharacters');
+        console.log('[DefaultLayout] Removed presentCharacters widget (was hidden in v1.x)');
+    }
+
+    // Remove inventory tab if it was hidden in v1.x
+    if (!oldSettings.showInventory) {
+        dashboard.tabs = dashboard.tabs.filter(t => t.id !== 'tab-inventory');
+        console.log('[DefaultLayout] Removed inventory tab (was hidden in v1.x)');
+    }
+
+    // If all widgets were hidden on status tab, remove it too
+    if (statusTab.widgets.length === 0) {
+        dashboard.tabs = dashboard.tabs.filter(t => t.id !== 'tab-status');
+        console.log('[DefaultLayout] Removed status tab (all widgets were hidden)');
+
+        // If we still have inventory tab, make it default
+        if (dashboard.tabs.length > 0) {
+            dashboard.defaultTab = dashboard.tabs[0].id;
+        }
+    }
+
+    console.log(`[DefaultLayout] Migration complete - ${dashboard.tabs.length} tabs, ${dashboard.tabs.reduce((sum, t) => sum + t.widgets.length, 0)} widgets`);
+
+    return dashboard;
+}
+
+/**
+ * Validate dashboard configuration
+ *
+ * Ensures dashboard config has all required fields and valid structure.
+ *
+ * @param {Object} dashboard - Dashboard configuration to validate
+ * @returns {boolean} True if valid, false otherwise
+ */
+export function validateDashboardConfig(dashboard) {
+    if (!dashboard) {
+        console.error('[DefaultLayout] Dashboard config is null or undefined');
+        return false;
+    }
+
+    if (!dashboard.version) {
+        console.error('[DefaultLayout] Dashboard config missing version');
+        return false;
+    }
+
+    if (!dashboard.gridConfig) {
+        console.error('[DefaultLayout] Dashboard config missing gridConfig');
+        return false;
+    }
+
+    if (!Array.isArray(dashboard.tabs)) {
+        console.error('[DefaultLayout] Dashboard tabs is not an array');
+        return false;
+    }
+
+    // Validate each tab
+    for (const tab of dashboard.tabs) {
+        if (!tab.id || !tab.name) {
+            console.error('[DefaultLayout] Tab missing id or name:', tab);
+            return false;
+        }
+
+        if (!Array.isArray(tab.widgets)) {
+            console.error('[DefaultLayout] Tab widgets is not an array:', tab);
+            return false;
+        }
+
+        // Validate each widget
+        for (const widget of tab.widgets) {
+            if (!widget.id || !widget.type) {
+                console.error('[DefaultLayout] Widget missing id or type:', widget);
+                return false;
+            }
+
+            if (typeof widget.x !== 'number' || typeof widget.y !== 'number') {
+                console.error('[DefaultLayout] Widget position invalid:', widget);
+                return false;
+            }
+
+            if (typeof widget.w !== 'number' || typeof widget.h !== 'number') {
+                console.error('[DefaultLayout] Widget size invalid:', widget);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Get widget count in dashboard
+ *
+ * @param {Object} dashboard - Dashboard configuration
+ * @returns {number} Total number of widgets across all tabs
+ */
+export function getWidgetCount(dashboard) {
+    if (!dashboard || !Array.isArray(dashboard.tabs)) {
+        return 0;
+    }
+
+    return dashboard.tabs.reduce((sum, tab) => {
+        return sum + (Array.isArray(tab.widgets) ? tab.widgets.length : 0);
+    }, 0);
+}
+
+/**
+ * Find widget by ID across all tabs
+ *
+ * @param {Object} dashboard - Dashboard configuration
+ * @param {string} widgetId - Widget ID to find
+ * @returns {{tabIndex: number, widgetIndex: number, widget: Object}|null}
+ */
+export function findWidget(dashboard, widgetId) {
+    if (!dashboard || !Array.isArray(dashboard.tabs)) {
+        return null;
+    }
+
+    for (let tabIndex = 0; tabIndex < dashboard.tabs.length; tabIndex++) {
+        const tab = dashboard.tabs[tabIndex];
+        if (!Array.isArray(tab.widgets)) continue;
+
+        for (let widgetIndex = 0; widgetIndex < tab.widgets.length; widgetIndex++) {
+            const widget = tab.widgets[widgetIndex];
+            if (widget.id === widgetId) {
+                return { tabIndex, widgetIndex, widget };
+            }
+        }
+    }
+
+    return null;
+}
