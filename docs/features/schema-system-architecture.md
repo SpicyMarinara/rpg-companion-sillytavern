@@ -260,6 +260,45 @@ components:
         type: text
         label: "Background"
 
+# Progression tables for lookup() function
+tables:
+  proficiency_bonus:
+    1: 2
+    2: 2
+    3: 2
+    4: 2
+    5: 3
+    6: 3
+    7: 3
+    8: 3
+    9: 4
+    10: 4
+    11: 4
+    12: 4
+    13: 5
+    14: 5
+    15: 5
+    16: 5
+    17: 6
+    18: 6
+    19: 6
+    20: 6
+
+  spell_slots:
+    # Wizard spell slots by level and spell level
+    1: [2, 0, 0, 0, 0, 0, 0, 0, 0]
+    2: [3, 0, 0, 0, 0, 0, 0, 0, 0]
+    3: [4, 2, 0, 0, 0, 0, 0, 0, 0]
+    # ... more levels
+
+# Custom UI overrides (optional - for pixel-perfect layouts)
+customUI:
+  # Most components use dynamic generation
+  # Optionally override specific components with custom HTML/CSS
+  coreAbilities:
+    template: "custom-templates/dnd5e-abilities.html"
+    style: "custom-templates/dnd5e-abilities.css"
+
 # Prompt template for AI generation
 prompts:
   stats: |
@@ -458,7 +497,11 @@ extensionSettings.characterInstance = {
 
 ## Formula Engine
 
-### Formula Syntax
+### Formula Syntax (Enhanced)
+
+The formula engine supports progressively complex expressions to handle the wide range of TTRPG mechanics.
+
+#### Level 1: Basic Math and References
 
 ```javascript
 // @ references components in character instance
@@ -470,9 +513,54 @@ extensionSettings.characterInstance = {
 floor((@coreAbilities.strength - 10) / 2)  // → 3
 @coreAbilities.strength + 5                // → 21
 (@level * 2) + @abilityModifiers.con_mod   // → 8
+```
 
-// Conditional (future)
+#### Level 2: Conditional Logic
+
+```javascript
+// Ternary operator
 @coreAbilities.strength > 15 ? "Strong" : "Weak"
+
+// Complex conditions
+@coreAbilities.strength >= 13 && @coreAbilities.dexterity >= 13 ? 2 : 0
+
+// Nested conditionals
+@level >= 20 ? 6 : (@level >= 17 ? 5 : (@level >= 13 ? 4 : 3))
+```
+
+#### Level 3: Functions and Lookups
+
+```javascript
+// Built-in functions
+min(@coreAbilities.strength, @coreAbilities.dexterity)
+max(@resources.hitPoints.current, 0)
+clamp(@skills.stealth.value, 0, 20)
+
+// Boolean functions
+hasFeature("shield_master")
+hasTrait("undead")
+isProficient("athletics")
+
+// Table lookups (for complex progression tables)
+lookup("proficiency_bonus", @level)  // → Returns value from table
+lookup("spell_slots", @level, @spellcaster_class)
+
+// Array operations
+sum(@inventory.weapons.*.damage)
+count(@statusEffects)
+```
+
+#### Level 4: String Manipulation
+
+```javascript
+// String concatenation
+concat(@identity.firstName, " ", @identity.lastName)
+
+// String formatting
+format("Level {0} {1}", @level, @identity.class)
+
+// Conditional text
+@resources.hitPoints.current > 0 ? "Alive" : "Unconscious"
 ```
 
 ### Safe Expression Parser
@@ -536,12 +624,44 @@ export class FormulaEngine {
   // Safe evaluation (whitelist functions)
   safeEval(expression) {
     const allowedFunctions = {
+      // Math functions
       floor: Math.floor,
       ceil: Math.ceil,
       round: Math.round,
       abs: Math.abs,
       min: Math.min,
-      max: Math.max
+      max: Math.max,
+      pow: Math.pow,
+      sqrt: Math.sqrt,
+
+      // Utility functions
+      clamp: (val, min, max) => Math.max(min, Math.min(max, val)),
+
+      // Boolean functions (check character data)
+      hasFeature: (featureName) => {
+        return this.data.features?.some(f => f.name === featureName) || false;
+      },
+      hasTrait: (traitName) => {
+        return this.data.traits?.includes(traitName) || false;
+      },
+      isProficient: (skillName) => {
+        return this.data.skills?.find(s => s.name === skillName)?.proficient || false;
+      },
+
+      // Table lookup functions
+      lookup: (tableName, ...keys) => {
+        return this.lookupTable(tableName, keys);
+      },
+
+      // Array operations
+      sum: (array) => Array.isArray(array) ? array.reduce((a, b) => a + b, 0) : 0,
+      count: (array) => Array.isArray(array) ? array.length : 0,
+
+      // String functions
+      concat: (...strings) => strings.join(''),
+      format: (template, ...args) => {
+        return template.replace(/\{(\d+)\}/g, (match, index) => args[index] || '');
+      }
     };
 
     // Create sandboxed function
@@ -549,6 +669,31 @@ export class FormulaEngine {
 
     // Execute with whitelisted functions
     return func(...Object.values(allowedFunctions));
+  }
+
+  // Lookup value from a progression table defined in schema
+  lookupTable(tableName, keys) {
+    const tables = this.schema.tables || {};
+    const table = tables[tableName];
+
+    if (!table) {
+      console.warn(`[Formula Engine] Table not found: ${tableName}`);
+      return 0;
+    }
+
+    // Simple single-key lookup
+    if (keys.length === 1) {
+      return table[keys[0]] || 0;
+    }
+
+    // Multi-key lookup (for 2D tables)
+    let value = table;
+    for (const key of keys) {
+      value = value?.[key];
+      if (value === undefined) return 0;
+    }
+
+    return value;
   }
 
   // Clear cache (call when character data changes)
@@ -845,6 +990,541 @@ export class SchemaStorage {
     return jsyaml.load(yaml);
   }
 }
+```
+
+---
+
+## Custom UI Override System
+
+### Rationale
+
+While dynamic UI generation from schema definitions is powerful and efficient, some game systems benefit from highly stylized, pixel-perfect layouts that match their official character sheets. The Custom UI Override System allows schema authors to optionally provide custom HTML/CSS for specific components while maintaining the benefits of schema-driven data management.
+
+### Hybrid Approach
+
+```yaml
+# In system.yaml
+
+customUI:
+  # Override specific components with custom templates
+  coreAbilities:
+    template: "custom-templates/dnd5e-abilities.html"
+    style: "custom-templates/dnd5e-abilities.css"
+
+  # Other components use dynamic generation (default behavior)
+  # skills: (auto-generated)
+  # resources: (auto-generated)
+```
+
+### Custom Template Structure
+
+```html
+<!-- custom-templates/dnd5e-abilities.html -->
+<div class="dnd5e-abilities-grid">
+  <div class="ability-card" data-ability="strength">
+    <div class="ability-label">STR</div>
+    <div class="ability-score" data-bind="@coreAbilities.strength">10</div>
+    <div class="ability-modifier" data-bind="@abilityModifiers.str_mod">+0</div>
+  </div>
+
+  <div class="ability-card" data-ability="dexterity">
+    <div class="ability-label">DEX</div>
+    <div class="ability-score" data-bind="@coreAbilities.dexterity">10</div>
+    <div class="ability-modifier" data-bind="@abilityModifiers.dex_mod">+0</div>
+  </div>
+
+  <!-- More ability cards... -->
+</div>
+```
+
+```css
+/* custom-templates/dnd5e-abilities.css */
+.dnd5e-abilities-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.ability-card {
+  background: linear-gradient(135deg, #8B0000, #4A0000);
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.ability-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #FFD700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.ability-score {
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+  margin: 8px 0;
+}
+
+.ability-modifier {
+  font-size: 18px;
+  color: #AAA;
+}
+```
+
+### Data Binding
+
+Custom templates use `data-bind` attributes with the same `@` reference syntax as formulas:
+
+```javascript
+// src/systems/schema/customUIRenderer.js
+
+export class CustomUIRenderer {
+  constructor(schema, characterInstance, formulaEngine) {
+    this.schema = schema;
+    this.instance = characterInstance;
+    this.formulaEngine = formulaEngine;
+  }
+
+  // Render custom UI component
+  renderCustomComponent(componentName, container) {
+    const customUI = this.schema.customUI?.[componentName];
+
+    if (!customUI) {
+      // Fall back to dynamic generation
+      return false;
+    }
+
+    // Load custom template
+    const template = this.loadTemplate(customUI.template);
+    const style = this.loadStyle(customUI.style);
+
+    // Inject HTML
+    container.innerHTML = template;
+
+    // Inject CSS (scoped to this component)
+    this.injectScopedStyles(style, componentName);
+
+    // Bind data to template
+    this.bindData(container);
+
+    // Attach event listeners for editable fields
+    this.attachEditHandlers(container);
+
+    return true;
+  }
+
+  // Bind character data to [data-bind] attributes
+  bindData(container) {
+    const bindings = container.querySelectorAll('[data-bind]');
+
+    bindings.forEach(element => {
+      const reference = element.dataset.bind;
+
+      // Resolve @ reference
+      if (reference.startsWith('@')) {
+        const path = reference.substring(1);
+        const value = this.getValueByPath(path);
+
+        // Update element content
+        if (element.tagName === 'INPUT') {
+          element.value = value;
+        } else {
+          element.textContent = value;
+        }
+
+        // Store binding for updates
+        element.dataset.boundPath = path;
+      }
+    });
+  }
+
+  // Attach edit handlers to bound elements
+  attachEditHandlers(container) {
+    const editableElements = container.querySelectorAll('[data-bind][contenteditable]');
+
+    editableElements.forEach(element => {
+      element.addEventListener('blur', (e) => {
+        const path = e.target.dataset.boundPath;
+        const value = e.target.textContent.trim();
+
+        // Update character instance
+        this.setValueByPath(path, value);
+
+        // Re-calculate formulas
+        this.formulaEngine.invalidateCache();
+
+        // Re-render (to update any derived values)
+        this.bindData(container);
+      });
+    });
+  }
+
+  // Get value from character data by path
+  getValueByPath(path) {
+    const parts = path.split('.');
+    let value = this.instance.data;
+
+    for (const part of parts) {
+      value = value?.[part];
+    }
+
+    return value;
+  }
+
+  // Set value in character data by path
+  setValueByPath(path, value) {
+    const parts = path.split('.');
+    let obj = this.instance.data;
+
+    for (let i = 0; i < parts.length - 1; i++) {
+      obj = obj[parts[i]];
+    }
+
+    obj[parts[parts.length - 1]] = value;
+  }
+
+  // Load template file
+  loadTemplate(templatePath) {
+    // Fetch from schemas directory or bundled templates
+    // For now, placeholder implementation
+    return `<div>Custom template: ${templatePath}</div>`;
+  }
+
+  // Load and inject scoped CSS
+  injectScopedStyles(css, componentName) {
+    // Scope CSS to this component to avoid conflicts
+    const scopedCSS = this.scopeCSS(css, `[data-component="${componentName}"]`);
+
+    const style = document.createElement('style');
+    style.textContent = scopedCSS;
+    style.dataset.component = componentName;
+
+    // Remove old style if exists
+    document.querySelector(`style[data-component="${componentName}"]`)?.remove();
+
+    document.head.appendChild(style);
+  }
+
+  // Scope CSS rules to a specific selector
+  scopeCSS(css, scope) {
+    // Simple CSS scoping (could use postcss for production)
+    return css.replace(/([^\r\n,{}]+)(,(?=[^}]*{)|\s*{)/g, `${scope} $1$2`);
+  }
+}
+```
+
+### Benefits of Custom UI
+
+1. **Pixel-Perfect Replication** - Match official character sheet layouts exactly
+2. **Advanced Styling** - Use complex CSS effects, animations, gradients
+3. **Brand Identity** - Maintain game system's visual identity
+4. **Performance** - Static HTML faster than complex dynamic generation
+5. **Community Templates** - Share beautiful designs without coding
+
+### When to Use Custom UI
+
+- **Official character sheets** - When brand accuracy matters
+- **Complex visual layouts** - Intricate positioning, overlapping elements
+- **Themed experiences** - Cyberpunk neon, fantasy parchment, horror gothic
+- **Special components** - Character portraits, spell cards, inventory grids
+
+### When to Use Dynamic Generation
+
+- **Most components** - Skills lists, stats, resources
+- **Rapid prototyping** - Testing new game systems
+- **Flexible layouts** - Need to work on mobile and desktop
+- **Community schemas** - Easier to create without HTML/CSS knowledge
+
+---
+
+## Data Migration Strategy
+
+### Versioning System
+
+Every schema includes a version number, and character instances track which schema version they were created with. This enables automated migration when schemas are updated.
+
+```yaml
+# system.yaml
+meta:
+  name: "D&D 5th Edition"
+  version: "1.2.0"  # Semantic versioning
+  author: "RPG Companion Community"
+```
+
+```javascript
+// character.json
+{
+  schemaId: "dnd5e-v1.2.0",
+  schemaVersion: "1.2.0",
+  data: { /* character data */ }
+}
+```
+
+### Migration Functions
+
+Each schema can define migration functions to transform character data between versions:
+
+```yaml
+# system.yaml
+migrations:
+  - from: "1.0.0"
+    to: "1.1.0"
+    script: "migrations/1.0.0-to-1.1.0.js"
+
+  - from: "1.1.0"
+    to: "1.2.0"
+    script: "migrations/1.1.0-to-1.2.0.js"
+```
+
+### Migration Script Example
+
+```javascript
+// migrations/1.0.0-to-1.1.0.js
+
+/**
+ * Migration from v1.0.0 to v1.1.0
+ * Changes:
+ * - Renamed "classicStats" to "coreAbilities"
+ * - Added "abilityModifiers" as derived component
+ * - Changed spell slots from single number to object
+ */
+export function migrate_1_0_0_to_1_1_0(characterData) {
+  const migrated = { ...characterData };
+
+  // 1. Rename classicStats to coreAbilities
+  if (migrated.classicStats) {
+    migrated.coreAbilities = {
+      strength: migrated.classicStats.str,
+      dexterity: migrated.classicStats.dex,
+      constitution: migrated.classicStats.con,
+      intelligence: migrated.classicStats.int,
+      wisdom: migrated.classicStats.wis,
+      charisma: migrated.classicStats.cha
+    };
+    delete migrated.classicStats;
+  }
+
+  // 2. Initialize abilityModifiers (will be calculated by formulas)
+  migrated.abilityModifiers = {
+    str_mod: 0,
+    dex_mod: 0,
+    con_mod: 0,
+    int_mod: 0,
+    wis_mod: 0,
+    cha_mod: 0
+  };
+
+  // 3. Convert spell slots from number to object
+  if (migrated.resources?.spellSlots) {
+    const oldValue = migrated.resources.spellSlots;
+    migrated.resources.spellSlots = {
+      current: typeof oldValue === 'number' ? oldValue : 0,
+      max: typeof oldValue === 'number' ? oldValue : 0
+    };
+  }
+
+  return migrated;
+}
+```
+
+### Migration Manager
+
+```javascript
+// src/systems/schema/migrationManager.js
+
+export class MigrationManager {
+  constructor(schemaStorage) {
+    this.schemaStorage = schemaStorage;
+  }
+
+  // Check if character needs migration
+  async needsMigration(characterInstance, currentSchema) {
+    const charVersion = characterInstance.schemaVersion;
+    const schemaVersion = currentSchema.meta.version;
+
+    return charVersion !== schemaVersion;
+  }
+
+  // Migrate character to latest schema version
+  async migrateCharacter(characterInstance, currentSchema) {
+    const charVersion = characterInstance.schemaVersion;
+    const targetVersion = currentSchema.meta.version;
+
+    console.log(`[Migration] Migrating character from ${charVersion} to ${targetVersion}`);
+
+    // Get all migration steps needed
+    const migrationPath = this.getMigrationPath(
+      charVersion,
+      targetVersion,
+      currentSchema.migrations || []
+    );
+
+    if (migrationPath.length === 0) {
+      console.warn('[Migration] No migration path found');
+      return characterInstance; // Can't migrate
+    }
+
+    // Apply migrations sequentially
+    let migratedData = { ...characterInstance.data };
+
+    for (const migration of migrationPath) {
+      console.log(`[Migration] Applying: ${migration.from} → ${migration.to}`);
+
+      try {
+        // Load and execute migration script
+        const migrationFn = await this.loadMigration(migration.script);
+        migratedData = migrationFn(migratedData);
+      } catch (error) {
+        console.error('[Migration] Failed:', error);
+        throw new Error(`Migration failed at ${migration.from} → ${migration.to}: ${error.message}`);
+      }
+    }
+
+    // Update character instance
+    return {
+      ...characterInstance,
+      schemaVersion: targetVersion,
+      data: migratedData,
+      updatedAt: new Date().toISOString(),
+      migratedFrom: charVersion
+    };
+  }
+
+  // Find shortest migration path between versions
+  getMigrationPath(fromVersion, toVersion, migrations) {
+    // Build graph of migrations
+    const graph = new Map();
+
+    migrations.forEach(m => {
+      if (!graph.has(m.from)) {
+        graph.set(m.from, []);
+      }
+      graph.get(m.from).push(m);
+    });
+
+    // BFS to find shortest path
+    const queue = [[fromVersion, []]];
+    const visited = new Set([fromVersion]);
+
+    while (queue.length > 0) {
+      const [currentVersion, path] = queue.shift();
+
+      if (currentVersion === toVersion) {
+        return path; // Found path
+      }
+
+      const neighbors = graph.get(currentVersion) || [];
+
+      for (const migration of neighbors) {
+        if (!visited.has(migration.to)) {
+          visited.add(migration.to);
+          queue.push([migration.to, [...path, migration]]);
+        }
+      }
+    }
+
+    return []; // No path found
+  }
+
+  // Load migration script
+  async loadMigration(scriptPath) {
+    // Dynamic import of migration script
+    const module = await import(`/schemas/${scriptPath}`);
+
+    // Migration script should export a function named migrate_X_X_X_to_Y_Y_Y
+    const fnName = Object.keys(module).find(key => key.startsWith('migrate_'));
+
+    if (!fnName) {
+      throw new Error(`Migration script ${scriptPath} does not export a migration function`);
+    }
+
+    return module[fnName];
+  }
+
+  // Backup character before migration
+  async backupCharacter(characterInstance) {
+    const backup = {
+      ...characterInstance,
+      backedUpAt: new Date().toISOString()
+    };
+
+    // Save to separate backup store in IndexedDB
+    await this.schemaStorage.saveBackup(backup);
+
+    return backup;
+  }
+
+  // Restore character from backup
+  async restoreCharacter(backupId) {
+    return await this.schemaStorage.loadBackup(backupId);
+  }
+}
+```
+
+### Migration UI Flow
+
+```
+User loads character with old schema version
+    ↓
+App detects version mismatch
+    ↓
+Show migration prompt:
+┌─────────────────────────────────────────┐
+│ Character Migration Required            │
+├─────────────────────────────────────────┤
+│ Your character "Ragnar" was created     │
+│ with schema version 1.0.0.              │
+│                                         │
+│ The current schema is version 1.2.0.   │
+│                                         │
+│ Changes in new version:                │
+│ • Renamed stats for consistency        │
+│ • Added ability modifiers              │
+│ • Improved spell slot tracking         │
+│                                         │
+│ A backup will be created automatically.│
+│                                         │
+│ [Cancel] [Migrate Character]           │
+└─────────────────────────────────────────┘
+    ↓
+Create backup
+    ↓
+Apply migration(s)
+    ↓
+Validate migrated data against new schema
+    ↓
+Show success message
+┌─────────────────────────────────────────┐
+│ Migration Successful! ✓                 │
+├─────────────────────────────────────────┤
+│ "Ragnar" has been updated to v1.2.0.   │
+│                                         │
+│ Backup saved: backup-2025-10-23.json   │
+│                                         │
+│ [View Backup] [Continue]               │
+└─────────────────────────────────────────┘
+```
+
+### Migration Best Practices
+
+1. **Always Create Backups** - Automatic backup before any migration
+2. **Sequential Migrations** - Chain small migrations (1.0→1.1→1.2) instead of big jumps
+3. **Validate After Migration** - Ensure migrated data passes schema validation
+4. **Provide Rollback** - Allow users to restore from backup if issues arise
+5. **Document Changes** - Clear changelog in migration prompt
+6. **Test Thoroughly** - Test migrations with real character data before release
+
+### Version Compatibility Matrix
+
+```javascript
+// In schema metadata
+compatibility:
+  minAppVersion: "2.0.0"    // Minimum RPG Companion version required
+  maxAppVersion: null       // No maximum (null = any version)
+  breaking: false           // Whether this is a breaking change
 ```
 
 ---
