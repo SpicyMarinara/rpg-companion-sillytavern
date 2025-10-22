@@ -140,10 +140,15 @@
             margin-top: 4px;
         }
 
-        /* Resize handles - hidden by default */
+        /* Resize handles - visible in edit mode */
         .resize-handles {
             opacity: 0;
             transition: opacity 0.2s;
+        }
+
+        /* Always show handles in edit mode, brighter on hover */
+        .edit-mode .resize-handles {
+            opacity: 0.6;
         }
 
         .edit-mode .widget:hover .resize-handles,
@@ -258,7 +263,8 @@
     <div class="hint">
         <strong>Features:</strong><br>
         • Click "Edit Layout" to enter edit mode<br>
-        • In edit mode: drag widgets, resize from corners/edges, delete widgets, add from library<br>
+        • In edit mode: <strong>green dots appear on widget corners/edges</strong> - drag them to resize<br>
+        • Click widget body to drag and reposition<br>
         • Click widgets in the library (left side) to add them<br>
         • Hover over widgets to see edit controls (settings ⚙ and delete ×)<br>
         • Click "Save" to commit changes or "Cancel" to discard<br>
