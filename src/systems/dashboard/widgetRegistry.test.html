@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WidgetRegistry Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #e94560;
+        }
+
+        .test-section {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .test-section h2 {
+            color: #4ecca3;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .test-result {
+            margin: 5px 0;
+            padding: 8px;
+            border-left: 3px solid #4ecca3;
+            background: #0f3460;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .test-result.pass {
+            border-color: #4ecca3;
+        }
+
+        .test-result.fail {
+            border-color: #e94560;
+            background: #2a0f1b;
+        }
+
+        .widget-preview {
+            margin-top: 10px;
+            padding: 10px;
+            background: #0f3460;
+            border: 1px solid #e94560;
+            border-radius: 5px;
+        }
+
+        .stats {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .controls {
+            margin-top: 15px;
+        }
+
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #d63651;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+
+        .badge.schema {
+            background: #e94560;
+        }
+
+        .badge.core {
+            background: #4ecca3;
+            color: #1a1a2e;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 WidgetRegistry Test Suite</h1>
+
+    <div class="test-section">
+        <h2>Test 1: Register Core Widgets</h2>
+        <div id="test1-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Register Schema Widgets</h2>
+        <div id="test2-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Get Widget by Type</h2>
+        <div id="test3-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Filter by Schema Availability</h2>
+        <div id="test4-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Unregister Widget</h2>
+        <div id="test5-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 6: Widget Rendering</h2>
+        <div id="test6-results"></div>
+        <div id="widget-preview" class="widget-preview"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Registry Statistics</h2>
+        <div id="stats" class="stats"></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="runAllTests()">🔄 Re-run All Tests</button>
+        <button onclick="clearRegistry()">🗑️ Clear Registry</button>
+    </div>
+
+    <script type="module">
+        import { WidgetRegistry } from './widgetRegistry.js';
+
+        let registry = new WidgetRegistry();
+
+        function pass(message) {
+            return `<div class="test-result pass">✓ ${message}</div>`;
+        }
+
+        function fail(message) {
+            return `<div class="test-result fail">✗ ${message}</div>`;
+        }
+
+        // Test 1: Register core widgets
+        function test1() {
+            const container = document.getElementById('test1-results');
+            container.innerHTML = '';
+
+            try {
+                registry.register('userStats', {
+                    name: 'User Stats',
+                    icon: '❤️',
+                    description: 'Health, energy, satiety, hygiene, arousal bars',
+                    minSize: { w: 2, h: 2 },
+                    defaultSize: { w: 4, h: 3 },
+                    requiresSchema: false,
+                    render: (container, config) => {
+                        container.innerHTML = '<div>User Stats Widget</div>';
+                    }
+                });
+                container.innerHTML += pass('Registered userStats widget');
+
+                registry.register('infoBox', {
+                    name: 'Info Box',
+                    icon: '📅',
+                    description: 'Date, weather, temperature, time, location',
+                    minSize: { w: 3, h: 2 },
+                    defaultSize: { w: 6, h: 2 },
+                    requiresSchema: false,
+                    render: (container) => {
+                        container.innerHTML = '<div>Info Box Widget</div>';
+                    }
+                });
+                container.innerHTML += pass('Registered infoBox widget');
+
+                registry.register('inventory', {
+                    name: 'Inventory',
+                    icon: '🎒',
+                    description: 'On Person, Stored, Assets',
+                    minSize: { w: 3, h: 3 },
+                    defaultSize: { w: 6, h: 4 },
+                    requiresSchema: false,
+                    render: (container) => {
+                        container.innerHTML = '<div>Inventory Widget</div>';
+                    }
+                });
+                container.innerHTML += pass('Registered inventory widget');
+
+            } catch (error) {
+                container.innerHTML += fail(`Error: ${error.message}`);
+            }
+        }
+
+        // Test 2: Register schema widgets
+        function test2() {
+            const container = document.getElementById('test2-results');
+            container.innerHTML = '';
+
+            try {
+                registry.register('skills', {
+                    name: 'Skills',
+                    icon: '⚔️',
+                    description: 'Schema-defined skills with progression',
+                    minSize: { w: 2, h: 3 },
+                    defaultSize: { w: 4, h: 4 },
+                    requiresSchema: true,
+                    render: (container) => {
+                        container.innerHTML = '<div>Skills Widget (requires schema)</div>';
+                    }
+                });
+                container.innerHTML += pass('Registered skills widget (requiresSchema: true)');
+
+                registry.register('relationships', {
+                    name: 'Relationships',
+                    icon: '💕',
+                    description: 'Character relationship tracker',
+                    minSize: { w: 3, h: 2 },
+                    defaultSize: { w: 6, h: 3 },
+                    requiresSchema: true,
+                    render: (container) => {
+                        container.innerHTML = '<div>Relationships Widget (requires schema)</div>';
+                    }
+                });
+                container.innerHTML += pass('Registered relationships widget (requiresSchema: true)');
+
+            } catch (error) {
+                container.innerHTML += fail(`Error: ${error.message}`);
+            }
+        }
+
+        // Test 3: Get widget by type
+        function test3() {
+            const container = document.getElementById('test3-results');
+            container.innerHTML = '';
+
+            const userStats = registry.get('userStats');
+            if (userStats && userStats.name === 'User Stats') {
+                container.innerHTML += pass(`Retrieved userStats: ${userStats.name}`);
+            } else {
+                container.innerHTML += fail('Failed to retrieve userStats');
+            }
+
+            const nonExistent = registry.get('nonExistent');
+            if (!nonExistent) {
+                container.innerHTML += pass('Correctly returned undefined for non-existent widget');
+            } else {
+                container.innerHTML += fail('Should return undefined for non-existent widget');
+            }
+        }
+
+        // Test 4: Filter by schema availability
+        function test4() {
+            const container = document.getElementById('test4-results');
+            container.innerHTML = '';
+
+            // Get widgets without schema
+            const noSchema = registry.getAvailable(false);
+            container.innerHTML += pass(`Without schema: ${noSchema.length} widgets available`);
+            noSchema.forEach(w => {
+                container.innerHTML += `<div class="test-result">${w.definition.icon} ${w.definition.name} <span class="badge core">CORE</span></div>`;
+            });
+
+            // Get widgets with schema
+            const withSchema = registry.getAvailable(true);
+            container.innerHTML += pass(`With schema: ${withSchema.length} widgets available`);
+            withSchema.forEach(w => {
+                const badge = w.definition.requiresSchema ?
+                    '<span class="badge schema">SCHEMA</span>' :
+                    '<span class="badge core">CORE</span>';
+                container.innerHTML += `<div class="test-result">${w.definition.icon} ${w.definition.name} ${badge}</div>`;
+            });
+
+            // Verify counts
+            const expectedNoSchema = 3; // userStats, infoBox, inventory
+            const expectedWithSchema = 5; // all widgets
+            if (noSchema.length === expectedNoSchema) {
+                container.innerHTML += pass(`Correct count without schema: ${expectedNoSchema}`);
+            } else {
+                container.innerHTML += fail(`Wrong count without schema: ${noSchema.length} (expected ${expectedNoSchema})`);
+            }
+
+            if (withSchema.length === expectedWithSchema) {
+                container.innerHTML += pass(`Correct count with schema: ${expectedWithSchema}`);
+            } else {
+                container.innerHTML += fail(`Wrong count with schema: ${withSchema.length} (expected ${expectedWithSchema})`);
+            }
+        }
+
+        // Test 5: Unregister widget
+        function test5() {
+            const container = document.getElementById('test5-results');
+            container.innerHTML = '';
+
+            const countBefore = registry.count();
+            container.innerHTML += `<div class="test-result">Registry has ${countBefore} widgets before unregister</div>`;
+
+            const removed = registry.unregister('inventory');
+            if (removed) {
+                container.innerHTML += pass('Successfully unregistered inventory widget');
+            } else {
+                container.innerHTML += fail('Failed to unregister inventory widget');
+            }
+
+            const countAfter = registry.count();
+            if (countAfter === countBefore - 1) {
+                container.innerHTML += pass(`Registry now has ${countAfter} widgets`);
+            } else {
+                container.innerHTML += fail(`Wrong count after unregister: ${countAfter}`);
+            }
+
+            const gone = registry.get('inventory');
+            if (!gone) {
+                container.innerHTML += pass('Inventory widget no longer retrievable');
+            } else {
+                container.innerHTML += fail('Inventory widget still exists!');
+            }
+        }
+
+        // Test 6: Widget rendering
+        function test6() {
+            const container = document.getElementById('test6-results');
+            const preview = document.getElementById('widget-preview');
+            container.innerHTML = '';
+            preview.innerHTML = '';
+
+            const userStats = registry.get('userStats');
+            if (userStats) {
+                try {
+                    userStats.render(preview, {});
+                    container.innerHTML += pass('Successfully rendered userStats widget');
+                } catch (error) {
+                    container.innerHTML += fail(`Render error: ${error.message}`);
+                }
+            } else {
+                container.innerHTML += fail('userStats widget not found');
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            const statsContainer = document.getElementById('stats');
+            const stats = registry.getStats();
+
+            statsContainer.innerHTML = `
+                <div><strong>Total Widgets:</strong> ${stats.total}</div>
+                <div><strong>Requires Schema:</strong> ${stats.requiresSchema}</div>
+                <div><strong>No Schema Required:</strong> ${stats.noSchema}</div>
+                <div><strong>Registered Types:</strong> ${stats.types.join(', ')}</div>
+            `;
+        }
+
+        // Run all tests
+        window.runAllTests = function() {
+            // Re-create registry for fresh tests
+            registry = new WidgetRegistry();
+
+            test1();
+            test2();
+            test3();
+            test4();
+            test5();
+            test6();
+            updateStats();
+        };
+
+        // Clear registry
+        window.clearRegistry = function() {
+            const count = registry.clear();
+            alert(`Cleared ${count} widgets from registry`);
+            updateStats();
+        };
+
+        // Run tests on load
+        runAllTests();
+    </script>
+</body>
+</html>
