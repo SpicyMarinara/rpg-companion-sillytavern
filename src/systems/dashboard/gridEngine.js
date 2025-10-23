@@ -12,16 +12,17 @@ export class GridEngine {
      * Initialize grid engine with configuration
      *
      * @param {Object} config - Grid configuration
-     * @param {number} [config.rowHeight=80] - Height of each row in pixels
-     * @param {number} [config.gap=12] - Gap between widgets in pixels
+     * @param {number} [config.rowHeight=5] - Height of each row in rem units
+     * @param {number} [config.gap=0.75] - Gap between widgets in rem units
      * @param {boolean} [config.snapToGrid=true] - Enable auto-snapping to grid
      * @param {HTMLElement} [config.container=null] - Container element
      */
     constructor(config = {}) {
         // Start with 2 columns (safest default for side panel)
         this.columns = 2;
-        this.rowHeight = config.rowHeight || 80;
-        this.gap = config.gap || 12;
+        // Use rem for responsive sizing across all resolutions (1080p, 4K, mobile)
+        this.rowHeight = config.rowHeight || 5; // rem (was 80px)
+        this.gap = config.gap || 0.75; // rem (was 12px)
         this.snapToGrid = config.snapToGrid !== false;
         this.container = config.container || null;
 
@@ -33,10 +34,30 @@ export class GridEngine {
 
         console.log('[GridEngine] Initialized:', {
             columns: this.columns,
-            rowHeight: this.rowHeight,
-            gap: this.gap,
+            rowHeight: this.rowHeight + 'rem',
+            gap: this.gap + 'rem',
             snapToGrid: this.snapToGrid
         });
+    }
+
+    /**
+     * Convert rem to pixels using current browser font size
+     * @param {number} rem - Value in rem units
+     * @returns {number} Value in pixels
+     */
+    remToPixels(rem) {
+        const fontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return rem * fontSize;
+    }
+
+    /**
+     * Convert pixels to rem using current browser font size
+     * @param {number} pixels - Value in pixels
+     * @returns {number} Value in rem
+     */
+    pixelsToRem(pixels) {
+        const fontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return pixels / fontSize;
     }
 
     /**
@@ -101,6 +122,7 @@ export class GridEngine {
      *
      * Converts grid-based widget position (x, y, w, h) to actual pixel values
      * (left, top, width, height) for CSS positioning.
+     * Note: rowHeight and gap are stored in rem, converted to pixels here.
      *
      * @param {Object} widget - Widget with grid coordinates
      * @param {number} widget.x - Grid column position (0-based)
@@ -121,24 +143,28 @@ export class GridEngine {
             this.columns = this.calculateColumns(350); // Recalculate columns for fallback
         }
 
+        // Convert rem to pixels for calculations
+        const gapPx = this.remToPixels(this.gap);
+        const rowHeightPx = this.remToPixels(this.rowHeight);
+
         // Calculate column width
         // Formula: (containerWidth - gaps) / columns
         // Gaps: (columns + 1) gaps total (one before each column + one after last)
-        const totalGaps = this.gap * (this.columns + 1);
+        const totalGaps = gapPx * (this.columns + 1);
         const colWidth = (this.containerWidth - totalGaps) / this.columns;
 
         // Calculate positions
         // Left: x columns * (colWidth + gap) + initial gap
-        const left = widget.x * (colWidth + this.gap) + this.gap;
+        const left = widget.x * (colWidth + gapPx) + gapPx;
 
         // Top: y rows * (rowHeight + gap) + initial gap
-        const top = widget.y * (this.rowHeight + this.gap) + this.gap;
+        const top = widget.y * (rowHeightPx + gapPx) + gapPx;
 
         // Width: w columns * colWidth + (w - 1) inner gaps
-        const width = widget.w * colWidth + (widget.w - 1) * this.gap;
+        const width = widget.w * colWidth + (widget.w - 1) * gapPx;
 
         // Height: h rows * rowHeight + (h - 1) inner gaps
-        const height = widget.h * this.rowHeight + (widget.h - 1) * this.gap;
+        const height = widget.h * rowHeightPx + (widget.h - 1) * gapPx;
 
         return { left, top, width, height };
     }
@@ -187,11 +213,6 @@ export class GridEngine {
             colWidthPercent: colWidthPercent.toFixed(2) + '%'
         });
 
-        // Calculate row height in vh for vertical scaling
-        const viewportHeight = window.innerHeight;
-        const rowHeightVh = (this.rowHeight / viewportHeight) * 100;
-        const gapVh = (this.gap / viewportHeight) * 100;
-
         // Calculate positions
         // Horizontal: % of container (since widgets are absolutely positioned within container)
         const left = widget.x * (colWidthPercent + gapPercent) + gapPercent;
@@ -203,15 +224,16 @@ export class GridEngine {
             formula: `${widget.w} * ${colWidthPercent.toFixed(2)}% + ${widget.w - 1} * ${gapPercent.toFixed(2)}%`
         });
 
-        // Vertical: vh units (scales with viewport height)
-        const top = widget.y * (rowHeightVh + gapVh) + gapVh;
-        const height = widget.h * rowHeightVh + (widget.h - 1) * gapVh;
+        // Vertical: rem units (scales across all resolutions - 1080p, 4K, mobile)
+        // rem scales with browser font size, which adapts to screen DPI
+        const top = widget.y * (this.rowHeight + this.gap) + this.gap;
+        const height = widget.h * this.rowHeight + (widget.h - 1) * this.gap;
 
         return {
             left: `${left.toFixed(2)}%`,
-            top: `${top.toFixed(2)}vh`,
+            top: `${top.toFixed(2)}rem`,
             width: `${width.toFixed(2)}%`,
-            height: `${height.toFixed(2)}vh`
+            height: `${height.toFixed(2)}rem`
         };
     }
 
@@ -250,15 +272,19 @@ export class GridEngine {
             this.columns = this.calculateColumns(350); // Recalculate columns for fallback
         }
 
+        // Convert rem to pixels for calculations
+        const gapPx = this.remToPixels(this.gap);
+        const rowHeightPx = this.remToPixels(this.rowHeight);
+
         // Calculate column width
-        const totalGaps = this.gap * (this.columns + 1);
+        const totalGaps = gapPx * (this.columns + 1);
         const colWidth = (this.containerWidth - totalGaps) / this.columns;
 
         // Convert pixel to grid coordinates
         // Reverse of getPixelPosition formula
         // x = (pixelX - gap) / (colWidth + gap)
-        const x = Math.round((pixelX - this.gap) / (colWidth + this.gap));
-        const y = Math.round((pixelY - this.gap) / (this.rowHeight + this.gap));
+        const x = Math.round((pixelX - gapPx) / (colWidth + gapPx));
+        const y = Math.round((pixelY - gapPx) / (rowHeightPx + gapPx));
 
         // Clamp to valid grid bounds
         return {
@@ -370,7 +396,7 @@ export class GridEngine {
      * Calculate total grid height needed for all widgets
      *
      * @param {Array<Object>} widgets - Array of widgets
-     * @returns {number} Total height in pixels
+     * @returns {number} Total height in rem units
      */
     calculateGridHeight(widgets) {
         if (widgets.length === 0) return 0;
@@ -378,7 +404,7 @@ export class GridEngine {
         // Find the bottom-most widget
         const maxY = Math.max(...widgets.map(w => w.y + w.h));
 
-        // Calculate total height including gaps
+        // Calculate total height including gaps (in rem)
         return maxY * (this.rowHeight + this.gap) + this.gap;
     }
 
@@ -386,37 +412,34 @@ export class GridEngine {
      * Auto-layout widgets to efficiently use all available space
      *
      * Packs widgets in reading order (left to right, top to bottom) with no gaps.
+     * Respects each widget's defined size - only repositions, doesn't resize.
      * Respects current column count (responsive to panel width).
-     * Scales widgets to maximize space usage while respecting minimum sizes.
      *
      * Strategy:
-     * 1. Sort widgets by area (largest first) for better packing
-     * 2. For each widget, try to fit full width (all columns)
-     * 3. If widget prefers smaller size, use that
-     * 4. Find first available position from top-left
-     * 5. Ensure no overlaps
+     * 1. Sort widgets (by area or preserve order if requested)
+     * 2. For each widget, keep its defined size (w, h)
+     * 3. Find first available position from top-left
+     * 4. Ensure no overlaps
+     * 5. If widget doesn't fit at preferred size, try narrower widths
      *
      * @param {Array<Object>} widgets - Array of widgets to auto-layout
      * @param {Object} options - Layout options
-     * @param {boolean} [options.preferFullWidth=true] - Prefer full-width widgets when possible
-     * @param {Object} [options.minSize={w:1, h:2}] - Minimum widget size
+     * @param {boolean} [options.preserveOrder=false] - Keep input order instead of sorting by area
      * @returns {Array<Object>} Re-positioned widgets (same array, modified in place)
      */
     autoLayout(widgets, options = {}) {
         if (widgets.length === 0) return widgets;
 
-        const preferFullWidth = options.preferFullWidth !== false;
-        const minSize = options.minSize || { w: 1, h: 2 };
+        const preserveOrder = options.preserveOrder || false;
 
         console.log('[GridEngine] Auto-layout started:', {
             widgetCount: widgets.length,
             columns: this.columns,
-            preferFullWidth,
-            minSize
+            preserveOrder
         });
 
-        // Sort widgets by area (largest first) for better packing efficiency
-        const sorted = [...widgets].sort((a, b) => {
+        // Sort widgets (or preserve input order for category-aware layout)
+        const sorted = preserveOrder ? [...widgets] : [...widgets].sort((a, b) => {
             const areaA = a.w * a.h;
             const areaB = b.w * b.h;
             if (areaB !== areaA) return areaB - areaA;
@@ -470,30 +493,19 @@ export class GridEngine {
 
         // Process each widget
         sorted.forEach(widget => {
-            // Determine optimal size for this widget
-            let targetW, targetH;
-
-            if (preferFullWidth) {
-                // Try to use full width when possible
-                targetW = this.columns;
-                targetH = widget.h;
-            } else {
-                // Keep original size or clamp to current column count
-                targetW = Math.min(widget.w, this.columns);
-                targetH = widget.h;
-            }
-
-            // Ensure minimum size
-            targetW = Math.max(minSize.w, Math.min(targetW, this.columns));
-            targetH = Math.max(minSize.h, targetH);
+            // Respect widget's defined size - only clamp to grid bounds
+            // Don't force sizes - widgets define their own optimal dimensions
+            let targetW = Math.min(widget.w, this.columns); // Clamp to column count
+            let targetH = widget.h; // Respect widget's height
 
             // Try to find position for preferred size
             let pos = findPosition(targetW, targetH);
 
             // If preferred size doesn't fit well, try smaller widths
-            if (pos.y > 100 && targetW > minSize.w) {
+            // (but never go below 1 column)
+            if (pos.y > 100 && targetW > 1) {
                 // Widget would be placed very far down, try narrower width
-                for (let tryW = targetW - 1; tryW >= minSize.w; tryW--) {
+                for (let tryW = targetW - 1; tryW >= 1; tryW--) {
                     const tryPos = findPosition(tryW, targetH);
                     if (tryPos.y < pos.y) {
                         // Found better position with narrower width

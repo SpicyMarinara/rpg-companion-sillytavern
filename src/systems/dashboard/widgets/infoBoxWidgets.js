@@ -191,6 +191,7 @@ export function registerCalendarWidget(registry, dependencies) {
         name: 'Calendar',
         icon: '📅',
         description: 'Date, weekday, month, and year display',
+        category: 'scene',
         minSize: { w: 1, h: 2 },
         defaultSize: { w: 1, h: 2 },
         requiresSchema: false,
@@ -274,6 +275,7 @@ function attachCalendarHandlers(container, dependencies) {
  */
 export function registerWeatherWidget(registry, dependencies) {
     registry.register('weather', {
+        category: 'scene',
         name: 'Weather',
         icon: '🌤️',
         description: 'Weather emoji and forecast',
@@ -306,6 +308,7 @@ export function registerWeatherWidget(registry, dependencies) {
  */
 export function registerTemperatureWidget(registry, dependencies) {
     registry.register('temperature', {
+        category: 'scene',
         name: 'Temperature',
         icon: '🌡️',
         description: 'Temperature display with thermometer',
@@ -345,6 +348,7 @@ export function registerTemperatureWidget(registry, dependencies) {
  */
 export function registerClockWidget(registry, dependencies) {
     registry.register('clock', {
+        category: 'scene',
         name: 'Clock',
         icon: '🕐',
         description: 'Analog clock with time display',
@@ -393,6 +397,7 @@ export function registerClockWidget(registry, dependencies) {
  */
 export function registerLocationWidget(registry, dependencies) {
     registry.register('location', {
+        category: 'scene',
         name: 'Location',
         icon: '📍',
         description: 'Map with location display',

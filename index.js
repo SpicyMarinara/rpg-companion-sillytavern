@@ -518,10 +518,15 @@ async function initUI() {
             getFallbackAvatar: () => FALLBACK_AVATAR_DATA_URI,
             getAvatarUrl: (type, avatar) => getThumbnailUrl(type, avatar),
             getCharacterThoughts: () => extensionSettings.characterThoughts || '',
+            getInfoBoxData: () => extensionSettings.infoBoxData || 'Info Box\n---\n',
 
             // Data setters
             setCharacterThoughts: (value) => {
                 extensionSettings.characterThoughts = value;
+                saveSettings();
+            },
+            setInfoBoxData: (value) => {
+                extensionSettings.infoBoxData = value;
                 saveSettings();
             },
 

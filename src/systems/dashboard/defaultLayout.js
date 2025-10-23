@@ -24,8 +24,9 @@ export function generateDefaultDashboard() {
         gridConfig: {
             // Columns calculated dynamically by GridEngine (2-4 based on panel width)
             // Mobile: always 2, Desktop: 2-4 based on width
-            rowHeight: 80,
-            gap: 12,
+            columns: 2, // Default to 2 columns (will be recalculated on init)
+            rowHeight: 5, // rem units for responsive scaling (1080p → 4K → mobile)
+            gap: 0.75, // rem units (scales with screen DPI)
             snapToGrid: true,
             showGrid: true
         },
@@ -37,25 +38,56 @@ export function generateDefaultDashboard() {
                 icon: '📊',
                 order: 0,
                 widgets: [
-                    // Row 1: User Stats (full width)
+                    // === USER CLUSTER (Top) ===
+                    // Row 0: User Info (avatar, name, level) - AT TOP
+                    {
+                        id: 'widget-userinfo',
+                        type: 'userInfo',
+                        x: 0,
+                        y: 0,
+                        w: 2,
+                        h: 1,
+                        config: {}
+                    },
+                    // Row 1-2: User Stats (health/energy bars)
                     {
                         id: 'widget-userstats',
                         type: 'userStats',
                         x: 0,
-                        y: 0,
+                        y: 1,
                         w: 2,
-                        h: 3,
+                        h: 2,
                         config: {
-                            showClassicStats: true,
-                            statBarStyle: 'gradient'
+                            statBarGradient: true
                         }
                     },
-                    // Row 2: Calendar (left) + Weather (right)
+                    // Row 3-4: User Mood (left) + User Attributes (right)
+                    {
+                        id: 'widget-usermood',
+                        type: 'userMood',
+                        x: 0,
+                        y: 3,
+                        w: 1,
+                        h: 1,
+                        config: {}
+                    },
+                    {
+                        id: 'widget-userattributes',
+                        type: 'userAttributes',
+                        x: 1,
+                        y: 3,
+                        w: 1,
+                        h: 2,
+                        config: {}
+                    },
+
+                    // === SCENE CLUSTER (Middle) ===
+                    // Row 5-6: Calendar (left) + Weather (right)
                     {
                         id: 'widget-calendar',
                         type: 'calendar',
                         x: 0,
-                        y: 3,
+                        y: 5,
                         w: 1,
                         h: 2,
                         config: {}
@@ -64,19 +96,19 @@ export function generateDefaultDashboard() {
                         id: 'widget-weather',
                         type: 'weather',
                         x: 1,
-                        y: 3,
+                        y: 5,
                         w: 1,
                         h: 2,
                         config: {
                             compact: false
                         }
                     },
-                    // Row 3: Temperature (left) + Clock (right)
+                    // Row 7-8: Temperature (left) + Clock (right)
                     {
                         id: 'widget-temperature',
                         type: 'temperature',
                         x: 0,
-                        y: 5,
+                        y: 7,
                         w: 1,
                         h: 2,
                         config: {
@@ -87,29 +119,31 @@ export function generateDefaultDashboard() {
                         id: 'widget-clock',
                         type: 'clock',
                         x: 1,
-                        y: 5,
+                        y: 7,
                         w: 1,
                         h: 2,
                         config: {
                             format: 'digital'
                         }
                     },
-                    // Row 4: Location (full width)
+                    // Row 9-10: Location (full width)
                     {
                         id: 'widget-location',
                         type: 'location',
                         x: 0,
-                        y: 7,
+                        y: 9,
                         w: 2,
                         h: 2,
                         config: {}
                     },
-                    // Row 5-6: Present Characters (full width)
+
+                    // === SOCIAL CLUSTER (Bottom) ===
+                    // Row 11-13: Present Characters (full width)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
-                        y: 9,
+                        y: 11,
                         w: 2,
                         h: 3,
                         config: {

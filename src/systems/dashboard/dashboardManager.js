@@ -48,8 +48,8 @@ export class DashboardManager {
         this.container = container;
         this.config = {
             columns: config.columns || 12,
-            rowHeight: config.rowHeight || 80,
-            gap: config.gap || 12,
+            rowHeight: config.rowHeight || 5, // rem units for responsive scaling
+            gap: config.gap || 0.75, // rem units for responsive scaling
             debounceMs: config.debounceMs || 500,
             onSave: config.onSave,
             onLoad: config.onLoad,
@@ -564,7 +564,11 @@ export class DashboardManager {
         this.dragHandler.initWidget(element, widget, (updated, newX, newY) => {
             widget.x = newX;
             widget.y = newY;
-            this.repositionWidget(element, widget);
+
+            // After drag (which may have triggered reflow), reposition ALL widgets
+            // because reflow may have moved other widgets
+            this.repositionAllWidgetsInCurrentTab();
+
             this.triggerAutoSave();
         }, allWidgets);
 
@@ -648,6 +652,185 @@ export class DashboardManager {
             this.repositionWidget(widgetData.element, widgetData.widget);
         });
         console.log('[DashboardManager] Repositioned all widgets');
+    }
+
+    /**
+     * Reposition all widgets in the current tab
+     * Used after drag/drop reflow to update positions of all affected widgets
+     */
+    repositionAllWidgetsInCurrentTab() {
+        const currentTab = this.tabManager.getTab(this.currentTabId);
+        if (!currentTab) return;
+
+        // Reposition each widget in the current tab
+        currentTab.widgets.forEach((widget) => {
+            const widgetData = this.widgets.get(widget.id);
+            if (widgetData && widgetData.element) {
+                this.repositionWidget(widgetData.element, widget);
+            }
+        });
+
+        console.log('[DashboardManager] Repositioned all widgets in current tab after reflow');
+    }
+
+    /**
+     * Estimate total height needed for widgets if laid out
+     * Simple estimation: sum all widget heights + gaps
+     *
+     * @param {Array<Object>} widgets - Widgets to estimate
+     * @returns {number} Estimated height in rem
+     */
+    estimateLayoutHeight(widgets) {
+        if (widgets.length === 0) return 0;
+
+        // Sum all heights (widgets are already in rem units)
+        const totalHeight = widgets.reduce((sum, w) => sum + w.h, 0);
+
+        // Add gaps (rowHeight + gap between each widget)
+        const gaps = (widgets.length - 1) * this.gridEngine.gap;
+
+        return totalHeight * this.gridEngine.rowHeight + gaps;
+    }
+
+    /**
+     * Distribute widgets across multiple tabs by category
+     * Creates category-based tabs: Status, Social, Inventory
+     *
+     * @param {Array<Object>} widgets - All widgets to distribute
+     */
+    distributeWidgetsByCategory(widgets) {
+        console.log('[DashboardManager] Distributing widgets across multiple tabs');
+
+        // Group widgets by category
+        const groups = {
+            user: [],
+            scene: [],
+            social: [],
+            inventory: []
+        };
+
+        widgets.forEach(widget => {
+            const def = this.registry.get(widget.type);
+            const category = def?.category || 'user';
+            if (groups[category]) {
+                groups[category].push(widget);
+            } else {
+                groups.user.push(widget); // Fallback to user
+            }
+        });
+
+        // Clear existing tabs
+        this.dashboard.tabs = [];
+
+        // Create Status tab (user + scene)
+        const statusWidgets = [...groups.user, ...groups.scene];
+        if (statusWidgets.length > 0) {
+            this.dashboard.tabs.push({
+                id: 'tab-status',
+                name: 'Status',
+                icon: '📊',
+                order: 0,
+                widgets: statusWidgets
+            });
+
+            // Auto-layout status widgets
+            this.gridEngine.autoLayout(statusWidgets, { preserveOrder: true });
+        }
+
+        // Create Social tab if there are social widgets
+        if (groups.social.length > 0) {
+            this.dashboard.tabs.push({
+                id: 'tab-social',
+                name: 'Social',
+                icon: '👥',
+                order: 1,
+                widgets: groups.social
+            });
+
+            // Auto-layout social widgets
+            this.gridEngine.autoLayout(groups.social, { preserveOrder: true });
+        }
+
+        // Create Inventory tab if there are inventory widgets
+        if (groups.inventory.length > 0) {
+            this.dashboard.tabs.push({
+                id: 'tab-inventory',
+                name: 'Inventory',
+                icon: '🎒',
+                order: 2,
+                widgets: groups.inventory
+            });
+
+            // Auto-layout inventory widgets
+            this.gridEngine.autoLayout(groups.inventory, { preserveOrder: true });
+        }
+
+        console.log('[DashboardManager] Created', this.dashboard.tabs.length, 'tabs');
+
+        // Re-render tabs and switch to first tab
+        this.renderTabs();
+        if (this.dashboard.tabs.length > 0) {
+            this.switchTab(this.dashboard.tabs[0].id);
+        }
+
+        // Save layout
+        this.triggerAutoSave();
+    }
+
+    /**
+     * Sort widgets by category for logical auto-layout
+     * Groups: user → scene → social → inventory
+     * Within groups, maintains smart ordering (e.g., userInfo before userStats)
+     *
+     * @param {Array<Object>} widgets - Widgets to sort
+     * @returns {Array<Object>} Sorted widgets
+     */
+    sortWidgetsByCategory(widgets) {
+        // Category priority order
+        const categoryOrder = {
+            'user': 1,
+            'scene': 2,
+            'social': 3,
+            'inventory': 4,
+            'other': 5
+        };
+
+        // Specific widget type ordering within user category
+        const userWidgetOrder = {
+            'userInfo': 1,      // Name/level at top
+            'userStats': 2,     // Health/energy bars
+            'userMood': 3,      // Mood
+            'userAttributes': 4 // STR/DEX/etc
+        };
+
+        return [...widgets].sort((a, b) => {
+            // Get widget definitions from registry
+            const defA = this.registry.get(a.type);
+            const defB = this.registry.get(b.type);
+
+            const catA = defA?.category || 'other';
+            const catB = defB?.category || 'other';
+
+            // Sort by category first
+            const catOrderA = categoryOrder[catA] || 999;
+            const catOrderB = categoryOrder[catB] || 999;
+
+            if (catOrderA !== catOrderB) {
+                return catOrderA - catOrderB;
+            }
+
+            // Within user category, use specific ordering
+            if (catA === 'user' && catB === 'user') {
+                const orderA = userWidgetOrder[a.type] || 999;
+                const orderB = userWidgetOrder[b.type] || 999;
+                if (orderA !== orderB) {
+                    return orderA - orderB;
+                }
+            }
+
+            // Otherwise maintain original order
+            return 0;
+        });
     }
 
     /**
@@ -862,6 +1045,22 @@ export class DashboardManager {
     applyDashboardConfig(config) {
         console.log('[DashboardManager] Applying dashboard config');
 
+        // Update grid config from dashboard config
+        if (config.gridConfig) {
+            this.config.rowHeight = config.gridConfig.rowHeight || this.config.rowHeight;
+            this.config.gap = config.gridConfig.gap || this.config.gap;
+
+            // Update gridEngine with new config
+            if (this.gridEngine) {
+                this.gridEngine.rowHeight = this.config.rowHeight;
+                this.gridEngine.gap = this.config.gap;
+                console.log('[DashboardManager] Updated grid config:', {
+                    rowHeight: this.config.rowHeight + 'rem',
+                    gap: this.config.gap + 'rem'
+                });
+            }
+        }
+
         // Clear existing
         this.clearGrid();
 
@@ -951,8 +1150,19 @@ export class DashboardManager {
             return;
         }
 
+        console.log('[DashboardManager] Resetting to default layout...');
+        console.log('[DashboardManager] Default layout has:', this.defaultLayout.tabs.length, 'tabs');
+        this.defaultLayout.tabs.forEach(tab => {
+            console.log(`[DashboardManager]   Tab "${tab.name}" (${tab.id}):`, tab.widgets.length, 'widgets');
+        });
+
         await this.persistence.resetToDefault(this.defaultLayout);
         this.applyDashboardConfig(this.defaultLayout);
+
+        // Force re-render tabs
+        this.renderTabs();
+
+        console.log('[DashboardManager] Reset complete');
     }
 
     /**
@@ -983,12 +1193,31 @@ export class DashboardManager {
             return;
         }
 
-        // Run auto-layout algorithm on widgets
-        const widgetsToLayout = [...currentTab.widgets];
-        this.gridEngine.autoLayout(widgetsToLayout, options);
+        // Smart category-aware sorting BEFORE auto-layout
+        const widgetsToLayout = this.sortWidgetsByCategory(currentTab.widgets);
 
-        // Update tab widgets with new positions
-        currentTab.widgets = widgetsToLayout;
+        // Calculate estimated height to determine if multi-tab distribution is needed
+        const estimatedHeight = this.estimateLayoutHeight(widgetsToLayout);
+        const heightThreshold = 80; // rem - reasonable max height for single tab
+
+        console.log('[DashboardManager] Estimated height:', estimatedHeight + 'rem', 'Threshold:', heightThreshold + 'rem');
+
+        // If widgets fit comfortably, use single-tab auto-layout
+        if (estimatedHeight <= heightThreshold) {
+            console.log('[DashboardManager] Using single-tab auto-layout');
+
+            // Run auto-layout algorithm on pre-sorted widgets
+            // (gridEngine will preserve this logical order instead of sorting by area)
+            this.gridEngine.autoLayout(widgetsToLayout, { preserveOrder: true });
+
+            // Update tab widgets with new positions
+            currentTab.widgets = widgetsToLayout;
+        } else {
+            // Too many widgets - distribute across multiple tabs by category
+            console.log('[DashboardManager] Height exceeds threshold, using multi-tab distribution');
+            this.distributeWidgetsByCategory(widgetsToLayout);
+            return; // distributeWidgetsByCategory handles rendering
+        }
 
         // Re-render all widgets with new positions
         this.clearGrid();

@@ -282,46 +282,19 @@ export class DragDropHandler {
         const collision = this.gridEngine.detectCollision(widget, otherWidgets);
 
         if (collision) {
-            // Find which widget we collided with
-            const collidedWidget = otherWidgets.find(other => {
-                return !(
-                    widget.x + widget.w <= other.x ||
-                    widget.x >= other.x + other.w ||
-                    widget.y + widget.h <= other.y ||
-                    widget.y >= other.y + other.h
-                );
-            });
+            console.log('[DragDrop] Collision detected, pushing widgets aside and reflowing');
 
-            // If same size, swap positions
-            if (collidedWidget && widget.w === collidedWidget.w && widget.h === collidedWidget.h) {
-                console.log('[DragDrop] Swapping positions with:', collidedWidget.id);
-                const tempX = collidedWidget.x;
-                const tempY = collidedWidget.y;
-                collidedWidget.x = widget.x;
-                collidedWidget.y = widget.y;
-                widget.x = tempX;
-                widget.y = tempY;
+            // Instead of reverting, reflow all widgets to push collisions aside
+            // The reflow algorithm will automatically push overlapping widgets down
+            const allWidgets = [widget, ...otherWidgets];
+            this.gridEngine.reflow(allWidgets);
 
-                // Call callback with swapped position
-                if (onDragEnd) {
-                    onDragEnd(widget, widget.x, widget.y);
-                }
-            } else {
-                // Different sizes or multiple collisions - revert to original
-                console.warn('[DragDrop] Collision detected, reverting to original position');
-                widget.x = originalX;
-                widget.y = originalY;
+            console.log('[DragDrop] Reflow complete, widget at:', widget.x, widget.y);
+        }
 
-                // Call callback with original position (no change)
-                if (onDragEnd) {
-                    onDragEnd(widget, widget.x, widget.y);
-                }
-            }
-        } else {
-            // No collision, commit new position
-            if (onDragEnd) {
-                onDragEnd(widget, widget.x, widget.y);
-            }
+        // Always commit the position (either the dropped position or reflowed position)
+        if (onDragEnd) {
+            onDragEnd(widget, widget.x, widget.y);
         }
 
         this.cleanup();

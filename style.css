@@ -1179,6 +1179,13 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+
+    /* Unified widget styling - consistent look for all widgets */
+    background: rgba(0, 0, 0, 0.2);
+    border-left: 3px solid var(--rpg-highlight);
+    border-radius: 0.5rem;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+    padding: 0.5rem;
 }
 
 .rpg-widget > * {
