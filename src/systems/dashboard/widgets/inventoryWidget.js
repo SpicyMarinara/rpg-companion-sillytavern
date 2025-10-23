@@ -62,8 +62,8 @@ export function registerInventoryWidget(registry, dependencies) {
         name: 'Inventory',
         icon: '🎒',
         description: 'Full inventory system with On Person, Stored, and Assets',
-        minSize: { w: 6, h: 4 },
-        defaultSize: { w: 8, h: 6 },
+        minSize: { w: 2, h: 4 },
+        defaultSize: { w: 2, h: 6 },
         requiresSchema: false,
 
         render(container, config = {}) {

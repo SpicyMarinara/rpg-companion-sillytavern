@@ -8,7 +8,7 @@
 import { extensionName } from '../../core/config.js';
 import { extensionSettings } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
-import { renderExtensionTemplateAsync } from '../../../../../extensions.js';
+import { renderExtensionTemplateAsync } from '../../../../../../extensions.js';
 import { DashboardManager } from './dashboardManager.js';
 import { WidgetRegistry } from './widgetRegistry.js';
 
@@ -136,6 +136,10 @@ function getInlineDashboardTemplate() {
                     <div id="rpg-dashboard-tabs" class="rpg-dashboard-tabs"></div>
                 </div>
                 <div class="rpg-dashboard-header-right">
+                    <button id="rpg-dashboard-auto-layout" class="rpg-dashboard-btn rpg-auto-layout-btn" title="Auto-Arrange Widgets">
+                        <i class="fa-solid fa-table-cells-large"></i>
+                        <span>Auto-Arrange</span>
+                    </button>
                     <button id="rpg-dashboard-edit-mode" class="rpg-dashboard-btn rpg-edit-mode-btn" title="Toggle Edit Mode">
                         <i class="fa-solid fa-pen-to-square"></i>
                         <span>Edit</span>
@@ -183,6 +187,17 @@ function registerAllWidgets(registry, dependencies) {
  * Set up dashboard event listeners
  */
 function setupDashboardEventListeners(dependencies) {
+    // Auto-layout button
+    const autoLayoutBtn = document.querySelector('#rpg-dashboard-auto-layout');
+    if (autoLayoutBtn) {
+        autoLayoutBtn.addEventListener('click', () => {
+            if (dashboardManager) {
+                console.log('[RPG Companion] Auto-layout button clicked');
+                dashboardManager.autoLayoutWidgets({ preferFullWidth: true });
+            }
+        });
+    }
+
     // Edit mode toggle
     const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
     if (editModeBtn) {
@@ -310,28 +325,32 @@ export function createDefaultLayout(manager) {
         return;
     }
 
-    console.log('[RPG Companion] Creating default dashboard layout...');
+    console.log('[RPG Companion] Creating default dashboard layout (2-column optimized)...');
 
     const mainTab = manager.tabManager.getActiveTabId();
 
-    // Add widgets with default positions
-    // Row 1: User Stats (left) + Calendar + Weather + Temperature + Clock (right)
-    manager.addWidget('userStats', mainTab, { x: 0, y: 0, w: 6, h: 4 });
-    manager.addWidget('calendar', mainTab, { x: 6, y: 0, w: 2, h: 2 });
-    manager.addWidget('weather', mainTab, { x: 8, y: 0, w: 3, h: 2 });
-    manager.addWidget('temperature', mainTab, { x: 11, y: 0, w: 2, h: 2 });
+    // Add widgets with 2-column layout positions
+    // Row 1-2: User Stats (full width)
+    manager.addWidget('userStats', mainTab, { x: 0, y: 0, w: 2, h: 3 });
 
-    // Row 2: Location (top right) + Clock (bottom right)
-    manager.addWidget('location', mainTab, { x: 6, y: 2, w: 6, h: 2 });
-    manager.addWidget('clock', mainTab, { x: 10, y: 2, w: 2, h: 2 });
+    // Row 3: Calendar (left) + Weather (right)
+    manager.addWidget('calendar', mainTab, { x: 0, y: 3, w: 1, h: 2 });
+    manager.addWidget('weather', mainTab, { x: 1, y: 3, w: 1, h: 2 });
 
-    // Row 3: Present Characters
-    manager.addWidget('presentCharacters', mainTab, { x: 0, y: 4, w: 12, h: 4 });
+    // Row 4: Temperature (left) + Clock (right)
+    manager.addWidget('temperature', mainTab, { x: 0, y: 5, w: 1, h: 2 });
+    manager.addWidget('clock', mainTab, { x: 1, y: 5, w: 1, h: 2 });
 
-    // Row 4: Inventory
-    manager.addWidget('inventory', mainTab, { x: 0, y: 8, w: 12, h: 6 });
+    // Row 5: Location (full width)
+    manager.addWidget('location', mainTab, { x: 0, y: 7, w: 2, h: 2 });
 
-    console.log('[RPG Companion] Default layout created');
+    // Row 6-7: Present Characters (full width)
+    manager.addWidget('presentCharacters', mainTab, { x: 0, y: 9, w: 2, h: 3 });
+
+    // Row 8-13: Inventory (full width)
+    manager.addWidget('inventory', mainTab, { x: 0, y: 12, w: 2, h: 6 });
+
+    console.log('[RPG Companion] Default layout created (2-column optimized)');
 }
 
 /**

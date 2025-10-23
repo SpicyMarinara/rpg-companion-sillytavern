@@ -8,9 +8,12 @@
 /**
  * Generate default dashboard configuration
  *
- * Creates a two-tab layout:
- * - "Status" tab: User stats, info box, present characters
+ * Creates a two-tab layout optimized for 2-column side panel:
+ * - "Status" tab: User stats, modular info widgets (calendar, weather, temp, clock, location), present characters
  * - "Inventory" tab: Full inventory widget
+ *
+ * All positions sized for 2-column grid (w: 1-2, full width = 2).
+ * Layout will adapt if panel width increases to 3-4 columns.
  *
  * @returns {Object} Default dashboard configuration
  */
@@ -19,7 +22,8 @@ export function generateDefaultDashboard() {
         version: 2,
 
         gridConfig: {
-            columns: 12,
+            // Columns calculated dynamically by GridEngine (2-4 based on panel width)
+            // Mobile: always 2, Desktop: 2-4 based on width
             rowHeight: 80,
             gap: 12,
             snapToGrid: true,
@@ -33,35 +37,80 @@ export function generateDefaultDashboard() {
                 icon: '📊',
                 order: 0,
                 widgets: [
+                    // Row 1: User Stats (full width)
                     {
                         id: 'widget-userstats',
                         type: 'userStats',
                         x: 0,
                         y: 0,
-                        w: 6,
+                        w: 2,
                         h: 3,
                         config: {
                             showClassicStats: true,
                             statBarStyle: 'gradient'
                         }
                     },
+                    // Row 2: Calendar (left) + Weather (right)
                     {
-                        id: 'widget-infobox',
-                        type: 'infoBox',
-                        x: 6,
-                        y: 0,
-                        w: 6,
+                        id: 'widget-calendar',
+                        type: 'calendar',
+                        x: 0,
+                        y: 3,
+                        w: 1,
+                        h: 2,
+                        config: {}
+                    },
+                    {
+                        id: 'widget-weather',
+                        type: 'weather',
+                        x: 1,
+                        y: 3,
+                        w: 1,
                         h: 2,
                         config: {
-                            layout: 'horizontal'
+                            compact: false
                         }
                     },
+                    // Row 3: Temperature (left) + Clock (right)
+                    {
+                        id: 'widget-temperature',
+                        type: 'temperature',
+                        x: 0,
+                        y: 5,
+                        w: 1,
+                        h: 2,
+                        config: {
+                            unit: 'celsius'
+                        }
+                    },
+                    {
+                        id: 'widget-clock',
+                        type: 'clock',
+                        x: 1,
+                        y: 5,
+                        w: 1,
+                        h: 2,
+                        config: {
+                            format: 'digital'
+                        }
+                    },
+                    // Row 4: Location (full width)
+                    {
+                        id: 'widget-location',
+                        type: 'location',
+                        x: 0,
+                        y: 7,
+                        w: 2,
+                        h: 2,
+                        config: {}
+                    },
+                    // Row 5-6: Present Characters (full width)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
-                        y: 3,
-                        w: 12,
+                        y: 9,
+                        w: 2,
                         h: 3,
                         config: {
                             cardLayout: 'grid',
@@ -81,7 +130,7 @@ export function generateDefaultDashboard() {
                         type: 'inventory',
                         x: 0,
                         y: 0,
-                        w: 12,
+                        w: 2,
                         h: 6,
                         config: {
                             defaultSubTab: 'onPerson',

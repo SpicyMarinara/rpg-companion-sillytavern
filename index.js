@@ -547,15 +547,21 @@ async function initUI() {
         };
 
         // Initialize dashboard
+        console.log('[RPG Companion] Current dashboard settings:', extensionSettings.dashboard);
         const manager = await initializeDashboard(dashboardDependencies);
 
         if (manager) {
             console.log('[RPG Companion] Dashboard v2 initialized successfully');
+            console.log('[RPG Companion] Manager instance:', manager);
 
-            // Check if this is first time - create default layout
-            if (!extensionSettings.dashboard || !extensionSettings.dashboard.tabs) {
+            // Check if this is first time OR if dashboard is empty - create default layout
+            if (!extensionSettings.dashboard || !extensionSettings.dashboard.tabs || extensionSettings.dashboard.tabs.length === 0) {
                 console.log('[RPG Companion] Creating default dashboard layout...');
                 createDefaultLayout(manager);
+            } else {
+                console.log('[RPG Companion] Loading saved dashboard layout with', extensionSettings.dashboard.tabs.length, 'tabs');
+                // Apply the saved layout to the manager
+                manager.applyDashboardConfig(extensionSettings.dashboard);
             }
         } else {
             console.warn('[RPG Companion] Dashboard initialization returned null, falling back to legacy rendering');

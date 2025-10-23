@@ -35,8 +35,8 @@ export function registerUserStatsWidget(registry, dependencies) {
         name: 'User Stats',
         icon: '❤️',
         description: 'Health, energy, satiety bars and classic RPG stats',
-        minSize: { w: 4, h: 3 },
-        defaultSize: { w: 6, h: 4 },
+        minSize: { w: 1, h: 2 },
+        defaultSize: { w: 2, h: 3 },
         requiresSchema: false,
 
         /**

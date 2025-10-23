@@ -708,26 +708,26 @@
 
 **Epic 2 Status:**
 
-**Core Widgets Implemented (Needs Testing):**
+**Core Widgets Implemented (Code Complete - Needs Testing):**
 - [x] Task 2.1: User Stats Widget (408 lines)
 - [x] Task 2.2: Info Box Widgets - 5 modular widgets (545 lines)
 - [x] Task 2.3: Present Characters Widget (377 lines)
 - [x] Task 2.4: Inventory Widget (925 lines)
 
-**Optional Widgets (Deferred to post-v2.0):**
+**Remaining Widgets (To Do Next):**
 - [ ] Task 2.5: Classic Stats Widget (standalone)
 - [ ] Task 2.6: Dice Roller Widget
 - [ ] Task 2.7: Last Roll Display Widget
 
-**Epic 2 Complete When (TESTING IN PROGRESS):**
-- [ ] TESTING: All core widgets converted and functional
-- [ ] TESTING: Each widget draggable and resizable
-- [ ] TESTING: All existing functionality preserved
-- [ ] TESTING: Configuration options work for each widget
-- [ ] TESTING: No regressions in data persistence
-- [ ] TESTING: Mobile responsive behavior maintained
+**Epic 2 Complete When:**
+- [ ] All 7 widgets converted and functional (4 done, 3 remaining)
+- [ ] Each widget draggable and resizable
+- [ ] All existing functionality preserved
+- [ ] Configuration options work for each widget
+- [ ] No regressions in data persistence
+- [ ] Mobile responsive behavior maintained
 
-**Next Step:** Complete integration and end-to-end testing before marking Epic 2 complete
+**Next Step:** Continue with Tasks 2.5, 2.6, 2.7 OR test/integrate existing widgets first (awaiting direction)
 
 ---
 

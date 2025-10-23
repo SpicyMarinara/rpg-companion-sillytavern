@@ -2,7 +2,8 @@
  * GridEngine - Core grid layout engine for widget dashboard
  *
  * Handles grid-based positioning, snapping, collision detection, and auto-reflow.
- * Uses a 12-column responsive grid system (default) with configurable row height.
+ * Uses a responsive 2-4 column grid system that adapts to panel width.
+ * Mobile devices (≤1000px screen width) always use 2 columns.
  *
  * @class GridEngine
  */
@@ -11,19 +12,24 @@ export class GridEngine {
      * Initialize grid engine with configuration
      *
      * @param {Object} config - Grid configuration
-     * @param {number} [config.columns=12] - Number of grid columns
      * @param {number} [config.rowHeight=80] - Height of each row in pixels
      * @param {number} [config.gap=12] - Gap between widgets in pixels
      * @param {boolean} [config.snapToGrid=true] - Enable auto-snapping to grid
+     * @param {HTMLElement} [config.container=null] - Container element
      */
     constructor(config = {}) {
-        this.columns = config.columns || 12;
+        // Start with 2 columns (safest default for side panel)
+        this.columns = 2;
         this.rowHeight = config.rowHeight || 80;
         this.gap = config.gap || 12;
         this.snapToGrid = config.snapToGrid !== false;
+        this.container = config.container || null;
 
         // Container width will be set dynamically
         this.containerWidth = 0;
+
+        // Callback for column changes (so DashboardManager can re-render)
+        this.onColumnsChange = config.onColumnsChange || null;
 
         console.log('[GridEngine] Initialized:', {
             columns: this.columns,
@@ -34,13 +40,60 @@ export class GridEngine {
     }
 
     /**
+     * Check if we're on a mobile device
+     * Mobile is defined as screen width ≤ 1000px
+     *
+     * @returns {boolean} True if mobile
+     */
+    isMobile() {
+        return window.innerWidth <= 1000;
+    }
+
+    /**
+     * Calculate optimal number of columns based on container width
+     *
+     * Desktop (>1000px screen):
+     *   - < 370px: 2 columns
+     *   - 370-449px: 3 columns
+     *   - ≥ 450px: 4 columns
+     *
+     * Mobile (≤1000px screen):
+     *   - Always 2 columns
+     *
+     * @param {number} containerWidth - Container width in pixels
+     * @returns {number} Number of columns (2-4)
+     */
+    calculateColumns(containerWidth) {
+        // Mobile always uses 2 columns
+        if (this.isMobile()) {
+            return 2;
+        }
+
+        // Desktop: dynamic 2-4 columns based on panel width
+        if (containerWidth < 370) return 2;
+        if (containerWidth < 450) return 3;
+        return 4;
+    }
+
+    /**
      * Set container width (called when container is measured or resized)
+     *
+     * Recalculates column count based on new width and notifies if changed.
      *
      * @param {number} width - Container width in pixels
      */
     setContainerWidth(width) {
+        const oldColumns = this.columns;
         this.containerWidth = width;
-        console.log('[GridEngine] Container width set to:', width);
+        this.columns = this.calculateColumns(width);
+
+        console.log('[GridEngine] Container width set to:', width, 'Columns:', this.columns);
+
+        // Notify if column count changed (so dashboard can re-render)
+        if (oldColumns !== this.columns && this.onColumnsChange) {
+            console.log('[GridEngine] Column count changed from', oldColumns, 'to', this.columns);
+            this.onColumnsChange(this.columns, oldColumns);
+        }
     }
 
     /**
@@ -63,8 +116,9 @@ export class GridEngine {
      */
     getPixelPosition(widget) {
         if (this.containerWidth === 0) {
-            console.warn('[GridEngine] Container width not set, using default 1200px');
-            this.containerWidth = 1200;
+            console.warn('[GridEngine] Container width not set, using default 350px (side panel estimate)');
+            this.containerWidth = 350;
+            this.columns = this.calculateColumns(350); // Recalculate columns for fallback
         }
 
         // Calculate column width
@@ -90,6 +144,91 @@ export class GridEngine {
     }
 
     /**
+     * Calculate responsive position from grid coordinates
+     *
+     * Returns positions as % of container width (for horizontal) and vh (for vertical).
+     * Widgets are positioned absolutely within the container, so % is relative to container.
+     *
+     * @param {Object} widget - Widget with grid coordinates
+     * @param {number} widget.x - Grid column position (0-based)
+     * @param {number} widget.y - Grid row position (0-based)
+     * @param {number} widget.w - Width in grid columns
+     * @param {number} widget.h - Height in grid rows
+     * @returns {Object} Responsive coordinates {left, top, width, height}
+     *
+     * @example
+     * // Widget at column 0, row 0, size 2x3 in 2-column grid
+     * const pos = gridEngine.getViewportPosition({ x: 0, y: 0, w: 2, h: 3 });
+     * // Returns: { left: "3%", top: "2vh", width: "94%", height: "25vh" }
+     */
+    getViewportPosition(widget) {
+        if (this.containerWidth === 0) {
+            console.warn('[GridEngine] Container width not set, using default 350px (side panel estimate)');
+            this.containerWidth = 350;
+            this.columns = this.calculateColumns(350);
+        }
+
+        console.log('[GridEngine] getViewportPosition DEBUG:', {
+            widgetId: widget.id,
+            widgetSize: `${widget.w}×${widget.h}`,
+            containerWidth: this.containerWidth,
+            columns: this.columns,
+            gap: this.gap
+        });
+
+        // Calculate column width as % of container
+        const gapPercent = (this.gap / this.containerWidth) * 100;
+        const totalGapsPercent = gapPercent * (this.columns + 1);
+        const colWidthPercent = (100 - totalGapsPercent) / this.columns;
+
+        console.log('[GridEngine] Calculation values:', {
+            gapPercent: gapPercent.toFixed(2) + '%',
+            totalGapsPercent: totalGapsPercent.toFixed(2) + '%',
+            colWidthPercent: colWidthPercent.toFixed(2) + '%'
+        });
+
+        // Calculate row height in vh for vertical scaling
+        const viewportHeight = window.innerHeight;
+        const rowHeightVh = (this.rowHeight / viewportHeight) * 100;
+        const gapVh = (this.gap / viewportHeight) * 100;
+
+        // Calculate positions
+        // Horizontal: % of container (since widgets are absolutely positioned within container)
+        const left = widget.x * (colWidthPercent + gapPercent) + gapPercent;
+        const width = widget.w * colWidthPercent + (widget.w - 1) * gapPercent;
+
+        console.log('[GridEngine] Position calc:', {
+            left: left.toFixed(2) + '%',
+            width: width.toFixed(2) + '%',
+            formula: `${widget.w} * ${colWidthPercent.toFixed(2)}% + ${widget.w - 1} * ${gapPercent.toFixed(2)}%`
+        });
+
+        // Vertical: vh units (scales with viewport height)
+        const top = widget.y * (rowHeightVh + gapVh) + gapVh;
+        const height = widget.h * rowHeightVh + (widget.h - 1) * gapVh;
+
+        return {
+            left: `${left.toFixed(2)}%`,
+            top: `${top.toFixed(2)}vh`,
+            width: `${width.toFixed(2)}%`,
+            height: `${height.toFixed(2)}vh`
+        };
+    }
+
+    /**
+     * Get widget position for CSS styling
+     * Returns responsive units for scaling across all screen sizes.
+     * Uses % of container for horizontal (adapts to panel width)
+     * Uses vh for vertical (adapts to viewport height)
+     *
+     * @param {Object} widget - Widget with grid coordinates
+     * @returns {Object} Position with %, vh units {left, top, width, height}
+     */
+    getWidgetPosition(widget) {
+        return this.getViewportPosition(widget);
+    }
+
+    /**
      * Snap pixel coordinates to nearest grid cell
      *
      * Converts pixel position (from drag-and-drop) to grid coordinates.
@@ -106,8 +245,9 @@ export class GridEngine {
      */
     snapToCell(pixelX, pixelY) {
         if (this.containerWidth === 0) {
-            console.warn('[GridEngine] Container width not set, using default 1200px');
-            this.containerWidth = 1200;
+            console.warn('[GridEngine] Container width not set, using default 350px (side panel estimate)');
+            this.containerWidth = 350;
+            this.columns = this.calculateColumns(350); // Recalculate columns for fallback
         }
 
         // Calculate column width
@@ -240,5 +380,143 @@ export class GridEngine {
 
         // Calculate total height including gaps
         return maxY * (this.rowHeight + this.gap) + this.gap;
+    }
+
+    /**
+     * Auto-layout widgets to efficiently use all available space
+     *
+     * Packs widgets in reading order (left to right, top to bottom) with no gaps.
+     * Respects current column count (responsive to panel width).
+     * Scales widgets to maximize space usage while respecting minimum sizes.
+     *
+     * Strategy:
+     * 1. Sort widgets by area (largest first) for better packing
+     * 2. For each widget, try to fit full width (all columns)
+     * 3. If widget prefers smaller size, use that
+     * 4. Find first available position from top-left
+     * 5. Ensure no overlaps
+     *
+     * @param {Array<Object>} widgets - Array of widgets to auto-layout
+     * @param {Object} options - Layout options
+     * @param {boolean} [options.preferFullWidth=true] - Prefer full-width widgets when possible
+     * @param {Object} [options.minSize={w:1, h:2}] - Minimum widget size
+     * @returns {Array<Object>} Re-positioned widgets (same array, modified in place)
+     */
+    autoLayout(widgets, options = {}) {
+        if (widgets.length === 0) return widgets;
+
+        const preferFullWidth = options.preferFullWidth !== false;
+        const minSize = options.minSize || { w: 1, h: 2 };
+
+        console.log('[GridEngine] Auto-layout started:', {
+            widgetCount: widgets.length,
+            columns: this.columns,
+            preferFullWidth,
+            minSize
+        });
+
+        // Sort widgets by area (largest first) for better packing efficiency
+        const sorted = [...widgets].sort((a, b) => {
+            const areaA = a.w * a.h;
+            const areaB = b.w * b.h;
+            if (areaB !== areaA) return areaB - areaA;
+            // If same area, sort by height (taller first)
+            return b.h - a.h;
+        });
+
+        // Track occupied cells in a 2D grid
+        const occupied = new Map(); // key: "x,y" => widget
+
+        /**
+         * Check if position is free
+         */
+        const isFree = (x, y, w, h) => {
+            for (let row = y; row < y + h; row++) {
+                for (let col = x; col < x + w; col++) {
+                    const key = `${col},${row}`;
+                    if (occupied.has(key)) return false;
+                    if (col >= this.columns) return false; // Out of bounds
+                }
+            }
+            return true;
+        };
+
+        /**
+         * Mark cells as occupied
+         */
+        const markOccupied = (widget, x, y, w, h) => {
+            for (let row = y; row < y + h; row++) {
+                for (let col = x; col < x + w; col++) {
+                    occupied.set(`${col},${row}`, widget.id);
+                }
+            }
+        };
+
+        /**
+         * Find first available position for widget of given size
+         */
+        const findPosition = (w, h) => {
+            // Start from top-left, scan row by row
+            for (let y = 0; y < 1000; y++) { // Max 1000 rows (practical limit)
+                for (let x = 0; x <= this.columns - w; x++) {
+                    if (isFree(x, y, w, h)) {
+                        return { x, y };
+                    }
+                }
+            }
+            // Fallback: stack at bottom (should never happen)
+            return { x: 0, y: 1000 };
+        };
+
+        // Process each widget
+        sorted.forEach(widget => {
+            // Determine optimal size for this widget
+            let targetW, targetH;
+
+            if (preferFullWidth) {
+                // Try to use full width when possible
+                targetW = this.columns;
+                targetH = widget.h;
+            } else {
+                // Keep original size or clamp to current column count
+                targetW = Math.min(widget.w, this.columns);
+                targetH = widget.h;
+            }
+
+            // Ensure minimum size
+            targetW = Math.max(minSize.w, Math.min(targetW, this.columns));
+            targetH = Math.max(minSize.h, targetH);
+
+            // Try to find position for preferred size
+            let pos = findPosition(targetW, targetH);
+
+            // If preferred size doesn't fit well, try smaller widths
+            if (pos.y > 100 && targetW > minSize.w) {
+                // Widget would be placed very far down, try narrower width
+                for (let tryW = targetW - 1; tryW >= minSize.w; tryW--) {
+                    const tryPos = findPosition(tryW, targetH);
+                    if (tryPos.y < pos.y) {
+                        // Found better position with narrower width
+                        pos = tryPos;
+                        targetW = tryW;
+                        break;
+                    }
+                }
+            }
+
+            // Update widget position and size
+            widget.x = pos.x;
+            widget.y = pos.y;
+            widget.w = targetW;
+            widget.h = targetH;
+
+            // Mark cells as occupied
+            markOccupied(widget, pos.x, pos.y, targetW, targetH);
+
+            console.log(`[GridEngine] Auto-layout positioned: ${widget.id} at (${pos.x},${pos.y}) size ${targetW}×${targetH}`);
+        });
+
+        console.log('[GridEngine] Auto-layout complete');
+        return widgets;
     }
 }

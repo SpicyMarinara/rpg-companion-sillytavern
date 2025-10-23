@@ -1040,6 +1040,103 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transform: scale(0.95);
 }
 
+/* ========================================
+   DASHBOARD V2 WIDGET STYLES
+   ========================================
+
+   When widgets are rendered in dashboard v2 (narrow side panel),
+   stack content vertically instead of side-by-side.
+
+   Modern hybrid approach:
+   - vw/vh: Widget layout positioning (handled by GridEngine)
+   - rem: Typography and spacing (accessible, user-scalable)
+   - px: Fixed details (borders, shadows)
+   - %: Container-relative sizing
+   ======================================== */
+
+.rpg-widget .rpg-stats-content {
+    display: flex;
+    flex-direction: column;  /* Stack vertically */
+    gap: 0.75rem;  /* rem for spacing */
+}
+
+.rpg-widget .rpg-stats-left,
+.rpg-widget .rpg-stats-right {
+    flex: none;  /* Don't split 50/50 */
+    width: 100%; /* Full width */
+}
+
+/* Classic stats grid - 3 columns for side panel */
+.rpg-widget .rpg-classic-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem 0.25rem;  /* rem for spacing */
+}
+
+/* Classic stat cells */
+.rpg-widget .rpg-classic-stat {
+    padding: 0.4rem 0.3rem;  /* rem for spacing */
+}
+
+/* Typography - rem for accessibility */
+.rpg-widget .rpg-classic-stat-label {
+    font-size: 0.65rem;
+}
+
+.rpg-widget .rpg-classic-stat-value {
+    font-size: 0.8rem;
+}
+
+.rpg-widget .rpg-classic-stat-btn {
+    width: 1.5rem;   /* rem for button size */
+    height: 1.5rem;
+    font-size: 0.7rem;
+}
+
+/* User info - rem for typography */
+.rpg-widget .rpg-user-info-row {
+    font-size: 0.75rem;
+    gap: 0.4rem;
+}
+
+.rpg-widget .rpg-user-name,
+.rpg-widget .rpg-level-label,
+.rpg-widget .rpg-level-value {
+    font-size: 0.75rem;
+}
+
+.rpg-widget .rpg-user-portrait {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+/* Stat bars - rem for text, vh for bar height */
+.rpg-widget .rpg-stat-label {
+    font-size: 0.75rem;
+}
+
+.rpg-widget .rpg-stat-value {
+    font-size: 0.8rem;
+}
+
+.rpg-widget .rpg-stat-bar {
+    height: 1.2vh;  /* vh for layout element */
+}
+
+/* Mood - rem for text */
+.rpg-widget .rpg-mood-emoji {
+    font-size: 1.5rem;
+}
+
+.rpg-widget .rpg-mood-conditions {
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+/* Progress bars - rem for spacing */
+.rpg-widget .rpg-stats-grid {
+    gap: 0.5rem;
+}
+
 /* ============================================
    INFO BOX SECTION
    ============================================ */

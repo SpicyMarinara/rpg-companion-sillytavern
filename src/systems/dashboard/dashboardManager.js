@@ -95,16 +95,20 @@ export class DashboardManager {
         // Create container structure
         this.createContainerStructure();
 
-        // Initialize Grid Engine
+        // Initialize Grid Engine (columns calculated dynamically)
         this.gridEngine = new GridEngine({
-            columns: this.config.columns,
             rowHeight: this.config.rowHeight,
             gap: this.config.gap,
-            container: this.gridContainer
+            container: this.gridContainer,
+            onColumnsChange: (newCols, oldCols) => {
+                console.log('[DashboardManager] Grid columns changed:', oldCols, '→', newCols);
+                // Re-render all widgets when column count changes
+                this.renderAllWidgets();
+            }
         });
 
-        // Initialize Widget Registry
-        this.registry = new WidgetRegistry();
+        // Initialize Widget Registry (use provided registry or create new one)
+        this.registry = this.config.registry || new WidgetRegistry();
 
         // Initialize Tab Manager with dashboard data structure
         // Create default tab if no tabs exist
@@ -122,11 +126,11 @@ export class DashboardManager {
         this.tabManager = new TabManager(this.dashboard);
 
         // Set current tab to active tab from TabManager
-        this.currentTabId = this.tabManager.getActiveTabId();
+        this.currentTabId = this.tabManager.activeTabId;
 
         // Register tab change listener
         this.tabManager.onChange((event, data) => {
-            if (event === 'tabChanged') {
+            if (event === 'activeTabChanged') {
                 this.onTabChange(data.tabId);
             }
         });
@@ -139,9 +143,9 @@ export class DashboardManager {
 
         // Initialize Resize Handler
         this.resizeHandler = new ResizeHandler(this.gridEngine, {
-            minWidth: 2,
+            minWidth: 1,
             minHeight: 2,
-            maxWidth: this.config.columns,
+            maxWidth: 4, // Max 4 columns (will be clamped to actual column count)
             maxHeight: 10
         });
 
@@ -175,6 +179,9 @@ export class DashboardManager {
         // Try to load saved layout
         await this.loadLayout();
 
+        // Measure container width and set up responsive sizing
+        this.setupContainerSizing();
+
         console.log('[DashboardManager] All systems initialized');
         this.notifyChange('initialized');
     }
@@ -199,6 +206,46 @@ export class DashboardManager {
         this.gridContainer.style.position = 'relative';
         this.gridContainer.style.minHeight = '600px';
         this.container.appendChild(this.gridContainer);
+    }
+
+    /**
+     * Set up container sizing and responsive behavior
+     * Measures container width and sets up ResizeObserver
+     * Also listens for viewport resize to recalculate vw/vh positions
+     */
+    setupContainerSizing() {
+        // Measure actual container width
+        const width = this.gridContainer.clientWidth || this.gridContainer.offsetWidth || 350;
+        console.log('[DashboardManager] Measured container width:', width);
+
+        // Set container width in GridEngine (triggers column calculation)
+        this.gridEngine.setContainerWidth(width);
+
+        // Set up ResizeObserver to track container width changes
+        if (typeof ResizeObserver !== 'undefined') {
+            this.resizeObserver = new ResizeObserver((entries) => {
+                for (const entry of entries) {
+                    const newWidth = entry.contentRect.width;
+                    console.log('[DashboardManager] Container resized to:', newWidth);
+                    this.gridEngine.setContainerWidth(newWidth);
+                }
+            });
+
+            this.resizeObserver.observe(this.gridContainer);
+            console.log('[DashboardManager] ResizeObserver set up');
+        } else {
+            console.warn('[DashboardManager] ResizeObserver not supported, responsive sizing disabled');
+        }
+
+        // Listen for window resize to recalculate vh positions
+        // Viewport height changes affect vh calculations for vertical positioning
+        // Horizontal (%) automatically adapts to container width changes via ResizeObserver
+        this.viewportResizeHandler = () => {
+            console.log('[DashboardManager] Viewport resized, recalculating vh positions');
+            this.renderAllWidgets(); // Re-render with new vh values
+        };
+        window.addEventListener('resize', this.viewportResizeHandler);
+        console.log('[DashboardManager] Viewport resize listener added');
     }
 
     /**
@@ -356,13 +403,13 @@ export class DashboardManager {
         element.dataset.widgetId = widget.id;
         element.dataset.widgetType = widget.type;
 
-        // Position widget using grid engine
-        const pos = this.gridEngine.getPixelPosition(widget);
+        // Position widget using grid engine (responsive units for scaling)
+        const pos = this.gridEngine.getWidgetPosition(widget);
         element.style.position = 'absolute';
-        element.style.left = `${pos.left}px`;
-        element.style.top = `${pos.top}px`;
-        element.style.width = `${pos.width}px`;
-        element.style.height = `${pos.height}px`;
+        element.style.left = pos.left;    // % of container (e.g., "5.23%")
+        element.style.top = pos.top;      // vh units (e.g., "10.45vh")
+        element.style.width = pos.width;  // % of container (e.g., "45.67%")
+        element.style.height = pos.height; // vh units (e.g., "20.12vh")
 
         // Add to grid
         this.gridContainer.appendChild(element);
@@ -418,6 +465,8 @@ export class DashboardManager {
      * @param {Object} definition - Widget definition
      */
     renderWidgetContent(element, widget, definition) {
+        console.log(`[DashboardManager] renderWidgetContent called for ${widget.type}`);
+
         // Clear existing content (except resize handles and controls)
         const handles = element.querySelector('.resize-handles');
         const controls = element.querySelector('.widget-edit-controls');
@@ -427,7 +476,11 @@ export class DashboardManager {
 
         // Call widget render function
         if (definition && definition.render) {
+            console.log(`[DashboardManager] Calling render for ${widget.type}`, element);
             definition.render(element, widget.config || {});
+            console.log(`[DashboardManager] After render, element children:`, element.children.length);
+        } else {
+            console.warn(`[DashboardManager] No render function for ${widget.type}`);
         }
     }
 
@@ -437,11 +490,21 @@ export class DashboardManager {
      * @param {Object} widget - Widget data
      */
     repositionWidget(element, widget) {
-        const pos = this.gridEngine.getPixelPosition(widget);
-        element.style.left = `${pos.left}px`;
-        element.style.top = `${pos.top}px`;
-        element.style.width = `${pos.width}px`;
-        element.style.height = `${pos.height}px`;
+        const pos = this.gridEngine.getWidgetPosition(widget);
+        element.style.left = pos.left;
+        element.style.top = pos.top;
+        element.style.width = pos.width;
+        element.style.height = pos.height;
+    }
+
+    /**
+     * Re-render all widgets (repositions all widgets with current grid calculations)
+     */
+    renderAllWidgets() {
+        this.widgets.forEach((widgetData) => {
+            this.repositionWidget(widgetData.element, widgetData.widget);
+        });
+        console.log('[DashboardManager] Repositioned all widgets');
     }
 
     /**
@@ -491,7 +554,7 @@ export class DashboardManager {
      * @param {string} tabId - Tab ID to switch to
      */
     switchTab(tabId) {
-        this.tabManager.switchTab(tabId);
+        this.tabManager.setActiveTab(tabId);
     }
 
     /**
@@ -507,11 +570,17 @@ export class DashboardManager {
 
         // Render all widgets in this tab
         const tab = this.tabManager.getTab(tabId);
+        console.log(`[DashboardManager] Tab data:`, tab);
+        console.log(`[DashboardManager] Tab has ${tab?.widgets?.length || 0} widgets`);
+
         if (tab && tab.widgets) {
             tab.widgets.forEach(widget => {
+                console.log(`[DashboardManager] Rendering widget:`, widget.type, widget.id);
                 const definition = this.registry.get(widget.type);
                 if (definition) {
                     this.renderWidget(widget, definition);
+                } else {
+                    console.warn(`[DashboardManager] Widget type "${widget.type}" not found in registry`);
                 }
             });
         }
@@ -749,6 +818,49 @@ export class DashboardManager {
     }
 
     /**
+     * Auto-layout widgets on current tab to efficiently use all available space
+     *
+     * Sorts and packs widgets to maximize space usage with no gaps.
+     * Respects current panel width (responsive column count).
+     * Re-renders all widgets after repositioning.
+     *
+     * @param {Object} options - Layout options
+     * @param {boolean} [options.preferFullWidth=true] - Prefer full-width widgets when possible
+     */
+    autoLayoutWidgets(options = {}) {
+        console.log('[DashboardManager] Auto-layout widgets requested');
+
+        // Get current tab
+        const currentTab = this.tabManager.getTab(this.currentTabId);
+        if (!currentTab || !currentTab.widgets || currentTab.widgets.length === 0) {
+            console.warn('[DashboardManager] No widgets to auto-layout');
+            return;
+        }
+
+        // Run auto-layout algorithm on widgets
+        const widgetsToLayout = [...currentTab.widgets];
+        this.gridEngine.autoLayout(widgetsToLayout, options);
+
+        // Update tab widgets with new positions
+        currentTab.widgets = widgetsToLayout;
+
+        // Re-render all widgets with new positions
+        this.clearGrid();
+        widgetsToLayout.forEach(widget => {
+            const definition = this.registry.get(widget.type);
+            if (definition) {
+                this.renderWidget(widget, definition);
+            }
+        });
+
+        console.log('[DashboardManager] Auto-layout complete, re-rendered widgets');
+
+        // Save changes
+        this.triggerAutoSave();
+        this.notifyChange('autoLayoutApplied', { tabId: this.currentTabId });
+    }
+
+    /**
      * Trigger auto-save
      */
     triggerAutoSave() {
@@ -796,6 +908,18 @@ export class DashboardManager {
 
         // Clear grid
         this.clearGrid();
+
+        // Disconnect ResizeObserver
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+
+        // Remove viewport resize listener
+        if (this.viewportResizeHandler) {
+            window.removeEventListener('resize', this.viewportResizeHandler);
+            this.viewportResizeHandler = null;
+        }
 
         // Destroy systems
         if (this.editManager) this.editManager.destroy();

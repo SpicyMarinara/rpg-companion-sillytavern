@@ -235,8 +235,8 @@ export function registerPresentCharactersWidget(registry, dependencies) {
         name: 'Present Characters',
         icon: '👥',
         description: 'Character cards with avatars, traits, and relationships',
-        minSize: { w: 4, h: 3 },
-        defaultSize: { w: 6, h: 4 },
+        minSize: { w: 2, h: 2 },
+        defaultSize: { w: 2, h: 3 },
         requiresSchema: false,
 
         render(container, config = {}) {

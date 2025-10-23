@@ -191,8 +191,8 @@ export function registerCalendarWidget(registry, dependencies) {
         name: 'Calendar',
         icon: '📅',
         description: 'Date, weekday, month, and year display',
-        minSize: { w: 2, h: 2 },
-        defaultSize: { w: 2, h: 2 },
+        minSize: { w: 1, h: 2 },
+        defaultSize: { w: 1, h: 2 },
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -277,8 +277,8 @@ export function registerWeatherWidget(registry, dependencies) {
         name: 'Weather',
         icon: '🌤️',
         description: 'Weather emoji and forecast',
-        minSize: { w: 2, h: 2 },
-        defaultSize: { w: 3, h: 2 },
+        minSize: { w: 1, h: 2 },
+        defaultSize: { w: 1, h: 2 },
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -309,8 +309,8 @@ export function registerTemperatureWidget(registry, dependencies) {
         name: 'Temperature',
         icon: '🌡️',
         description: 'Temperature display with thermometer',
-        minSize: { w: 2, h: 2 },
-        defaultSize: { w: 2, h: 2 },
+        minSize: { w: 1, h: 2 },
+        defaultSize: { w: 1, h: 2 },
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -348,8 +348,8 @@ export function registerClockWidget(registry, dependencies) {
         name: 'Clock',
         icon: '🕐',
         description: 'Analog clock with time display',
-        minSize: { w: 2, h: 2 },
-        defaultSize: { w: 2, h: 2 },
+        minSize: { w: 1, h: 2 },
+        defaultSize: { w: 1, h: 2 },
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -396,8 +396,8 @@ export function registerLocationWidget(registry, dependencies) {
         name: 'Location',
         icon: '📍',
         description: 'Map with location display',
-        minSize: { w: 3, h: 2 },
-        defaultSize: { w: 6, h: 2 },
+        minSize: { w: 2, h: 2 },
+        defaultSize: { w: 2, h: 2 },
         requiresSchema: false,
 
         render(container, config = {}) {
