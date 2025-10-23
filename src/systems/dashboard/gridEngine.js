@@ -528,7 +528,41 @@ export class GridEngine {
             console.log(`[GridEngine] Auto-layout positioned: ${widget.id} at (${pos.x},${pos.y}) size ${targetW}×${targetH}`);
         });
 
-        console.log('[GridEngine] Auto-layout complete');
+        // Compact pass: Move widgets up to fill gaps
+        console.log('[GridEngine] Compacting layout to fill gaps...');
+        let compactedCount = 0;
+
+        // Sort widgets by current Y position (process top to bottom)
+        const sortedForCompact = [...sorted].sort((a, b) => a.y - b.y);
+
+        sortedForCompact.forEach(widget => {
+            const originalY = widget.y;
+
+            // Try to move widget up as far as possible
+            for (let tryY = 0; tryY < originalY; tryY++) {
+                // Clear current position from occupied map
+                for (let row = originalY; row < originalY + widget.h; row++) {
+                    for (let col = widget.x; col < widget.x + widget.w; col++) {
+                        occupied.delete(`${col},${row}`);
+                    }
+                }
+
+                // Check if new position is free
+                if (isFree(widget.x, tryY, widget.w, widget.h)) {
+                    // Move widget up
+                    widget.y = tryY;
+                    markOccupied(widget, widget.x, tryY, widget.w, widget.h);
+                    compactedCount++;
+                    console.log(`[GridEngine] Compacted ${widget.id} from y=${originalY} to y=${tryY}`);
+                    break;
+                } else {
+                    // Re-mark original position and continue
+                    markOccupied(widget, widget.x, originalY, widget.w, widget.h);
+                }
+            }
+        });
+
+        console.log(`[GridEngine] Auto-layout complete (compacted ${compactedCount} widgets)`);
         return widgets;
     }
 }

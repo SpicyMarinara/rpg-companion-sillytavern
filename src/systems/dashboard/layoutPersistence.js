@@ -148,6 +148,17 @@ export class LayoutPersistence {
 
             const layoutData = JSON.parse(stored);
 
+            // Migrate old pixel values to rem units
+            if (layoutData.gridConfig) {
+                // Check if we have old pixel values (rowHeight > 20 is likely pixels)
+                if (layoutData.gridConfig.rowHeight > 20) {
+                    console.log('[LayoutPersistence] Migrating old px values to rem');
+                    layoutData.gridConfig.rowHeight = 5; // 80px → 5rem
+                    layoutData.gridConfig.gap = 0.75; // 12px → 0.75rem
+                    console.log('[LayoutPersistence] Converted gridConfig: rowHeight=5rem, gap=0.75rem');
+                }
+            }
+
             // Validate loaded data
             if (!this.validateDashboard(layoutData)) {
                 throw new Error('Loaded layout is invalid');

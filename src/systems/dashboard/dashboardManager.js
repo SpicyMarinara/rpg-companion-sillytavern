@@ -57,6 +57,12 @@ export class DashboardManager {
             ...config
         };
 
+        console.log('[DashboardManager] Constructor config:', {
+            rowHeight: this.config.rowHeight,
+            gap: this.config.gap,
+            columns: this.config.columns
+        });
+
         // Dashboard state
         this.currentTabId = null;
         this.widgets = new Map(); // widgetId => { widget data, element, tab }
@@ -1033,7 +1039,7 @@ export class DashboardManager {
      * @returns {Object} Dashboard configuration
      */
     getDashboardConfig() {
-        return {
+        const config = {
             version: 2,
             gridConfig: {
                 columns: this.config.columns,
@@ -1049,6 +1055,12 @@ export class DashboardManager {
             })),
             defaultTab: this.dashboard.defaultTab
         };
+        console.log('[DashboardManager] getDashboardConfig() returning:', {
+            rowHeight: config.gridConfig.rowHeight,
+            gap: config.gridConfig.gap,
+            columns: config.gridConfig.columns
+        });
+        return config;
     }
 
     /**
@@ -1124,8 +1136,19 @@ export class DashboardManager {
             if (saved) {
                 this.applyDashboardConfig(saved);
             } else if (this.defaultLayout) {
-                console.log('[DashboardManager] No saved layout, using default');
+                console.log('[DashboardManager] No saved layout, using default with auto-layout');
                 this.applyDashboardConfig(this.defaultLayout);
+
+                // Auto-layout each tab to prevent overlap (default positions may not fit screen)
+                this.dashboard.tabs.forEach(tab => {
+                    if (tab.widgets && tab.widgets.length > 0) {
+                        console.log(`[DashboardManager] Auto-laying out default tab "${tab.name}" (${tab.widgets.length} widgets)`);
+                        this.gridEngine.autoLayout(tab.widgets, { preserveOrder: true });
+                    }
+                });
+
+                // Save the auto-laid-out default as the initial saved layout
+                await this.saveLayout(true);
             }
         } catch (error) {
             console.error('[DashboardManager] Failed to load layout:', error);
@@ -1172,10 +1195,25 @@ export class DashboardManager {
         await this.persistence.resetToDefault(this.defaultLayout);
         this.applyDashboardConfig(this.defaultLayout);
 
+        // Auto-layout each tab to prevent overlap (default positions may have changed)
+        this.dashboard.tabs.forEach(tab => {
+            if (tab.widgets && tab.widgets.length > 0) {
+                console.log(`[DashboardManager] Auto-laying out tab "${tab.name}" (${tab.widgets.length} widgets)`);
+                this.gridEngine.autoLayout(tab.widgets, { preserveOrder: true });
+            }
+        });
+
         // Force re-render tabs
         this.renderTabs();
 
-        console.log('[DashboardManager] Reset complete');
+        // Re-render current tab's widgets
+        if (this.currentTabId) {
+            this.switchTab(this.currentTabId);
+        } else if (this.dashboard.tabs.length > 0) {
+            this.switchTab(this.dashboard.tabs[0].id);
+        }
+
+        console.log('[DashboardManager] Reset complete with auto-layout');
     }
 
     /**
@@ -1199,15 +1237,24 @@ export class DashboardManager {
     autoLayoutWidgets(options = {}) {
         console.log('[DashboardManager] Auto-layout widgets requested');
 
-        // Get current tab
-        const currentTab = this.tabManager.getTab(this.currentTabId);
-        if (!currentTab || !currentTab.widgets || currentTab.widgets.length === 0) {
+        // Gather ALL widgets from ALL tabs (don't lose inventory, social, etc.)
+        const allWidgets = [];
+        this.dashboard.tabs.forEach(tab => {
+            if (tab.widgets && tab.widgets.length > 0) {
+                console.log(`[DashboardManager] Gathering ${tab.widgets.length} widgets from tab "${tab.name}"`);
+                allWidgets.push(...tab.widgets);
+            }
+        });
+
+        if (allWidgets.length === 0) {
             console.warn('[DashboardManager] No widgets to auto-layout');
             return;
         }
 
+        console.log(`[DashboardManager] Total widgets to layout: ${allWidgets.length}`);
+
         // Smart category-aware sorting BEFORE auto-layout
-        const widgetsToLayout = this.sortWidgetsByCategory(currentTab.widgets);
+        const widgetsToLayout = this.sortWidgetsByCategory(allWidgets);
 
         // Calculate estimated height to determine if multi-tab distribution is needed
         const estimatedHeight = this.estimateLayoutHeight(widgetsToLayout);
@@ -1215,37 +1262,12 @@ export class DashboardManager {
 
         console.log('[DashboardManager] Estimated height:', estimatedHeight + 'rem', 'Threshold:', heightThreshold + 'rem');
 
-        // If widgets fit comfortably, use single-tab auto-layout
-        if (estimatedHeight <= heightThreshold) {
-            console.log('[DashboardManager] Using single-tab auto-layout');
+        // Always use multi-tab distribution when we have many widgets
+        // This preserves all widgets (inventory, social, etc.)
+        console.log('[DashboardManager] Using multi-tab distribution to preserve all widgets');
+        this.distributeWidgetsByCategory(widgetsToLayout);
 
-            // Run auto-layout algorithm on pre-sorted widgets
-            // (gridEngine will preserve this logical order instead of sorting by area)
-            this.gridEngine.autoLayout(widgetsToLayout, { preserveOrder: true });
-
-            // Update tab widgets with new positions
-            currentTab.widgets = widgetsToLayout;
-        } else {
-            // Too many widgets - distribute across multiple tabs by category
-            console.log('[DashboardManager] Height exceeds threshold, using multi-tab distribution');
-            this.distributeWidgetsByCategory(widgetsToLayout);
-            return; // distributeWidgetsByCategory handles rendering
-        }
-
-        // Re-render all widgets with new positions
-        this.clearGrid();
-        widgetsToLayout.forEach(widget => {
-            const definition = this.registry.get(widget.type);
-            if (definition) {
-                this.renderWidget(widget, definition);
-            }
-        });
-
-        console.log('[DashboardManager] Auto-layout complete, re-rendered widgets');
-
-        // Save changes
-        this.triggerAutoSave();
-        this.notifyChange('autoLayoutApplied', { tabId: this.currentTabId });
+        // distributeWidgetsByCategory handles rendering and tab switching
     }
 
     /**

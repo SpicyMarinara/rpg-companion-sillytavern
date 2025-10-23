@@ -87,8 +87,8 @@ export let extensionSettings = {
             // Columns calculated dynamically by GridEngine (2-4 based on panel width)
             // Mobile (≤1000px screen): always 2 columns
             // Desktop (>1000px screen): 2-4 columns based on panel width
-            rowHeight: 80,         // Pixels per row
-            gap: 12,               // Gap between widgets (px)
+            rowHeight: 5,          // rem units for responsive scaling
+            gap: 0.75,             // rem units (was 12px)
             snapToGrid: true,      // Auto-snap enabled
             showGrid: true         // Show grid lines in edit mode
         },

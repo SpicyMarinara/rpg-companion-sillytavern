@@ -1083,8 +1083,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-dashboard-tab {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.3rem;
-    padding: 0.4rem 0.7rem;
+    padding: 0.5rem;
+    min-width: 2.5rem;
     font-size: 0.75rem;
     border: 1px solid transparent;
     background: transparent;
@@ -1108,11 +1110,18 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-tab-icon {
-    font-size: 0.9rem;
+    font-size: 1.1rem;
 }
 
 .rpg-tab-name {
     font-size: 0.75rem;
+    display: none;
+}
+
+/* Show name on hover */
+.rpg-dashboard-tab:hover .rpg-tab-name {
+    display: inline;
+    margin-left: 0.3rem;
 }
 
 .rpg-dashboard-btn {

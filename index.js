@@ -559,15 +559,9 @@ async function initUI() {
             console.log('[RPG Companion] Dashboard v2 initialized successfully');
             console.log('[RPG Companion] Manager instance:', manager);
 
-            // Check if this is first time OR if dashboard is empty - create default layout
-            if (!extensionSettings.dashboard || !extensionSettings.dashboard.tabs || extensionSettings.dashboard.tabs.length === 0) {
-                console.log('[RPG Companion] Creating default dashboard layout...');
-                createDefaultLayout(manager);
-            } else {
-                console.log('[RPG Companion] Loading saved dashboard layout with', extensionSettings.dashboard.tabs.length, 'tabs');
-                // Apply the saved layout to the manager
-                manager.applyDashboardConfig(extensionSettings.dashboard);
-            }
+            // Dashboard manager already loaded its layout in init() via loadLayout()
+            // No need to load again here - that would overwrite the migrated values
+            console.log('[RPG Companion] Dashboard initialized and layout loaded via layoutPersistence');
         } else {
             console.warn('[RPG Companion] Dashboard initialization returned null, falling back to legacy rendering');
             throw new Error('Dashboard initialization failed');
