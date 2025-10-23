@@ -1183,6 +1183,15 @@ export class DashboardManager {
         await this.persistence.resetToDefault(this.defaultLayout);
         this.applyDashboardConfig(this.defaultLayout);
 
+        // Reset all widgets to default sizes
+        const allWidgets = [];
+        this.dashboard.tabs.forEach(tab => {
+            if (tab.widgets && tab.widgets.length > 0) {
+                allWidgets.push(...tab.widgets);
+            }
+        });
+        this.resetWidgetSizesToDefault(allWidgets);
+
         // Auto-layout each tab to prevent overlap (default positions may have changed)
         this.dashboard.tabs.forEach(tab => {
             if (tab.widgets && tab.widgets.length > 0) {
@@ -1213,6 +1222,28 @@ export class DashboardManager {
     }
 
     /**
+     * Reset all widgets to their default sizes
+     * @param {Array} widgets - Widgets to reset
+     */
+    resetWidgetSizesToDefault(widgets) {
+        let resetCount = 0;
+        widgets.forEach(widget => {
+            const definition = this.registry.get(widget.type);
+            if (definition && definition.defaultSize) {
+                const oldSize = `${widget.w}x${widget.h}`;
+                widget.w = definition.defaultSize.w;
+                widget.h = definition.defaultSize.h;
+                const newSize = `${widget.w}x${widget.h}`;
+                if (oldSize !== newSize) {
+                    console.log(`[DashboardManager] Reset ${widget.type} from ${oldSize} to ${newSize}`);
+                    resetCount++;
+                }
+            }
+        });
+        console.log(`[DashboardManager] Reset ${resetCount} widgets to default sizes`);
+    }
+
+    /**
      * Auto-layout widgets on current tab to efficiently use all available space
      *
      * Sorts and packs widgets to maximize space usage with no gaps.
@@ -1221,6 +1252,7 @@ export class DashboardManager {
      *
      * @param {Object} options - Layout options
      * @param {boolean} [options.preferFullWidth=true] - Prefer full-width widgets when possible
+     * @param {boolean} [options.resetSizes=true] - Reset widgets to default sizes before layout
      */
     autoLayoutWidgets(options = {}) {
         console.log('[DashboardManager] Auto-layout widgets requested');
@@ -1240,6 +1272,11 @@ export class DashboardManager {
         }
 
         console.log(`[DashboardManager] Total widgets to layout: ${allWidgets.length}`);
+
+        // Reset widget sizes to defaults (unless explicitly disabled)
+        if (options.resetSizes !== false) {
+            this.resetWidgetSizesToDefault(allWidgets);
+        }
 
         // Smart category-aware sorting BEFORE auto-layout
         const widgetsToLayout = this.sortWidgetsByCategory(allWidgets);

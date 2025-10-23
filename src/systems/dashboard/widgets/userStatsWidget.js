@@ -34,6 +34,7 @@ export function registerUserStatsWidget(registry, dependencies) {
         category: 'user',
         minSize: { w: 1, h: 2 },
         defaultSize: { w: 2, h: 2 },
+        maxAutoSize: { w: 3, h: 3 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         /**

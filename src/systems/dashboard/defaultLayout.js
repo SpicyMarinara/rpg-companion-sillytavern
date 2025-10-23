@@ -39,13 +39,22 @@ export function generateDefaultDashboard() {
                 icon: '📊',
                 order: 0,
                 widgets: [
-                    // Row 0: User Info (avatar, name, level)
+                    // Row 0: User Info (left) + User Mood (top right in 3-col)
                     {
                         id: 'widget-userinfo',
                         type: 'userInfo',
                         x: 0,
                         y: 0,
                         w: 2,
+                        h: 1,
+                        config: {}
+                    },
+                    {
+                        id: 'widget-usermood',
+                        type: 'userMood',
+                        x: 2,
+                        y: 0,
+                        w: 1,
                         h: 1,
                         config: {}
                     },
@@ -61,22 +70,12 @@ export function generateDefaultDashboard() {
                             statBarGradient: true
                         }
                     },
-                    // Row 3: User Mood
-                    {
-                        id: 'widget-usermood',
-                        type: 'userMood',
-                        x: 0,
-                        y: 3,
-                        w: 2,
-                        h: 1,
-                        config: {}
-                    },
-                    // Row 4-5: User Attributes
+                    // Row 3-4: User Attributes
                     {
                         id: 'widget-userattributes',
                         type: 'userAttributes',
                         x: 0,
-                        y: 4,
+                        y: 3,
                         w: 2,
                         h: 2,
                         config: {}
@@ -90,14 +89,14 @@ export function generateDefaultDashboard() {
                 icon: '🌍',
                 order: 1,
                 widgets: [
-                    // Row 0-1: Calendar (left) + Weather (right)
+                    // Row 0: Calendar (left) + Weather (right)
                     {
                         id: 'widget-calendar',
                         type: 'calendar',
                         x: 0,
                         y: 0,
                         w: 1,
-                        h: 2,
+                        h: 1,
                         config: {}
                     },
                     {
@@ -106,19 +105,19 @@ export function generateDefaultDashboard() {
                         x: 1,
                         y: 0,
                         w: 1,
-                        h: 2,
+                        h: 1,
                         config: {
                             compact: false
                         }
                     },
-                    // Row 2-3: Temperature (left) + Clock (right)
+                    // Row 1: Temperature (left) + Clock (right)
                     {
                         id: 'widget-temperature',
                         type: 'temperature',
                         x: 0,
-                        y: 2,
+                        y: 1,
                         w: 1,
-                        h: 2,
+                        h: 1,
                         config: {
                             unit: 'celsius'
                         }
@@ -127,29 +126,29 @@ export function generateDefaultDashboard() {
                         id: 'widget-clock',
                         type: 'clock',
                         x: 1,
-                        y: 2,
+                        y: 1,
                         w: 1,
-                        h: 2,
+                        h: 1,
                         config: {
                             format: 'digital'
                         }
                     },
-                    // Row 4-5: Location (full width)
+                    // Row 2-3: Location (full width)
                     {
                         id: 'widget-location',
                         type: 'location',
                         x: 0,
-                        y: 4,
+                        y: 2,
                         w: 2,
                         h: 2,
                         config: {}
                     },
-                    // Row 6-8: Present Characters (full width, will expand with auto-layout)
+                    // Row 4-6: Present Characters (full width, will expand with auto-layout)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
-                        y: 6,
+                        y: 4,
                         w: 2,
                         h: 3,
                         config: {

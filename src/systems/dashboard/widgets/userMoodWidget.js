@@ -29,7 +29,8 @@ export function registerUserMoodWidget(registry, dependencies) {
         description: 'Mood emoji and active conditions',
         category: 'user',
         minSize: { w: 1, h: 1 },
-        defaultSize: { w: 2, h: 1 },
+        defaultSize: { w: 1, h: 1 },
+        maxAutoSize: { w: 1, h: 1 }, // Max size for auto-arrange expansion - stays compact in top right
         requiresSchema: false,
 
         /**

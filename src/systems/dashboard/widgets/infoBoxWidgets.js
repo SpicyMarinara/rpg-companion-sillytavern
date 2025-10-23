@@ -192,9 +192,9 @@ export function registerCalendarWidget(registry, dependencies) {
         icon: '📅',
         description: 'Date, weekday, month, and year display',
         category: 'scene',
-        minSize: { w: 1, h: 2 },
-        defaultSize: { w: 1, h: 2 },
-        maxAutoSize: { w: 2, h: 3 }, // Max size for auto-arrange expansion
+        minSize: { w: 1, h: 1 },
+        defaultSize: { w: 1, h: 1 },
+        maxAutoSize: { w: 1, h: 2 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -280,9 +280,9 @@ export function registerWeatherWidget(registry, dependencies) {
         name: 'Weather',
         icon: '🌤️',
         description: 'Weather emoji and forecast',
-        minSize: { w: 1, h: 2 },
-        defaultSize: { w: 1, h: 2 },
-        maxAutoSize: { w: 2, h: 3 }, // Max size for auto-arrange expansion
+        minSize: { w: 1, h: 1 },
+        defaultSize: { w: 1, h: 1 },
+        maxAutoSize: { w: 1, h: 2 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -314,9 +314,9 @@ export function registerTemperatureWidget(registry, dependencies) {
         name: 'Temperature',
         icon: '🌡️',
         description: 'Temperature display with thermometer',
-        minSize: { w: 1, h: 2 },
-        defaultSize: { w: 1, h: 2 },
-        maxAutoSize: { w: 2, h: 3 }, // Max size for auto-arrange expansion
+        minSize: { w: 1, h: 1 },
+        defaultSize: { w: 1, h: 1 },
+        maxAutoSize: { w: 1, h: 2 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -355,9 +355,9 @@ export function registerClockWidget(registry, dependencies) {
         name: 'Clock',
         icon: '🕐',
         description: 'Analog clock with time display',
-        minSize: { w: 1, h: 2 },
-        defaultSize: { w: 1, h: 2 },
-        maxAutoSize: { w: 2, h: 3 }, // Max size for auto-arrange expansion
+        minSize: { w: 1, h: 1 },
+        defaultSize: { w: 1, h: 1 },
+        maxAutoSize: { w: 1, h: 2 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -407,7 +407,7 @@ export function registerLocationWidget(registry, dependencies) {
         description: 'Map with location display',
         minSize: { w: 1, h: 2 },
         defaultSize: { w: 2, h: 2 },
-        maxAutoSize: { w: 3, h: 3 }, // Max size for auto-arrange expansion
+        maxAutoSize: { w: 2, h: 2 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {

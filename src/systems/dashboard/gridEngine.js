@@ -435,10 +435,22 @@ export class GridEngine {
 
         const preserveOrder = options.preserveOrder || false;
 
+        // Calculate maximum visible rows based on container height
+        let maxVisibleRows = 100; // Fallback
+        if (this.container) {
+            const containerHeight = this.container.clientHeight; // pixels
+            const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize); // px per rem
+            const containerHeightRem = containerHeight / rootFontSize;
+            const rowHeightWithGap = this.rowHeight + this.gap;
+            maxVisibleRows = Math.floor(containerHeightRem / rowHeightWithGap);
+            console.log('[GridEngine] Container height:', containerHeight + 'px', '=', containerHeightRem.toFixed(2) + 'rem', '→', maxVisibleRows, 'rows');
+        }
+
         console.log('[GridEngine] Auto-layout started:', {
             widgetCount: widgets.length,
             columns: this.columns,
-            preserveOrder
+            preserveOrder,
+            maxVisibleRows
         });
 
         // Sort widgets (or preserve input order for category-aware layout)
@@ -586,8 +598,8 @@ export class GridEngine {
                     return definition.maxAutoSize;
                 }
             }
-            // Default max size if not specified (flexible expansion)
-            return { w: this.columns, h: 10 };
+            // Default max size if not specified (conservative expansion)
+            return { w: this.columns, h: 3 };
         };
 
         sortedForExpand.forEach(widget => {
@@ -595,9 +607,15 @@ export class GridEngine {
             const originalW = widget.w;
             const originalH = widget.h;
 
-            // Try expanding height first (fills vertical gaps)
+            // Try expanding height first (fills vertical gaps) - keep trying until maxSize or collision
             let expandedH = false;
-            for (let tryH = originalH + 1; tryH <= Math.min(maxSize.h, originalH + 3); tryH++) {
+            for (let tryH = originalH + 1; tryH <= maxSize.h; tryH++) {
+                // Check if expansion would go beyond visible area
+                if (widget.y + tryH > maxVisibleRows) {
+                    console.log(`[GridEngine] ${widget.id} cannot expand to h=${tryH} (would exceed visible area: row ${widget.y + tryH} > ${maxVisibleRows})`);
+                    break;
+                }
+
                 // Clear current position
                 for (let row = widget.y; row < widget.y + widget.h; row++) {
                     for (let col = widget.x; col < widget.x + widget.w; col++) {
@@ -611,15 +629,19 @@ export class GridEngine {
                     markOccupied(widget, widget.x, widget.y, widget.w, tryH);
                     expandedH = true;
                     expandedCount++;
-                    console.log(`[GridEngine] Expanded ${widget.id} height: ${originalH} → ${tryH}`);
-                    break;
+                    // Continue trying to expand further
                 } else {
-                    // Re-mark original and try next size
+                    // Hit a collision, stop expanding height
                     markOccupied(widget, widget.x, widget.y, widget.w, widget.h);
+                    break;
                 }
             }
 
-            // Try expanding width (fills horizontal gaps)
+            if (expandedH) {
+                console.log(`[GridEngine] Expanded ${widget.id} height: ${originalH} → ${widget.h}`);
+            }
+
+            // Try expanding width (fills horizontal gaps) - keep trying until maxSize or collision
             let expandedW = false;
             for (let tryW = originalW + 1; tryW <= Math.min(maxSize.w, this.columns); tryW++) {
                 // Clear current position
@@ -635,12 +657,16 @@ export class GridEngine {
                     markOccupied(widget, widget.x, widget.y, tryW, widget.h);
                     expandedW = true;
                     expandedCount++;
-                    console.log(`[GridEngine] Expanded ${widget.id} width: ${originalW} → ${tryW}`);
-                    break;
+                    // Continue trying to expand further
                 } else {
-                    // Re-mark original and try next size
+                    // Hit a collision, stop expanding width
                     markOccupied(widget, widget.x, widget.y, widget.w, widget.h);
+                    break;
                 }
+            }
+
+            if (expandedW) {
+                console.log(`[GridEngine] Expanded ${widget.id} width: ${originalW} → ${widget.w}`);
             }
 
             if (!expandedH && !expandedW) {

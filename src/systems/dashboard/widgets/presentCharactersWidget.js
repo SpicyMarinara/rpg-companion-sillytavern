@@ -235,10 +235,10 @@ export function registerPresentCharactersWidget(registry, dependencies) {
         name: 'Present Characters',
         icon: '👥',
         description: 'Character cards with avatars, traits, and relationships',
-        category: 'social',
+        category: 'scene',
         minSize: { w: 2, h: 2 },
         defaultSize: { w: 2, h: 3 },
-        maxAutoSize: { w: 3, h: 6 }, // Max size for auto-arrange expansion (can expand significantly)
+        maxAutoSize: { w: 3, h: 5 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {
