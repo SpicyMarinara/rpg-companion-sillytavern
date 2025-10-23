@@ -26,6 +26,7 @@ export function registerUserInfoWidget(registry, dependencies) {
     const {
         getContext,
         getUserAvatar,
+        getFallbackAvatar,
         getExtensionSettings,
         onStatsChange
     } = dependencies;
@@ -49,7 +50,7 @@ export function registerUserInfoWidget(registry, dependencies) {
             const settings = getExtensionSettings();
             const context = getContext();
             const userName = context.name1;
-            const userPortrait = getUserAvatar();
+            const userPortrait = getUserAvatar() || getFallbackAvatar();
 
             // Merge default config
             const finalConfig = {
@@ -59,16 +60,19 @@ export function registerUserInfoWidget(registry, dependencies) {
                 ...config
             };
 
-            // Build HTML
+            // Build HTML with flexible layout structure
             const html = `
-                <div class="rpg-user-info-row">
+                <div class="rpg-user-info-container">
                     ${finalConfig.showAvatar ? `<img src="${userPortrait}" alt="${userName}" class="rpg-user-portrait" onerror="this.style.opacity='0.5';this.onerror=null;" />` : ''}
-                    ${finalConfig.showName ? `<span class="rpg-user-name">${userName}</span>` : ''}
-                    ${finalConfig.showLevel ? `
-                        <span style="opacity: 0.5;">|</span>
-                        <span class="rpg-level-label">LVL</span>
-                        <span class="rpg-level-value rpg-editable" contenteditable="true" data-field="level" title="Click to edit level">${settings.level}</span>
-                    ` : ''}
+                    <div class="rpg-user-info-text">
+                        ${finalConfig.showName ? `<div class="rpg-user-name">${userName}</div>` : ''}
+                        ${finalConfig.showLevel ? `
+                            <div class="rpg-user-level">
+                                <span class="rpg-level-label">LVL</span>
+                                <span class="rpg-level-value rpg-editable" contenteditable="true" data-field="level" title="Click to edit level">${settings.level}</span>
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
             `;
 
@@ -76,6 +80,11 @@ export function registerUserInfoWidget(registry, dependencies) {
 
             // Attach event handlers
             attachEventHandlers(container, settings, onStatsChange);
+
+            // Set initial layout based on current config size
+            if (config.w !== undefined && config.h !== undefined) {
+                this.onResize(container, config.w, config.h);
+            }
         },
 
         /**
@@ -114,21 +123,33 @@ export function registerUserInfoWidget(registry, dependencies) {
         /**
          * Handle widget resize
          * @param {HTMLElement} container - Widget container
-         * @param {number} newW - New width
-         * @param {number} newH - New height
+         * @param {number} newW - New width (grid columns)
+         * @param {number} newH - New height (grid rows)
          */
         onResize(container, newW, newH) {
-            // Responsive adjustments if needed
-            const infoRow = container.querySelector('.rpg-user-info-row');
-            if (!infoRow) return;
+            const infoContainer = container.querySelector('.rpg-user-info-container');
+            const portrait = container.querySelector('.rpg-user-portrait');
+            if (!infoContainer) return;
 
-            // Stack vertically on very narrow widgets
+            // Flexible hybrid layout based on width:
+            // - 1 column (1x1, 1x2): Centered avatar with text below
+            // - 2+ columns: Side-by-side (avatar left, text right)
             if (newW < 2) {
-                infoRow.style.flexDirection = 'column';
-                infoRow.style.alignItems = 'center';
+                // Compact vertical layout: centered large avatar with text below
+                infoContainer.classList.add('rpg-layout-vertical');
+                infoContainer.classList.remove('rpg-layout-horizontal');
+                if (portrait) {
+                    portrait.style.width = '3rem';
+                    portrait.style.height = '3rem';
+                }
             } else {
-                infoRow.style.flexDirection = 'row';
-                infoRow.style.alignItems = 'center';
+                // Horizontal layout: avatar left, text right
+                infoContainer.classList.add('rpg-layout-horizontal');
+                infoContainer.classList.remove('rpg-layout-vertical');
+                if (portrait) {
+                    portrait.style.width = '2.5rem';
+                    portrait.style.height = '2.5rem';
+                }
             }
         }
     });

@@ -1243,21 +1243,106 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: 0.7rem;
 }
 
-/* User info - rem for typography */
-.rpg-widget .rpg-user-info-row {
-    font-size: 0.75rem;
-    gap: 0.4rem;
+/* User info widget - responsive layout */
+.rpg-user-info-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    height: 100%;
+    width: 100%;
+    padding: 0.5rem;
 }
 
-.rpg-widget .rpg-user-name,
-.rpg-widget .rpg-level-label,
-.rpg-widget .rpg-level-value {
-    font-size: 0.75rem;
+/* Vertical layout (1 column): centered avatar with text below */
+.rpg-user-info-container.rpg-layout-vertical {
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
+/* Horizontal layout (2+ columns): avatar left, text right */
+.rpg-user-info-container.rpg-layout-horizontal {
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+/* User portrait/avatar */
 .rpg-widget .rpg-user-portrait {
-    width: 1.2rem;
-    height: 1.2rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 2px solid var(--rpg-highlight);
+    box-shadow: 0 0 8px var(--rpg-highlight);
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+}
+
+.rpg-widget .rpg-user-portrait:hover {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Text container */
+.rpg-user-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    align-items: flex-start;
+}
+
+.rpg-layout-vertical .rpg-user-info-text {
+    align-items: center;
+    text-align: center;
+}
+
+/* User name */
+.rpg-user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--rpg-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Level container */
+.rpg-user-level {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Level label and value */
+.rpg-level-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--rpg-text);
+    opacity: 0.7;
+}
+
+.rpg-level-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--rpg-highlight);
+    padding: 0.15rem 0.4rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0.25rem;
+    min-width: 1.5rem;
+    text-align: center;
+    cursor: text;
+    transition: all 0.2s ease;
+}
+
+.rpg-level-value:hover {
+    background: var(--rpg-highlight);
+    color: var(--rpg-bg);
+}
+
+.rpg-level-value:focus {
+    outline: 2px solid var(--rpg-highlight);
+    outline-offset: 1px;
+    background: var(--rpg-bg);
 }
 
 /* Stat bars - rem for text, vh for bar height */
