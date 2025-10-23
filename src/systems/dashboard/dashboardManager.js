@@ -101,47 +101,35 @@ export class DashboardManager {
         // Create container structure
         this.createContainerStructure();
 
+        // Initialize Widget Registry (use provided registry or create new one)
+        this.registry = this.config.registry || new WidgetRegistry();
+
         // Initialize Grid Engine (columns calculated dynamically)
         this.gridEngine = new GridEngine({
             rowHeight: this.config.rowHeight,
             gap: this.config.gap,
             container: this.gridContainer,
+            registry: this.registry, // Pass registry for maxAutoSize lookups
             onColumnsChange: (newCols, oldCols) => {
                 console.log('[DashboardManager] Grid columns changed:', oldCols, '→', newCols);
 
-                // Fix widget dimensions when column count changes
-                // This prevents widgets from shrinking when grid switches between 2/3/4 columns
+                // Auto-reflow current tab to optimize for new column count
                 const currentTab = this.tabManager.getTab(this.currentTabId);
-                if (currentTab) {
-                    currentTab.widgets.forEach(widget => {
-                        // If widget was full-width in old grid, make it full-width in new grid
-                        if (widget.w === oldCols) {
-                            console.log(`[DashboardManager] Adjusting full-width widget ${widget.id}: w=${widget.w} → ${newCols}`);
-                            widget.w = newCols;
-                        }
-                        // If widget is wider than new grid, clamp it
-                        else if (widget.w > newCols) {
-                            console.log(`[DashboardManager] Clamping oversized widget ${widget.id}: w=${widget.w} → ${newCols}`);
-                            widget.w = newCols;
-                        }
-                        // If widget x position is out of bounds, reset to 0
-                        if (widget.x >= newCols) {
-                            console.log(`[DashboardManager] Resetting out-of-bounds widget ${widget.id}: x=${widget.x} → 0`);
-                            widget.x = 0;
-                        }
-                    });
+                if (currentTab && currentTab.widgets && currentTab.widgets.length > 0) {
+                    console.log(`[DashboardManager] Auto-reflowing ${currentTab.widgets.length} widgets for ${newCols} columns`);
+
+                    // Run auto-layout to reflow and expand widgets for new grid
+                    // This prevents overlap and optimizes space usage
+                    this.gridEngine.autoLayout(currentTab.widgets, { preserveOrder: true });
 
                     // Save changes
                     this.triggerAutoSave();
                 }
 
-                // Re-render all widgets with adjusted dimensions
+                // Re-render all widgets with new layout
                 this.renderAllWidgets();
             }
         });
-
-        // Initialize Widget Registry (use provided registry or create new one)
-        this.registry = this.config.registry || new WidgetRegistry();
 
         // Initialize Tab Manager with dashboard data structure
         // Create default tab if no tabs exist

@@ -65,6 +65,7 @@ export function registerInventoryWidget(registry, dependencies) {
         category: 'inventory',
         minSize: { w: 2, h: 4 },
         defaultSize: { w: 2, h: 6 },
+        maxAutoSize: { w: 3, h: 8 }, // Max size for auto-arrange expansion (full tab)
         requiresSchema: false,
 
         render(container, config = {}) {

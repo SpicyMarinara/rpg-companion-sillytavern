@@ -238,6 +238,7 @@ export function registerPresentCharactersWidget(registry, dependencies) {
         category: 'social',
         minSize: { w: 2, h: 2 },
         defaultSize: { w: 2, h: 3 },
+        maxAutoSize: { w: 3, h: 6 }, // Max size for auto-arrange expansion (can expand significantly)
         requiresSchema: false,
 
         render(container, config = {}) {

@@ -1152,7 +1152,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-dashboard-grid {
     position: relative;
     width: 100%;
-    min-height: 200px;
+    flex: 1; /* Fill available space in dashboard container */
+    overflow-y: auto; /* Allow scrolling within grid if needed */
+    overflow-x: hidden;
+    min-height: 0; /* Allow flex to shrink below natural size */
 }
 
 /* Hide resize handles by default */

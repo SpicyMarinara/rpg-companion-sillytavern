@@ -26,6 +26,9 @@ export class GridEngine {
         this.snapToGrid = config.snapToGrid !== false;
         this.container = config.container || null;
 
+        // Widget registry for accessing widget definitions (e.g., maxAutoSize)
+        this.registry = config.registry || null;
+
         // Container width will be set dynamically
         this.containerWidth = 0;
 
@@ -562,7 +565,92 @@ export class GridEngine {
             }
         });
 
-        console.log(`[GridEngine] Auto-layout complete (compacted ${compactedCount} widgets)`);
+        console.log(`[GridEngine] Compaction complete (${compactedCount} widgets moved up)`);
+
+        // Expansion pass: Try to expand widgets to fill available space
+        console.log('[GridEngine] Expanding widgets to fill available space...');
+        let expandedCount = 0;
+
+        // Sort widgets by position (top-to-bottom, left-to-right) for orderly expansion
+        const sortedForExpand = [...sorted].sort((a, b) => {
+            if (a.y !== b.y) return a.y - b.y; // Top to bottom
+            return a.x - b.x; // Left to right
+        });
+
+        // Helper to get widget max size from registry
+        const getWidgetMaxSize = (widget) => {
+            // Try to get widget definition from registry
+            if (this.registry && widget.type) {
+                const definition = this.registry.get(widget.type);
+                if (definition && definition.maxAutoSize) {
+                    return definition.maxAutoSize;
+                }
+            }
+            // Default max size if not specified (flexible expansion)
+            return { w: this.columns, h: 10 };
+        };
+
+        sortedForExpand.forEach(widget => {
+            const maxSize = getWidgetMaxSize(widget);
+            const originalW = widget.w;
+            const originalH = widget.h;
+
+            // Try expanding height first (fills vertical gaps)
+            let expandedH = false;
+            for (let tryH = originalH + 1; tryH <= Math.min(maxSize.h, originalH + 3); tryH++) {
+                // Clear current position
+                for (let row = widget.y; row < widget.y + widget.h; row++) {
+                    for (let col = widget.x; col < widget.x + widget.w; col++) {
+                        occupied.delete(`${col},${row}`);
+                    }
+                }
+
+                // Check if expanded height is free
+                if (isFree(widget.x, widget.y, widget.w, tryH)) {
+                    widget.h = tryH;
+                    markOccupied(widget, widget.x, widget.y, widget.w, tryH);
+                    expandedH = true;
+                    expandedCount++;
+                    console.log(`[GridEngine] Expanded ${widget.id} height: ${originalH} → ${tryH}`);
+                    break;
+                } else {
+                    // Re-mark original and try next size
+                    markOccupied(widget, widget.x, widget.y, widget.w, widget.h);
+                }
+            }
+
+            // Try expanding width (fills horizontal gaps)
+            let expandedW = false;
+            for (let tryW = originalW + 1; tryW <= Math.min(maxSize.w, this.columns); tryW++) {
+                // Clear current position
+                for (let row = widget.y; row < widget.y + widget.h; row++) {
+                    for (let col = widget.x; col < widget.x + widget.w; col++) {
+                        occupied.delete(`${col},${row}`);
+                    }
+                }
+
+                // Check if expanded width is free
+                if (isFree(widget.x, widget.y, tryW, widget.h)) {
+                    widget.w = tryW;
+                    markOccupied(widget, widget.x, widget.y, tryW, widget.h);
+                    expandedW = true;
+                    expandedCount++;
+                    console.log(`[GridEngine] Expanded ${widget.id} width: ${originalW} → ${tryW}`);
+                    break;
+                } else {
+                    // Re-mark original and try next size
+                    markOccupied(widget, widget.x, widget.y, widget.w, widget.h);
+                }
+            }
+
+            if (!expandedH && !expandedW) {
+                // Widget couldn't expand - ensure it's still marked in grid
+                markOccupied(widget, widget.x, widget.y, widget.w, widget.h);
+            }
+        });
+
+        console.log(`[GridEngine] Expansion complete (${expandedCount} expansions made)`);
+        console.log(`[GridEngine] Auto-layout complete`);
         return widgets;
     }
 }

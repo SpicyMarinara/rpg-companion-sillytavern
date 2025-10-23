@@ -194,6 +194,7 @@ export function registerCalendarWidget(registry, dependencies) {
         category: 'scene',
         minSize: { w: 1, h: 2 },
         defaultSize: { w: 1, h: 2 },
+        maxAutoSize: { w: 2, h: 3 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -281,6 +282,7 @@ export function registerWeatherWidget(registry, dependencies) {
         description: 'Weather emoji and forecast',
         minSize: { w: 1, h: 2 },
         defaultSize: { w: 1, h: 2 },
+        maxAutoSize: { w: 2, h: 3 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -314,6 +316,7 @@ export function registerTemperatureWidget(registry, dependencies) {
         description: 'Temperature display with thermometer',
         minSize: { w: 1, h: 2 },
         defaultSize: { w: 1, h: 2 },
+        maxAutoSize: { w: 2, h: 3 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -354,6 +357,7 @@ export function registerClockWidget(registry, dependencies) {
         description: 'Analog clock with time display',
         minSize: { w: 1, h: 2 },
         defaultSize: { w: 1, h: 2 },
+        maxAutoSize: { w: 2, h: 3 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -403,6 +407,7 @@ export function registerLocationWidget(registry, dependencies) {
         description: 'Map with location display',
         minSize: { w: 1, h: 2 },
         defaultSize: { w: 2, h: 2 },
+        maxAutoSize: { w: 3, h: 3 }, // Max size for auto-arrange expansion
         requiresSchema: false,
 
         render(container, config = {}) {

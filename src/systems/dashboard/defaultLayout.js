@@ -32,14 +32,14 @@ export function generateDefaultDashboard() {
         },
 
         tabs: [
+            // Tab 1: Status (User widgets only - compact and focused)
             {
                 id: 'tab-status',
                 name: 'Status',
                 icon: '📊',
                 order: 0,
                 widgets: [
-                    // === USER CLUSTER (Top) ===
-                    // Row 0: User Info (avatar, name, level) - AT TOP
+                    // Row 0: User Info (avatar, name, level)
                     {
                         id: 'widget-userinfo',
                         type: 'userInfo',
@@ -61,17 +61,17 @@ export function generateDefaultDashboard() {
                             statBarGradient: true
                         }
                     },
-                    // Row 3: User Mood (left column)
+                    // Row 3: User Mood
                     {
                         id: 'widget-usermood',
                         type: 'userMood',
                         x: 0,
                         y: 3,
-                        w: 1,
+                        w: 2,
                         h: 1,
                         config: {}
                     },
-                    // Row 4-5: User Attributes (full width, needs 2 columns for 3x2 grid)
+                    // Row 4-5: User Attributes
                     {
                         id: 'widget-userattributes',
                         type: 'userAttributes',
@@ -80,15 +80,22 @@ export function generateDefaultDashboard() {
                         w: 2,
                         h: 2,
                         config: {}
-                    },
-
-                    // === SCENE CLUSTER (Middle) ===
-                    // Row 6-7: Calendar (left) + Weather (right)
+                    }
+                ]
+            },
+            // Tab 2: Scene (Scene info widgets + characters)
+            {
+                id: 'tab-scene',
+                name: 'Scene',
+                icon: '🌍',
+                order: 1,
+                widgets: [
+                    // Row 0-1: Calendar (left) + Weather (right)
                     {
                         id: 'widget-calendar',
                         type: 'calendar',
                         x: 0,
-                        y: 6,
+                        y: 0,
                         w: 1,
                         h: 2,
                         config: {}
@@ -97,19 +104,19 @@ export function generateDefaultDashboard() {
                         id: 'widget-weather',
                         type: 'weather',
                         x: 1,
-                        y: 6,
+                        y: 0,
                         w: 1,
                         h: 2,
                         config: {
                             compact: false
                         }
                     },
-                    // Row 8-9: Temperature (left) + Clock (right)
+                    // Row 2-3: Temperature (left) + Clock (right)
                     {
                         id: 'widget-temperature',
                         type: 'temperature',
                         x: 0,
-                        y: 8,
+                        y: 2,
                         w: 1,
                         h: 2,
                         config: {
@@ -120,31 +127,29 @@ export function generateDefaultDashboard() {
                         id: 'widget-clock',
                         type: 'clock',
                         x: 1,
-                        y: 8,
+                        y: 2,
                         w: 1,
                         h: 2,
                         config: {
                             format: 'digital'
                         }
                     },
-                    // Row 10-11: Location (full width)
+                    // Row 4-5: Location (full width)
                     {
                         id: 'widget-location',
                         type: 'location',
                         x: 0,
-                        y: 10,
+                        y: 4,
                         w: 2,
                         h: 2,
                         config: {}
                     },
-
-                    // === SOCIAL CLUSTER (Bottom) ===
-                    // Row 12-14: Present Characters (full width)
+                    // Row 6-8: Present Characters (full width, will expand with auto-layout)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
-                        y: 12,
+                        y: 6,
                         w: 2,
                         h: 3,
                         config: {
@@ -154,11 +159,12 @@ export function generateDefaultDashboard() {
                     }
                 ]
             },
+            // Tab 3: Inventory (Full tab for inventory system)
             {
                 id: 'tab-inventory',
                 name: 'Inventory',
                 icon: '🎒',
-                order: 1,
+                order: 2,
                 widgets: [
                     {
                         id: 'widget-inventory',
