@@ -10,7 +10,7 @@ import { extensionSettings } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 import { renderExtensionTemplateAsync } from '../../../../../extensions.js';
 import { DashboardManager } from './dashboardManager.js';
-import { WidgetRegistry } from './core/widgetRegistry.js';
+import { WidgetRegistry } from './widgetRegistry.js';
 
 // Widget imports
 import { registerUserStatsWidget } from './widgets/userStatsWidget.js';
