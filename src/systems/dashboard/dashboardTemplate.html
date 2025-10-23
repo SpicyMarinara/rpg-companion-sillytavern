@@ -1,0 +1,98 @@
+<!-- RPG Companion v2 Dashboard -->
+<div id="rpg-dashboard-container" class="rpg-dashboard-container">
+    <!-- Dashboard Header Controls -->
+    <div class="rpg-dashboard-header">
+        <div class="rpg-dashboard-header-left">
+            <!-- Tab Navigation (will be populated by TabManager) -->
+            <div id="rpg-dashboard-tabs" class="rpg-dashboard-tabs"></div>
+        </div>
+
+        <div class="rpg-dashboard-header-right">
+            <!-- Edit Mode Toggle -->
+            <button id="rpg-dashboard-edit-mode" class="rpg-dashboard-btn rpg-edit-mode-btn" title="Toggle Edit Mode">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Edit</span>
+            </button>
+
+            <!-- Add Widget Button (shown in edit mode) -->
+            <button id="rpg-dashboard-add-widget" class="rpg-dashboard-btn rpg-add-widget-btn" style="display: none;" title="Add Widget">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add Widget</span>
+            </button>
+
+            <!-- Export/Import Layout Buttons (shown in edit mode) -->
+            <button id="rpg-dashboard-export-layout" class="rpg-dashboard-btn rpg-export-btn" style="display: none;" title="Export Layout">
+                <i class="fa-solid fa-download"></i>
+            </button>
+            <button id="rpg-dashboard-import-layout" class="rpg-dashboard-btn rpg-import-btn" style="display: none;" title="Import Layout">
+                <i class="fa-solid fa-upload"></i>
+            </button>
+            <input type="file" id="rpg-dashboard-import-file" accept=".json" style="display: none;" />
+        </div>
+    </div>
+
+    <!-- Dashboard Grid (will be populated by DashboardManager) -->
+    <div id="rpg-dashboard-grid" class="rpg-dashboard-grid" data-edit-mode="false">
+        <!-- Widgets will be rendered here -->
+    </div>
+
+    <!-- Add Widget Modal -->
+    <div id="rpg-add-widget-modal" class="rpg-modal" style="display: none;">
+        <div class="rpg-modal-content">
+            <div class="rpg-modal-header">
+                <h3>
+                    <i class="fa-solid fa-plus"></i>
+                    Add Widget
+                </h3>
+                <button class="rpg-modal-close" data-close="add-widget">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+
+            <div class="rpg-modal-body">
+                <div class="rpg-widget-grid" id="rpg-widget-selector">
+                    <!-- Widget cards will be populated by DashboardManager -->
+                </div>
+            </div>
+
+            <div class="rpg-modal-footer">
+                <button class="rpg-btn-secondary" data-close="add-widget">
+                    <i class="fa-solid fa-times"></i>
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Widget Configuration Modal -->
+    <div id="rpg-widget-config-modal" class="rpg-modal" style="display: none;">
+        <div class="rpg-modal-content">
+            <div class="rpg-modal-header">
+                <h3>
+                    <i class="fa-solid fa-gear"></i>
+                    Widget Settings
+                </h3>
+                <button class="rpg-modal-close" data-close="widget-config">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+
+            <div class="rpg-modal-body">
+                <div id="rpg-widget-config-form">
+                    <!-- Widget config form will be populated dynamically -->
+                </div>
+            </div>
+
+            <div class="rpg-modal-footer">
+                <button class="rpg-btn-secondary" data-close="widget-config">
+                    <i class="fa-solid fa-times"></i>
+                    Cancel
+                </button>
+                <button class="rpg-btn-primary" id="rpg-widget-config-save">
+                    <i class="fa-solid fa-check"></i>
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

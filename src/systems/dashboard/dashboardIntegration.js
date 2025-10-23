@@ -1,0 +1,359 @@
+/**
+ * Dashboard Integration Module
+ *
+ * Handles initialization and integration of the v2 dashboard system
+ * with the main RPG Companion extension.
+ */
+
+import { extensionName } from '../../core/config.js';
+import { extensionSettings } from '../../core/state.js';
+import { saveSettings } from '../../core/persistence.js';
+import { renderExtensionTemplateAsync } from '../../../../../extensions.js';
+import { DashboardManager } from './dashboardManager.js';
+import { WidgetRegistry } from './core/widgetRegistry.js';
+
+// Widget imports
+import { registerUserStatsWidget } from './widgets/userStatsWidget.js';
+import { registerCalendarWidget, registerWeatherWidget, registerTemperatureWidget, registerClockWidget, registerLocationWidget } from './widgets/infoBoxWidgets.js';
+import { registerPresentCharactersWidget } from './widgets/presentCharactersWidget.js';
+import { registerInventoryWidget } from './widgets/inventoryWidget.js';
+
+// Global dashboard manager instance
+let dashboardManager = null;
+
+/**
+ * Get the dashboard manager instance
+ */
+export function getDashboardManager() {
+    return dashboardManager;
+}
+
+/**
+ * Initialize the dashboard system
+ * @param {Object} dependencies - Dependencies from main extension
+ */
+export async function initializeDashboard(dependencies) {
+    console.log('[RPG Companion] Initializing Dashboard v2 System...');
+
+    try {
+        // Load dashboard template
+        const dashboardHtml = await loadDashboardTemplate();
+
+        // Find or create dashboard container in the panel
+        const panelContent = document.querySelector('#rpg-panel-content');
+        if (!panelContent) {
+            console.error('[RPG Companion] Panel content container not found');
+            return null;
+        }
+
+        // Insert dashboard HTML (replacing old content-box)
+        const contentBox = panelContent.querySelector('.rpg-content-box');
+        if (contentBox) {
+            // Replace old content-box with dashboard
+            contentBox.replaceWith(createDashboardContainer(dashboardHtml));
+        } else {
+            // If no content-box, insert dashboard after dice display
+            const diceDisplay = panelContent.querySelector('#rpg-dice-display');
+            if (diceDisplay) {
+                diceDisplay.insertAdjacentHTML('afterend', dashboardHtml);
+            } else {
+                panelContent.insertAdjacentHTML('afterbegin', dashboardHtml);
+            }
+        }
+
+        // Create widget registry
+        const registry = new WidgetRegistry();
+
+        // Register all widgets
+        registerAllWidgets(registry, dependencies);
+
+        // Initialize dashboard manager
+        const container = document.querySelector('#rpg-dashboard-container');
+        if (!container) {
+            console.error('[RPG Companion] Dashboard container not found after template load');
+            return null;
+        }
+
+        dashboardManager = new DashboardManager(container, {
+            registry,
+            autoSave: true,
+            onChange: (data) => {
+                // Handle dashboard changes
+                console.log('[RPG Companion] Dashboard changed:', data);
+                if (dependencies.onDashboardChange) {
+                    dependencies.onDashboardChange(data);
+                }
+            }
+        });
+
+        // Initialize the dashboard
+        await dashboardManager.init();
+
+        // Set up dashboard event listeners
+        setupDashboardEventListeners(dependencies);
+
+        console.log('[RPG Companion] Dashboard v2 initialized successfully');
+        return dashboardManager;
+
+    } catch (error) {
+        console.error('[RPG Companion] Failed to initialize dashboard:', error);
+        return null;
+    }
+}
+
+/**
+ * Load dashboard template HTML
+ */
+async function loadDashboardTemplate() {
+    try {
+        // Try to load from dashboardTemplate.html
+        const html = await renderExtensionTemplateAsync(extensionName, 'src/systems/dashboard/dashboardTemplate');
+        return html;
+    } catch (error) {
+        console.warn('[RPG Companion] Could not load dashboard template, using inline HTML');
+        // Fallback to inline template
+        return getInlineDashboardTemplate();
+    }
+}
+
+/**
+ * Create dashboard container div
+ */
+function createDashboardContainer(dashboardHtml) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = dashboardHtml;
+    return wrapper.firstElementChild;
+}
+
+/**
+ * Get inline dashboard template (fallback)
+ */
+function getInlineDashboardTemplate() {
+    return `
+        <div id="rpg-dashboard-container" class="rpg-dashboard-container">
+            <div class="rpg-dashboard-header">
+                <div class="rpg-dashboard-header-left">
+                    <div id="rpg-dashboard-tabs" class="rpg-dashboard-tabs"></div>
+                </div>
+                <div class="rpg-dashboard-header-right">
+                    <button id="rpg-dashboard-edit-mode" class="rpg-dashboard-btn rpg-edit-mode-btn" title="Toggle Edit Mode">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Edit</span>
+                    </button>
+                    <button id="rpg-dashboard-add-widget" class="rpg-dashboard-btn rpg-add-widget-btn" style="display: none;" title="Add Widget">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Add Widget</span>
+                    </button>
+                    <button id="rpg-dashboard-export-layout" class="rpg-dashboard-btn rpg-export-btn" style="display: none;" title="Export Layout">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                    <button id="rpg-dashboard-import-layout" class="rpg-dashboard-btn rpg-import-btn" style="display: none;" title="Import Layout">
+                        <i class="fa-solid fa-upload"></i>
+                    </button>
+                    <input type="file" id="rpg-dashboard-import-file" accept=".json" style="display: none;" />
+                </div>
+            </div>
+            <div id="rpg-dashboard-grid" class="rpg-dashboard-grid" data-edit-mode="false"></div>
+        </div>
+    `;
+}
+
+/**
+ * Register all available widgets
+ */
+function registerAllWidgets(registry, dependencies) {
+    console.log('[RPG Companion] Registering widgets...');
+
+    // Core widgets
+    registerUserStatsWidget(registry, dependencies);
+    registerPresentCharactersWidget(registry, dependencies);
+    registerInventoryWidget(registry, dependencies);
+
+    // Info Box modular widgets
+    registerCalendarWidget(registry, dependencies);
+    registerWeatherWidget(registry, dependencies);
+    registerTemperatureWidget(registry, dependencies);
+    registerClockWidget(registry, dependencies);
+    registerLocationWidget(registry, dependencies);
+
+    console.log(`[RPG Companion] Registered ${registry.getAll().length} widgets`);
+}
+
+/**
+ * Set up dashboard event listeners
+ */
+function setupDashboardEventListeners(dependencies) {
+    // Edit mode toggle
+    const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
+    if (editModeBtn) {
+        editModeBtn.addEventListener('click', () => {
+            if (dashboardManager) {
+                const isEditMode = dashboardManager.editModeManager.isEditMode();
+                dashboardManager.editModeManager.setEditMode(!isEditMode);
+            }
+        });
+    }
+
+    // Add widget button
+    const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
+    if (addWidgetBtn) {
+        addWidgetBtn.addEventListener('click', () => {
+            if (dashboardManager) {
+                showAddWidgetDialog(dashboardManager);
+            }
+        });
+    }
+
+    // Export layout button
+    const exportBtn = document.querySelector('#rpg-dashboard-export-layout');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            if (dashboardManager) {
+                dashboardManager.exportLayout();
+            }
+        });
+    }
+
+    // Import layout button
+    const importBtn = document.querySelector('#rpg-dashboard-import-layout');
+    const importFile = document.querySelector('#rpg-dashboard-import-file');
+
+    if (importBtn && importFile) {
+        importBtn.addEventListener('click', () => {
+            importFile.click();
+        });
+
+        importFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && dashboardManager) {
+                dashboardManager.importLayout(file);
+                importFile.value = ''; // Reset file input
+            }
+        });
+    }
+}
+
+/**
+ * Show add widget dialog
+ */
+function showAddWidgetDialog(manager) {
+    // Get all available widgets
+    const registry = manager.registry;
+    const widgets = registry.getAll();
+
+    // Create widget cards HTML
+    const widgetCardsHtml = widgets.map(([type, definition]) => `
+        <div class="rpg-widget-card" data-widget-type="${type}">
+            <div class="rpg-widget-card-icon">${definition.icon}</div>
+            <div class="rpg-widget-card-name">${definition.name}</div>
+            <div class="rpg-widget-card-description">${definition.description}</div>
+            <button class="rpg-widget-card-add" data-widget-type="${type}">
+                <i class="fa-solid fa-plus"></i> Add
+            </button>
+        </div>
+    `).join('');
+
+    // Show modal
+    const modal = document.querySelector('#rpg-add-widget-modal');
+    if (!modal) {
+        console.warn('[RPG Companion] Add widget modal not found');
+        return;
+    }
+
+    const widgetSelector = modal.querySelector('#rpg-widget-selector');
+    if (widgetSelector) {
+        widgetSelector.innerHTML = widgetCardsHtml;
+
+        // Attach add button handlers
+        widgetSelector.querySelectorAll('.rpg-widget-card-add').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const widgetType = btn.dataset.widgetType;
+                const activeTab = manager.tabManager.getActiveTabId();
+
+                manager.addWidget(widgetType, activeTab);
+                hideModal('rpg-add-widget-modal');
+            });
+        });
+    }
+
+    modal.style.display = 'flex';
+
+    // Set up modal close handlers
+    modal.querySelectorAll('[data-close="add-widget"]').forEach(btn => {
+        btn.onclick = () => hideModal('rpg-add-widget-modal');
+    });
+
+    // Close on backdrop click
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            hideModal('rpg-add-widget-modal');
+        }
+    };
+}
+
+/**
+ * Hide modal by ID
+ */
+function hideModal(modalId) {
+    const modal = document.querySelector(`#${modalId}`);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+/**
+ * Create default dashboard layout
+ */
+export function createDefaultLayout(manager) {
+    if (!manager) {
+        console.warn('[RPG Companion] Cannot create default layout - manager not initialized');
+        return;
+    }
+
+    console.log('[RPG Companion] Creating default dashboard layout...');
+
+    const mainTab = manager.tabManager.getActiveTabId();
+
+    // Add widgets with default positions
+    // Row 1: User Stats (left) + Calendar + Weather + Temperature + Clock (right)
+    manager.addWidget('userStats', mainTab, { x: 0, y: 0, w: 6, h: 4 });
+    manager.addWidget('calendar', mainTab, { x: 6, y: 0, w: 2, h: 2 });
+    manager.addWidget('weather', mainTab, { x: 8, y: 0, w: 3, h: 2 });
+    manager.addWidget('temperature', mainTab, { x: 11, y: 0, w: 2, h: 2 });
+
+    // Row 2: Location (top right) + Clock (bottom right)
+    manager.addWidget('location', mainTab, { x: 6, y: 2, w: 6, h: 2 });
+    manager.addWidget('clock', mainTab, { x: 10, y: 2, w: 2, h: 2 });
+
+    // Row 3: Present Characters
+    manager.addWidget('presentCharacters', mainTab, { x: 0, y: 4, w: 12, h: 4 });
+
+    // Row 4: Inventory
+    manager.addWidget('inventory', mainTab, { x: 0, y: 8, w: 12, h: 6 });
+
+    console.log('[RPG Companion] Default layout created');
+}
+
+/**
+ * Refresh all widgets (called after data updates)
+ */
+export function refreshDashboard() {
+    if (dashboardManager) {
+        // Get all active widgets and re-render them
+        const widgets = dashboardManager.getAllWidgets();
+        widgets.forEach(widget => {
+            dashboardManager.renderWidget(widget.id);
+        });
+    }
+}
+
+/**
+ * Destroy dashboard instance
+ */
+export function destroyDashboard() {
+    if (dashboardManager) {
+        console.log('[RPG Companion] Destroying dashboard...');
+        // Clean up would go here
+        dashboardManager = null;
+    }
+}
