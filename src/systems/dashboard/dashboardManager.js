@@ -182,6 +182,12 @@ export class DashboardManager {
         // Measure container width and set up responsive sizing
         this.setupContainerSizing();
 
+        // Migrate old 12-column layouts to new responsive grid
+        this.migrateOldLayouts();
+
+        // Render tab navigation
+        this.renderTabs();
+
         console.log('[DashboardManager] All systems initialized');
         this.notifyChange('initialized');
     }
@@ -254,6 +260,104 @@ export class DashboardManager {
         };
         window.addEventListener('resize', this.viewportResizeHandler);
         console.log('[DashboardManager] Viewport resize listener added');
+    }
+
+    /**
+     * Migrate old 12-column layouts to new responsive grid
+     * Detects if any widgets have widths exceeding current column count
+     * and automatically runs auto-layout to fix them
+     */
+    migrateOldLayouts() {
+        console.log('[DashboardManager] Checking for old layouts to migrate...');
+
+        let needsMigration = false;
+
+        // Check all tabs
+        this.dashboard.tabs.forEach(tab => {
+            if (!tab.widgets || tab.widgets.length === 0) return;
+
+            // Check if any widget has width exceeding current column count
+            tab.widgets.forEach(widget => {
+                if (widget.w > this.gridEngine.columns) {
+                    console.warn(`[DashboardManager] Widget ${widget.id} has width ${widget.w} exceeding column count ${this.gridEngine.columns}`);
+                    needsMigration = true;
+                }
+            });
+
+            if (needsMigration) {
+                console.log(`[DashboardManager] Migrating tab ${tab.id} to new responsive grid...`);
+                // Run auto-layout on this tab's widgets
+                this.gridEngine.autoLayout(tab.widgets, { preferFullWidth: true });
+                console.log(`[DashboardManager] Tab ${tab.id} migrated successfully`);
+            }
+        });
+
+        if (needsMigration) {
+            // Save migrated layout
+            this.triggerAutoSave();
+
+            // Re-render current tab with new positions
+            this.clearGrid();
+            const currentTab = this.tabManager.getTab(this.currentTabId);
+            if (currentTab && currentTab.widgets) {
+                currentTab.widgets.forEach(widget => {
+                    const definition = this.registry.get(widget.type);
+                    if (definition) {
+                        this.renderWidget(widget, definition);
+                    }
+                });
+            }
+
+            console.log('[DashboardManager] Old layouts migrated, saved, and re-rendered');
+        } else {
+            console.log('[DashboardManager] No migration needed');
+        }
+    }
+
+    /**
+     * Render tab navigation UI
+     */
+    renderTabs() {
+        if (!this.tabContainer) {
+            console.warn('[DashboardManager] Tab container not found');
+            return;
+        }
+
+        // Clear existing tabs
+        this.tabContainer.innerHTML = '';
+
+        // Get all tabs sorted by order
+        const tabs = this.tabManager.getTabs();
+
+        if (tabs.length === 0) {
+            console.warn('[DashboardManager] No tabs to render');
+            return;
+        }
+
+        // Create tab buttons
+        tabs.forEach(tab => {
+            const button = document.createElement('button');
+            button.className = 'rpg-dashboard-tab';
+            button.dataset.tabId = tab.id;
+            button.innerHTML = `
+                <span class="rpg-tab-icon">${tab.icon}</span>
+                <span class="rpg-tab-name">${tab.name}</span>
+            `;
+
+            // Mark active tab
+            if (tab.id === this.currentTabId) {
+                button.classList.add('active');
+            }
+
+            // Tab click handler
+            button.addEventListener('click', () => {
+                this.switchTab(tab.id);
+            });
+
+            this.tabContainer.appendChild(button);
+        });
+
+        console.log(`[DashboardManager] Rendered ${tabs.length} tabs`);
     }
 
     /**
@@ -425,13 +529,17 @@ export class DashboardManager {
         // Render widget content
         this.renderWidgetContent(element, widget, definition);
 
+        // Get current tab's widgets for collision detection
+        const currentTab = this.tabManager.getTab(this.currentTabId);
+        const allWidgets = currentTab ? currentTab.widgets : [];
+
         // Initialize drag & drop
         this.dragHandler.initWidget(element, widget, (updated, newX, newY) => {
             widget.x = newX;
             widget.y = newY;
             this.repositionWidget(element, widget);
             this.triggerAutoSave();
-        });
+        }, allWidgets);
 
         // Initialize resize
         this.resizeHandler.initWidget(element, widget, (updated, newW, newH, newX, newY) => {
@@ -572,6 +680,9 @@ export class DashboardManager {
     onTabChange(tabId) {
         console.log(`[DashboardManager] Switching to tab: ${tabId}`);
         this.currentTabId = tabId;
+
+        // Re-render tabs to update active state
+        this.renderTabs();
 
         // Clear grid
         this.clearGrid();

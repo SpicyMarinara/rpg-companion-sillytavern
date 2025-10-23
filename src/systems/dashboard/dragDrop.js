@@ -51,8 +51,9 @@ export class DragDropHandler {
      * @param {HTMLElement} element - Widget DOM element
      * @param {Object} widget - Widget data object
      * @param {Function} onDragEnd - Callback when drag completes (widget, newX, newY)
+     * @param {Array<Object>} widgets - All widgets (for collision detection)
      */
-    initWidget(element, widget, onDragEnd) {
+    initWidget(element, widget, onDragEnd, widgets = []) {
         // Store handler reference for cleanup
         const dragHandle = element.querySelector('.drag-handle') || element;
 
@@ -65,7 +66,7 @@ export class DragDropHandler {
             }
 
             e.preventDefault();
-            this.startDrag(e, element, widget, onDragEnd);
+            this.startDrag(e, element, widget, onDragEnd, widgets);
         };
 
         const touchStartHandler = (e) => {
@@ -77,7 +78,7 @@ export class DragDropHandler {
             // Delay touch drag to allow scrolling
             this.touchTimer = setTimeout(() => {
                 e.preventDefault();
-                this.startDrag(e.touches[0], element, widget, onDragEnd);
+                this.startDrag(e.touches[0], element, widget, onDragEnd, widgets);
             }, this.options.touchDelay);
         };
 
@@ -129,8 +130,9 @@ export class DragDropHandler {
      * @param {HTMLElement} element - Element being dragged
      * @param {Object} widget - Widget data
      * @param {Function} onDragEnd - Callback when drag completes
+     * @param {Array<Object>} widgets - All widgets (for collision detection)
      */
-    startDrag(e, element, widget, onDragEnd) {
+    startDrag(e, element, widget, onDragEnd, widgets = []) {
         // Calculate pointer offset from element top-left
         const rect = element.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
@@ -148,7 +150,10 @@ export class DragDropHandler {
             offsetY,
             ghost,
             isDragging: true,
-            onDragEnd
+            onDragEnd,
+            widgets,
+            originalX: widget.x,
+            originalY: widget.y
         };
 
         // Change cursor
@@ -263,7 +268,7 @@ export class DragDropHandler {
     endDrag() {
         if (!this.dragState) return;
 
-        const { element, widget, onDragEnd } = this.dragState;
+        const { element, widget, onDragEnd, widgets, originalX, originalY } = this.dragState;
 
         // Restore original element
         element.style.opacity = '1';
@@ -272,9 +277,51 @@ export class DragDropHandler {
         const dragHandle = element.querySelector('.drag-handle') || element;
         dragHandle.style.cursor = 'grab';
 
-        // Call callback with new position
-        if (onDragEnd) {
-            onDragEnd(widget, widget.x, widget.y);
+        // Check for collision before committing
+        const otherWidgets = widgets.filter(w => w.id !== widget.id);
+        const collision = this.gridEngine.detectCollision(widget, otherWidgets);
+
+        if (collision) {
+            // Find which widget we collided with
+            const collidedWidget = otherWidgets.find(other => {
+                return !(
+                    widget.x + widget.w <= other.x ||
+                    widget.x >= other.x + other.w ||
+                    widget.y + widget.h <= other.y ||
+                    widget.y >= other.y + other.h
+                );
+            });
+
+            // If same size, swap positions
+            if (collidedWidget && widget.w === collidedWidget.w && widget.h === collidedWidget.h) {
+                console.log('[DragDrop] Swapping positions with:', collidedWidget.id);
+                const tempX = collidedWidget.x;
+                const tempY = collidedWidget.y;
+                collidedWidget.x = widget.x;
+                collidedWidget.y = widget.y;
+                widget.x = tempX;
+                widget.y = tempY;
+
+                // Call callback with swapped position
+                if (onDragEnd) {
+                    onDragEnd(widget, widget.x, widget.y);
+                }
+            } else {
+                // Different sizes or multiple collisions - revert to original
+                console.warn('[DragDrop] Collision detected, reverting to original position');
+                widget.x = originalX;
+                widget.y = originalY;
+
+                // Call callback with original position (no change)
+                if (onDragEnd) {
+                    onDragEnd(widget, widget.x, widget.y);
+                }
+            }
+        } else {
+            // No collision, commit new position
+            if (onDragEnd) {
+                onDragEnd(widget, widget.x, widget.y);
+            }
         }
 
         this.cleanup();

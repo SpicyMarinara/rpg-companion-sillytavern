@@ -284,8 +284,7 @@ export class ResizeHandler {
         const deltaX = clientX - startX;
         const deltaY = clientY - startY;
 
-        // Get column/row size in pixels
-        this.gridEngine.updateContainerWidth();
+        // Get column/row size in pixels (containerWidth already set by ResizeObserver in DashboardManager)
         const totalGaps = this.gridEngine.gap * (this.gridEngine.columns + 1);
         const colWidth = (this.gridEngine.containerWidth - totalGaps) / this.gridEngine.columns;
         const rowHeight = this.gridEngine.rowHeight;

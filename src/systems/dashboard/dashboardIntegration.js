@@ -138,15 +138,12 @@ function getInlineDashboardTemplate() {
                 <div class="rpg-dashboard-header-right">
                     <button id="rpg-dashboard-auto-layout" class="rpg-dashboard-btn rpg-auto-layout-btn" title="Auto-Arrange Widgets">
                         <i class="fa-solid fa-table-cells-large"></i>
-                        <span>Auto-Arrange</span>
                     </button>
                     <button id="rpg-dashboard-edit-mode" class="rpg-dashboard-btn rpg-edit-mode-btn" title="Toggle Edit Mode">
                         <i class="fa-solid fa-pen-to-square"></i>
-                        <span>Edit</span>
                     </button>
                     <button id="rpg-dashboard-add-widget" class="rpg-dashboard-btn rpg-add-widget-btn" style="display: none;" title="Add Widget">
                         <i class="fa-solid fa-plus"></i>
-                        <span>Add Widget</span>
                     </button>
                     <button id="rpg-dashboard-export-layout" class="rpg-dashboard-btn rpg-export-btn" style="display: none;" title="Export Layout">
                         <i class="fa-solid fa-download"></i>
@@ -202,9 +199,9 @@ function setupDashboardEventListeners(dependencies) {
     const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
     if (editModeBtn) {
         editModeBtn.addEventListener('click', () => {
-            if (dashboardManager) {
-                const isEditMode = dashboardManager.editModeManager.isEditMode();
-                dashboardManager.editModeManager.setEditMode(!isEditMode);
+            if (dashboardManager && dashboardManager.editManager) {
+                console.log('[RPG Companion] Edit button clicked');
+                dashboardManager.editManager.toggleEditMode();
             }
         });
     }

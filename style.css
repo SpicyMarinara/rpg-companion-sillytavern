@@ -1073,12 +1073,56 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     flex-wrap: wrap;
 }
 
-.rpg-dashboard-btn {
+.rpg-dashboard-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.rpg-dashboard-tab {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.4rem 0.6rem;
+    padding: 0.4rem 0.7rem;
     font-size: 0.75rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--SmartThemeBodyColor);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.rpg-dashboard-tab:hover {
+    background: var(--SmartThemeBlurTintColor);
+    opacity: 0.9;
+}
+
+.rpg-dashboard-tab.active {
+    background: var(--SmartThemeBlurTintColor);
+    border-color: var(--SmartThemeBorderColor);
+    opacity: 1;
+    font-weight: 600;
+}
+
+.rpg-tab-icon {
+    font-size: 0.9rem;
+}
+
+.rpg-tab-name {
+    font-size: 0.75rem;
+}
+
+.rpg-dashboard-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.9rem;
     border: 1px solid var(--SmartThemeBorderColor);
     background: var(--SmartThemeBlurTintColor);
     color: var(--SmartThemeBodyColor);
@@ -1093,13 +1137,26 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-dashboard-btn i {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
 }
 
 .rpg-dashboard-grid {
     position: relative;
     width: 100%;
     min-height: 200px;
+}
+
+/* Hide resize handles by default */
+.resize-handles {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+/* Show resize handles in edit mode */
+.edit-mode .resize-handles {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* ========================================
@@ -1115,6 +1172,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
    - px: Fixed details (borders, shadows)
    - %: Container-relative sizing
    ======================================== */
+
+/* Base widget container - ensures content stays within bounds */
+.rpg-widget {
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.rpg-widget > * {
+    box-sizing: border-box;
+    max-width: 100%;
+}
 
 .rpg-widget .rpg-stats-content {
     display: flex;
