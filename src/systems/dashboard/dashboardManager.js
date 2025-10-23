@@ -190,22 +190,30 @@ export class DashboardManager {
      * Create dashboard container structure
      */
     createContainerStructure() {
-        // Clear container
-        this.container.innerHTML = '';
+        // Check if tabs and grid containers already exist (from template)
+        this.tabContainer = this.container.querySelector('#rpg-dashboard-tabs');
+        this.gridContainer = this.container.querySelector('#rpg-dashboard-grid');
 
-        // Create tab container
-        this.tabContainer = document.createElement('div');
-        this.tabContainer.className = 'rpg-dashboard-tabs';
-        this.tabContainer.id = 'rpg-dashboard-tabs';
-        this.container.appendChild(this.tabContainer);
+        // If they don't exist, create them (fallback for legacy/minimal setup)
+        if (!this.tabContainer) {
+            console.warn('[DashboardManager] Tab container not found in template, creating...');
+            this.tabContainer = document.createElement('div');
+            this.tabContainer.className = 'rpg-dashboard-tabs';
+            this.tabContainer.id = 'rpg-dashboard-tabs';
+            this.container.appendChild(this.tabContainer);
+        }
 
-        // Create grid container
-        this.gridContainer = document.createElement('div');
-        this.gridContainer.className = 'rpg-dashboard-grid';
-        this.gridContainer.id = 'rpg-dashboard-grid';
-        this.gridContainer.style.position = 'relative';
-        this.gridContainer.style.minHeight = '600px';
-        this.container.appendChild(this.gridContainer);
+        if (!this.gridContainer) {
+            console.warn('[DashboardManager] Grid container not found in template, creating...');
+            this.gridContainer = document.createElement('div');
+            this.gridContainer.className = 'rpg-dashboard-grid';
+            this.gridContainer.id = 'rpg-dashboard-grid';
+            this.gridContainer.style.position = 'relative';
+            this.gridContainer.style.minHeight = '600px';
+            this.container.appendChild(this.gridContainer);
+        }
+
+        console.log('[DashboardManager] Container structure ready');
     }
 
     /**
