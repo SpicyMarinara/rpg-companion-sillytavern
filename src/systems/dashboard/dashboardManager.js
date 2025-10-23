@@ -102,7 +102,34 @@ export class DashboardManager {
             container: this.gridContainer,
             onColumnsChange: (newCols, oldCols) => {
                 console.log('[DashboardManager] Grid columns changed:', oldCols, '→', newCols);
-                // Re-render all widgets when column count changes
+
+                // Fix widget dimensions when column count changes
+                // This prevents widgets from shrinking when grid switches between 2/3/4 columns
+                const currentTab = this.tabManager.getTab(this.currentTabId);
+                if (currentTab) {
+                    currentTab.widgets.forEach(widget => {
+                        // If widget was full-width in old grid, make it full-width in new grid
+                        if (widget.w === oldCols) {
+                            console.log(`[DashboardManager] Adjusting full-width widget ${widget.id}: w=${widget.w} → ${newCols}`);
+                            widget.w = newCols;
+                        }
+                        // If widget is wider than new grid, clamp it
+                        else if (widget.w > newCols) {
+                            console.log(`[DashboardManager] Clamping oversized widget ${widget.id}: w=${widget.w} → ${newCols}`);
+                            widget.w = newCols;
+                        }
+                        // If widget x position is out of bounds, reset to 0
+                        if (widget.x >= newCols) {
+                            console.log(`[DashboardManager] Resetting out-of-bounds widget ${widget.id}: x=${widget.x} → 0`);
+                            widget.x = 0;
+                        }
+                    });
+
+                    // Save changes
+                    this.triggerAutoSave();
+                }
+
+                // Re-render all widgets with adjusted dimensions
                 this.renderAllWidgets();
             }
         });
@@ -181,9 +208,6 @@ export class DashboardManager {
 
         // Measure container width and set up responsive sizing
         this.setupContainerSizing();
-
-        // Migrate old 12-column layouts to new responsive grid
-        this.migrateOldLayouts();
 
         // Render tab navigation
         this.renderTabs();
@@ -515,8 +539,11 @@ export class DashboardManager {
         element.dataset.widgetId = widget.id;
         element.dataset.widgetType = widget.type;
 
-        // Position widget using grid engine (responsive units for scaling)
-        const pos = this.gridEngine.getWidgetPosition(widget);
+        // Validate widget dimensions (defensive check - shouldn't be needed if onColumnsChange works)
+        const validated = this.gridEngine.validateWidget(widget, definition.minSize || { w: 1, h: 1 });
+
+        // Position widget using validated dimensions
+        const pos = this.gridEngine.getWidgetPosition(validated);
         element.style.position = 'absolute';
         element.style.left = pos.left;    // % of container (e.g., "5.23%")
         element.style.top = pos.top;      // vh units (e.g., "10.45vh")

@@ -13,7 +13,10 @@ import { DashboardManager } from './dashboardManager.js';
 import { WidgetRegistry } from './widgetRegistry.js';
 
 // Widget imports
+import { registerUserInfoWidget } from './widgets/userInfoWidget.js';
 import { registerUserStatsWidget } from './widgets/userStatsWidget.js';
+import { registerUserMoodWidget } from './widgets/userMoodWidget.js';
+import { registerUserAttributesWidget } from './widgets/userAttributesWidget.js';
 import { registerCalendarWidget, registerWeatherWidget, registerTemperatureWidget, registerClockWidget, registerLocationWidget } from './widgets/infoBoxWidgets.js';
 import { registerPresentCharactersWidget } from './widgets/presentCharactersWidget.js';
 import { registerInventoryWidget } from './widgets/inventoryWidget.js';
@@ -165,17 +168,24 @@ function getInlineDashboardTemplate() {
 function registerAllWidgets(registry, dependencies) {
     console.log('[RPG Companion] Registering widgets...');
 
-    // Core widgets
+    // User modular widgets
+    registerUserInfoWidget(registry, dependencies);
     registerUserStatsWidget(registry, dependencies);
-    registerPresentCharactersWidget(registry, dependencies);
-    registerInventoryWidget(registry, dependencies);
+    registerUserMoodWidget(registry, dependencies);
+    registerUserAttributesWidget(registry, dependencies);
 
-    // Info Box modular widgets
+    // Scene info widgets
     registerCalendarWidget(registry, dependencies);
     registerWeatherWidget(registry, dependencies);
     registerTemperatureWidget(registry, dependencies);
     registerClockWidget(registry, dependencies);
     registerLocationWidget(registry, dependencies);
+
+    // Social widgets
+    registerPresentCharactersWidget(registry, dependencies);
+
+    // Inventory widget
+    registerInventoryWidget(registry, dependencies);
 
     console.log(`[RPG Companion] Registered ${registry.getAll().length} widgets`);
 }
