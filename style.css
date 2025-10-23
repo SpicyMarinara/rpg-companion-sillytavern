@@ -380,7 +380,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     flex-direction: column;
     gap: 0.375em;
-    overflow-y: hidden;
+    overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
 }
@@ -1051,6 +1051,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .rpg-dashboard-header {
