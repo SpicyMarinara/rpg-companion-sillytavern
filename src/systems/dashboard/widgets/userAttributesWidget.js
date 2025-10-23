@@ -31,7 +31,7 @@ export function registerUserAttributesWidget(registry, dependencies) {
         icon: '⚔️',
         description: 'Classic RPG stats (STR, DEX, CON, INT, WIS, CHA)',
         category: 'user',
-        minSize: { w: 1, h: 2 },
+        minSize: { w: 2, h: 2 },
         defaultSize: { w: 2, h: 2 },
         requiresSchema: false,
 

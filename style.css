@@ -963,7 +963,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     grid-template-columns: repeat(2, 1fr);
     gap: clamp(2px, 0.4vh, 4px);
     flex: 1;
-    grid-auto-rows: 1fr;
+    grid-auto-rows: minmax(0, 1fr);
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
@@ -1369,31 +1369,38 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     box-shadow: 0 4px 12px var(--rpg-shadow);
 }
 
-/* Location widget - flexible height */
+/* Location Widget */
 .rpg-location-widget {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem;
 }
 
 /* Calendar Widget */
 .rpg-calendar-widget {
     padding: 0.188em;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .rpg-calendar-top {
     background: var(--rpg-highlight);
     color: var(--rpg-bg);
-    font-size: clamp(0.5vw, 0.55vw, 0.6vw);
+    font-size: clamp(0.6rem, 0.7rem, 0.8rem);
     font-weight: bold;
     padding: 0.125em 0.375em;
     border-radius: 3px 3px 0 0;
     width: 100%;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .rpg-calendar-day {
     background: rgba(255, 255, 255, 0.1);
     color: var(--rpg-text);
-    font-size: clamp(0.8vw, 1vw, 1.2vw);
+    font-size: clamp(1.5rem, 2.5rem, 3.5rem);
     font-weight: bold;
     padding: 0.25em;
     width: 100%;
@@ -1404,24 +1411,35 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 0;
 }
 
 .rpg-calendar-year {
-    font-size: clamp(0.5vw, 0.55vw, 0.6vw);
+    font-size: clamp(0.6rem, 0.7rem, 0.8rem);
     color: var(--rpg-text);
     opacity: 0.7;
     margin-top: 0.062em;
+    flex-shrink: 0;
 }
 
-/* Weather Widget Icon */
+/* Weather Widget */
+.rpg-weather-widget {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.5rem;
+}
+
 .rpg-weather-icon {
-    font-size: clamp(18px, 3.5vw, 24px);
+    font-size: clamp(2rem, 8vh, 4rem);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
     flex-shrink: 0;
 }
 
 .rpg-weather-forecast {
-    font-size: clamp(0.4vw, 0.5vw, 0.6vw);
+    font-size: clamp(0.7rem, 0.9rem, 1.1rem);
     text-align: center;
     margin: 0;
     font-weight: 600;
@@ -1433,6 +1451,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 0;
 }
 
 .rpg-weather-forecast.rpg-editable {
@@ -1441,22 +1460,28 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Temperature Widget - Thermometer */
 .rpg-temp-widget {
-    gap: 0.188em;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .rpg-thermometer {
     position: relative;
-    width: 1.25rem;
-    height: 2.5rem;
+    width: clamp(1.5rem, 2rem, 3rem);
+    height: clamp(4rem, 60%, 8rem);
     display: flex;
     flex-direction: column;
     align-items: center;
+    flex-shrink: 1;
 }
 
 .rpg-thermometer-tube {
     position: relative;
-    width: 0.5rem;
-    height: 1.75rem;
+    width: 40%;
+    height: 70%;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid var(--rpg-border);
     border-radius: 0.625em 0.625em 0 0;
@@ -1475,8 +1500,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-thermometer-bulb {
     position: absolute;
     bottom: 0;
-    width: 0.875rem;
-    height: 0.875rem;
+    width: 70%;
+    height: 0;
+    padding-bottom: 70%;
     background: var(--rpg-highlight);
     border: 2px solid var(--rpg-border);
     border-radius: 50%;
@@ -1484,25 +1510,33 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-temp-value {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.7rem, 0.9rem, 1.1rem);
     font-weight: bold;
     color: var(--rpg-text);
     text-align: center;
+    flex-shrink: 0;
 }
 
 /* Clock Widget */
 .rpg-clock-widget {
-    gap: 0.188em;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .rpg-clock {
-    width: 2.625rem;
-    height: 2.625rem;
+    width: clamp(3rem, 60%, 6rem);
+    height: clamp(3rem, 60%, 6rem);
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.4);
     border: 3px solid var(--rpg-border);
     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
     position: relative;
+    flex-shrink: 1;
 }
 
 .rpg-clock-face {
@@ -1522,22 +1556,22 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-clock-hour {
-    width: 0.188rem;
-    height: 0.75rem;
-    margin-left: -0.094em;
+    width: 3%;
+    height: 28%;
+    margin-left: -1.5%;
     opacity: 0.9;
 }
 
 .rpg-clock-minute {
-    width: 0.125rem;
-    height: 1rem;
-    margin-left: -0.062em;
+    width: 2%;
+    height: 38%;
+    margin-left: -1%;
 }
 
 .rpg-clock-center {
     position: absolute;
-    width: 0.312rem;
-    height: 0.312rem;
+    width: 6%;
+    height: 6%;
     background: var(--rpg-highlight);
     border-radius: 50%;
     top: 50%;
@@ -1547,17 +1581,18 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-time-value {
-    font-size: clamp(0.5vw,0.6vw,0.7vw);
+    font-size: clamp(0.7rem, 0.9rem, 1.1rem);
     font-weight: bold;
     color: var(--rpg-text);
+    flex-shrink: 0;
 }
 
 /* Location Widget - Map */
 .rpg-map-bg {
     width: 100%;
-    height: 1.875rem;
+    flex: 1;
+    min-height: 3rem;
     margin: 0;
-    margin-bottom: 0 !important;
     background:
         linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
         linear-gradient(-45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
@@ -1573,12 +1608,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     justify-content: center;
     position: relative;
     overflow: hidden;
-    flex-shrink: 0;
-    margin-bottom: 0.188em;
 }
 
 .rpg-map-marker {
-    font-size: 1vw;
+    font-size: clamp(1.5rem, 4vh, 3rem);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
     animation: markerPulse 2s ease-in-out infinite;
 }
@@ -1589,16 +1622,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-location-text {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.7rem, 0.9rem, 1.1rem);
     font-weight: bold;
     color: var(--rpg-text);
     text-align: center;
     line-height: 1.2;
-    padding: 0.125em 0.25em;
+    padding: 0.5rem 0.25rem;
     margin: 0;
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
+    flex-shrink: 0;
 }
 
 /* Character Status Cards */
