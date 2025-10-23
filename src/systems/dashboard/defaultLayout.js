@@ -61,7 +61,7 @@ export function generateDefaultDashboard() {
                             statBarGradient: true
                         }
                     },
-                    // Row 3-4: User Mood (left) + User Attributes (right)
+                    // Row 3: User Mood (left column)
                     {
                         id: 'widget-usermood',
                         type: 'userMood',
@@ -71,23 +71,24 @@ export function generateDefaultDashboard() {
                         h: 1,
                         config: {}
                     },
+                    // Row 4-5: User Attributes (full width, needs 2 columns for 3x2 grid)
                     {
                         id: 'widget-userattributes',
                         type: 'userAttributes',
-                        x: 1,
-                        y: 3,
-                        w: 1,
+                        x: 0,
+                        y: 4,
+                        w: 2,
                         h: 2,
                         config: {}
                     },
 
                     // === SCENE CLUSTER (Middle) ===
-                    // Row 5-6: Calendar (left) + Weather (right)
+                    // Row 6-7: Calendar (left) + Weather (right)
                     {
                         id: 'widget-calendar',
                         type: 'calendar',
                         x: 0,
-                        y: 5,
+                        y: 6,
                         w: 1,
                         h: 2,
                         config: {}
@@ -96,19 +97,19 @@ export function generateDefaultDashboard() {
                         id: 'widget-weather',
                         type: 'weather',
                         x: 1,
-                        y: 5,
+                        y: 6,
                         w: 1,
                         h: 2,
                         config: {
                             compact: false
                         }
                     },
-                    // Row 7-8: Temperature (left) + Clock (right)
+                    // Row 8-9: Temperature (left) + Clock (right)
                     {
                         id: 'widget-temperature',
                         type: 'temperature',
                         x: 0,
-                        y: 7,
+                        y: 8,
                         w: 1,
                         h: 2,
                         config: {
@@ -119,31 +120,31 @@ export function generateDefaultDashboard() {
                         id: 'widget-clock',
                         type: 'clock',
                         x: 1,
-                        y: 7,
+                        y: 8,
                         w: 1,
                         h: 2,
                         config: {
                             format: 'digital'
                         }
                     },
-                    // Row 9-10: Location (full width)
+                    // Row 10-11: Location (full width)
                     {
                         id: 'widget-location',
                         type: 'location',
                         x: 0,
-                        y: 9,
+                        y: 10,
                         w: 2,
                         h: 2,
                         config: {}
                     },
 
                     // === SOCIAL CLUSTER (Bottom) ===
-                    // Row 11-13: Present Characters (full width)
+                    // Row 12-14: Present Characters (full width)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
-                        y: 11,
+                        y: 12,
                         w: 2,
                         h: 3,
                         config: {

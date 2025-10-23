@@ -1205,9 +1205,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     width: 100%; /* Full width */
 }
 
-/* Classic stats grid - 3 columns for side panel */
+/* Classic stats grid - 2 columns to match dashboard grid */
 .rpg-widget .rpg-classic-stats-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem 0.25rem;  /* rem for spacing */
 }
 

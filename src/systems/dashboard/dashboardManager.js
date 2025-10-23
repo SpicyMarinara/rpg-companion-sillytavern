@@ -722,19 +722,32 @@ export class DashboardManager {
         // Clear existing tabs
         this.dashboard.tabs = [];
 
-        // Create Status tab (user + scene)
-        const statusWidgets = [...groups.user, ...groups.scene];
-        if (statusWidgets.length > 0) {
+        // Create Status tab (user widgets ONLY - prioritized)
+        if (groups.user.length > 0) {
             this.dashboard.tabs.push({
                 id: 'tab-status',
                 name: 'Status',
                 icon: '📊',
                 order: 0,
-                widgets: statusWidgets
+                widgets: groups.user
             });
 
             // Auto-layout status widgets
-            this.gridEngine.autoLayout(statusWidgets, { preserveOrder: true });
+            this.gridEngine.autoLayout(groups.user, { preserveOrder: true });
+        }
+
+        // Create Scene/Info tab if there are scene widgets (overflow from Status)
+        if (groups.scene.length > 0) {
+            this.dashboard.tabs.push({
+                id: 'tab-scene',
+                name: 'Scene',
+                icon: '🌍',
+                order: 1,
+                widgets: groups.scene
+            });
+
+            // Auto-layout scene widgets
+            this.gridEngine.autoLayout(groups.scene, { preserveOrder: true });
         }
 
         // Create Social tab if there are social widgets
@@ -743,7 +756,7 @@ export class DashboardManager {
                 id: 'tab-social',
                 name: 'Social',
                 icon: '👥',
-                order: 1,
+                order: 2,
                 widgets: groups.social
             });
 
@@ -757,7 +770,7 @@ export class DashboardManager {
                 id: 'tab-inventory',
                 name: 'Inventory',
                 icon: '🎒',
-                order: 2,
+                order: 3,
                 widgets: groups.inventory
             });
 
