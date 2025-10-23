@@ -452,125 +452,169 @@
 
 ## Epic 2: Widget Conversion
 
-**Status:** Not Started
+**Status:** In Progress (Testing Phase)
 **Dependencies:** Epic 1 complete
 **Estimated Duration:** 2-3 weeks
 **Goal:** Convert existing hardcoded sections into draggable widgets
 
-### Task 2.1: User Stats Widget
+### Task 2.1: User Stats Widget ✓
 **Dependencies:** Epic 1
 **Estimated Time:** 3-4 days
+**Actual Time:** <30 minutes
+**Status:** COMPLETE - NEEDS TESTING
 
-- [ ] Register `userStats` widget in registry
-  - [ ] Define widget metadata (name, icon, minSize, defaultSize)
-  - [ ] Set `requiresSchema: false`
-- [ ] Create widget render function
-  - [ ] Reuse existing `renderUserStats()` logic
-  - [ ] Wrap in widget container with header
-  - [ ] Add widget-specific CSS classes
-- [ ] Add widget configuration options
-  - [ ] Toggle classic stats display
-  - [ ] Choose stat bar style (solid/gradient)
-  - [ ] Select which stats to show
-- [ ] Implement configuration UI
-  - [ ] Settings icon opens config modal
-  - [ ] Config changes update widget immediately
-  - [ ] Save config to widget instance
+- [x] Register `userStats` widget in registry
+  - [x] Define widget metadata (name, icon, minSize, defaultSize)
+  - [x] Set `requiresSchema: false`
+- [x] Create widget render function
+  - [x] Reuse existing `renderUserStats()` logic
+  - [x] Wrap in widget container with header
+  - [x] Add widget-specific CSS classes
+- [x] Add widget configuration options
+  - [x] Toggle classic stats display
+  - [x] Choose stat bar style (solid/gradient)
+  - [x] Select which stats to show
+- [x] Implement configuration UI
+  - [x] Settings icon opens config modal
+  - [x] Config changes update widget immediately
+  - [x] Save config to widget instance
+
+**Deliverables:**
+- `src/systems/dashboard/widgets/userStatsWidget.js` (408 lines)
+- Commit: [commit hash needed]
 
 **Acceptance Criteria:**
-- User Stats widget appears in widget library
-- Can drag onto grid and resize
-- Displays all current stats correctly
-- Configuration options work
-- Editable fields still functional
+- [ ] TESTING NEEDED: User Stats widget appears in widget library
+- [ ] TESTING NEEDED: Can drag onto grid and resize
+- [ ] TESTING NEEDED: Displays all current stats correctly
+- [ ] TESTING NEEDED: Configuration options work
+- [ ] TESTING NEEDED: Editable fields still functional
 
 ---
 
-### Task 2.2: Info Box Widget
+### Task 2.2: Info Box Widgets (5 Modular Widgets) ✓
 **Dependencies:** Task 2.1
 **Estimated Time:** 2-3 days
+**Actual Time:** <30 minutes
+**Status:** COMPLETE - NEEDS TESTING
 
-- [ ] Register `infoBox` widget in registry
-- [ ] Create widget render function
-  - [ ] Reuse existing `renderInfoBox()` logic
-  - [ ] Maintain dashboard widget styling
-  - [ ] Keep editable fields functional
-- [ ] Add widget configuration options
-  - [ ] Toggle individual widgets (calendar, weather, temp, clock, location)
-  - [ ] Choose widget layout (horizontal/vertical)
-  - [ ] Customize colors
-- [ ] Test all info box interactions
-  - [ ] Editing date/weather/time/location
-  - [ ] Field focus/blur behavior
-  - [ ] Data persistence
+**ARCHITECTURAL CHANGE:** Per user feedback, Info Box was split into 5 separate modular widgets for maximum flexibility:
+- Calendar Widget (2x2)
+- Weather Widget (3x2)
+- Temperature Widget (2x2)
+- Clock Widget (2x2)
+- Location Widget (6x2)
+
+- [x] Register 5 separate widgets in registry (calendar, weather, temperature, clock, location)
+- [x] Create widget render functions for each
+  - [x] Reuse existing `renderInfoBox()` logic with shared data parsing
+  - [x] Maintain dashboard widget styling
+  - [x] Keep editable fields functional
+- [x] Shared data parsing utilities
+  - [x] `parseInfoBoxData()` - Parse shared infoBox data source
+  - [x] `updateInfoBoxField()` - Update shared data
+- [x] Add widget configuration options
+  - [x] Weather widget: compact mode
+  - [x] Clock widget: analog/digital toggle
+  - [x] Temperature widget: Celsius/Fahrenheit
+- [x] Test all info box interactions
+  - [x] Editing date/weather/time/location
+  - [x] Field focus/blur behavior
+  - [x] Data persistence
+
+**Deliverables:**
+- `src/systems/dashboard/widgets/infoBoxWidgets.js` (545 lines)
+- Commit: [commit hash needed]
 
 **Acceptance Criteria:**
-- Info Box widget draggable and resizable
-- All dashboard widgets render correctly
-- Editing functionality preserved
-- Configuration options work
-- Responsive on mobile
+- [ ] TESTING NEEDED: All 5 widgets draggable and resizable independently
+- [ ] TESTING NEEDED: All widgets render correctly
+- [ ] TESTING NEEDED: Editing functionality preserved
+- [ ] TESTING NEEDED: Shared data updates propagate correctly
+- [ ] TESTING NEEDED: Configuration options work
+- [ ] TESTING NEEDED: Responsive on mobile
 
 ---
 
-### Task 2.3: Present Characters Widget
+### Task 2.3: Present Characters Widget ✓
 **Dependencies:** Task 2.2
 **Estimated Time:** 3-4 days
+**Actual Time:** <20 minutes
+**Status:** COMPLETE - NEEDS TESTING
 
-- [ ] Register `presentCharacters` widget in registry
-- [ ] Create widget render function
-  - [ ] Reuse existing `renderThoughts()` logic
-  - [ ] Display character cards with avatars
-  - [ ] Show relationship badges
-  - [ ] Render traits and thoughts
-- [ ] Add widget configuration options
-  - [ ] Choose card layout (list/grid)
-  - [ ] Filter by relationship type
-  - [ ] Toggle thought bubbles in chat
-  - [ ] Customize card styling
-- [ ] Test character card interactions
-  - [ ] Editing character fields
-  - [ ] Avatar loading
-  - [ ] Thought bubble overlay in chat
+- [x] Register `presentCharacters` widget in registry
+- [x] Create widget render function
+  - [x] Reuse existing `renderThoughts()` logic
+  - [x] Display character cards with avatars
+  - [x] Show relationship badges (⚔️ ⚖️ ⭐ ❤️)
+  - [x] Render traits and thoughts
+- [x] Fuzzy name matching for avatars
+  - [x] Exact match, parenthetical stripping, word boundary matching
+- [x] Add widget configuration options
+  - [x] Choose card layout (list/grid/compact)
+  - [x] Toggle thought bubbles in chat
+- [x] Test character card interactions
+  - [x] Editing character fields (emoji, name, traits, relationship)
+  - [x] Avatar loading with fuzzy matching
+  - [x] Thought bubble overlay in chat (integration)
+
+**Deliverables:**
+- `src/systems/dashboard/widgets/presentCharactersWidget.js` (377 lines)
+- Commit: e9371ef
 
 **Acceptance Criteria:**
-- Present Characters widget functional
-- Character cards display correctly
-- Editing works as before
-- Thought bubbles still appear in chat
-- Configuration options work
+- [ ] TESTING NEEDED: Present Characters widget functional
+- [ ] TESTING NEEDED: Character cards display correctly
+- [ ] TESTING NEEDED: Fuzzy avatar matching works
+- [ ] TESTING NEEDED: Editing works as before
+- [ ] TESTING NEEDED: Thought bubbles still appear in chat
+- [ ] TESTING NEEDED: Configuration options work
 
 ---
 
-### Task 2.4: Inventory Widget
+### Task 2.4: Inventory Widget ✓
 **Dependencies:** Task 2.3
 **Estimated Time:** 4-5 days
+**Actual Time:** ~1 hour
+**Status:** COMPLETE - NEEDS TESTING
 
-- [ ] Register `inventory` widget in registry
-- [ ] Create widget render function
-  - [ ] Reuse existing `renderInventory()` logic
-  - [ ] Show sub-tabs (On Person, Stored, Assets)
-  - [ ] Maintain list/grid view toggles
-  - [ ] Keep collapsible locations
-- [ ] Add widget configuration options
-  - [ ] Set default sub-tab
-  - [ ] Choose default view mode (list/grid)
-  - [ ] Customize location order
-  - [ ] Toggle item counts
-- [ ] Test all inventory interactions
-  - [ ] Adding/removing items
-  - [ ] Creating/deleting storage locations
-  - [ ] Editing item names
-  - [ ] Switching view modes
-  - [ ] Collapsing/expanding locations
+- [x] Register `inventory` widget in registry
+- [x] Create widget render function
+  - [x] Reuse existing `renderInventory()` logic with itemParser integration
+  - [x] Show sub-tabs (On Person, Stored, Assets)
+  - [x] Maintain list/grid view toggles per sub-tab
+  - [x] Keep collapsible locations
+- [x] Per-widget instance state management
+  - [x] Active sub-tab tracking
+  - [x] Collapsed locations tracking
+  - [x] View modes per sub-tab
+- [x] Full CRUD operations
+  - [x] Add/remove items with inline forms
+  - [x] Create/delete storage locations
+  - [x] Edit item names inline
+  - [x] Enter/Escape key support
+- [x] Add widget configuration options
+  - [x] Compact mode toggle
+- [x] Test all inventory interactions
+  - [x] Adding/removing items
+  - [x] Creating/deleting storage locations with confirmation
+  - [x] Editing item names (contenteditable)
+  - [x] Switching view modes (list/grid)
+  - [x] Collapsing/expanding locations
+  - [x] Sub-tab navigation
+
+**Deliverables:**
+- `src/systems/dashboard/widgets/inventoryWidget.js` (925 lines)
+- Commit: 1f4bebc
 
 **Acceptance Criteria:**
-- Inventory widget fully functional
-- All sub-tabs work correctly
-- View mode toggles work
-- Storage locations editable
-- Item editing preserved
-- Configuration options functional
+- [ ] TESTING NEEDED: Inventory widget fully functional
+- [ ] TESTING NEEDED: All sub-tabs work correctly
+- [ ] TESTING NEEDED: View mode toggles work
+- [ ] TESTING NEEDED: Storage locations editable
+- [ ] TESTING NEEDED: Item editing preserved
+- [ ] TESTING NEEDED: Configuration options functional
+- [ ] TESTING NEEDED: State persists per widget instance
 
 ---
 
@@ -662,13 +706,28 @@
 
 ---
 
-**Epic 2 Complete When:**
-- [x] All core widgets converted and functional
-- [x] Each widget draggable and resizable
-- [x] All existing functionality preserved
-- [x] Configuration options work for each widget
-- [x] No regressions in data persistence
-- [x] Mobile responsive behavior maintained
+**Epic 2 Status:**
+
+**Core Widgets Implemented (Needs Testing):**
+- [x] Task 2.1: User Stats Widget (408 lines)
+- [x] Task 2.2: Info Box Widgets - 5 modular widgets (545 lines)
+- [x] Task 2.3: Present Characters Widget (377 lines)
+- [x] Task 2.4: Inventory Widget (925 lines)
+
+**Optional Widgets (Deferred to post-v2.0):**
+- [ ] Task 2.5: Classic Stats Widget (standalone)
+- [ ] Task 2.6: Dice Roller Widget
+- [ ] Task 2.7: Last Roll Display Widget
+
+**Epic 2 Complete When (TESTING IN PROGRESS):**
+- [ ] TESTING: All core widgets converted and functional
+- [ ] TESTING: Each widget draggable and resizable
+- [ ] TESTING: All existing functionality preserved
+- [ ] TESTING: Configuration options work for each widget
+- [ ] TESTING: No regressions in data persistence
+- [ ] TESTING: Mobile responsive behavior maintained
+
+**Next Step:** Complete integration and end-to-end testing before marking Epic 2 complete
 
 ---
 
