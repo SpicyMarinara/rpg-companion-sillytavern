@@ -62,6 +62,12 @@ export class DashboardManager {
         this.widgets = new Map(); // widgetId => { widget data, element, tab }
         this.defaultLayout = null;
 
+        // Dashboard data structure (for TabManager)
+        this.dashboard = {
+            tabs: [],
+            defaultTab: null
+        };
+
         // System instances
         this.gridEngine = null;
         this.registry = null;
@@ -100,13 +106,29 @@ export class DashboardManager {
         // Initialize Widget Registry
         this.registry = new WidgetRegistry();
 
-        // Initialize Tab Manager
-        this.tabManager = new TabManager({
-            onTabChange: (tabId) => this.onTabChange(tabId),
-            onTabCreate: (tab) => this.onTabCreate(tab),
-            onTabDelete: (tabId) => this.onTabDelete(tabId),
-            onTabRename: (tabId, newName) => this.onTabRename(tabId, newName),
-            onTabReorder: (fromIndex, toIndex) => this.onTabReorder(fromIndex, toIndex)
+        // Initialize Tab Manager with dashboard data structure
+        // Create default tab if no tabs exist
+        if (this.dashboard.tabs.length === 0) {
+            this.dashboard.tabs.push({
+                id: 'main',
+                name: 'Main',
+                icon: '🏠',
+                order: 0,
+                widgets: []
+            });
+            this.dashboard.defaultTab = 'main';
+        }
+
+        this.tabManager = new TabManager(this.dashboard);
+
+        // Set current tab to active tab from TabManager
+        this.currentTabId = this.tabManager.getActiveTabId();
+
+        // Register tab change listener
+        this.tabManager.onChange((event, data) => {
+            if (event === 'tabChanged') {
+                this.onTabChange(data.tabId);
+            }
         });
 
         // Initialize Drag & Drop
@@ -610,8 +632,11 @@ export class DashboardManager {
             tabs: this.tabManager.getTabs().map(tab => ({
                 id: tab.id,
                 name: tab.name,
+                icon: tab.icon,
+                order: tab.order,
                 widgets: tab.widgets || []
-            }))
+            })),
+            defaultTab: this.dashboard.defaultTab
         };
     }
 
@@ -624,14 +649,27 @@ export class DashboardManager {
 
         // Clear existing
         this.clearGrid();
-        this.tabManager.deleteAllTabs();
 
-        // Create tabs
+        // Clear tabs directly (we have access to shared dashboard object)
+        this.dashboard.tabs = [];
+
+        // Recreate tabs from config (preserve IDs and widgets)
         config.tabs.forEach(tabConfig => {
-            this.tabManager.createTab(tabConfig.name, tabConfig.id);
-            const tab = this.tabManager.getTab(tabConfig.id);
-            tab.widgets = tabConfig.widgets || [];
+            this.dashboard.tabs.push({
+                id: tabConfig.id,
+                name: tabConfig.name,
+                icon: tabConfig.icon || '📄',
+                order: tabConfig.order || 0,
+                widgets: tabConfig.widgets || []
+            });
         });
+
+        // Update default tab
+        if (config.defaultTab) {
+            this.dashboard.defaultTab = config.defaultTab;
+        } else if (this.dashboard.tabs.length > 0) {
+            this.dashboard.defaultTab = this.dashboard.tabs[0].id;
+        }
 
         // Switch to first tab
         if (config.tabs.length > 0) {
