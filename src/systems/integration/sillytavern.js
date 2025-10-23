@@ -16,7 +16,8 @@ import {
     setLastActionWasSwipe,
     setIsPlotProgression,
     updateLastGeneratedData,
-    updateCommittedTrackerData
+    updateCommittedTrackerData,
+    FALLBACK_AVATAR_DATA_URI
 } from '../../core/state.js';
 import { saveChatData, loadChatData } from '../../core/persistence.js';
 
@@ -291,11 +292,12 @@ export function onMessageSwiped(messageIndex) {
 
 /**
  * Update the persona avatar image when user switches personas
+ * Updates ALL .rpg-user-portrait elements with proper fallback handling
  */
 export function updatePersonaAvatar() {
-    const portraitImg = document.querySelector('.rpg-user-portrait');
-    if (!portraitImg) {
-        // console.log('[RPG Companion] Portrait image element not found in DOM');
+    const portraitImgs = document.querySelectorAll('.rpg-user-portrait');
+    if (portraitImgs.length === 0) {
+        // console.log('[RPG Companion] No portrait image elements found in DOM');
         return;
     }
 
@@ -303,24 +305,27 @@ export function updatePersonaAvatar() {
     const context = getContext();
     const currentUserAvatar = context.user_avatar || user_avatar;
 
-    // console.log('[RPG Companion] Attempting to update persona avatar:', currentUserAvatar);
+    // console.log('[RPG Companion] Updating', portraitImgs.length, 'avatar(s) for:', currentUserAvatar);
 
-    // Try to get a valid thumbnail URL using our safe helper
-    if (currentUserAvatar) {
-        const thumbnailUrl = getSafeThumbnailUrl('persona', currentUserAvatar);
+    // Update each avatar instance
+    portraitImgs.forEach(portraitImg => {
+        // getSafeThumbnailUrl already calls getThumbnailUrl and handles errors
+        // It returns proper URLs like /thumbnail?type=persona&file=... or null
+        const thumbnailUrl = currentUserAvatar ? getSafeThumbnailUrl('persona', currentUserAvatar) : null;
+        const finalUrl = thumbnailUrl || FALLBACK_AVATAR_DATA_URI;
 
-        if (thumbnailUrl) {
-            // Only update the src if we got a valid URL
-            portraitImg.src = thumbnailUrl;
-            // console.log('[RPG Companion] Persona avatar updated successfully');
-        } else {
-            // Don't update the src if we couldn't get a valid URL
-            // This prevents 400 errors and keeps the existing image
-            // console.warn('[RPG Companion] Could not get valid thumbnail URL for persona avatar, keeping existing image');
-        }
-    } else {
-        // console.log('[RPG Companion] No user avatar configured, keeping existing image');
-    }
+        // Set the avatar URL
+        portraitImg.src = finalUrl;
+
+        // Add onerror handler to use fallback if load fails (404, etc.)
+        portraitImg.onerror = () => {
+            if (portraitImg.src !== FALLBACK_AVATAR_DATA_URI) {
+                // console.warn('[RPG Companion] Avatar failed to load, using fallback');
+                portraitImg.src = FALLBACK_AVATAR_DATA_URI;
+                portraitImg.onerror = null; // Prevent infinite loop
+            }
+        };
+    });
 }
 
 /**

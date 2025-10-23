@@ -26,6 +26,7 @@ export function registerUserInfoWidget(registry, dependencies) {
     const {
         getContext,
         getUserAvatar,
+        getAvatarUrl,
         getFallbackAvatar,
         getExtensionSettings,
         onStatsChange
@@ -50,7 +51,16 @@ export function registerUserInfoWidget(registry, dependencies) {
             const settings = getExtensionSettings();
             const context = getContext();
             const userName = context.name1;
-            const userPortrait = getUserAvatar() || getFallbackAvatar();
+
+            // Get user avatar - use getAvatarUrl to convert filename to proper thumbnail URL
+            let userPortrait = getFallbackAvatar();
+            const rawAvatar = getUserAvatar();
+
+            // Convert raw avatar filename to proper thumbnail URL
+            // getAvatarUrl calls getThumbnailUrl which generates URLs like /thumbnail?type=persona&file=...
+            if (rawAvatar) {
+                userPortrait = getAvatarUrl('persona', rawAvatar);
+            }
 
             // Merge default config
             const finalConfig = {
