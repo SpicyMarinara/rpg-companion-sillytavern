@@ -599,6 +599,11 @@ export class GridEngine {
             if (this.registry && widget.type) {
                 const definition = this.registry.get(widget.type);
                 if (definition && definition.maxAutoSize) {
+                    // Support maxAutoSize as function (column-aware sizing)
+                    if (typeof definition.maxAutoSize === 'function') {
+                        return definition.maxAutoSize(this.columns);
+                    }
+                    // Static maxAutoSize object
                     return definition.maxAutoSize;
                 }
             }
