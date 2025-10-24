@@ -4323,7 +4323,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     /* User Stats Widget - add bottom padding to prevent last bar (Arousal) from being clipped */
     .rpg-widget .rpg-stats-grid {
-        padding-bottom: 0.3rem !important;
+        padding-bottom: 0.5rem !important;
     }
 
     /* Mood Widget - increase conditions text size for readability */

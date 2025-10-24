@@ -804,9 +804,9 @@ export class DashboardManager {
 
         // Specific widget type ordering within user category
         const userWidgetOrder = {
-            'userInfo': 1,      // Name/level at top
-            'userStats': 2,     // Health/energy bars
-            'userMood': 3,      // Mood
+            'userInfo': 1,      // Name/level at top-left
+            'userMood': 2,      // Mood at top-right (before stats so it sits beside userInfo)
+            'userStats': 3,     // Health/energy bars (after mood, goes below userInfo+mood)
             'userAttributes': 4 // STR/DEX/etc
         };
 
@@ -1231,8 +1231,17 @@ export class DashboardManager {
             const definition = this.registry.get(widget.type);
             if (definition && definition.defaultSize) {
                 const oldSize = `${widget.w}x${widget.h}`;
-                widget.w = definition.defaultSize.w;
-                widget.h = definition.defaultSize.h;
+
+                // Support defaultSize as function (column-aware sizing)
+                let defaultSize;
+                if (typeof definition.defaultSize === 'function') {
+                    defaultSize = definition.defaultSize(this.gridEngine.columns);
+                } else {
+                    defaultSize = definition.defaultSize;
+                }
+
+                widget.w = defaultSize.w;
+                widget.h = defaultSize.h;
                 const newSize = `${widget.w}x${widget.h}`;
                 if (oldSize !== newSize) {
                     console.log(`[DashboardManager] Reset ${widget.type} from ${oldSize} to ${newSize}`);

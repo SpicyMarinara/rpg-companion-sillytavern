@@ -38,13 +38,19 @@ export function registerUserInfoWidget(registry, dependencies) {
         description: 'User avatar, name, and level display',
         category: 'user',
         minSize: { w: 1, h: 1 },
-        defaultSize: { w: 1, h: 1 }, // Start compact (1x1), expansion will grow it based on columns
-        // Column-aware max size: mobile (2-col) stays 1x1, desktop (3-4 col) expands vertically to 1x2
+        // Column-aware default size: start at 2x1 in desktop so mood doesn't block expansion
+        defaultSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 1, h: 1 }; // Mobile: compact 1x1
+            }
+            return { w: 2, h: 1 }; // Desktop: 2x1 from the start
+        },
+        // Column-aware max size: same as defaultSize to prevent further expansion
         maxAutoSize: (columns) => {
             if (columns <= 2) {
                 return { w: 1, h: 1 }; // Mobile: stay compact to allow mood widget beside it
             }
-            return { w: 1, h: 2 }; // Desktop: expand vertically, mood fits top-right
+            return { w: 2, h: 1 }; // Desktop: 2x1, mood sits in top-right
         },
         requiresSchema: false,
 

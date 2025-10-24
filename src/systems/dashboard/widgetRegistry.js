@@ -87,7 +87,10 @@ export class WidgetRegistry {
         if (!definition.minSize.w || !definition.minSize.h) {
             throw new Error('[WidgetRegistry] Widget minSize must have w and h properties');
         }
-        if (!definition.defaultSize.w || !definition.defaultSize.h) {
+        // defaultSize can be a function (column-aware) or static object
+        if (typeof definition.defaultSize === 'function') {
+            // If function, we can't validate until runtime, skip validation
+        } else if (!definition.defaultSize.w || !definition.defaultSize.h) {
             throw new Error('[WidgetRegistry] Widget defaultSize must have w and h properties');
         }
 
