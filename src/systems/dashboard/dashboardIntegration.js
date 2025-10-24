@@ -390,11 +390,15 @@ export function createDefaultLayout(manager) {
  * Refresh all widgets (called after data updates)
  */
 export function refreshDashboard() {
-    if (dashboardManager) {
-        // Get all active widgets and re-render them
-        const widgets = dashboardManager.getAllWidgets();
-        widgets.forEach(widget => {
-            dashboardManager.renderWidget(widget.id);
+    if (dashboardManager && dashboardManager.widgets) {
+        // Re-render all active widgets by accessing the widgets Map directly
+        dashboardManager.widgets.forEach((widgetData, widgetId) => {
+            // Get the widget definition from registry
+            const definition = dashboardManager.registry.get(widgetData.widget.type);
+            if (definition && widgetData.element) {
+                // Re-render the widget content
+                dashboardManager.renderWidgetContent(widgetData.element, widgetData.widget, definition);
+            }
         });
     }
 }

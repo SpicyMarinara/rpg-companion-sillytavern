@@ -1553,26 +1553,29 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-weather-icon {
-    font-size: 2rem;
+    font-size: 1rem;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-    flex-shrink: 1;
+    flex-shrink: 0;
     line-height: 1;
+    cursor: text;
 }
 
 .rpg-weather-forecast {
-    font-size: 0.65rem;
+    font-size: 0.45rem;
     text-align: center;
     margin: 0;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.013em;
     opacity: 0.85;
-    line-height: 1.1;
+    line-height: 1;
     word-wrap: break-word;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex-shrink: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
 }
 
 .rpg-weather-forecast.rpg-editable {

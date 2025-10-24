@@ -31,6 +31,9 @@ import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts, updateChatThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 
+// Dashboard
+import { refreshDashboard } from '../dashboard/dashboardIntegration.js';
+
 // Utils
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 
@@ -99,17 +102,26 @@ export async function onMessageReceived(data) {
             // console.log('[RPG Companion] Parsing together mode response:', responseText);
 
             const parsedData = parseResponse(responseText);
+            console.log('[RPG Companion] Parsed data results:', {
+                hasUserStats: !!parsedData.userStats,
+                hasInfoBox: !!parsedData.infoBox,
+                hasCharacterThoughts: !!parsedData.characterThoughts
+            });
 
-            // Update stored data
+            // Update stored data (both lastGeneratedData for old UI and extensionSettings for dashboard widgets)
             if (parsedData.userStats) {
                 lastGeneratedData.userStats = parsedData.userStats;
-                parseUserStats(parsedData.userStats);
+                parseUserStats(parsedData.userStats); // Updates extensionSettings.userStats
             }
             if (parsedData.infoBox) {
                 lastGeneratedData.infoBox = parsedData.infoBox;
+                extensionSettings.infoBoxData = parsedData.infoBox; // Update for dashboard widgets
+                console.log('[RPG Companion] Updated extensionSettings.infoBoxData:', extensionSettings.infoBoxData.substring(0, 100));
             }
             if (parsedData.characterThoughts) {
                 lastGeneratedData.characterThoughts = parsedData.characterThoughts;
+                extensionSettings.characterThoughts = parsedData.characterThoughts; // Update for dashboard widgets
+                console.log('[RPG Companion] Updated extensionSettings.characterThoughts:', extensionSettings.characterThoughts.substring(0, 100));
             }
 
             // Store RPG data for this specific swipe in the message's extra field
@@ -160,11 +172,14 @@ export async function onMessageReceived(data) {
 
             // console.log('[RPG Companion] Cleaned message, removed tracker code blocks');
 
-            // Render the updated data
+            // Render the updated data (old panel UI)
             renderUserStats();
             renderInfoBox();
             renderThoughts();
             renderInventory();
+
+            // Refresh dashboard widgets (v2 dashboard)
+            refreshDashboard();
 
             // Save to chat metadata
             saveChatData();
@@ -209,11 +224,22 @@ export function onCharacterChanged() {
     // Commit tracker data from the last assistant message to initialize for this chat
     commitTrackerData();
 
+    // Populate extensionSettings for dashboard widgets from loaded chat data
+    if (lastGeneratedData.infoBox) {
+        extensionSettings.infoBoxData = lastGeneratedData.infoBox;
+    }
+    if (lastGeneratedData.characterThoughts) {
+        extensionSettings.characterThoughts = lastGeneratedData.characterThoughts;
+    }
+
     // Re-render with the loaded data
     renderUserStats();
     renderInfoBox();
     renderThoughts();
     renderInventory();
+
+    // Refresh dashboard widgets (v2 dashboard)
+    refreshDashboard();
 
     // Update chat thought overlays
     updateChatThoughts();

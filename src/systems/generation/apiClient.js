@@ -17,6 +17,7 @@ import {
 import { saveChatData } from '../../core/persistence.js';
 import { generateSeparateUpdatePrompt } from './promptBuilder.js';
 import { parseResponse, parseUserStats } from './parser.js';
+import { refreshDashboard } from '../dashboard/dashboardIntegration.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -155,16 +156,18 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
                 // console.log('[RPG Companion] Stored separate mode RPG data for message swipe', currentSwipeId);
 
-                // Update lastGeneratedData for display AND future commit
+                // Update lastGeneratedData for display AND future commit, plus extensionSettings for dashboard widgets
                 if (parsedData.userStats) {
                     lastGeneratedData.userStats = parsedData.userStats;
-                    parseUserStats(parsedData.userStats);
+                    parseUserStats(parsedData.userStats); // Updates extensionSettings.userStats
                 }
                 if (parsedData.infoBox) {
                     lastGeneratedData.infoBox = parsedData.infoBox;
+                    extensionSettings.infoBoxData = parsedData.infoBox; // Update for dashboard widgets
                 }
                 if (parsedData.characterThoughts) {
                     lastGeneratedData.characterThoughts = parsedData.characterThoughts;
+                    extensionSettings.characterThoughts = parsedData.characterThoughts; // Update for dashboard widgets
                 }
                 // console.log('[RPG Companion] 💾 SEPARATE MODE: Updated lastGeneratedData:', {
                 //     userStats: lastGeneratedData.userStats ? 'exists' : 'null',
@@ -187,11 +190,14 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                     // console.log('[RPG Companion] 🔆 FIRST TIME: Auto-committed tracker data');
                 }
 
-                // Render the updated data
+                // Render the updated data (old panel UI)
                 renderUserStats();
                 renderInfoBox();
                 renderThoughts();
                 renderInventory();
+
+                // Refresh dashboard widgets (v2 dashboard)
+                refreshDashboard();
             } else {
                 // No assistant message to attach to - just update display
                 if (parsedData.userStats) {
@@ -201,6 +207,9 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 renderInfoBox();
                 renderThoughts();
                 renderInventory();
+
+                // Refresh dashboard widgets (v2 dashboard)
+                refreshDashboard();
             }
 
             // Save to chat metadata
