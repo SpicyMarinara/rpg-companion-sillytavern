@@ -21,7 +21,10 @@ export class GridEngine {
         // Start with 2 columns (safest default for side panel)
         this.columns = 2;
         // Use rem for responsive sizing across all resolutions (1080p, 4K, mobile)
-        this.rowHeight = config.rowHeight || 5; // rem (was 80px)
+        // Mobile uses smaller rowHeight (3.5rem) to prevent vertical squashing
+        const isMobileViewport = window.innerWidth <= 1000;
+        const defaultRowHeight = isMobileViewport ? 3.5 : 5;
+        this.rowHeight = config.rowHeight || defaultRowHeight; // rem
         this.gap = config.gap || 0.75; // rem (was 12px)
         this.snapToGrid = config.snapToGrid !== false;
         this.container = config.container || null;
@@ -39,7 +42,8 @@ export class GridEngine {
             columns: this.columns,
             rowHeight: this.rowHeight + 'rem',
             gap: this.gap + 'rem',
-            snapToGrid: this.snapToGrid
+            snapToGrid: this.snapToGrid,
+            isMobile: this.isMobile()
         });
     }
 

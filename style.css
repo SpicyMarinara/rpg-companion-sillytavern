@@ -1569,13 +1569,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     letter-spacing: 0.013em;
     opacity: 0.85;
     line-height: 1;
-    word-wrap: break-word;
+    white-space: nowrap;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
 }
 
 .rpg-weather-forecast.rpg-editable {
@@ -4145,6 +4142,186 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     /* ========================================
+       MOBILE DASHBOARD V2 LAYOUT
+       ======================================== */
+
+    /* Dashboard container - ensure it fills mobile panel properly */
+    #rpg-dashboard-container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Dashboard header - compact on mobile */
+    .rpg-dashboard-header {
+        flex-shrink: 0;
+        padding: 0.5rem;
+        gap: 0.5rem;
+    }
+
+    /* Dashboard tabs - scrollable on mobile */
+    #rpg-dashboard-tabs {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Dashboard buttons - smaller on mobile */
+    .rpg-dashboard-btn {
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0.25rem;
+    }
+
+    .rpg-dashboard-btn i {
+        font-size: 0.8rem;
+    }
+
+    /* Dashboard grid - scrollable with proper height */
+    .rpg-dashboard-grid {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.5rem;
+    }
+
+    /* Widgets - reduce padding for mobile */
+    .rpg-widget {
+        padding: 0.25rem !important;
+    }
+
+    /* Remove contenteditable padding and control text display */
+    .rpg-editable {
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        word-break: break-word !important;
+        max-width: 100% !important;
+        line-height: 1.2 !important;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    /* Short single-value fields should stay on one line */
+    .rpg-temp-value.rpg-editable,
+    .rpg-time-value.rpg-editable,
+    .rpg-calendar-top.rpg-editable,
+    .rpg-calendar-day.rpg-editable,
+    .rpg-calendar-year.rpg-editable {
+        display: block !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        line-height: 1 !important;
+    }
+
+    /* ========================================
+       MOBILE 1x1 WIDGET FIXES (AGGRESSIVE)
+       ======================================== */
+
+    /* Calendar Widget - fit all 3 elements in 3.5rem height */
+    .rpg-widget .rpg-calendar-widget {
+        padding: 0.1rem !important;
+        gap: 0.05rem !important;
+        justify-content: space-between !important;
+    }
+
+    .rpg-widget .rpg-calendar-top {
+        font-size: 0.55rem !important;
+        padding: 0.1rem !important;
+        line-height: 1.1 !important;
+    }
+
+    .rpg-widget .rpg-calendar-day {
+        font-size: 1.5rem !important;
+        padding: 0.1rem !important;
+        line-height: 1 !important;
+        flex: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .rpg-widget .rpg-calendar-year {
+        font-size: 0.5rem !important;
+        padding: 0.1rem !important;
+        line-height: 1.1 !important;
+    }
+
+    /* Weather Widget - hide forecast field, show only icon (which contains full text) */
+    .rpg-widget .rpg-weather-widget {
+        padding: 0.3rem !important;
+        gap: 0 !important;
+        justify-content: center !important;
+    }
+
+    .rpg-widget .rpg-weather-icon {
+        font-size: 0.7rem !important;
+        line-height: 1.3 !important;
+        text-align: center !important;
+    }
+
+    .rpg-widget .rpg-weather-forecast {
+        display: none !important;
+    }
+
+    /* Temperature Widget - scale thermometer */
+    .rpg-widget .rpg-temp-widget {
+        padding: 0.3rem !important;
+        gap: 0.2rem !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    .rpg-widget .rpg-thermometer {
+        width: 1rem !important;
+        height: 2.2rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    .rpg-widget .rpg-thermometer-bulb {
+        width: 1.2rem !important;
+        height: 1.2rem !important;
+        margin-left: -0.1rem !important;
+    }
+
+    .rpg-widget .rpg-thermometer-tube {
+        width: 1rem !important;
+        height: 1.6rem !important;
+    }
+
+    .rpg-widget .rpg-temp-value {
+        font-size: 0.65rem !important;
+    }
+
+    /* Clock Widget - scale clock face */
+    .rpg-widget .rpg-clock-widget {
+        padding: 0.3rem !important;
+        gap: 0.15rem !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    .rpg-widget .rpg-clock {
+        width: 2.2rem !important;
+        height: 2.2rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    .rpg-widget .rpg-clock-face {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .rpg-widget .rpg-time-value {
+        font-size: 0.65rem !important;
+        line-height: 1.1 !important;
+    }
+
+    /* ========================================
        MOBILE STATS TAB LAYOUT IMPROVEMENTS
        ======================================== */
 
@@ -4564,12 +4741,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Touch-friendly improvements for mobile */
 @media (max-width: 768px) {
-    /* More padding for editable fields */
-    .rpg-editable {
-        padding: 0.5em;
-        min-height: 2.75rem;
-    }
-
     /* Larger close buttons */
     .rpg-thought-close {
         min-width: 2.75rem;
