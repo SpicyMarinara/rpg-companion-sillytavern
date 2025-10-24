@@ -34,7 +34,13 @@ export function registerUserStatsWidget(registry, dependencies) {
         category: 'user',
         minSize: { w: 1, h: 2 },
         defaultSize: { w: 2, h: 2 },
-        maxAutoSize: { w: 3, h: 3 }, // Max size for auto-arrange expansion
+        // Column-aware max size: full width in 3-4 col for horizontal spread
+        maxAutoSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 2 }; // Mobile: use full 2-col width
+            }
+            return { w: 3, h: 3 }; // Desktop: span 3 columns horizontally
+        },
         requiresSchema: false,
 
         /**

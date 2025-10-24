@@ -39,12 +39,12 @@ export function registerUserInfoWidget(registry, dependencies) {
         category: 'user',
         minSize: { w: 1, h: 1 },
         defaultSize: { w: 1, h: 1 }, // Start compact (1x1), expansion will grow it based on columns
-        // Column-aware max size: mobile (2-col) stays 1x1, desktop (3-4 col) can expand to 2x1
+        // Column-aware max size: mobile (2-col) stays 1x1, desktop (3-4 col) expands vertically to 1x2
         maxAutoSize: (columns) => {
             if (columns <= 2) {
                 return { w: 1, h: 1 }; // Mobile: stay compact to allow mood widget beside it
             }
-            return { w: 2, h: 1 }; // Desktop: can span 2 columns
+            return { w: 1, h: 2 }; // Desktop: expand vertically, mood fits top-right
         },
         requiresSchema: false,
 

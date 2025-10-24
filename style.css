@@ -3790,8 +3790,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         display: flex;
     }
 
-    /* Show refresh button when panel is open AND not hidden by generation mode */
-    body:has(.rpg-panel.rpg-mobile-open) .rpg-mobile-refresh:not(.rpg-hidden-mode) {
+    /* Show refresh button when panel is open OR Dashboard v2 is visible, AND not hidden by generation mode */
+    body:has(.rpg-panel.rpg-mobile-open, #rpg-dashboard-container) .rpg-mobile-refresh:not(.rpg-hidden-mode) {
         opacity: 1;
         pointer-events: auto;
     }
@@ -4319,6 +4319,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     .rpg-widget .rpg-time-value {
         font-size: 0.65rem !important;
         line-height: 1.1 !important;
+    }
+
+    /* User Stats Widget - add bottom padding to prevent last bar (Arousal) from being clipped */
+    .rpg-widget .rpg-stats-grid {
+        padding-bottom: 0.3rem !important;
+    }
+
+    /* Mood Widget - increase conditions text size for readability */
+    .rpg-widget .rpg-mood-conditions {
+        font-size: 0.6rem !important;
+        line-height: 1.2 !important;
     }
 
     /* ========================================
