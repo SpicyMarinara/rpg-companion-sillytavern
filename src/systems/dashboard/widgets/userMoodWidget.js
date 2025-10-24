@@ -98,15 +98,20 @@ export function registerUserMoodWidget(registry, dependencies) {
          * @param {number} newH - New height
          */
         onResize(container, newW, newH) {
-            // Responsive adjustments if needed
             const mood = container.querySelector('.rpg-mood');
-            if (!mood) return;
+            const emoji = container.querySelector('.rpg-mood-emoji');
+            const conditions = container.querySelector('.rpg-mood-conditions');
+            if (!mood || !emoji || !conditions) return;
 
-            // Adjust layout for narrow widgets
-            if (newW < 2) {
-                mood.style.flexDirection = 'column';
+            // Scale based on widget size
+            if (newW >= 2 && newH >= 2) {
+                // Larger widget: bigger text
+                emoji.style.fontSize = '2rem';
+                conditions.style.fontSize = '0.75rem';
             } else {
-                mood.style.flexDirection = 'row';
+                // Compact 1x1: tight spacing
+                emoji.style.fontSize = '1rem';
+                conditions.style.fontSize = '0.45rem';
             }
         }
     });
