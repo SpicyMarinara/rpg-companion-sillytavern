@@ -30,6 +30,7 @@ export class DragDropHandler {
             enableSnap: true,
             ghostOpacity: 0.5,
             touchDelay: 150, // Delay before touch drag starts (ms)
+            mouseMoveThreshold: 5, // Pixels mouse must move before drag starts
             ...options
         };
 
@@ -37,6 +38,7 @@ export class DragDropHandler {
         this.dragHandlers = new Map();
         this.gridOverlay = null;
         this.touchTimer = null;
+        this.mouseDragPending = null; // Tracks potential mouse drag before threshold
 
         // Bound event handlers for cleanup
         this.boundMouseMove = this.onMouseMove.bind(this);
@@ -44,6 +46,8 @@ export class DragDropHandler {
         this.boundTouchMove = this.onTouchMove.bind(this);
         this.boundTouchEnd = this.onTouchEnd.bind(this);
         this.boundKeyDown = this.onKeyDown.bind(this);
+        this.boundPendingMouseMove = this.onPendingMouseMove.bind(this);
+        this.boundPendingMouseUp = this.onPendingMouseUp.bind(this);
     }
 
     /**
@@ -65,13 +69,37 @@ export class DragDropHandler {
                 return;
             }
 
-            e.preventDefault();
-            this.startDrag(e, element, widget, onDragEnd, widgets);
+            // Don't drag if clicking on interactive elements
+            const interactiveElements = 'input, button, select, textarea, a, [contenteditable="true"]';
+            if (e.target.closest(interactiveElements)) {
+                return;
+            }
+
+            // Store pending drag info - wait for movement threshold before starting drag
+            this.mouseDragPending = {
+                startX: e.clientX,
+                startY: e.clientY,
+                element,
+                widget,
+                onDragEnd,
+                widgets,
+                event: e
+            };
+
+            // Add temporary listeners to detect movement or mouseup
+            document.addEventListener('mousemove', this.boundPendingMouseMove);
+            document.addEventListener('mouseup', this.boundPendingMouseUp);
         };
 
         const touchStartHandler = (e) => {
             // Don't drag if touching resize handle or widget controls
             if (e.target.closest('.resize-handle') || e.target.closest('.widget-edit-controls')) {
+                return;
+            }
+
+            // Don't drag if touching interactive elements
+            const interactiveElements = 'input, button, select, textarea, a, [contenteditable="true"]';
+            if (e.target.closest(interactiveElements)) {
                 return;
             }
 
@@ -197,6 +225,43 @@ export class DragDropHandler {
         e.preventDefault();
         const touch = e.touches[0];
         this.updateDragPosition(touch.clientX, touch.clientY);
+    }
+
+    /**
+     * Handle mouse move before drag threshold is reached
+     * @param {MouseEvent} e - Mouse event
+     */
+    onPendingMouseMove(e) {
+        if (!this.mouseDragPending) return;
+
+        const { startX, startY, element, widget, onDragEnd, widgets } = this.mouseDragPending;
+        const deltaX = Math.abs(e.clientX - startX);
+        const deltaY = Math.abs(e.clientY - startY);
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // Check if movement threshold exceeded
+        if (distance >= this.options.mouseMoveThreshold) {
+            // Clean up pending listeners
+            document.removeEventListener('mousemove', this.boundPendingMouseMove);
+            document.removeEventListener('mouseup', this.boundPendingMouseUp);
+
+            // Start actual drag
+            this.startDrag(this.mouseDragPending.event, element, widget, onDragEnd, widgets);
+            this.mouseDragPending = null;
+        }
+    }
+
+    /**
+     * Handle mouse up before drag threshold is reached (click, not drag)
+     * @param {MouseEvent} e - Mouse event
+     */
+    onPendingMouseUp(e) {
+        if (!this.mouseDragPending) return;
+
+        // Clean up pending listeners - this was a click, not a drag
+        document.removeEventListener('mousemove', this.boundPendingMouseMove);
+        document.removeEventListener('mouseup', this.boundPendingMouseUp);
+        this.mouseDragPending = null;
     }
 
     /**
@@ -338,12 +403,17 @@ export class DragDropHandler {
         document.removeEventListener('touchmove', this.boundTouchMove);
         document.removeEventListener('touchend', this.boundTouchEnd);
         document.removeEventListener('keydown', this.boundKeyDown);
+        document.removeEventListener('mousemove', this.boundPendingMouseMove);
+        document.removeEventListener('mouseup', this.boundPendingMouseUp);
 
         // Clear touch timer
         if (this.touchTimer) {
             clearTimeout(this.touchTimer);
             this.touchTimer = null;
         }
+
+        // Clear pending drag state
+        this.mouseDragPending = null;
 
         this.dragState = null;
     }
