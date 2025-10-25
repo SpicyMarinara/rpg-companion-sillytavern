@@ -374,13 +374,18 @@ export class DragDropHandler {
     showGridOverlay() {
         if (this.gridOverlay) return;
 
+        // Calculate actual grid height based on widget positions (returns rem)
+        const widgets = this.dragState?.widgets || [];
+        const gridHeightRem = this.gridEngine.calculateGridHeight(widgets);
+        const gridHeightPx = this.gridEngine.remToPixels(gridHeightRem);
+
         this.gridOverlay = document.createElement('div');
         this.gridOverlay.className = 'grid-overlay';
         this.gridOverlay.style.position = 'absolute';
         this.gridOverlay.style.top = '0';
         this.gridOverlay.style.left = '0';
         this.gridOverlay.style.width = '100%';
-        this.gridOverlay.style.height = '100%';
+        this.gridOverlay.style.height = gridHeightPx + 'px';
         this.gridOverlay.style.pointerEvents = 'none';
         this.gridOverlay.style.zIndex = '9999';
 
@@ -410,17 +415,22 @@ export class DragDropHandler {
         // Clear previous highlights
         this.gridOverlay.innerHTML = '';
 
-        // Get pixel positions for cells
-        const colWidth = (this.gridEngine.containerWidth - (this.gridEngine.gap * (this.gridEngine.columns + 1))) / this.gridEngine.columns;
+        // Convert rem to pixels for calculations
+        const gapPx = this.gridEngine.remToPixels(this.gridEngine.gap);
+        const rowHeightPx = this.gridEngine.remToPixels(this.gridEngine.rowHeight);
+
+        // Calculate column width in pixels
+        const totalGaps = gapPx * (this.gridEngine.columns + 1);
+        const colWidth = (this.gridEngine.containerWidth - totalGaps) / this.gridEngine.columns;
 
         for (let row = y; row < y + h; row++) {
             for (let col = x; col < x + w; col++) {
                 const cell = document.createElement('div');
                 cell.style.position = 'absolute';
-                cell.style.left = (col * (colWidth + this.gridEngine.gap) + this.gridEngine.gap) + 'px';
-                cell.style.top = (row * (this.gridEngine.rowHeight + this.gridEngine.gap) + this.gridEngine.gap) + 'px';
+                cell.style.left = (col * (colWidth + gapPx) + gapPx) + 'px';
+                cell.style.top = (row * (rowHeightPx + gapPx) + gapPx) + 'px';
                 cell.style.width = colWidth + 'px';
-                cell.style.height = this.gridEngine.rowHeight + 'px';
+                cell.style.height = rowHeightPx + 'px';
                 cell.style.backgroundColor = 'rgba(78, 204, 163, 0.3)';
                 cell.style.border = '2px solid rgba(78, 204, 163, 0.6)';
                 cell.style.borderRadius = '4px';

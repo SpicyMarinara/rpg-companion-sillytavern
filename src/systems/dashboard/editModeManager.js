@@ -160,48 +160,19 @@ export class EditModeManager {
     }
 
     /**
-     * Show grid overlay
+     * Show grid overlay (now handled via CSS on container)
      */
     showGridOverlay() {
-        if (this.gridOverlay) return;
-
-        this.gridOverlay = document.createElement('div');
-        this.gridOverlay.className = 'grid-overlay-lines';
-        this.gridOverlay.style.position = 'absolute';
-        this.gridOverlay.style.top = '0';
-        this.gridOverlay.style.left = '0';
-        this.gridOverlay.style.width = '100%';
-        this.gridOverlay.style.height = '100%';
-        this.gridOverlay.style.pointerEvents = 'none';
-        this.gridOverlay.style.zIndex = '1';
-        this.gridOverlay.style.backgroundImage = `
-            repeating-linear-gradient(
-                0deg,
-                rgba(78, 204, 163, 0.1) 0px,
-                rgba(78, 204, 163, 0.1) 1px,
-                transparent 1px,
-                transparent 80px
-            ),
-            repeating-linear-gradient(
-                90deg,
-                rgba(78, 204, 163, 0.1) 0px,
-                rgba(78, 204, 163, 0.1) 1px,
-                transparent 1px,
-                transparent calc((100% - 13 * 12px) / 12)
-            )
-        `;
-
-        this.container.appendChild(this.gridOverlay);
+        // Grid overlay is now pure CSS via .rpg-dashboard-grid[data-edit-mode="true"]
+        // No DOM manipulation needed
     }
 
     /**
-     * Hide grid overlay
+     * Hide grid overlay (now handled via CSS on container)
      */
     hideGridOverlay() {
-        if (this.gridOverlay) {
-            this.gridOverlay.remove();
-            this.gridOverlay = null;
-        }
+        // Grid overlay is now pure CSS via .rpg-dashboard-grid[data-edit-mode="true"]
+        // No DOM manipulation needed
     }
 
     /**

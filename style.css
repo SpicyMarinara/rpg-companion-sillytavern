@@ -1158,6 +1158,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     min-height: 0; /* Allow flex to shrink below natural size */
 }
 
+
 /* Hide resize handles by default */
 .resize-handles {
     opacity: 0;
