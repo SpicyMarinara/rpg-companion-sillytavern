@@ -290,12 +290,10 @@ export function registerWeatherWidget(registry, dependencies) {
             const data = parseInfoBoxData(getInfoBoxData());
 
             const weatherEmoji = data.weatherEmoji || '🌤️';
-            const weatherForecast = data.weatherForecast || 'Weather';
 
             const html = `
                 <div class="rpg-dashboard-widget rpg-weather-widget">
-                    <div class="rpg-weather-icon rpg-editable" contenteditable="true" data-field="weatherEmoji" title="Click to edit emoji">${weatherEmoji}</div>
-                    <div class="rpg-weather-forecast rpg-editable" contenteditable="true" data-field="weatherForecast" title="Click to edit">${weatherForecast}</div>
+                    <div class="rpg-weather-icon rpg-editable" contenteditable="true" data-field="weatherEmoji" title="Click to edit">${weatherEmoji}</div>
                 </div>
             `;
 

@@ -57,6 +57,9 @@ export class EditModeManager {
         if (exportBtn) exportBtn.style.display = '';
         if (importBtn) importBtn.style.display = '';
 
+        // Disable content editing to prevent keyboard from messing up layout
+        this.disableContentEditing();
+
         // Add edit class to container
         this.container.classList.add('edit-mode');
 
@@ -87,6 +90,9 @@ export class EditModeManager {
 
         this.isEditMode = false;
         this.originalLayout = null;
+
+        // Re-enable content editing
+        this.enableContentEditing();
 
         // Hide edit mode buttons (lock button stays visible)
         const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
@@ -151,6 +157,48 @@ export class EditModeManager {
      */
     isWidgetsLocked() {
         return this.isLocked;
+    }
+
+    /**
+     * Disable content editing (prevent keyboard popup in edit mode)
+     */
+    disableContentEditing() {
+        // Find all contenteditable elements within widgets
+        const editableElements = this.container.querySelectorAll('[contenteditable="true"]');
+        editableElements.forEach(element => {
+            element.dataset.wasEditable = 'true';
+            element.contentEditable = 'false';
+        });
+
+        // Also disable input fields
+        const inputElements = this.container.querySelectorAll('input, textarea');
+        inputElements.forEach(element => {
+            element.dataset.wasEnabled = element.disabled ? 'false' : 'true';
+            element.disabled = true;
+        });
+
+        console.log('[EditModeManager] Content editing disabled');
+    }
+
+    /**
+     * Re-enable content editing
+     */
+    enableContentEditing() {
+        // Re-enable contenteditable elements
+        const editableElements = this.container.querySelectorAll('[data-was-editable="true"]');
+        editableElements.forEach(element => {
+            element.contentEditable = 'true';
+            delete element.dataset.wasEditable;
+        });
+
+        // Re-enable input fields
+        const inputElements = this.container.querySelectorAll('[data-was-enabled="true"]');
+        inputElements.forEach(element => {
+            element.disabled = false;
+            delete element.dataset.wasEnabled;
+        });
+
+        console.log('[EditModeManager] Content editing enabled');
     }
 
 
