@@ -24,6 +24,7 @@ export class DragDropHandler {
      */
     constructor(gridEngine, options = {}) {
         this.gridEngine = gridEngine;
+        this.editManager = options.editManager || null; // Reference to EditModeManager for lock state
         this.options = {
             showGrid: true,
             showCollisions: true,
@@ -64,6 +65,11 @@ export class DragDropHandler {
         const mouseDownHandler = (e) => {
             if (e.button !== 0) return; // Only left mouse button
 
+            // Don't drag if widgets are locked
+            if (this.editManager?.isWidgetsLocked()) {
+                return;
+            }
+
             // Don't drag if clicking on resize handle or widget controls
             if (e.target.closest('.resize-handle') || e.target.closest('.widget-edit-controls')) {
                 return;
@@ -92,6 +98,11 @@ export class DragDropHandler {
         };
 
         const touchStartHandler = (e) => {
+            // Don't drag if widgets are locked
+            if (this.editManager?.isWidgetsLocked()) {
+                return;
+            }
+
             // Don't drag if touching resize handle or widget controls
             if (e.target.closest('.resize-handle') || e.target.closest('.widget-edit-controls')) {
                 return;
@@ -130,8 +141,10 @@ export class DragDropHandler {
             dragHandle
         });
 
-        // Add draggable cursor
-        dragHandle.style.cursor = 'grab';
+        // Add draggable cursor (unless locked)
+        if (!this.editManager?.isWidgetsLocked()) {
+            dragHandle.style.cursor = 'grab';
+        }
     }
 
     /**

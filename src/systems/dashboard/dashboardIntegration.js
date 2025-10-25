@@ -238,6 +238,17 @@ function setupDashboardEventListeners(dependencies) {
         });
     }
 
+    // Lock/unlock widgets button
+    const lockWidgetsBtn = document.querySelector('#rpg-dashboard-lock-widgets');
+    if (lockWidgetsBtn) {
+        lockWidgetsBtn.addEventListener('click', () => {
+            if (dashboardManager && dashboardManager.editManager) {
+                console.log('[RPG Companion] Lock button clicked');
+                dashboardManager.editManager.toggleLock();
+            }
+        });
+    }
+
     // Add widget button
     const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
     if (addWidgetBtn) {

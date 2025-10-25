@@ -1172,6 +1172,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     pointer-events: auto;
 }
 
+/* Hide resize handles when widgets are locked */
+.widgets-locked .resize-handles {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Prevent grab cursor when widgets are locked */
+.widgets-locked .rpg-widget {
+    cursor: default !important;
+}
+
 /* ========================================
    DASHBOARD V2 WIDGET STYLES
    ========================================

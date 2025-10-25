@@ -27,6 +27,7 @@ export class ResizeHandler {
      */
     constructor(gridEngine, options = {}) {
         this.gridEngine = gridEngine;
+        this.editManager = options.editManager || null; // Reference to EditModeManager for lock state
         this.options = {
             showDimensions: true,
             showGrid: true,
@@ -92,12 +93,20 @@ export class ResizeHandler {
 
             const mouseDownHandler = (e) => {
                 if (e.button !== 0) return;
+                // Don't resize if widgets are locked
+                if (this.editManager?.isWidgetsLocked()) {
+                    return;
+                }
                 e.preventDefault();
                 e.stopPropagation();
                 this.startResize(e, handleType, element, widget, onResizeEnd, widgetConstraints);
             };
 
             const touchStartHandler = (e) => {
+                // Don't resize if widgets are locked
+                if (this.editManager?.isWidgetsLocked()) {
+                    return;
+                }
                 this.touchTimer = setTimeout(() => {
                     e.preventDefault();
                     e.stopPropagation();

@@ -28,8 +28,8 @@ export class EditModeManager {
         this.onWidgetSettings = config.onWidgetSettings;
 
         this.isEditMode = false;
+        this.isLocked = false; // Lock state prevents dragging/resizing
         this.originalLayout = null;
-        this.editControls = null;
         this.gridOverlay = null;
         this.widgetLibrary = null;
         this.widgetControlsMap = new Map();
@@ -48,14 +48,14 @@ export class EditModeManager {
         // Store original layout for cancel
         this.originalLayout = this.captureLayout();
 
-        // Create edit controls
-        this.createEditControls();
+        // Show edit mode buttons (lock button is always visible)
+        const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
+        const exportBtn = document.querySelector('#rpg-dashboard-export-layout');
+        const importBtn = document.querySelector('#rpg-dashboard-import-layout');
 
-        // Show grid overlay
-        this.showGridOverlay();
-
-        // Show widget library
-        this.showWidgetLibrary();
+        if (addWidgetBtn) addWidgetBtn.style.display = '';
+        if (exportBtn) exportBtn.style.display = '';
+        if (importBtn) importBtn.style.display = '';
 
         // Add edit class to container
         this.container.classList.add('edit-mode');
@@ -88,14 +88,14 @@ export class EditModeManager {
         this.isEditMode = false;
         this.originalLayout = null;
 
-        // Remove edit controls
-        this.removeEditControls();
+        // Hide edit mode buttons (lock button stays visible)
+        const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
+        const exportBtn = document.querySelector('#rpg-dashboard-export-layout');
+        const importBtn = document.querySelector('#rpg-dashboard-import-layout');
 
-        // Hide grid overlay
-        this.hideGridOverlay();
-
-        // Hide widget library
-        this.hideWidgetLibrary();
+        if (addWidgetBtn) addWidgetBtn.style.display = 'none';
+        if (exportBtn) exportBtn.style.display = 'none';
+        if (importBtn) importBtn.style.display = 'none';
 
         // Remove edit class from container
         this.container.classList.remove('edit-mode');
@@ -115,49 +115,44 @@ export class EditModeManager {
     }
 
     /**
-     * Create edit control buttons
+     * Toggle lock state
      */
-    createEditControls() {
-        if (this.editControls) return;
+    toggleLock() {
+        this.isLocked = !this.isLocked;
 
-        this.editControls = document.createElement('div');
-        this.editControls.className = 'edit-controls';
-        this.editControls.style.position = 'absolute';
-        this.editControls.style.top = '10px';
-        this.editControls.style.right = '10px';
-        this.editControls.style.display = 'flex';
-        this.editControls.style.gap = '8px';
-        this.editControls.style.zIndex = '10000';
+        // Update button appearance
+        const lockBtn = document.querySelector('#rpg-dashboard-lock-widgets');
+        if (lockBtn) {
+            const icon = lockBtn.querySelector('i');
+            if (this.isLocked) {
+                icon.className = 'fa-solid fa-lock';
+                lockBtn.title = 'Unlock Widgets';
+            } else {
+                icon.className = 'fa-solid fa-lock-open';
+                lockBtn.title = 'Lock Widgets';
+            }
+        }
 
-        // Save button
-        const saveBtn = document.createElement('button');
-        saveBtn.className = 'edit-btn edit-btn-save';
-        saveBtn.textContent = '💾 Save';
-        saveBtn.onclick = () => this.exitEditMode(true);
-        this.styleButton(saveBtn, '#4ecca3', '#1a1a2e');
+        // Add/remove locked class to container for CSS styling
+        if (this.isLocked) {
+            this.container.classList.add('widgets-locked');
+        } else {
+            this.container.classList.remove('widgets-locked');
+        }
 
-        // Cancel button
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'edit-btn edit-btn-cancel';
-        cancelBtn.textContent = '✖ Cancel';
-        cancelBtn.onclick = () => this.confirmCancel(() => this.exitEditMode(false));
-        this.styleButton(cancelBtn, '#e94560', 'white');
-
-        this.editControls.appendChild(saveBtn);
-        this.editControls.appendChild(cancelBtn);
-
-        this.container.appendChild(this.editControls);
+        // Notify listeners
+        this.notifyChange('lockStateChanged', { locked: this.isLocked });
+        console.log('[EditModeManager] Lock state:', this.isLocked ? 'LOCKED' : 'UNLOCKED');
     }
 
     /**
-     * Remove edit control buttons
+     * Check if widgets are currently locked
+     * @returns {boolean} True if locked
      */
-    removeEditControls() {
-        if (this.editControls) {
-            this.editControls.remove();
-            this.editControls = null;
-        }
+    isWidgetsLocked() {
+        return this.isLocked;
     }
+
 
     /**
      * Show grid overlay (now handled via CSS on container)

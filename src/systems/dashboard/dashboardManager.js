@@ -156,21 +156,7 @@ export class DashboardManager {
             }
         });
 
-        // Initialize Drag & Drop
-        this.dragHandler = new DragDropHandler(this.gridEngine, {
-            showGrid: true,
-            enableSnap: true
-        });
-
-        // Initialize Resize Handler
-        this.resizeHandler = new ResizeHandler(this.gridEngine, {
-            minWidth: 1,
-            minHeight: 2,
-            maxWidth: 4, // Max 4 columns (will be clamped to actual column count)
-            maxHeight: 10
-        });
-
-        // Initialize Edit Mode Manager
+        // Initialize Edit Mode Manager first (needed by drag/resize handlers)
         this.editManager = new EditModeManager({
             container: this.container,
             onSave: () => this.handleEditSave(),
@@ -178,6 +164,22 @@ export class DashboardManager {
             onWidgetAdd: (type) => this.addWidget(type),
             onWidgetDelete: (widgetId) => this.removeWidget(widgetId),
             onWidgetSettings: (widgetId) => this.openWidgetSettings(widgetId)
+        });
+
+        // Initialize Drag & Drop (with editManager reference)
+        this.dragHandler = new DragDropHandler(this.gridEngine, {
+            showGrid: true,
+            enableSnap: true,
+            editManager: this.editManager
+        });
+
+        // Initialize Resize Handler (with editManager reference)
+        this.resizeHandler = new ResizeHandler(this.gridEngine, {
+            minWidth: 1,
+            minHeight: 2,
+            maxWidth: 4, // Max 4 columns (will be clamped to actual column count)
+            maxHeight: 10,
+            editManager: this.editManager
         });
 
         // Initialize Layout Persistence
