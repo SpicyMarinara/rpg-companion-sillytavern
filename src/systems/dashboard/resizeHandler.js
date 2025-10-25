@@ -183,10 +183,12 @@ export class ResizeHandler {
             handle.style.zIndex = '100';
 
             // Position handles
+            // Vertical: -6px offset (adequate gap between rows)
             if (handleType.includes('n')) handle.style.top = '-6px';
             if (handleType.includes('s')) handle.style.bottom = '-6px';
-            if (handleType.includes('w')) handle.style.left = '-6px';
-            if (handleType.includes('e')) handle.style.right = '-6px';
+            // Horizontal: -3px offset (prevent overlap when widgets are side-by-side)
+            if (handleType.includes('w')) handle.style.left = '-3px';
+            if (handleType.includes('e')) handle.style.right = '-3px';
 
             // Center edge handles
             if (handleType === 'n' || handleType === 's') {

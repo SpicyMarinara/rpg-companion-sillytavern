@@ -1189,7 +1189,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* Base widget container - ensures content stays within bounds */
 .rpg-widget {
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible; /* Allow resize handles to extend beyond widget bounds */
     display: flex;
     flex-direction: column;
 
