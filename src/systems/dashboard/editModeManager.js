@@ -48,11 +48,15 @@ export class EditModeManager {
         // Store original layout for cancel
         this.originalLayout = this.captureLayout();
 
-        // Show edit mode buttons (lock button is always visible)
+        // Hide edit mode button, show done button and edit mode controls
+        const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
+        const doneBtn = document.querySelector('#rpg-dashboard-done-edit');
         const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
         const exportBtn = document.querySelector('#rpg-dashboard-export-layout');
         const importBtn = document.querySelector('#rpg-dashboard-import-layout');
 
+        if (editModeBtn) editModeBtn.style.display = 'none';
+        if (doneBtn) doneBtn.style.display = '';
         if (addWidgetBtn) addWidgetBtn.style.display = '';
         if (exportBtn) exportBtn.style.display = '';
         if (importBtn) importBtn.style.display = '';
@@ -94,11 +98,15 @@ export class EditModeManager {
         // Re-enable content editing
         this.enableContentEditing();
 
-        // Hide edit mode buttons (lock button stays visible)
+        // Show edit mode button, hide done button and edit controls
+        const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
+        const doneBtn = document.querySelector('#rpg-dashboard-done-edit');
         const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
         const exportBtn = document.querySelector('#rpg-dashboard-export-layout');
         const importBtn = document.querySelector('#rpg-dashboard-import-layout');
 
+        if (editModeBtn) editModeBtn.style.display = '';
+        if (doneBtn) doneBtn.style.display = 'none';
         if (addWidgetBtn) addWidgetBtn.style.display = 'none';
         if (exportBtn) exportBtn.style.display = 'none';
         if (importBtn) importBtn.style.display = 'none';

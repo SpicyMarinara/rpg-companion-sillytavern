@@ -23,15 +23,19 @@
                 <i class="fa-solid fa-lock-open"></i>
             </button>
 
-            <!-- Edit Widget Mode Toggle -->
-            <button id="rpg-dashboard-edit-mode" class="rpg-dashboard-btn rpg-edit-mode-btn" title="Toggle Edit Widget Mode">
+            <!-- Edit Widget Mode Toggle (hidden in edit mode) -->
+            <button id="rpg-dashboard-edit-mode" class="rpg-dashboard-btn rpg-edit-mode-btn" title="Enter Edit Widget Mode">
                 <i class="fa-solid fa-pen-to-square"></i>
             </button>
 
-            <!-- Add Widget Button (shown in edit mode) -->
+            <!-- Done Button (shown in edit mode) -->
+            <button id="rpg-dashboard-done-edit" class="rpg-dashboard-btn rpg-done-edit-btn" style="display: none;" title="Exit Edit Widget Mode">
+                <i class="fa-solid fa-check"></i>
+            </button>
+
+            <!-- Add Widget Button (shown in edit mode, icon only) -->
             <button id="rpg-dashboard-add-widget" class="rpg-dashboard-btn rpg-add-widget-btn" style="display: none;" title="Add Widget">
                 <i class="fa-solid fa-plus"></i>
-                <span>Add Widget</span>
             </button>
 
             <!-- Export/Import Layout Buttons (shown in edit mode) -->

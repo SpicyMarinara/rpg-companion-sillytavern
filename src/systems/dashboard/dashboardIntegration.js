@@ -249,6 +249,17 @@ function setupDashboardEventListeners(dependencies) {
         });
     }
 
+    // Done button (exit edit mode)
+    const doneBtn = document.querySelector('#rpg-dashboard-done-edit');
+    if (doneBtn) {
+        doneBtn.addEventListener('click', () => {
+            if (dashboardManager && dashboardManager.editManager) {
+                console.log('[RPG Companion] Done button clicked');
+                dashboardManager.editManager.exitEditMode(true); // Save changes
+            }
+        });
+    }
+
     // Add widget button
     const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
     if (addWidgetBtn) {

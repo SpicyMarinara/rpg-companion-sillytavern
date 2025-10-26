@@ -439,15 +439,18 @@ export class GridEngine {
 
         const preserveOrder = options.preserveOrder || false;
 
-        // Calculate maximum visible rows based on container height
+        // Calculate maximum visible rows based on VISIBLE viewport height (not scrollable container height)
         let maxVisibleRows = 100; // Fallback
         if (this.container) {
-            const containerHeight = this.container.clientHeight; // pixels
+            // Use parent container height (visible viewport) instead of scrollable container height
+            // The grid container has overflow-y: auto, so clientHeight would return scrollable area
+            const viewportElement = this.container.parentElement || this.container;
+            const viewportHeight = viewportElement.clientHeight; // pixels
             const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize); // px per rem
-            const containerHeightRem = containerHeight / rootFontSize;
+            const viewportHeightRem = viewportHeight / rootFontSize;
             const rowHeightWithGap = this.rowHeight + this.gap;
-            maxVisibleRows = Math.floor(containerHeightRem / rowHeightWithGap);
-            console.log('[GridEngine] Container height:', containerHeight + 'px', '=', containerHeightRem.toFixed(2) + 'rem', '→', maxVisibleRows, 'rows');
+            maxVisibleRows = Math.floor(viewportHeightRem / rowHeightWithGap);
+            console.log('[GridEngine] Viewport height:', viewportHeight + 'px', '=', viewportHeightRem.toFixed(2) + 'rem', '→', maxVisibleRows, 'visible rows');
         }
 
         console.log('[GridEngine] Auto-layout started:', {
@@ -620,8 +623,9 @@ export class GridEngine {
             let expandedH = false;
             for (let tryH = originalH + 1; tryH <= maxSize.h; tryH++) {
                 // Check if expansion would go beyond visible area
-                if (widget.y + tryH > maxVisibleRows) {
-                    console.log(`[GridEngine] ${widget.id} cannot expand to h=${tryH} (would exceed visible area: row ${widget.y + tryH} > ${maxVisibleRows})`);
+                // Use >= because row indices are 0-based (8 rows = indices 0-7, so row 8 is out of bounds)
+                if (widget.y + tryH >= maxVisibleRows) {
+                    console.log(`[GridEngine] ${widget.id} cannot expand to h=${tryH} (would exceed visible area: row ${widget.y + tryH} >= ${maxVisibleRows})`);
                     break;
                 }
 

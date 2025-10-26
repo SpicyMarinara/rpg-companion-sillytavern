@@ -1875,6 +1875,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Remove centering for multiple character cards */
 }
 
+/* Remove duplicate border when thoughts-content is inside a dashboard widget */
+.rpg-widget .rpg-thoughts-content {
+    border-left: none;
+}
+
 /* Individual thought item */
 .rpg-thought-item {
     display: flex;
@@ -2005,6 +2010,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: rgba(0, 0, 0, 0.3);
     border-radius: clamp(4px, 0.5vh, 6px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: none; /* Remove left border to avoid double accent with parent container */
     transition: all 0.2s ease;
     width: 100%; /* Ensure cards take full width */
     box-sizing: border-box; /* Include padding and border in width calculation */

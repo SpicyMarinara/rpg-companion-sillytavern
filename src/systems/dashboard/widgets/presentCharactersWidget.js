@@ -238,7 +238,7 @@ export function registerPresentCharactersWidget(registry, dependencies) {
         category: 'scene',
         minSize: { w: 2, h: 2 },
         defaultSize: { w: 2, h: 3 },
-        maxAutoSize: { w: 3, h: 5 }, // Max size for auto-arrange expansion
+        maxAutoSize: { w: 4, h: 5 }, // Max size for auto-arrange expansion (supports up to 4-col on large displays)
         requiresSchema: false,
 
         render(container, config = {}) {
