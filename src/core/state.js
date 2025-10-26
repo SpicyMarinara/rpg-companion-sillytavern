@@ -77,7 +77,8 @@ export let extensionSettings = {
         stored: 'list',   // 'list' or 'grid' view mode for Stored section
         assets: 'list'    // 'list' or 'grid' view mode for Assets section
     },
-    debugMode: false // Enable debug logging visible in UI (for mobile debugging)
+    debugMode: false, // Enable debug logging visible in UI (for mobile debugging)
+    connectionProfileName: null
 };
 
 /**

@@ -230,6 +230,16 @@ async function initUI() {
     `;
     $('body').append(debugToggleHtml);
 
+    const connectionProfileSelect = document.querySelector("#rpg-generation-profile");
+    const profiles = await getContext()?.extensionSettings?.connectionManager?.profiles ?? [];
+
+    profiles.forEach((profile) => {
+        var opt = document.createElement('option');
+        opt.value = profile.id;
+        opt.innerHTML = profile.name;
+        connectionProfileSelect.appendChild(opt);
+    })
+
     // Cache UI elements using state setters
     setPanelContainer($('#rpg-companion-panel'));
     setUserStatsContainer($('#rpg-user-stats'));
@@ -327,6 +337,10 @@ async function initUI() {
         saveSettings();
         toggleAnimations();
     });
+
+    $('#rpg-generation-profile').on('change', function() {
+        extensionSettings.connectionProfileName = String($(this).val());
+    })
 
     // Bind to both desktop and mobile refresh buttons
     $('#rpg-manual-update, #rpg-manual-update-mobile').on('click', async function() {
