@@ -177,15 +177,16 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 //     characterThoughts: lastGeneratedData.characterThoughts ? 'exists' : 'null'
                 // });
 
-                // If there's no committed data yet (first time) or only has placeholder data, commit immediately
-                const hasNoRealData = !committedTrackerData.userStats && !committedTrackerData.infoBox && !committedTrackerData.characterThoughts;
-                const hasOnlyPlaceholderData = (
-                    (!committedTrackerData.userStats || committedTrackerData.userStats === '') &&
-                    (!committedTrackerData.infoBox || committedTrackerData.infoBox === 'Info Box\n---\n' || committedTrackerData.infoBox === '') &&
-                    (!committedTrackerData.characterThoughts || committedTrackerData.characterThoughts === 'Present Characters\n---\n' || committedTrackerData.characterThoughts === '')
+                // Only auto-commit on TRULY first generation (no committed data exists at all)
+                // This prevents auto-commit after refresh when we have saved committed data
+                const hasAnyCommittedContent = (
+                    (committedTrackerData.userStats && committedTrackerData.userStats.trim() !== '') ||
+                    (committedTrackerData.infoBox && committedTrackerData.infoBox.trim() !== '' && committedTrackerData.infoBox !== 'Info Box\n---\n') ||
+                    (committedTrackerData.characterThoughts && committedTrackerData.characterThoughts.trim() !== '' && committedTrackerData.characterThoughts !== 'Present Characters\n---\n')
                 );
 
-                if (hasNoRealData || hasOnlyPlaceholderData) {
+                // Only commit if we have NO committed content at all (truly first time ever)
+                if (!hasAnyCommittedContent) {
                     committedTrackerData.userStats = parsedData.userStats;
                     committedTrackerData.infoBox = parsedData.infoBox;
                     committedTrackerData.characterThoughts = parsedData.characterThoughts;
