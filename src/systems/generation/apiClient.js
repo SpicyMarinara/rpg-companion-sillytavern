@@ -17,6 +17,11 @@ import {
 import { saveChatData } from '../../core/persistence.js';
 import { generateSeparateUpdatePrompt } from './promptBuilder.js';
 import { parseResponse, parseUserStats } from './parser.js';
+import { renderUserStats } from '../rendering/userStats.js';
+import { renderInfoBox } from '../rendering/infoBox.js';
+import { renderThoughts } from '../rendering/thoughts.js';
+import { renderInventory } from '../rendering/inventory.js';
+import { renderQuests } from '../rendering/quests.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -192,6 +197,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 renderInfoBox();
                 renderThoughts();
                 renderInventory();
+                renderQuests();
             } else {
                 // No assistant message to attach to - just update display
                 if (parsedData.userStats) {
@@ -201,6 +207,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 renderInfoBox();
                 renderThoughts();
                 renderInventory();
+                renderQuests();
             }
 
             // Save to chat metadata

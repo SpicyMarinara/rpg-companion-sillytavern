@@ -19,6 +19,7 @@ import {
     $infoBoxContainer,
     $thoughtsContainer,
     $inventoryContainer,
+    $questsContainer,
     setExtensionSettings,
     updateExtensionSettings,
     setLastGeneratedData,
@@ -33,7 +34,8 @@ import {
     setUserStatsContainer,
     setInfoBoxContainer,
     setThoughtsContainer,
-    setInventoryContainer
+    setInventoryContainer,
+    setQuestsContainer
 } from './src/core/state.js';
 import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData } from './src/core/persistence.js';
 import { registerAllEvents } from './src/core/events.js';
@@ -61,6 +63,7 @@ import {
     createThoughtPanel
 } from './src/systems/rendering/thoughts.js';
 import { renderInventory } from './src/systems/rendering/inventory.js';
+import { renderQuests } from './src/systems/rendering/quests.js';
 
 // Interaction modules
 import { initInventoryEventListeners } from './src/systems/interaction/inventoryActions.js';
@@ -98,22 +101,19 @@ import {
     setupMobileTabs,
     removeMobileTabs,
     setupMobileKeyboardHandling,
-    setupContentEditableScrolling,
-    setupRefreshButtonDrag,
-    setupDebugButtonDrag
+    setupContentEditableScrolling
 } from './src/systems/ui/mobile.js';
 import {
     setupDesktopTabs,
     removeDesktopTabs
 } from './src/systems/ui/desktop.js';
-import {
-    updateDebugUIVisibility
-} from './src/systems/ui/debug.js';
 
 // Feature modules
 import { setupPlotButtons, sendPlotProgression } from './src/systems/features/plotProgression.js';
 import { setupClassicStatsButtons } from './src/systems/features/classicStats.js';
 import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/systems/features/htmlCleaning.js';
+import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
+import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
 
 // Integration modules
 import {
@@ -193,6 +193,9 @@ function addExtensionSettings() {
             // Re-create thought bubbles when re-enabled
             updateChatThoughts(); // This will re-create the thought bubble if data exists
         }
+
+        // Update Memory Recollection button visibility
+        updateMemoryRecollectionButton();
     });
 }
 
@@ -214,28 +217,13 @@ async function initUI() {
     `;
     $('body').append(mobileToggleHtml);
 
-    // Add mobile refresh button (same pattern as toggle button)
-    const mobileRefreshHtml = `
-        <button id="rpg-manual-update-mobile" class="rpg-mobile-refresh" title="Refresh RPG Info">
-            <i class="fa-solid fa-sync"></i>
-        </button>
-    `;
-    $('body').append(mobileRefreshHtml);
-
-    // Add debug toggle FAB button (same pattern as other mobile FABs)
-    const debugToggleHtml = `
-        <button id="rpg-debug-toggle" class="rpg-debug-toggle" title="Toggle Debug Logs">
-            <i class="fa-solid fa-bug"></i>
-        </button>
-    `;
-    $('body').append(debugToggleHtml);
-
     // Cache UI elements using state setters
     setPanelContainer($('#rpg-companion-panel'));
     setUserStatsContainer($('#rpg-user-stats'));
     setInfoBoxContainer($('#rpg-info-box'));
     setThoughtsContainer($('#rpg-thoughts'));
     setInventoryContainer($('#rpg-inventory'));
+    setQuestsContainer($('#rpg-quests'));
 
     // Set up event listeners (enable/disable is handled in Extensions tab)
     $('#rpg-toggle-auto-update').on('change', function() {
@@ -254,6 +242,12 @@ async function initUI() {
     $('#rpg-update-depth').on('change', function() {
         const value = $(this).val();
         extensionSettings.updateDepth = parseInt(String(value));
+        saveSettings();
+    });
+
+    $('#rpg-memory-messages').on('change', function() {
+        const value = $(this).val();
+        extensionSettings.memoryMessagesToProcess = parseInt(String(value));
         saveSettings();
     });
 
@@ -284,10 +278,6 @@ async function initUI() {
         extensionSettings.showCharacterThoughts = $(this).prop('checked');
         saveSettings();
         updateSectionVisibility();
-        // Refresh the content when toggling on/off
-        if (extensionSettings.showCharacterThoughts) {
-            renderThoughts();
-        }
     });
 
     $('#rpg-toggle-inventory').on('change', function() {
@@ -316,77 +306,18 @@ async function initUI() {
         togglePlotButtons();
     });
 
-    $('#rpg-toggle-debug-mode').on('change', function() {
-        extensionSettings.debugMode = $(this).prop('checked');
-        saveSettings();
-        updateDebugUIVisibility();
-    });
-
     $('#rpg-toggle-animations').on('change', function() {
         extensionSettings.enableAnimations = $(this).prop('checked');
         saveSettings();
         toggleAnimations();
     });
 
-    // Bind to both desktop and mobile refresh buttons
-    $('#rpg-manual-update, #rpg-manual-update-mobile').on('click', async function() {
-        // Get mobile button reference
-        const $mobileBtn = $('#rpg-manual-update-mobile');
-
-        // Skip if we just finished dragging the mobile button
-        if ($mobileBtn.data('just-dragged')) {
-            console.log('[RPG Companion] Click blocked - just finished dragging refresh button');
-            return;
-        }
-
+    $('#rpg-manual-update').on('click', async function() {
         if (!extensionSettings.enabled) {
             // console.log('[RPG Companion] Extension is disabled. Please enable it in the Extensions tab.');
             return;
         }
-
-        // Remove focus to prevent sticky black state on mobile
-        $(this).blur();
-
-        // Add spinning animation to mobile button
-        $mobileBtn.addClass('spinning');
-
-        try {
-            await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
-        } finally {
-            // Remove spinning animation when done
-            $mobileBtn.removeClass('spinning');
-        }
-    });
-
-    // Reset FAB positions button
-    $('#rpg-reset-fab-positions').on('click', function() {
-        console.log('[RPG Companion] Resetting FAB positions to defaults');
-
-        // Reset to defaults (top-left stacked)
-        extensionSettings.mobileFabPosition = {
-            top: 'calc(var(--topBarBlockSize) + 20px)',
-            left: '12px'
-        };
-        extensionSettings.mobileRefreshPosition = {
-            top: 'calc(var(--topBarBlockSize) + 80px)',
-            left: '12px'
-        };
-        extensionSettings.debugFabPosition = {
-            top: 'calc(var(--topBarBlockSize) + 140px)',
-            left: '12px'
-        };
-
-        // Save settings
-        saveSettings();
-
-        // Apply positions immediately to visible buttons
-        $('#rpg-mobile-toggle').css(extensionSettings.mobileFabPosition);
-        $('#rpg-manual-update-mobile').css(extensionSettings.mobileRefreshPosition);
-        $('#rpg-debug-toggle').css(extensionSettings.debugFabPosition);
-
-        // Show success feedback
-        toastr.success('Button positions reset to defaults', 'RPG Companion');
-        console.log('[RPG Companion] FAB positions reset successfully');
+        await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
     });
 
     $('#rpg-stat-bar-color-low').on('change', function() {
@@ -456,6 +387,7 @@ async function initUI() {
     $('#rpg-toggle-auto-update').prop('checked', extensionSettings.autoUpdate);
     $('#rpg-position-select').val(extensionSettings.panelPosition);
     $('#rpg-update-depth').val(extensionSettings.updateDepth);
+    $('#rpg-memory-messages').val(extensionSettings.memoryMessagesToProcess || 16);
     $('#rpg-use-separate-preset').prop('checked', extensionSettings.useSeparatePreset);
     $('#rpg-toggle-user-stats').prop('checked', extensionSettings.showUserStats);
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
@@ -464,7 +396,6 @@ async function initUI() {
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
-    $('#rpg-toggle-debug-mode').prop('checked', extensionSettings.debugMode);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
@@ -499,6 +430,7 @@ async function initUI() {
     renderInfoBox();
     renderThoughts();
     renderInventory();
+    renderQuests();
     updateDiceDisplay();
     setupDiceRoller();
     setupClassicStatsButtons();
@@ -507,12 +439,13 @@ async function initUI() {
     setupPlotButtons(sendPlotProgression);
     setupMobileKeyboardHandling();
     setupContentEditableScrolling();
-    setupRefreshButtonDrag();
-    setupDebugButtonDrag();
     initInventoryEventListeners();
 
-    // Initialize debug UI if debug mode is enabled
-    updateDebugUIVisibility();
+    // Setup Memory Recollection button in World Info
+    setupMemoryRecollectionButton();
+
+    // Initialize Lorebook Limiter
+    initLorebookLimiter();
 }
 
 

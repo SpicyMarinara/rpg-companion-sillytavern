@@ -13,6 +13,44 @@ import {
 import { saveChatData } from '../../core/persistence.js';
 
 /**
+ * Helper to separate emoji from text in a string
+ * Handles cases where there's no comma or space after emoji
+ * @param {string} str - String potentially containing emoji followed by text
+ * @returns {{emoji: string, text: string}} Separated emoji and text
+ */
+function separateEmojiFromText(str) {
+    if (!str) return { emoji: '', text: '' };
+
+    str = str.trim();
+
+    // Regex to match emoji at the start (handles most emoji including compound ones)
+    const emojiRegex = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F910}-\u{1F96B}\u{1F980}-\u{1F9E0}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}]+/u;
+    const emojiMatch = str.match(emojiRegex);
+
+    if (emojiMatch) {
+        const emoji = emojiMatch[0];
+        let text = str.substring(emoji.length).trim();
+
+        // Remove leading comma or space if present
+        text = text.replace(/^[,\s]+/, '');
+
+        return { emoji, text };
+    }
+
+    // No emoji found - check if there's a comma separator anyway
+    const commaParts = str.split(',');
+    if (commaParts.length >= 2) {
+        return {
+            emoji: commaParts[0].trim(),
+            text: commaParts.slice(1).join(',').trim()
+        };
+    }
+
+    // No clear separation - return original as text
+    return { emoji: '', text: str };
+}
+
+/**
  * Renders the info box as a visual dashboard with calendar, weather, temperature, clock, and map widgets.
  * Includes event listeners for editable fields.
  */
@@ -155,11 +193,24 @@ export function renderInfoBox() {
             }
         } else if (line.startsWith('Weather:')) {
             if (!parsedFields.weather) {
-                // New text format: Weather: [Emoji], [Forecast]
+                // New text format: Weather: [Emoji], [Forecast] OR Weather: [Emoji][Forecast] (no separator - FIXED)
                 const weatherStr = line.replace('Weather:', '').trim();
-                const weatherParts = weatherStr.split(',').map(p => p.trim());
-                data.weatherEmoji = weatherParts[0] || '';
-                data.weatherForecast = weatherParts[1] || '';
+                const { emoji, text } = separateEmojiFromText(weatherStr);
+
+                if (emoji && text) {
+                    data.weatherEmoji = emoji;
+                    data.weatherForecast = text;
+                } else if (weatherStr.includes(',')) {
+                    // Fallback to comma split if emoji detection failed
+                    const weatherParts = weatherStr.split(',').map(p => p.trim());
+                    data.weatherEmoji = weatherParts[0] || '';
+                    data.weatherForecast = weatherParts[1] || '';
+                } else {
+                    // No clear separation - assume it's all forecast text
+                    data.weatherEmoji = '🌤️'; // Default emoji
+                    data.weatherForecast = weatherStr;
+                }
+
                 parsedFields.weather = true;
             }
         } else {
@@ -217,8 +268,11 @@ export function renderInfoBox() {
     // });
 
     // Build visual dashboard HTML
+    // Wrap all content in a scrollable container
+    let html = '<div class="rpg-info-content">';
+
     // Row 1: Date, Weather, Temperature, Time widgets
-    let html = '<div class="rpg-dashboard rpg-dashboard-row-1">';
+    html += '<div class="rpg-dashboard rpg-dashboard-row-1">';
 
     // Calendar widget - always show (editable even if empty)
     // Display abbreviated version but allow editing full value
@@ -301,6 +355,67 @@ export function renderInfoBox() {
         </div>
     `;
 
+    // Row 3: Recent Events widget (notebook style) - dynamically show 1-3 events
+    // Parse Recent Events from infoBox string
+    let recentEvents = [];
+    if (committedTrackerData.infoBox) {
+        const recentEventsLine = committedTrackerData.infoBox.split('\n').find(line => line.startsWith('Recent Events:'));
+        if (recentEventsLine) {
+            const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
+            if (eventsString) {
+                recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
+            }
+        }
+    }
+
+    const validEvents = recentEvents.filter(e => e && e.trim() && e !== 'Event 1' && e !== 'Event 2' && e !== 'Event 3');
+
+    // If no valid events, show at least one placeholder
+    if (validEvents.length === 0) {
+        validEvents.push('Click to add event');
+    }
+
+    html += `
+        <div class="rpg-dashboard rpg-dashboard-row-3">
+            <div class="rpg-dashboard-widget rpg-events-widget">
+                <div class="rpg-notebook-header">
+                    <div class="rpg-notebook-ring"></div>
+                    <div class="rpg-notebook-ring"></div>
+                    <div class="rpg-notebook-ring"></div>
+                </div>
+                <div class="rpg-notebook-title">Recent Events</div>
+                <div class="rpg-notebook-lines">
+    `;
+
+    // Dynamically generate event lines (max 3)
+    for (let i = 0; i < Math.min(validEvents.length, 3); i++) {
+        html += `
+                    <div class="rpg-notebook-line">
+                        <span class="rpg-bullet">•</span>
+                        <span class="rpg-event-text rpg-editable" contenteditable="true" data-field="event${i + 1}" title="Click to edit">${validEvents[i]}</span>
+                    </div>
+        `;
+    }
+
+    // If we have less than 3 events, add empty placeholders with + icon
+    for (let i = validEvents.length; i < 3; i++) {
+        html += `
+                    <div class="rpg-notebook-line rpg-event-add">
+                        <span class="rpg-bullet">+</span>
+                        <span class="rpg-event-text rpg-editable rpg-event-placeholder" contenteditable="true" data-field="event${i + 1}" title="Click to add event">Add event...</span>
+                    </div>
+        `;
+    }
+
+    html += `
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Close the scrollable content wrapper
+    html += '</div>';
+
     $infoBoxContainer.html(html);
 
     // Add event handlers for editable Info Box fields
@@ -320,7 +435,12 @@ export function renderInfoBox() {
             }
         }
 
-        updateInfoBoxField(field, value);
+        // Handle recent events separately
+        if (field === 'event1' || field === 'event2' || field === 'event3') {
+            updateRecentEvent(field, value);
+        } else {
+            updateInfoBoxField(field, value);
+        }
     });
 
     // For date fields, show full value on focus
@@ -608,5 +728,86 @@ export function updateInfoBoxField(field, value) {
     // Date fields will update on next tracker generation to avoid losing user input
     if (field !== 'month' && field !== 'weekday' && field !== 'year') {
         renderInfoBox();
+    }
+}
+
+/**
+ * Update a recent event in the committed tracker data
+ * @param {string} field - event1, event2, or event3
+ * @param {string} value - New event text
+ */
+function updateRecentEvent(field, value) {
+    // Map field to index
+    const eventIndex = {
+        'event1': 0,
+        'event2': 1,
+        'event3': 2
+    }[field];
+
+    if (eventIndex !== undefined) {
+        // Parse current infoBox to get existing events
+        const lines = (committedTrackerData.infoBox || '').split('\n');
+        let recentEvents = [];
+
+        // Find existing Recent Events line
+        const recentEventsLine = lines.find(line => line.startsWith('Recent Events:'));
+        if (recentEventsLine) {
+            const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
+            if (eventsString) {
+                recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
+            }
+        }
+
+        // Ensure array has enough slots
+        while (recentEvents.length <= eventIndex) {
+            recentEvents.push('');
+        }
+
+        // Update the specific event
+        recentEvents[eventIndex] = value;
+
+        // Filter out empty events and rebuild the line
+        const validEvents = recentEvents.filter(e => e && e.trim());
+        const newRecentEventsLine = validEvents.length > 0
+            ? `Recent Events: ${validEvents.join(', ')}`
+            : '';
+
+        // Update infoBox with new Recent Events line
+        const updatedLines = lines.filter(line => !line.startsWith('Recent Events:'));
+        if (newRecentEventsLine) {
+            // Add Recent Events line at the end (before any empty lines)
+            let insertIndex = updatedLines.length;
+            for (let i = updatedLines.length - 1; i >= 0; i--) {
+                if (updatedLines[i].trim() !== '') {
+                    insertIndex = i + 1;
+                    break;
+                }
+            }
+            updatedLines.splice(insertIndex, 0, newRecentEventsLine);
+        }
+
+        committedTrackerData.infoBox = updatedLines.join('\n');
+        lastGeneratedData.infoBox = updatedLines.join('\n');
+
+        // Update the message's swipe data
+        const chat = getContext().chat;
+        if (chat && chat.length > 0) {
+            for (let i = chat.length - 1; i >= 0; i--) {
+                const message = chat[i];
+                if (!message.is_user) {
+                    if (message.extra && message.extra.rpg_companion_swipes) {
+                        const swipeId = message.swipe_id || 0;
+                        if (message.extra.rpg_companion_swipes[swipeId]) {
+                            message.extra.rpg_companion_swipes[swipeId].infoBox = updatedLines.join('\n');
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        saveChatData();
+        renderInfoBox();
+        console.log(`[RPG Companion] Updated recent event ${field}:`, value);
     }
 }

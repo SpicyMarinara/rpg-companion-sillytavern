@@ -29,6 +29,7 @@ import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts, updateChatThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
+import { renderQuests } from '../rendering/quests.js';
 
 // Utils
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
@@ -164,6 +165,7 @@ export async function onMessageReceived(data) {
             renderInfoBox();
             renderThoughts();
             renderInventory();
+            renderQuests();
 
             // Save to chat metadata
             saveChatData();
@@ -213,6 +215,7 @@ export function onCharacterChanged() {
     renderInfoBox();
     renderThoughts();
     renderInventory();
+    renderQuests();
 
     // Update chat thought overlays
     updateChatThoughts();
@@ -284,6 +287,7 @@ export function onMessageSwiped(messageIndex) {
     renderInfoBox();
     renderThoughts();
     renderInventory();
+    renderQuests();
 
     // Update chat thought overlays
     updateChatThoughts();

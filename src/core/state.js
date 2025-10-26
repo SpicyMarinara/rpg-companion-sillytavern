@@ -34,17 +34,9 @@ export let extensionSettings = {
     statBarColorHigh: '#33cc66', // Color for high stat values (green)
     enableAnimations: true, // Enable smooth animations for stats and content updates
     mobileFabPosition: {
-        top: 'calc(var(--topBarBlockSize) + 20px)',
-        left: '12px'
-    }, // Saved position for mobile FAB button (top-left, stacked vertically)
-    mobileRefreshPosition: {
-        top: 'calc(var(--topBarBlockSize) + 80px)',
-        left: '12px'
-    }, // Saved position for mobile refresh button (below toggle button)
-    debugFabPosition: {
-        top: 'calc(var(--topBarBlockSize) + 140px)',
-        left: '12px'
-    }, // Saved position for debug FAB button (below refresh button)
+        top: 'calc(var(--topBarBlockSize) + 60px)',
+        right: '12px'
+    }, // Saved position for mobile FAB button
     userStats: {
         health: 100,
         satiety: 100,
@@ -60,6 +52,10 @@ export let extensionSettings = {
             stored: {},
             assets: "None"
         }
+    },
+    quests: {
+        main: "None",        // Current main quest title
+        optional: []         // Array of optional quest titles
     },
     level: 1, // User's character level
     classicStats: {
@@ -77,7 +73,8 @@ export let extensionSettings = {
         stored: 'list',   // 'list' or 'grid' view mode for Stored section
         assets: 'list'    // 'list' or 'grid' view mode for Assets section
     },
-    debugMode: false // Enable debug logging visible in UI (for mobile debugging)
+    debugMode: false, // Enable debug logging visible in UI (for mobile debugging)
+    memoryMessagesToProcess: 16 // Number of messages to process per batch in memory recollection
 };
 
 /**
@@ -122,17 +119,30 @@ export let isPlotProgression = false;
 export let pendingDiceRoll = null;
 
 /**
+ * Debug logs array for troubleshooting
+ */
+export let debugLogs = [];
+
+/**
+ * Add a debug log entry
+ * @param {string} message - The log message
+ * @param {any} data - Optional data to log
+ */
+export function addDebugLog(message, data = null) {
+    const timestamp = new Date().toISOString();
+    debugLogs.push({ timestamp, message, data });
+    // Keep only last 100 logs
+    if (debugLogs.length > 100) {
+        debugLogs.shift();
+    }
+}
+
+/**
  * Feature flags for gradual rollout of new features
  */
 export const FEATURE_FLAGS = {
     useNewInventory: true // Enable v2 inventory system with categorized storage
 };
-
-/**
- * Debug logs storage for mobile-friendly debugging
- * Stores parser logs that can be viewed in UI
- */
-export let debugLogs = [];
 
 /**
  * Fallback avatar image (base64-encoded SVG with "?" icon)
@@ -148,6 +158,7 @@ export let $userStatsContainer = null;
 export let $infoBoxContainer = null;
 export let $thoughtsContainer = null;
 export let $inventoryContainer = null;
+export let $questsContainer = null;
 
 /**
  * State setters - provide controlled mutation of state variables
@@ -216,25 +227,6 @@ export function setInventoryContainer($element) {
     $inventoryContainer = $element;
 }
 
-export function addDebugLog(message, data = null) {
-    const timestamp = new Date().toISOString().split('T')[1].split('.')[0]; // HH:MM:SS
-    const logEntry = {
-        timestamp,
-        message,
-        data: data ? JSON.stringify(data, null, 2) : null
-    };
-    debugLogs.push(logEntry);
-
-    // Keep only last 100 entries to avoid memory issues
-    if (debugLogs.length > 100) {
-        debugLogs.shift();
-    }
-}
-
-export function clearDebugLogs() {
-    debugLogs = [];
-}
-
-export function getDebugLogs() {
-    return debugLogs;
+export function setQuestsContainer($element) {
+    $questsContainer = $element;
 }

@@ -128,6 +128,7 @@ export function saveChatData() {
     chat_metadata.rpg_companion = {
         userStats: extensionSettings.userStats,
         classicStats: extensionSettings.classicStats,
+        quests: extensionSettings.quests,
         lastGeneratedData: lastGeneratedData,
         committedTrackerData: committedTrackerData,
         timestamp: Date.now()
@@ -220,6 +221,17 @@ export function loadChatData() {
     // Restore classic stats
     if (savedData.classicStats) {
         extensionSettings.classicStats = { ...savedData.classicStats };
+    }
+
+    // Restore quests
+    if (savedData.quests) {
+        extensionSettings.quests = { ...savedData.quests };
+    } else {
+        // Initialize with defaults if not present
+        extensionSettings.quests = {
+            main: "None",
+            optional: []
+        };
     }
 
     // Restore last generated data

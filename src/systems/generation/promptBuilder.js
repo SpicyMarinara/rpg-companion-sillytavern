@@ -122,8 +122,12 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += 'Assets: [Vehicles, property, major possessions, or "None"]\n';
             } else {
                 // Legacy v1 format
-                instructions += 'Inventory: [Clothing/Armor, Inventory Items (list of important items/none)]\n';
+                instructions += 'Inventory: [Clothing/Armor, Inventory Items (list of important items, or "None")]\\n';
             }
+
+            // Add quests section
+            instructions += 'Main Quests: [Short title of the currently active main quest (for example, "Save the world"), or "None"]\n';
+            instructions += 'Optional Quests: [Short titles of the currently active optional quests (for example, "Find Zandik\'s book"), or "None"]\n';
 
             instructions += '```\n\n';
         }
@@ -137,6 +141,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             instructions += 'Temperature: [Temperature in °C]\n';
             instructions += 'Time: [Time Start → Time End]\n';
             instructions += 'Location: [Location]\n';
+            instructions += 'Recent Events: [Up to three past events leading to the ongoing scene (short descriptors with no details, for example, "last-night date with Mary")]\n';
             instructions += '```\n\n';
         }
 
@@ -208,9 +213,23 @@ export function generateContextualSummary() {
         if (stats.inventory) {
             const inventorySummary = buildInventorySummary(stats.inventory);
             if (inventorySummary && inventorySummary !== 'None') {
-                summary += `Inventory:\n${inventorySummary}\n`;
+                summary += `${inventorySummary}\n`;
             }
         }
+
+        // Add quests summary
+        if (extensionSettings.quests) {
+            if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
+                summary += `Main Quests: ${extensionSettings.quests.main}\n`;
+            }
+            if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
+                const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
+                if (optionalQuests) {
+                    summary += `Optional Quests: ${optionalQuests}\n`;
+                }
+            }
+        }
+
         // Include classic stats (attributes) and dice roll only if there was a dice roll
         if (extensionSettings.lastDiceRoll) {
             const classicStats = extensionSettings.classicStats;
@@ -224,7 +243,7 @@ export function generateContextualSummary() {
     if (extensionSettings.showInfoBox && committedTrackerData.infoBox) {
         // Parse info box data - support both new and legacy formats
         const lines = committedTrackerData.infoBox.split('\n');
-        let date = '', weather = '', temp = '', time = '', location = '';
+        let date = '', weather = '', temp = '', time = '', location = '', recentEvents = '';
 
         // console.log('[RPG Companion] 🔍 Parsing Info Box lines:', lines);
 
@@ -242,6 +261,8 @@ export function generateContextualSummary() {
                 time = line.replace('Time:', '').trim();
             } else if (line.startsWith('Location:')) {
                 location = line.replace('Location:', '').trim();
+            } else if (line.startsWith('Recent Events:')) {
+                recentEvents = line.replace('Recent Events:', '').trim();
             }
             // Legacy format with emojis (for backward compatibility)
             else if (line.includes('🗓️:')) {
@@ -264,7 +285,7 @@ export function generateContextualSummary() {
 
         // console.log('[RPG Companion] 🔍 Parsed values - date:', date, 'weather:', weather, 'temp:', temp, 'time:', time, 'location:', location);
 
-        if (date || weather || temp || time || location) {
+        if (date || weather || temp || time || location || recentEvents) {
             summary += `Information:\n`;
             summary += `Scene: `;
             if (date) summary += `${date}`;
@@ -272,7 +293,9 @@ export function generateContextualSummary() {
             if (time) summary += ` | ${time}`;
             if (weather) summary += ` | ${weather}`;
             if (temp) summary += ` | ${temp}`;
-            summary += `\n\n`;
+            summary += `\n`;
+            if (recentEvents) summary += `Recent Events: ${recentEvents}\n`;
+            summary += `\n`;
         }
     }
 
@@ -316,6 +339,22 @@ export function generateRPGPromptText() {
             promptText += `Last ${userName}'s Stats:\n${committedTrackerData.userStats}\n\n`;
         } else {
             promptText += `Last ${userName}'s Stats:\nNone - this is the first update.\n\n`;
+        }
+
+        // Add current quests to the previous data context
+        if (extensionSettings.quests) {
+            if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
+                promptText += `Main Quests: ${extensionSettings.quests.main}\n`;
+            } else {
+                promptText += `Main Quests: None\n`;
+            }
+            if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
+                const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
+                promptText += `Optional Quests: ${optionalQuests || 'None'}\n`;
+            } else {
+                promptText += `Optional Quests: None\n`;
+            }
+            promptText += `\n`;
         }
     }
 
