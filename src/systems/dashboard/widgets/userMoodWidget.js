@@ -103,15 +103,15 @@ export function registerUserMoodWidget(registry, dependencies) {
             const conditions = container.querySelector('.rpg-mood-conditions');
             if (!mood || !emoji || !conditions) return;
 
-            // Scale based on widget size
+            // Scale based on widget size with balanced proportions
             if (newW >= 2 && newH >= 2) {
-                // Larger widget: bigger text
-                emoji.style.fontSize = '2rem';
-                conditions.style.fontSize = '0.75rem';
+                // Larger widget: scale up proportionally
+                emoji.style.fontSize = '1.4rem';
+                conditions.style.fontSize = '0.9rem';
             } else {
-                // Compact 1x1: tight spacing
-                emoji.style.fontSize = '1rem';
-                conditions.style.fontSize = '0.45rem';
+                // Compact 1x1: use CSS defaults (0.9rem / 0.6rem)
+                emoji.style.fontSize = '';
+                conditions.style.fontSize = '';
             }
         }
     });

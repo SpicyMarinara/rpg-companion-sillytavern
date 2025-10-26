@@ -1376,30 +1376,32 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.1rem;
+    gap: 0.15rem;
     height: 100%;
     width: 100%;
     padding: 0.25rem;
 }
 
 .rpg-widget .rpg-mood-emoji {
-    font-size: 1rem;
+    font-size: 0.9rem;
     flex-shrink: 0;
     cursor: text;
-    line-height: 1;
+    line-height: 1.2;
+    font-weight: 600;
 }
 
 .rpg-widget .rpg-mood-conditions {
-    font-size: 0.45rem;
-    line-height: 1;
+    font-size: 0.6rem;
+    line-height: 1.2;
     text-align: center;
     word-break: break-word;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     max-width: 100%;
+    opacity: 0.9;
 }
 
 /* Progress bars - rem for spacing */
@@ -4344,10 +4346,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         padding-bottom: 0.5rem !important;
     }
 
-    /* Mood Widget - increase conditions text size for readability */
+    /* Mood Widget - increase conditions text size for mobile readability */
     .rpg-widget .rpg-mood-conditions {
-        font-size: 0.6rem !important;
-        line-height: 1.2 !important;
+        font-size: 0.7rem !important;
+        line-height: 1.3 !important;
     }
 
     /* ========================================
