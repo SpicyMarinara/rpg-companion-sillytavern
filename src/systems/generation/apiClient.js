@@ -19,9 +19,6 @@ import getContext from '../../../../../../st-context.js';
     When in separate generation mode, build prompt and update RPG
 */
 
-// TODO: Replace with user-configurable profile selection once settings integration is implemented
-let RPGUpdatingProfileName = "google gemini-2.0-flash - Default";
-
 function applyParsedTrackerData(parsedData, { renderUserStats, renderInfoBox, renderThoughts, renderInventory }) {
     const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
 
@@ -88,6 +85,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
     if (!extensionSettings.enabled) return;
     if (extensionSettings.generationMode !== 'separate') return;
 
+    const RPGUpdatingProfileName = extensionSettings.connectionProfileName;
 
     const context = getContext();
     const profiles = context?.extensionSettings?.connectionManager?.profiles ?? [];
@@ -99,6 +97,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
     if (!matchedProfile) {
         console.warn('[RPG Companion] Requested connection profile does not exist or is invalid, skipping manual update.');
         console.log(JSON.stringify(profiles));
+        console.log(RPGUpdatingProfileName)
         return;
     }
     const profileIdToUse = matchedProfile.id;
