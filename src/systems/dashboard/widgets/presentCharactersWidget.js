@@ -237,7 +237,7 @@ export function registerPresentCharactersWidget(registry, dependencies) {
         description: 'Character cards with avatars, traits, and relationships',
         category: 'scene',
         minSize: { w: 2, h: 2 },
-        defaultSize: { w: 2, h: 3 },
+        defaultSize: { w: 2, h: 2 }, // Compact size fits both mobile and desktop viewports
         maxAutoSize: { w: 4, h: 5 }, // Max size for auto-arrange expansion (supports up to 4-col on large displays)
         requiresSchema: false,
 

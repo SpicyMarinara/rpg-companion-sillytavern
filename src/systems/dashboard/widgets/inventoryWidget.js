@@ -135,14 +135,17 @@ export function registerInventoryWidget(registry, dependencies) {
     function renderSubTabs(activeTab) {
         return `
             <div class="rpg-inventory-subtabs">
-                <button class="rpg-inventory-subtab ${activeTab === 'onPerson' ? 'active' : ''}" data-tab="onPerson">
-                    On Person
+                <button class="rpg-inventory-subtab ${activeTab === 'onPerson' ? 'active' : ''}" data-tab="onPerson" title="On Person">
+                    <i class="fa-solid fa-user"></i>
+                    <span class="rpg-subtab-label">On Person</span>
                 </button>
-                <button class="rpg-inventory-subtab ${activeTab === 'stored' ? 'active' : ''}" data-tab="stored">
-                    Stored
+                <button class="rpg-inventory-subtab ${activeTab === 'stored' ? 'active' : ''}" data-tab="stored" title="Stored">
+                    <i class="fa-solid fa-box"></i>
+                    <span class="rpg-subtab-label">Stored</span>
                 </button>
-                <button class="rpg-inventory-subtab ${activeTab === 'assets' ? 'active' : ''}" data-tab="assets">
-                    Assets
+                <button class="rpg-inventory-subtab ${activeTab === 'assets' ? 'active' : ''}" data-tab="assets" title="Assets">
+                    <i class="fa-solid fa-building"></i>
+                    <span class="rpg-subtab-label">Assets</span>
                 </button>
             </div>
         `;

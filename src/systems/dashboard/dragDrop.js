@@ -30,7 +30,7 @@ export class DragDropHandler {
             showCollisions: true,
             enableSnap: true,
             ghostOpacity: 0.5,
-            touchDelay: 150, // Delay before touch drag starts (ms)
+            touchDelay: 500, // Delay before touch drag starts (ms) - longer delay prevents accidental moves during scrolling
             mouseMoveThreshold: 5, // Pixels mouse must move before drag starts
             ...options
         };

@@ -1049,7 +1049,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-dashboard-container {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
     width: 100%;
     flex: 1;
     overflow-y: auto;
@@ -1060,7 +1059,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 0;
+    padding: 0;
     gap: 0.5rem;
     flex-wrap: wrap;
 }
@@ -1203,6 +1202,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     overflow: visible; /* Allow resize handles to extend beyond widget bounds */
     display: flex;
     flex-direction: column;
+    max-height: 100%; /* Prevent content from overflowing grid cell */
 
     /* Unified widget styling - consistent look for all widgets */
     background: rgba(0, 0, 0, 0.2);
@@ -1215,6 +1215,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-widget > * {
     box-sizing: border-box;
     max-width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
 }
 
 .rpg-widget .rpg-stats-content {
@@ -4793,6 +4796,23 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: 0.9rem;
 }
 
+/* Inventory Widget - Flex container for proper scrolling */
+.rpg-inventory-widget {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Inventory Views - Scrollable content area */
+.rpg-inventory-views {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 /* Sub-tabs Navigation */
 .rpg-inventory-subtabs {
     display: flex;
@@ -4811,6 +4831,18 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     cursor: pointer;
     transition: all 0.2s ease;
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rpg-inventory-subtab i {
+    font-size: 1rem;
+}
+
+.rpg-subtab-label {
+    display: inline;
 }
 
 .rpg-inventory-subtab:hover {
@@ -5352,13 +5384,23 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
     .rpg-inventory-subtabs {
-        flex-direction: column;
-        gap: 0.35rem;
+        flex-direction: row;
+        gap: 0.5rem;
+        justify-content: space-between;
     }
 
     .rpg-inventory-subtab {
-        font-size: 1rem;
         padding: 0.75rem;
+        min-width: 3rem;
+    }
+
+    .rpg-inventory-subtab i {
+        font-size: 1.2rem;
+    }
+
+    /* Hide labels on mobile - icon only */
+    .rpg-subtab-label {
+        display: none;
     }
 
     .rpg-inventory-header {
