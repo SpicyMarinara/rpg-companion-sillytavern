@@ -239,6 +239,7 @@ async function initUI() {
         opt.innerHTML = profile.name;
         connectionProfileSelect.appendChild(opt);
     })
+    
 
     // Cache UI elements using state setters
     setPanelContainer($('#rpg-companion-panel'));
@@ -340,6 +341,7 @@ async function initUI() {
 
     $('#rpg-generation-profile').on('change', function() {
         extensionSettings.connectionProfileName = String($(this).val());
+        saveSettings();
     })
 
     // Bind to both desktop and mobile refresh buttons
@@ -488,6 +490,7 @@ async function initUI() {
     $('#rpg-custom-text').val(extensionSettings.customColors.text);
     $('#rpg-custom-highlight').val(extensionSettings.customColors.highlight);
     $('#rpg-generation-mode').val(extensionSettings.generationMode);
+    $('#rpg-generation-profile').val(extensionSettings.connectionProfileName);
 
     updatePanelVisibility();
     updateSectionVisibility();
