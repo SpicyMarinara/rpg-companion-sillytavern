@@ -1440,6 +1440,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     z-index: 10000;
     justify-content: center;
     align-items: center;
+    padding: 1rem; /* Ensure content doesn't touch screen edges on mobile */
 }
 
 /* Modal Content Container */
@@ -1611,7 +1612,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* Confirmation Dialog Content */
 .rpg-confirm-content {
     max-width: 450px;
-    width: 90%;
+    width: calc(100% - 2rem); /* Account for modal padding */
 }
 
 /* Confirmation Dialog Header */
@@ -1683,6 +1684,47 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-confirm-info .rpg-btn-primary:hover {
     background: #0088cc;
+}
+
+/* Mobile-specific modal adjustments */
+@media (max-width: 768px) {
+    /* General modal content adjustments */
+    .rpg-modal-content {
+        max-height: 85vh; /* Better mobile viewport handling (accounts for browser chrome) */
+        max-width: calc(100vw - 2rem); /* Prevent horizontal overflow */
+    }
+
+    /* Confirmation dialog mobile adjustments */
+    .rpg-confirm-content {
+        max-width: 100%; /* Full width within modal padding */
+    }
+
+    /* Scale down padding on mobile */
+    .rpg-modal-header,
+    .rpg-modal-footer,
+    .rpg-confirm-footer {
+        padding: 0.75rem;
+    }
+
+    .rpg-confirm-body {
+        padding: 1rem 0.75rem;
+    }
+
+    /* Scale down fonts on mobile */
+    .rpg-confirm-icon {
+        font-size: 1.5rem;
+    }
+
+    .rpg-modal-header h3 {
+        font-size: 1rem;
+    }
+
+    /* Make buttons touch-friendly */
+    .rpg-btn-primary,
+    .rpg-btn-secondary {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+    }
 }
 
 .rpg-dashboard-grid {
