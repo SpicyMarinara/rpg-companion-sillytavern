@@ -1708,6 +1708,15 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     pointer-events: auto;
 }
 
+/* Prevent text selection in edit mode (especially important for mobile) */
+.edit-mode .rpg-widget-content {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none; /* Prevent iOS callout menu */
+}
+
 /* Hide resize handles when widgets are locked */
 .widgets-locked .resize-handles {
     opacity: 0 !important;

@@ -840,7 +840,7 @@ export class DashboardManager {
             this.dashboard.tabs.push({
                 id: 'tab-status',
                 name: 'Status',
-                icon: '📊',
+                icon: 'fa-solid fa-user',
                 order: 0,
                 widgets: groups.user
             });
@@ -854,7 +854,7 @@ export class DashboardManager {
             this.dashboard.tabs.push({
                 id: 'tab-scene',
                 name: 'Scene',
-                icon: '🌍',
+                icon: 'fa-solid fa-map',
                 order: 1,
                 widgets: groups.scene
             });
@@ -868,7 +868,7 @@ export class DashboardManager {
             this.dashboard.tabs.push({
                 id: 'tab-social',
                 name: 'Social',
-                icon: '👥',
+                icon: 'fa-solid fa-users',
                 order: 2,
                 widgets: groups.social
             });
@@ -882,7 +882,7 @@ export class DashboardManager {
             this.dashboard.tabs.push({
                 id: 'tab-inventory',
                 name: 'Inventory',
-                icon: '🎒',
+                icon: 'fa-solid fa-bag-shopping',
                 order: 3,
                 widgets: groups.inventory
             });
@@ -1267,7 +1267,7 @@ export class DashboardManager {
             this.dashboard.tabs.push({
                 id: tabConfig.id,
                 name: tabConfig.name,
-                icon: tabConfig.icon || '📄',
+                icon: tabConfig.icon || 'fa-solid fa-file',
                 order: tabConfig.order || 0,
                 widgets: tabConfig.widgets || []
             });
