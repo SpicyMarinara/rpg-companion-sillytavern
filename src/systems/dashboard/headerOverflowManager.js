@@ -143,9 +143,13 @@ export class HeaderOverflowManager {
     setFullMode() {
         // Show all overflow buttons
         this.overflowButtons.forEach(btn => {
-            if (btn.dataset.editMode === 'true' || !btn.hasAttribute('data-edit-mode')) {
+            // Only show buttons that don't have inline display:none in the template
+            const inlineStyle = btn.getAttribute('style');
+            if (!inlineStyle || !inlineStyle.includes('display: none')) {
                 btn.style.display = '';
             }
+            // Clear the wasVisible flag
+            delete btn.dataset.wasVisible;
         });
 
         // Hide menu buttons
@@ -158,7 +162,12 @@ export class HeaderOverflowManager {
      */
     setOverflowMode() {
         // Hide overflow buttons (will be in dropdown)
-        this.overflowButtons.forEach(btn => btn.style.display = 'none');
+        // Store original visibility before hiding
+        this.overflowButtons.forEach(btn => {
+            const computedStyle = window.getComputedStyle(btn);
+            btn.dataset.wasVisible = computedStyle.display !== 'none' ? 'true' : 'false';
+            btn.style.display = 'none';
+        });
 
         // Show overflow menu button
         this.overflowMenuBtn.style.display = '';
@@ -173,7 +182,12 @@ export class HeaderOverflowManager {
      */
     setCompactMode() {
         // Hide all overflow buttons
-        this.overflowButtons.forEach(btn => btn.style.display = 'none');
+        // Store original visibility before hiding
+        this.overflowButtons.forEach(btn => {
+            const computedStyle = window.getComputedStyle(btn);
+            btn.dataset.wasVisible = computedStyle.display !== 'none' ? 'true' : 'false';
+            btn.style.display = 'none';
+        });
 
         // Show hamburger menu button
         this.overflowMenuBtn.style.display = 'none';
@@ -194,10 +208,9 @@ export class HeaderOverflowManager {
             ? [...this.overflowButtons]
             : this.overflowButtons;
 
-        // Filter visible buttons (considering edit mode)
+        // Filter visible buttons (only include buttons that were visible before being hidden)
         const visibleButtons = buttonsToShow.filter(btn => {
-            const computedStyle = window.getComputedStyle(btn);
-            return computedStyle.display !== 'none' || !btn.hasAttribute('data-edit-mode');
+            return btn.dataset.wasVisible === 'true';
         });
 
         if (visibleButtons.length === 0) {
@@ -239,11 +252,6 @@ export class HeaderOverflowManager {
             button.click();
             this.closeMenu();
         });
-
-        // Handle edit mode visibility
-        if (button.style.display === 'none' && button.dataset.editMode === 'true') {
-            item.style.display = 'none';
-        }
 
         return item;
     }
