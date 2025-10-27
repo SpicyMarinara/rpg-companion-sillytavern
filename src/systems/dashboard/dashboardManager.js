@@ -726,6 +726,22 @@ export class DashboardManager {
         } else {
             console.warn(`[DashboardManager] No render function for ${widget.type}`);
         }
+
+        // If in edit mode, disable content editing on this widget
+        if (this.editManager && this.editManager.isEditMode) {
+            const editableElements = element.querySelectorAll('[contenteditable="true"]');
+            editableElements.forEach(el => {
+                el.dataset.wasEditable = 'true';
+                el.contentEditable = 'false';
+            });
+
+            // Also disable input fields
+            const inputElements = element.querySelectorAll('input, textarea');
+            inputElements.forEach(el => {
+                el.dataset.wasEnabled = el.disabled ? 'false' : 'true';
+                el.disabled = true;
+            });
+        }
     }
 
     /**
