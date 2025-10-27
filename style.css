@@ -1896,7 +1896,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Editable field styles */
 .rpg-editable,
-.rpg-editable-stat {
+.rpg-editable-stat,
+.rpg-editable-stat-name {
     cursor: text;
     transition: all 0.2s ease;
     border-radius: 2px;
@@ -1904,13 +1905,15 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-editable:hover,
-.rpg-editable-stat:hover {
+.rpg-editable-stat:hover,
+.rpg-editable-stat-name:hover {
     background: var(--rpg-accent);
     outline: 1px solid var(--rpg-highlight);
 }
 
 .rpg-editable:focus,
-.rpg-editable-stat:focus {
+.rpg-editable-stat:focus,
+.rpg-editable-stat-name:focus {
     background: var(--rpg-bg);
     outline: 2px solid var(--rpg-highlight);
     box-shadow: 0 0 8px var(--rpg-highlight);

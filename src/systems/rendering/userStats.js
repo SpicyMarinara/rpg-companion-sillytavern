@@ -21,8 +21,27 @@ import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 import { buildInventorySummary } from '../generation/promptBuilder.js';
 
 /**
+ * Builds the user stats text string using custom stat names
+ * @returns {string} Formatted stats text for tracker
+ */
+export function buildUserStatsText() {
+    const stats = extensionSettings.userStats;
+    const statNames = extensionSettings.statNames || {
+        health: 'Health',
+        satiety: 'Satiety',
+        energy: 'Energy',
+        hygiene: 'Hygiene',
+        arousal: 'Arousal'
+    };
+    const inventorySummary = buildInventorySummary(stats.inventory);
+
+    return `${statNames.health}: ${stats.health}%\n${statNames.satiety}: ${stats.satiety}%\n${statNames.energy}: ${stats.energy}%\n${statNames.hygiene}: ${stats.hygiene}%\n${statNames.arousal}: ${stats.arousal}%\n${stats.mood}: ${stats.conditions}\n${inventorySummary}`;
+}
+
+/**
  * Renders the user stats panel with health bars, mood, inventory, and classic stats.
  * Includes event listeners for editable fields.
+```
  */
 export function renderUserStats() {
     if (!extensionSettings.showUserStats || !$userStatsContainer) {
@@ -30,11 +49,18 @@ export function renderUserStats() {
     }
 
     const stats = extensionSettings.userStats;
+    const statNames = extensionSettings.statNames || {
+        health: 'Health',
+        satiety: 'Satiety',
+        energy: 'Energy',
+        hygiene: 'Hygiene',
+        arousal: 'Arousal'
+    };
     const userName = getContext().name1;
 
     // Initialize lastGeneratedData.userStats if it doesn't exist
     if (!lastGeneratedData.userStats) {
-        lastGeneratedData.userStats = `Health: ${stats.health}%\nSatiety: ${stats.satiety}%\nEnergy: ${stats.energy}%\nHygiene: ${stats.hygiene}%\nArousal: ${stats.arousal}%\n${stats.mood}: ${stats.conditions}\nInventory: ${stats.inventory}`;
+        lastGeneratedData.userStats = buildUserStatsText();
     }
 
     // Get user portrait - handle both default-user and custom persona folders
@@ -64,7 +90,7 @@ export function renderUserStats() {
                 </div>
                 <div class="rpg-stats-grid">
                     <div class="rpg-stat-row">
-                        <span class="rpg-stat-label">Health:</span>
+                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="health" title="Click to edit stat name">${statNames.health}:</span>
                         <div class="rpg-stat-bar" style="background: ${gradient}">
                             <div class="rpg-stat-fill" style="width: ${100 - stats.health}%"></div>
                         </div>
@@ -72,7 +98,7 @@ export function renderUserStats() {
                     </div>
 
                     <div class="rpg-stat-row">
-                        <span class="rpg-stat-label">Satiety:</span>
+                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="satiety" title="Click to edit stat name">${statNames.satiety}:</span>
                         <div class="rpg-stat-bar" style="background: ${gradient}">
                             <div class="rpg-stat-fill" style="width: ${100 - stats.satiety}%"></div>
                         </div>
@@ -80,7 +106,7 @@ export function renderUserStats() {
                     </div>
 
                     <div class="rpg-stat-row">
-                        <span class="rpg-stat-label">Energy:</span>
+                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="energy" title="Click to edit stat name">${statNames.energy}:</span>
                         <div class="rpg-stat-bar" style="background: ${gradient}">
                             <div class="rpg-stat-fill" style="width: ${100 - stats.energy}%"></div>
                         </div>
@@ -88,7 +114,7 @@ export function renderUserStats() {
                     </div>
 
                     <div class="rpg-stat-row">
-                        <span class="rpg-stat-label">Hygiene:</span>
+                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="hygiene" title="Click to edit stat name">${statNames.hygiene}:</span>
                         <div class="rpg-stat-bar" style="background: ${gradient}">
                             <div class="rpg-stat-fill" style="width: ${100 - stats.hygiene}%"></div>
                         </div>
@@ -96,7 +122,7 @@ export function renderUserStats() {
                     </div>
 
                     <div class="rpg-stat-row">
-                        <span class="rpg-stat-label">Arousal:</span>
+                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="arousal" title="Click to edit stat name">${statNames.arousal}:</span>
                         <div class="rpg-stat-bar" style="background: ${gradient}">
                             <div class="rpg-stat-fill" style="width: ${100 - stats.arousal}%"></div>
                         </div>
@@ -184,10 +210,8 @@ export function renderUserStats() {
         // Update the setting
         extensionSettings.userStats[field] = value;
 
-        // Rebuild userStats text with proper inventory format
-        const stats = extensionSettings.userStats;
-        const inventorySummary = buildInventorySummary(stats.inventory);
-        const statsText = `Health: ${stats.health}%\nSatiety: ${stats.satiety}%\nEnergy: ${stats.energy}%\nHygiene: ${stats.hygiene}%\nArousal: ${stats.arousal}%\n${stats.mood}: ${stats.conditions}\n${inventorySummary}`;
+        // Rebuild userStats text with custom stat names
+        const statsText = buildUserStatsText();
 
         // Update BOTH lastGeneratedData AND committedTrackerData
         // This makes manual edits immediately visible to AI
@@ -207,10 +231,8 @@ export function renderUserStats() {
         const value = $(this).text().trim();
         extensionSettings.userStats.mood = value || '😐';
 
-        // Rebuild userStats text with proper inventory format
-        const stats = extensionSettings.userStats;
-        const inventorySummary = buildInventorySummary(stats.inventory);
-        const statsText = `Health: ${stats.health}%\nSatiety: ${stats.satiety}%\nEnergy: ${stats.energy}%\nHygiene: ${stats.hygiene}%\nArousal: ${stats.arousal}%\n${stats.mood}: ${stats.conditions}\n${inventorySummary}`;
+        // Rebuild userStats text with custom stat names
+        const statsText = buildUserStatsText();
 
         // Update BOTH lastGeneratedData AND committedTrackerData
         // This makes manual edits immediately visible to AI
@@ -226,10 +248,8 @@ export function renderUserStats() {
         const value = $(this).text().trim();
         extensionSettings.userStats.conditions = value || 'None';
 
-        // Rebuild userStats text with proper inventory format
-        const stats = extensionSettings.userStats;
-        const inventorySummary = buildInventorySummary(stats.inventory);
-        const statsText = `Health: ${stats.health}%\nSatiety: ${stats.satiety}%\nEnergy: ${stats.energy}%\nHygiene: ${stats.hygiene}%\nArousal: ${stats.arousal}%\n${stats.mood}: ${stats.conditions}\n${inventorySummary}`;
+        // Rebuild userStats text with custom stat names
+        const statsText = buildUserStatsText();
 
         // Update BOTH lastGeneratedData AND committedTrackerData
         // This makes manual edits immediately visible to AI
@@ -239,6 +259,30 @@ export function renderUserStats() {
         saveSettings();
         saveChatData();
         updateMessageSwipeData();
+    });
+
+    // Add event listeners for stat name editing
+    $('.rpg-editable-stat-name').on('blur', function() {
+        const field = $(this).data('field');
+        const value = $(this).text().trim().replace(':', '');
+
+        if (!extensionSettings.statNames) {
+            extensionSettings.statNames = {
+                health: 'Health',
+                satiety: 'Satiety',
+                energy: 'Energy',
+                hygiene: 'Hygiene',
+                arousal: 'Arousal'
+            };
+        }
+
+        extensionSettings.statNames[field] = value || extensionSettings.statNames[field];
+
+        saveSettings();
+        saveChatData();
+
+        // Re-render to update the display
+        renderUserStats();
     });
 
     // Add event listener for level editing

@@ -53,6 +53,13 @@ export let extensionSettings = {
             assets: "None"
         }
     },
+    statNames: {
+        health: 'Health',
+        satiety: 'Satiety',
+        energy: 'Energy',
+        hygiene: 'Hygiene',
+        arousal: 'Arousal'
+    },
     quests: {
         main: "None",        // Current main quest title
         optional: []         // Array of optional quest titles
