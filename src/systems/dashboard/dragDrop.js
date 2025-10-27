@@ -25,6 +25,7 @@ export class DragDropHandler {
     constructor(gridEngine, options = {}) {
         this.gridEngine = gridEngine;
         this.editManager = options.editManager || null; // Reference to EditModeManager for lock state
+        this.dashboardManager = options.dashboardManager || null; // Reference to DashboardManager for cross-tab moves
         this.options = {
             showGrid: true,
             showCollisions: true,
@@ -40,6 +41,7 @@ export class DragDropHandler {
         this.gridOverlay = null;
         this.touchTimer = null;
         this.mouseDragPending = null; // Tracks potential mouse drag before threshold
+        this.hoveredTab = null; // Currently hovered tab during drag
 
         // Bound event handlers for cleanup
         this.boundMouseMove = this.onMouseMove.bind(this);
@@ -305,6 +307,9 @@ export class DragDropHandler {
         if (this.gridOverlay) {
             this.highlightGridCells(snapped.x, snapped.y, widget.w, widget.h);
         }
+
+        // Check for tab hover (for cross-tab dragging)
+        this.updateTabHover(clientX, clientY);
     }
 
     /**
@@ -355,7 +360,20 @@ export class DragDropHandler {
         const dragHandle = element.querySelector('.drag-handle') || element;
         dragHandle.style.cursor = 'grab';
 
-        // Check for collision before committing
+        // Check if dropped on a tab (cross-tab move)
+        if (this.hoveredTab && this.dashboardManager) {
+            const targetTabId = this.hoveredTab.dataset.tabId;
+            console.log('[DragDrop] Dropped on tab:', targetTabId);
+
+            // Move widget to target tab
+            this.dashboardManager.moveWidgetToTab(widget.id, targetTabId);
+
+            this.cleanup();
+            console.log('[DragDrop] Widget moved to tab:', widget.id, '->', targetTabId);
+            return;
+        }
+
+        // Normal grid drop - check for collision before committing
         const otherWidgets = widgets.filter(w => w.id !== widget.id);
         const collision = this.gridEngine.detectCollision(widget, otherWidgets);
 
@@ -409,6 +427,9 @@ export class DragDropHandler {
 
         // Remove grid overlay
         this.hideGridOverlay();
+
+        // Clear tab hover highlight
+        this.clearTabHover();
 
         // Remove event listeners
         document.removeEventListener('mousemove', this.boundMouseMove);
@@ -521,6 +542,46 @@ export class DragDropHandler {
 
                 this.gridOverlay.appendChild(cell);
             }
+        }
+    }
+
+    /**
+     * Update tab hover state during drag
+     * @param {number} clientX - Pointer X coordinate
+     * @param {number} clientY - Pointer Y coordinate
+     */
+    updateTabHover(clientX, clientY) {
+        if (!this.dragState) return;
+
+        // Find tab element at pointer position
+        const elementAtPoint = document.elementFromPoint(clientX, clientY);
+        const tabElement = elementAtPoint?.closest('.rpg-dashboard-tab');
+
+        // Check if hover state changed
+        if (tabElement !== this.hoveredTab) {
+            // Clear previous highlight
+            if (this.hoveredTab) {
+                this.hoveredTab.classList.remove('drop-target');
+            }
+
+            // Set new hover state
+            this.hoveredTab = tabElement;
+
+            // Add highlight to new tab
+            if (this.hoveredTab) {
+                this.hoveredTab.classList.add('drop-target');
+                console.log('[DragDrop] Hovering over tab:', this.hoveredTab.dataset.tabId);
+            }
+        }
+    }
+
+    /**
+     * Clear tab hover highlight
+     */
+    clearTabHover() {
+        if (this.hoveredTab) {
+            this.hoveredTab.classList.remove('drop-target');
+            this.hoveredTab = null;
         }
     }
 

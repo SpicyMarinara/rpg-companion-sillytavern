@@ -28,7 +28,7 @@ export class EditModeManager {
         this.onWidgetSettings = config.onWidgetSettings;
 
         this.isEditMode = false;
-        this.isLocked = false; // Lock state prevents dragging/resizing
+        this.isLocked = true; // Start locked to prevent accidental widget moves
         this.originalLayout = null;
         this.gridOverlay = null;
         this.widgetLibrary = null;

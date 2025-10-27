@@ -12,6 +12,8 @@ import { renderExtensionTemplateAsync } from '../../../../../../extensions.js';
 import { DashboardManager } from './dashboardManager.js';
 import { WidgetRegistry } from './widgetRegistry.js';
 import { generateDefaultDashboard } from './defaultLayout.js';
+import { TabScrollManager } from './tabScrollManager.js';
+import { HeaderOverflowManager } from './headerOverflowManager.js';
 
 // Widget imports
 import { registerUserInfoWidget } from './widgets/userInfoWidget.js';
@@ -24,6 +26,8 @@ import { registerInventoryWidget } from './widgets/inventoryWidget.js';
 
 // Global dashboard manager instance
 let dashboardManager = null;
+let tabScrollManager = null;
+let headerOverflowManager = null;
 
 /**
  * Get the dashboard manager instance
@@ -100,6 +104,20 @@ export async function initializeDashboard(dependencies) {
 
         // Set up dashboard event listeners
         setupDashboardEventListeners(dependencies);
+
+        // Initialize tab scroll manager
+        const tabsContainer = document.querySelector('#rpg-dashboard-tabs');
+        if (tabsContainer) {
+            tabScrollManager = new TabScrollManager(tabsContainer);
+            tabScrollManager.init();
+        }
+
+        // Initialize header overflow manager
+        const headerRight = document.querySelector('#rpg-dashboard-header-right');
+        if (headerRight) {
+            headerOverflowManager = new HeaderOverflowManager(headerRight);
+            headerOverflowManager.init();
+        }
 
         console.log('[RPG Companion] Dashboard v2 initialized successfully');
         return dashboardManager;
@@ -227,6 +245,17 @@ function setupDashboardEventListeners(dependencies) {
         });
     }
 
+    // Sort Tab button (layout current tab only)
+    const sortTabBtn = document.querySelector('#rpg-dashboard-sort-tab');
+    if (sortTabBtn) {
+        sortTabBtn.addEventListener('click', () => {
+            if (dashboardManager) {
+                console.log('[RPG Companion] Sort tab button clicked');
+                dashboardManager.autoLayoutCurrentTab();
+            }
+        });
+    }
+
     // Edit mode toggle
     const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
     if (editModeBtn) {
@@ -234,6 +263,10 @@ function setupDashboardEventListeners(dependencies) {
             if (dashboardManager && dashboardManager.editManager) {
                 console.log('[RPG Companion] Edit button clicked');
                 dashboardManager.editManager.toggleEditMode();
+                // Refresh header overflow menu to reflect edit mode button visibility changes
+                if (headerOverflowManager) {
+                    setTimeout(() => headerOverflowManager.refresh(), 50);
+                }
             }
         });
     }
@@ -256,6 +289,10 @@ function setupDashboardEventListeners(dependencies) {
             if (dashboardManager && dashboardManager.editManager) {
                 console.log('[RPG Companion] Done button clicked');
                 dashboardManager.editManager.exitEditMode(true); // Save changes
+                // Refresh header overflow menu to reflect edit mode button visibility changes
+                if (headerOverflowManager) {
+                    setTimeout(() => headerOverflowManager.refresh(), 50);
+                }
             }
         });
     }

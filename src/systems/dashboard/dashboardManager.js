@@ -166,11 +166,12 @@ export class DashboardManager {
             onWidgetSettings: (widgetId) => this.openWidgetSettings(widgetId)
         });
 
-        // Initialize Drag & Drop (with editManager reference)
+        // Initialize Drag & Drop (with editManager and dashboardManager references)
         this.dragHandler = new DragDropHandler(this.gridEngine, {
             showGrid: true,
             enableSnap: true,
-            editManager: this.editManager
+            editManager: this.editManager,
+            dashboardManager: this
         });
 
         // Initialize Resize Handler (with editManager reference)
@@ -487,6 +488,106 @@ export class DashboardManager {
 
         console.log(`[DashboardManager] Removed widget: ${widgetId}`);
         this.notifyChange('widgetRemoved', { widgetId });
+    }
+
+    /**
+     * Move a widget from one tab to another
+     * @param {string} widgetId - Widget ID to move
+     * @param {string} targetTabId - Target tab ID
+     */
+    moveWidgetToTab(widgetId, targetTabId) {
+        console.log(`[DashboardManager] Moving widget ${widgetId} to tab ${targetTabId}`);
+
+        // Find which tab currently contains the widget
+        let sourceTab = null;
+        let widgetData = null;
+
+        for (const tab of this.dashboard.tabs) {
+            if (tab.widgets) {
+                const index = tab.widgets.findIndex(w => w.id === widgetId);
+                if (index !== -1) {
+                    sourceTab = tab;
+                    widgetData = tab.widgets[index];
+                    break;
+                }
+            }
+        }
+
+        if (!sourceTab || !widgetData) {
+            console.warn(`[DashboardManager] Widget ${widgetId} not found in any tab`);
+            return;
+        }
+
+        // Get target tab
+        const targetTab = this.tabManager.getTab(targetTabId);
+        if (!targetTab) {
+            console.warn(`[DashboardManager] Target tab ${targetTabId} not found`);
+            return;
+        }
+
+        // Don't move if already in target tab
+        if (sourceTab.id === targetTabId) {
+            console.log(`[DashboardManager] Widget ${widgetId} already in tab ${targetTabId}`);
+            return;
+        }
+
+        // Remove from source tab
+        const index = sourceTab.widgets.findIndex(w => w.id === widgetId);
+        sourceTab.widgets.splice(index, 1);
+
+        // Find available position in target tab (collision detection)
+        if (!targetTab.widgets) {
+            targetTab.widgets = [];
+        }
+
+        // Find available position explicitly checking against target tab widgets
+        const availablePosition = this.findAvailablePositionInWidgets(
+            { w: widgetData.w, h: widgetData.h },
+            targetTab.widgets
+        );
+
+        widgetData.x = availablePosition.x;
+        widgetData.y = availablePosition.y;
+
+        console.log(`[DashboardManager] Found available position in target tab: (${availablePosition.x}, ${availablePosition.y})`);
+
+        // Add to target tab
+        targetTab.widgets.push(widgetData);
+
+        // Update runtime widget data if it exists
+        const runtimeData = this.widgets.get(widgetId);
+        if (runtimeData) {
+            runtimeData.tabId = targetTabId;
+        }
+
+        // Update DOM if source or target is current tab
+        if (sourceTab.id === this.currentTabId || targetTabId === this.currentTabId) {
+            // If widget is being moved from current tab, remove its element
+            if (sourceTab.id === this.currentTabId && runtimeData) {
+                const definition = this.registry.get(widgetData.type);
+                if (definition && definition.onRemove) {
+                    definition.onRemove(runtimeData.element, widgetData.config);
+                }
+                this.dragHandler.destroyWidget(runtimeData.element);
+                this.resizeHandler.destroyWidget(runtimeData.element);
+                runtimeData.element.remove();
+                this.widgets.delete(widgetId);
+            }
+
+            // If widget is being moved to current tab, render it
+            if (targetTabId === this.currentTabId) {
+                const definition = this.registry.get(widgetData.type);
+                if (definition) {
+                    this.renderWidget(widgetData, definition);
+                }
+            }
+        }
+
+        // Trigger auto-save
+        this.triggerAutoSave();
+
+        console.log(`[DashboardManager] Moved widget ${widgetId} from ${sourceTab.id} to ${targetTabId} at position (${widgetData.x}, ${widgetData.y})`);
+        this.notifyChange('widgetMoved', { widgetId, sourceTabId: sourceTab.id, targetTabId });
     }
 
     /**
@@ -851,25 +952,44 @@ export class DashboardManager {
         // Simple algorithm: try to place at top-left, move right, then down
         const tab = this.tabManager.getTab(this.currentTabId);
         const widgets = tab?.widgets || [];
+        return this.findAvailablePositionInWidgets(size, widgets);
+    }
 
+    /**
+     * Find available position for widget in a specific widgets array
+     * @param {Object} size - Widget size { w, h }
+     * @param {Array<Object>} widgets - Array of existing widgets to check against
+     * @returns {Object} Position { x, y }
+     */
+    findAvailablePositionInWidgets(size, widgets) {
+        console.log(`[DashboardManager] Finding available position for ${size.w}x${size.h} widget among ${widgets.length} existing widgets`);
+
+        // Try to place at top-left, move right, then down
         for (let y = 0; y < 20; y++) {
-            for (let x = 0; x <= this.config.columns - size.w; x++) {
-                const position = { x, y };
-                const testWidget = { ...position, w: size.w, h: size.h };
+            for (let x = 0; x <= this.gridEngine.columns - size.w; x++) {
+                const testWidget = { x, y, w: size.w, h: size.h };
 
-                // Check if position is free
-                const hasCollision = widgets.some(w =>
-                    this.gridEngine.detectCollision(testWidget, [w])
-                );
+                // Check if position overlaps with any existing widget
+                const hasCollision = widgets.some(existingWidget => {
+                    const overlapsX = testWidget.x < existingWidget.x + existingWidget.w &&
+                                     testWidget.x + testWidget.w > existingWidget.x;
+                    const overlapsY = testWidget.y < existingWidget.y + existingWidget.h &&
+                                     testWidget.y + testWidget.h > existingWidget.y;
+                    return overlapsX && overlapsY;
+                });
 
                 if (!hasCollision) {
-                    return position;
+                    console.log(`[DashboardManager] Found available position: (${x}, ${y})`);
+                    return { x, y };
                 }
             }
         }
 
         // Fallback: place at bottom
-        const maxY = Math.max(...widgets.map(w => w.y + w.h), 0);
+        const maxY = widgets.length > 0
+            ? Math.max(...widgets.map(w => w.y + w.h))
+            : 0;
+        console.log(`[DashboardManager] No free space found, placing at bottom: (0, ${maxY})`);
         return { x: 0, y: maxY };
     }
 
@@ -1252,6 +1372,62 @@ export class DashboardManager {
             }
         });
         console.log(`[DashboardManager] Reset ${resetCount} widgets to default sizes`);
+    }
+
+    /**
+     * Auto-layout widgets on current tab only
+     * Sorts and arranges widgets on the current tab to maximize space usage
+     *
+     * @param {Object} options - Layout options
+     * @param {boolean} [options.preserveOrder=true] - Maintain widget order during layout
+     * @param {boolean} [options.resetSizes=true] - Reset widgets to default sizes before layout
+     */
+    autoLayoutCurrentTab(options = {}) {
+        console.log('[DashboardManager] Auto-layout current tab requested');
+
+        // Get current tab
+        const currentTab = this.tabManager.getTab(this.currentTabId);
+        if (!currentTab) {
+            console.warn('[DashboardManager] No current tab found');
+            return;
+        }
+
+        if (!currentTab.widgets || currentTab.widgets.length === 0) {
+            console.warn('[DashboardManager] Current tab has no widgets to layout');
+            return;
+        }
+
+        console.log(`[DashboardManager] Laying out ${currentTab.widgets.length} widgets on tab "${currentTab.name}"`);
+
+        // Reset widget sizes to defaults (unless explicitly disabled)
+        if (options.resetSizes !== false) {
+            this.resetWidgetSizesToDefault(currentTab.widgets);
+        }
+
+        // Sort widgets by category for better organization
+        const sortedWidgets = this.sortWidgetsByCategory(currentTab.widgets);
+
+        // Update tab's widgets array with sorted order
+        currentTab.widgets = sortedWidgets;
+
+        // Auto-layout widgets on the current tab
+        this.gridEngine.autoLayout(currentTab.widgets, {
+            preserveOrder: options.preserveOrder !== false
+        });
+
+        // Re-render all widgets with new positions
+        this.clearGrid();
+        currentTab.widgets.forEach(widget => {
+            const definition = this.registry.get(widget.type);
+            if (definition) {
+                this.renderWidget(widget, definition);
+            }
+        });
+
+        // Save layout
+        this.triggerAutoSave();
+
+        console.log('[DashboardManager] Current tab layout complete');
     }
 
     /**
