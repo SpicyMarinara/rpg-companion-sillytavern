@@ -97,7 +97,7 @@ export class TabManager {
         const tab = {
             id,
             name: config.name,
-            icon: config.icon || '📄',
+            icon: config.icon || 'fa-solid fa-file',
             order,
             widgets: []
         };

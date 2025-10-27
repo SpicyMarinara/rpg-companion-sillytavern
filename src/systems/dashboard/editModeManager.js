@@ -5,6 +5,8 @@
  * Handles edit controls, widget library, and layout modifications.
  */
 
+import { showConfirmDialog } from './confirmDialog.js';
+
 /**
  * @typedef {Object} EditModeConfig
  * @property {HTMLElement} container - Dashboard container element
@@ -453,9 +455,16 @@ export class EditModeManager {
      * Show confirmation dialog before canceling
      * @param {Function} onConfirm - Callback if confirmed
      */
-    confirmCancel(onConfirm) {
-        const message = 'You have unsaved changes. Are you sure you want to cancel?';
-        if (confirm(message)) {
+    async confirmCancel(onConfirm) {
+        const confirmed = await showConfirmDialog({
+            title: 'Discard Changes?',
+            message: 'You have unsaved changes. Are you sure you want to discard them?',
+            variant: 'warning',
+            confirmText: 'Discard',
+            cancelText: 'Keep Editing'
+        });
+
+        if (confirmed) {
             onConfirm();
         }
     }
@@ -464,9 +473,16 @@ export class EditModeManager {
      * Show confirmation dialog before deleting widget
      * @param {string} widgetId - Widget ID to delete
      */
-    confirmDeleteWidget(widgetId) {
-        const message = 'Are you sure you want to delete this widget?';
-        if (confirm(message)) {
+    async confirmDeleteWidget(widgetId) {
+        const confirmed = await showConfirmDialog({
+            title: 'Delete Widget?',
+            message: 'Are you sure you want to delete this widget? This action cannot be undone.',
+            variant: 'danger',
+            confirmText: 'Delete',
+            cancelText: 'Cancel'
+        });
+
+        if (confirmed) {
             if (this.onWidgetDelete) {
                 this.onWidgetDelete(widgetId);
             }
@@ -477,9 +493,16 @@ export class EditModeManager {
      * Show confirmation dialog before resetting layout
      * @param {Function} onConfirm - Callback if confirmed
      */
-    confirmReset(onConfirm) {
-        const message = 'This will reset the layout to default. Are you sure?';
-        if (confirm(message)) {
+    async confirmReset(onConfirm) {
+        const confirmed = await showConfirmDialog({
+            title: 'Reset Layout?',
+            message: 'This will reset the layout to default. All widgets will be removed and the default layout will be restored.',
+            variant: 'danger',
+            confirmText: 'Reset',
+            cancelText: 'Cancel'
+        });
+
+        if (confirmed) {
             onConfirm();
         }
     }

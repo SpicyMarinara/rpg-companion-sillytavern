@@ -14,6 +14,7 @@ import { WidgetRegistry } from './widgetRegistry.js';
 import { generateDefaultDashboard } from './defaultLayout.js';
 import { TabScrollManager } from './tabScrollManager.js';
 import { HeaderOverflowManager } from './headerOverflowManager.js';
+import { showConfirmDialog } from './confirmDialog.js';
 
 // Widget imports
 import { registerUserInfoWidget } from './widgets/userInfoWidget.js';
@@ -224,9 +225,17 @@ function setupDashboardEventListeners(dependencies) {
     // Reset layout button
     const resetLayoutBtn = document.querySelector('#rpg-dashboard-reset-layout');
     if (resetLayoutBtn) {
-        resetLayoutBtn.addEventListener('click', () => {
+        resetLayoutBtn.addEventListener('click', async () => {
             if (dashboardManager) {
-                if (confirm('Reset dashboard to default layout? This will remove all widgets and reload the defaults.')) {
+                const confirmed = await showConfirmDialog({
+                    title: 'Reset Layout?',
+                    message: 'This will remove all widgets and reload the default layout. This action cannot be undone.',
+                    variant: 'danger',
+                    confirmText: 'Reset',
+                    cancelText: 'Cancel'
+                });
+
+                if (confirmed) {
                     console.log('[RPG Companion] Reset layout button clicked');
                     dashboardManager.resetLayout();
                 }

@@ -16,6 +16,7 @@
 
 import { parseItems, serializeItems } from '../../../utils/itemParser.js';
 import { sanitizeItemName, sanitizeLocationName } from '../../../utils/security.js';
+import { showAlertDialog } from '../confirmDialog.js';
 
 /**
  * Convert location name to safe HTML ID
@@ -663,7 +664,11 @@ export function registerInventoryWidget(registry, dependencies) {
 
         const itemName = sanitizeItemName(rawItemName);
         if (!itemName) {
-            alert('Invalid item name.');
+            showAlertDialog({
+                title: 'Invalid Item',
+                message: 'Please enter a valid item name.',
+                variant: 'warning'
+            });
             hideAddItemForm(widget, field, location);
             return;
         }
@@ -819,7 +824,11 @@ export function registerInventoryWidget(registry, dependencies) {
 
         const locationName = sanitizeLocationName(rawLocationName);
         if (!locationName) {
-            alert('Invalid location name.');
+            showAlertDialog({
+                title: 'Invalid Location',
+                message: 'Please enter a valid location name.',
+                variant: 'warning'
+            });
             hideAddLocationForm(widget);
             return;
         }
@@ -829,7 +838,11 @@ export function registerInventoryWidget(registry, dependencies) {
 
         // Check if location already exists
         if (inventory.stored[locationName]) {
-            alert('A location with this name already exists.');
+            showAlertDialog({
+                title: 'Duplicate Location',
+                message: 'A location with this name already exists.',
+                variant: 'warning'
+            });
             hideAddLocationForm(widget);
             return;
         }

@@ -36,7 +36,7 @@ export function generateDefaultDashboard() {
             {
                 id: 'tab-status',
                 name: 'Status',
-                icon: '📊',
+                icon: 'fa-solid fa-user',
                 order: 0,
                 widgets: [
                     // Row 0: User Info (left) + User Mood (top right in 3-col)
@@ -86,7 +86,7 @@ export function generateDefaultDashboard() {
             {
                 id: 'tab-scene',
                 name: 'Scene',
-                icon: '🌍',
+                icon: 'fa-solid fa-map',
                 order: 1,
                 widgets: [
                     // Row 0: Calendar (left) + Weather (right)
@@ -162,7 +162,7 @@ export function generateDefaultDashboard() {
             {
                 id: 'tab-inventory',
                 name: 'Inventory',
-                icon: '🎒',
+                icon: 'fa-solid fa-bag-shopping',
                 order: 2,
                 widgets: [
                     {

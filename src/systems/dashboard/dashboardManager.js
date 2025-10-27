@@ -137,7 +137,7 @@ export class DashboardManager {
             this.dashboard.tabs.push({
                 id: 'main',
                 name: 'Main',
-                icon: '🏠',
+                icon: 'fa-solid fa-house',
                 order: 0,
                 widgets: []
             });
@@ -361,7 +361,7 @@ export class DashboardManager {
             button.className = 'rpg-dashboard-tab';
             button.dataset.tabId = tab.id;
             button.innerHTML = `
-                <span class="rpg-tab-icon">${tab.icon}</span>
+                <span class="rpg-tab-icon"><i class="${tab.icon}"></i></span>
                 <span class="rpg-tab-name">${tab.name}</span>
             `;
 
@@ -1190,11 +1190,55 @@ export class DashboardManager {
     }
 
     /**
+     * Migrate emoji icons to Font Awesome
+     * @param {Object} config - Dashboard configuration
+     * @returns {Object} Migrated configuration
+     */
+    migrateEmojiIcons(config) {
+        // Map of common emojis to Font Awesome classes
+        const emojiToFontAwesome = {
+            '📊': 'fa-solid fa-chart-line',
+            '🌍': 'fa-solid fa-map',
+            '🎒': 'fa-solid fa-bag-shopping',
+            '🏠': 'fa-solid fa-house',
+            '📄': 'fa-solid fa-file',
+            '⚙️': 'fa-solid fa-gear',
+            '👤': 'fa-solid fa-user',
+            '📝': 'fa-solid fa-note-sticky',
+            '🗂️': 'fa-solid fa-folder',
+            '📁': 'fa-solid fa-folder-open'
+        };
+
+        if (config && config.tabs) {
+            config.tabs.forEach(tab => {
+                // Check if icon is an emoji (contains emoji characters)
+                if (tab.icon && /[\u{1F300}-\u{1F9FF}]/u.test(tab.icon)) {
+                    // Convert to Font Awesome if we have a mapping
+                    const faIcon = emojiToFontAwesome[tab.icon];
+                    if (faIcon) {
+                        console.log(`[DashboardManager] Migrating emoji icon "${tab.icon}" → "${faIcon}" for tab "${tab.name}"`);
+                        tab.icon = faIcon;
+                    } else {
+                        // Fallback to generic file icon
+                        console.warn(`[DashboardManager] Unknown emoji icon "${tab.icon}", using fa-solid fa-file for tab "${tab.name}"`);
+                        tab.icon = 'fa-solid fa-file';
+                    }
+                }
+            });
+        }
+
+        return config;
+    }
+
+    /**
      * Apply dashboard configuration
      * @param {Object} config - Dashboard configuration
      */
     applyDashboardConfig(config) {
         console.log('[DashboardManager] Applying dashboard config');
+
+        // Migrate emoji icons to Font Awesome
+        config = this.migrateEmojiIcons(config);
 
         // Update grid config from dashboard config
         if (config.gridConfig) {
