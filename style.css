@@ -1441,6 +1441,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     justify-content: center;
     align-items: center;
     padding: 1rem; /* Ensure content doesn't touch screen edges on mobile */
+    pointer-events: auto; /* Ensure clicks work when moved to body container */
 }
 
 /* Modal Content Container */

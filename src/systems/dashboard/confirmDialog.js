@@ -31,6 +31,28 @@ export function showConfirmDialog(options) {
 
         // Get modal elements
         const modal = document.getElementById('rpg-confirm-dialog');
+
+        if (!modal) {
+            console.error('[ConfirmDialog] Modal not found');
+            return resolve(false);
+        }
+
+        // CRITICAL: Move modal to document.body on first use to escape panel constraints
+        // The panel has transform in its transition which creates a containing block,
+        // constraining position:fixed children to the panel instead of viewport
+        if (modal.parentElement?.id !== 'document-body-modals') {
+            // Create container for modals at body level (only once)
+            let bodyModalsContainer = document.getElementById('document-body-modals');
+            if (!bodyModalsContainer) {
+                bodyModalsContainer = document.createElement('div');
+                bodyModalsContainer.id = 'document-body-modals';
+                bodyModalsContainer.style.cssText = 'position: fixed; inset: 0; pointer-events: none; z-index: 10000;';
+                document.body.appendChild(bodyModalsContainer);
+            }
+            bodyModalsContainer.appendChild(modal);
+            console.log('[ConfirmDialog] Moved modal to document.body to escape panel constraints');
+        }
+
         const modalContent = modal.querySelector('.rpg-confirm-content');
         const icon = document.getElementById('rpg-confirm-icon');
         const titleEl = document.getElementById('rpg-confirm-title');
@@ -38,11 +60,6 @@ export function showConfirmDialog(options) {
         const confirmBtn = document.getElementById('rpg-confirm-confirm');
         const cancelBtn = document.getElementById('rpg-confirm-cancel');
         const closeBtn = modal.querySelector('.rpg-confirm-close');
-
-        if (!modal) {
-            console.error('[ConfirmDialog] Modal not found');
-            return resolve(false);
-        }
 
         // Set icon based on variant
         const iconMap = {
@@ -139,6 +156,28 @@ export function showAlertDialog(options) {
 
         // Get modal elements
         const modal = document.getElementById('rpg-confirm-dialog');
+
+        if (!modal) {
+            console.error('[ConfirmDialog] Modal not found');
+            return resolve();
+        }
+
+        // CRITICAL: Move modal to document.body on first use to escape panel constraints
+        // The panel has transform in its transition which creates a containing block,
+        // constraining position:fixed children to the panel instead of viewport
+        if (modal.parentElement?.id !== 'document-body-modals') {
+            // Create container for modals at body level (only once)
+            let bodyModalsContainer = document.getElementById('document-body-modals');
+            if (!bodyModalsContainer) {
+                bodyModalsContainer = document.createElement('div');
+                bodyModalsContainer.id = 'document-body-modals';
+                bodyModalsContainer.style.cssText = 'position: fixed; inset: 0; pointer-events: none; z-index: 10000;';
+                document.body.appendChild(bodyModalsContainer);
+            }
+            bodyModalsContainer.appendChild(modal);
+            console.log('[ConfirmDialog] Moved modal to document.body to escape panel constraints');
+        }
+
         const modalContent = modal.querySelector('.rpg-confirm-content');
         const icon = document.getElementById('rpg-confirm-icon');
         const titleEl = document.getElementById('rpg-confirm-title');
@@ -146,11 +185,6 @@ export function showAlertDialog(options) {
         const confirmBtn = document.getElementById('rpg-confirm-confirm');
         const cancelBtn = document.getElementById('rpg-confirm-cancel');
         const closeBtn = modal.querySelector('.rpg-confirm-close');
-
-        if (!modal) {
-            console.error('[ConfirmDialog] Modal not found');
-            return resolve();
-        }
 
         // Set icon based on variant
         const iconMap = {
