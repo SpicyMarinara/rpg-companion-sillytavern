@@ -1637,6 +1637,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     margin: 0;
     line-height: 1.5;
     color: var(--rpg-text);
+    font-size: 1rem; /* Explicit readable size */
 }
 
 /* Confirmation Dialog Footer */
@@ -1725,6 +1726,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     .rpg-modal-header h3 {
         font-size: 1rem;
+    }
+
+    .rpg-confirm-body p {
+        font-size: 0.95rem; /* Slightly smaller but still readable on mobile */
     }
 
     /* Make buttons touch-friendly */
