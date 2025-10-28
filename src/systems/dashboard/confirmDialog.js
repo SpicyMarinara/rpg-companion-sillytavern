@@ -46,7 +46,7 @@ export function showConfirmDialog(options) {
             if (!bodyModalsContainer) {
                 bodyModalsContainer = document.createElement('div');
                 bodyModalsContainer.id = 'document-body-modals';
-                bodyModalsContainer.style.cssText = 'position: fixed; inset: 0; pointer-events: none; z-index: 10000;';
+                bodyModalsContainer.style.cssText = 'position: fixed; inset: 0; pointer-events: none; z-index: 10000; display: flex; align-items: center; justify-content: center;';
                 document.body.appendChild(bodyModalsContainer);
             }
             bodyModalsContainer.appendChild(modal);
@@ -171,7 +171,7 @@ export function showAlertDialog(options) {
             if (!bodyModalsContainer) {
                 bodyModalsContainer = document.createElement('div');
                 bodyModalsContainer.id = 'document-body-modals';
-                bodyModalsContainer.style.cssText = 'position: fixed; inset: 0; pointer-events: none; z-index: 10000;';
+                bodyModalsContainer.style.cssText = 'position: fixed; inset: 0; pointer-events: none; z-index: 10000; display: flex; align-items: center; justify-content: center;';
                 document.body.appendChild(bodyModalsContainer);
             }
             bodyModalsContainer.appendChild(modal);

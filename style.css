@@ -1689,9 +1689,16 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Mobile-specific modal adjustments */
 @media (max-width: 768px) {
+    /* Fix viewport height for mobile browsers with dynamic toolbars */
+    #document-body-modals,
+    .rpg-modal {
+        height: 100dvh; /* Dynamic viewport height accounts for mobile browser chrome */
+    }
+
     /* General modal content adjustments */
     .rpg-modal-content {
         max-height: 85vh; /* Better mobile viewport handling (accounts for browser chrome) */
+        max-height: 85dvh; /* Use dynamic viewport height if supported */
         max-width: calc(100vw - 2rem); /* Prevent horizontal overflow */
     }
 
