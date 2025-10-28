@@ -46,6 +46,12 @@ export class DiceModal {
     open() {
         if (this.isAnimating) return;
 
+        // CRITICAL: Move modal to document.body on first use to escape any container constraints
+        if (this.modal.parentElement?.tagName !== 'BODY') {
+            document.body.appendChild(this.modal);
+            console.log('[DiceModal] Moved modal to document.body to ensure proper viewport positioning');
+        }
+
         // Apply theme
         const theme = extensionSettings.theme;
         this.modal.setAttribute('data-theme', theme);

@@ -3685,6 +3685,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 }
 
+/* Mobile Enhancement (768px and below) */
+@media (max-width: 768px) {
+    /* Fix viewport height for mobile browsers with dynamic toolbars */
+    .rpg-dice-popup {
+        height: 100dvh; /* Dynamic viewport height accounts for mobile browser chrome */
+        --modal-max-height: 70dvh; /* Use dynamic viewport height */
+    }
+
+    .rpg-dice-popup-content {
+        max-height: var(--modal-max-height);
+    }
+}
+
 /* ============================================
    HTML PROMPT TOGGLE
    ============================================ */
