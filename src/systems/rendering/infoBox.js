@@ -64,8 +64,11 @@ export function renderInfoBox() {
         $infoBoxContainer.addClass('rpg-content-updating');
     }
 
+    // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
+    const infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox;
+
     // If no data yet, show placeholder
-    if (!lastGeneratedData.infoBox) {
+    if (!infoBoxData) {
         const placeholderHtml = `
             <div class="rpg-dashboard rpg-dashboard-row-1">
                 <div class="rpg-dashboard-widget rpg-placeholder-widget">
@@ -81,10 +84,10 @@ export function renderInfoBox() {
         return;
     }
 
-    // console.log('[RPG Companion] renderInfoBox called with data:', lastGeneratedData.infoBox);
+    // console.log('[RPG Companion] renderInfoBox called with data:', infoBoxData);
 
     // Parse the info box data
-    const lines = lastGeneratedData.infoBox.split('\n');
+    const lines = infoBoxData.split('\n');
     // console.log('[RPG Companion] Info Box split into lines:', lines);
     const data = {
         date: '',

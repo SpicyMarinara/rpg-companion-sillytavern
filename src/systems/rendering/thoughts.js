@@ -76,15 +76,13 @@ export function renderThoughts() {
         $thoughtsContainer.addClass('rpg-content-updating');
     }
 
-    // Initialize if no data yet
-    if (!lastGeneratedData.characterThoughts) {
-        lastGeneratedData.characterThoughts = '';
-    }
+    // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
+    const characterThoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts || '';
 
-    debugLog('[RPG Thoughts] Raw characterThoughts data:', lastGeneratedData.characterThoughts);
-    debugLog('[RPG Thoughts] Data length:', lastGeneratedData.characterThoughts.length + ' chars');
+    debugLog('[RPG Thoughts] Raw characterThoughts data:', characterThoughtsData);
+    debugLog('[RPG Thoughts] Data length:', characterThoughtsData.length + ' chars');
 
-    const lines = lastGeneratedData.characterThoughts.split('\n');
+    const lines = characterThoughtsData.split('\n');
     const presentCharacters = [];
 
     debugLog('[RPG Thoughts] Split into lines count:', lines.length);
@@ -378,8 +376,14 @@ export function updateCharacterField(characterName, field, value) {
                 if (emojiMatch) {
                     let emoji = emojiMatch[1].trim();
                     let info = emojiMatch[2].trim();
-                    let relationship = parts[1];
-                    let thoughts = parts[2] || '';
+                    let relationship = parts[1] ? parts[1].trim() : '';
+                    let thoughts = parts[2] ? parts[2].trim() : '';
+
+                    // Handle 4-part format (with demeanor)
+                    if (parts.length >= 4) {
+                        relationship = parts[2] ? parts[2].trim() : '';
+                        thoughts = parts[3] ? parts[3].trim() : '';
+                    }
 
                     const infoParts = info.split(',').map(p => p.trim());
                     let name = infoParts[0];
