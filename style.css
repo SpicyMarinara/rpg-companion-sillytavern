@@ -1565,12 +1565,15 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transform: scale(1.05);
 }
 
-/* Modal Buttons */
-.rpg-btn-primary,
-.rpg-btn-secondary {
+/* Modal Buttons - Scoped to prevent dashboard styles from overriding */
+.rpg-modal .rpg-btn-primary,
+.rpg-modal .rpg-btn-secondary,
+.rpg-confirm-modal .rpg-btn-primary,
+.rpg-confirm-modal .rpg-btn-secondary {
     padding: 0.5rem 1rem;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 1rem; /* Explicit readable button text size */
     font-weight: 600;
     transition: all 0.2s;
     display: flex;
@@ -1578,23 +1581,27 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0.5rem;
 }
 
-.rpg-btn-primary {
+.rpg-modal .rpg-btn-primary,
+.rpg-confirm-modal .rpg-btn-primary {
     background: var(--rpg-highlight);
     border: none;
     color: white;
 }
 
-.rpg-btn-primary:hover {
+.rpg-modal .rpg-btn-primary:hover,
+.rpg-confirm-modal .rpg-btn-primary:hover {
     background: rgba(var(--rpg-highlight-rgb, 233, 69, 96), 0.8);
 }
 
-.rpg-btn-secondary {
+.rpg-modal .rpg-btn-secondary,
+.rpg-confirm-modal .rpg-btn-secondary {
     background: transparent;
     border: 1px solid var(--rpg-border);
     color: var(--rpg-text);
 }
 
-.rpg-btn-secondary:hover {
+.rpg-modal .rpg-btn-secondary:hover,
+.rpg-confirm-modal .rpg-btn-secondary:hover {
     background: var(--rpg-accent);
 }
 
@@ -1732,11 +1739,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         font-size: 0.95rem; /* Slightly smaller but still readable on mobile */
     }
 
-    /* Make buttons touch-friendly */
-    .rpg-btn-primary,
-    .rpg-btn-secondary {
+    /* Make modal buttons touch-friendly on mobile */
+    .rpg-modal .rpg-btn-primary,
+    .rpg-modal .rpg-btn-secondary,
+    .rpg-confirm-modal .rpg-btn-primary,
+    .rpg-confirm-modal .rpg-btn-secondary {
         min-height: 44px;
         padding: 0.75rem 1rem;
+        font-size: 1.05rem; /* Touch-friendly size for mobile readability */
     }
 }
 
