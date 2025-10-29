@@ -866,7 +866,8 @@ export class DashboardManager {
             user: [],
             scene: [],
             social: [],
-            inventory: []
+            inventory: [],
+            quests: []
         };
 
         widgets.forEach(widget => {
@@ -938,6 +939,20 @@ export class DashboardManager {
             this.gridEngine.autoLayout(groups.inventory, { preserveOrder: true });
         }
 
+        // Create Quests tab if there are quest widgets
+        if (groups.quests.length > 0) {
+            this.dashboard.tabs.push({
+                id: 'tab-quests',
+                name: 'Quests',
+                icon: 'fa-solid fa-scroll',
+                order: 4,
+                widgets: groups.quests
+            });
+
+            // Auto-layout quest widgets
+            this.gridEngine.autoLayout(groups.quests, { preserveOrder: true });
+        }
+
         console.log('[DashboardManager] Created', this.dashboard.tabs.length, 'tabs');
 
         // Re-render tabs and switch to first tab
@@ -965,7 +980,8 @@ export class DashboardManager {
             'scene': 2,
             'social': 3,
             'inventory': 4,
-            'other': 5
+            'quests': 5,
+            'other': 6
         };
 
         // Specific widget type ordering within user category

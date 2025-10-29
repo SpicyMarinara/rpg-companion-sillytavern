@@ -393,7 +393,7 @@ export function registerQuestsWidget(registry, dependencies) {
         name: 'Quests',
         icon: '<i class="fa-solid fa-scroll"></i>',
         description: 'Quest tracking with main and optional quests',
-        category: 'scene',
+        category: 'quests',
         minSize: { w: 2, h: 4 },
         defaultSize: { w: 2, h: 5 },
         maxAutoSize: { w: 3, h: 7 },
