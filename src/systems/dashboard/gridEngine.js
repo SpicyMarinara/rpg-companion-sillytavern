@@ -7,6 +7,15 @@
  *
  * @class GridEngine
  */
+
+// Performance: Disable console logging (console.error still active)
+const DEBUG = false;
+const console = DEBUG ? window.console : {
+    log: () => {},
+    warn: () => {},
+    error: window.console.error.bind(window.console)
+};
+
 export class GridEngine {
     /**
      * Initialize grid engine with configuration

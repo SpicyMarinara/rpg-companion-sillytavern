@@ -5,6 +5,14 @@
  * Handles edit controls, widget library, and layout modifications.
  */
 
+// Performance: Disable console logging (console.error still active)
+const DEBUG = false;
+const console = DEBUG ? window.console : {
+    log: () => {},
+    warn: () => {},
+    error: window.console.error.bind(window.console)
+};
+
 import { showConfirmDialog } from './confirmDialog.js';
 
 /**

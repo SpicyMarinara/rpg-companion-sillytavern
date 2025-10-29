@@ -5,6 +5,14 @@
  * Provides visual feedback, grid snapping, and collision detection.
  */
 
+// Performance: Disable console logging (console.error still active)
+const DEBUG = false;
+const console = DEBUG ? window.console : {
+    log: () => {},
+    warn: () => {},
+    error: window.console.error.bind(window.console)
+};
+
 /**
  * @typedef {Object} DragState
  * @property {HTMLElement} element - Element being dragged

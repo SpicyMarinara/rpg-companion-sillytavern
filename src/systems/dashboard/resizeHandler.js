@@ -5,6 +5,14 @@
  * Provides visual feedback, grid snapping, and size constraints.
  */
 
+// Performance: Disable console logging (console.error still active)
+const DEBUG = false;
+const console = DEBUG ? window.console : {
+    log: () => {},
+    warn: () => {},
+    error: window.console.error.bind(window.console)
+};
+
 /**
  * @typedef {Object} ResizeState
  * @property {HTMLElement} element - Element being resized

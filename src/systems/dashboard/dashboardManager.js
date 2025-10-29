@@ -13,6 +13,14 @@
  * Provides high-level API for widget and tab management.
  */
 
+// Performance: Disable console logging (console.error still active)
+const DEBUG = false;
+const console = DEBUG ? window.console : {
+    log: () => {},
+    warn: () => {},
+    error: window.console.error.bind(window.console)
+};
+
 import { GridEngine } from './gridEngine.js';
 import { WidgetRegistry } from './widgetRegistry.js';
 import { TabManager } from './tabManager.js';
