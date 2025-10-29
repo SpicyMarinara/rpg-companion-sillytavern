@@ -104,14 +104,23 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
         // Add format specifications for each enabled tracker
         if (extensionSettings.showUserStats) {
+            // Get custom stat names with fallback defaults
+            const statNames = extensionSettings.statNames || {
+                health: 'Health',
+                satiety: 'Satiety',
+                energy: 'Energy',
+                hygiene: 'Hygiene',
+                arousal: 'Arousal'
+            };
+
             instructions += '```\n';
             instructions += `${userName}'s Stats\n`;
             instructions += '---\n';
-            instructions += '- Health: X%\n';
-            instructions += '- Satiety: X%\n';
-            instructions += '- Energy: X%\n';
-            instructions += '- Hygiene: X%\n';
-            instructions += '- Arousal: X%\n';
+            instructions += `- ${statNames.health}: X%\n`;
+            instructions += `- ${statNames.satiety}: X%\n`;
+            instructions += `- ${statNames.energy}: X%\n`;
+            instructions += `- ${statNames.hygiene}: X%\n`;
+            instructions += `- ${statNames.arousal}: X%\n`;
             instructions += 'Status: [Mood Emoji, Conditions (up to three traits)]\n';
 
             // Add inventory format based on feature flag
