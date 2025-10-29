@@ -380,7 +380,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     flex-direction: column;
     gap: 0.375em;
-    overflow-y: hidden;
+    overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
 }
@@ -963,7 +963,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     grid-template-columns: repeat(2, 1fr);
     gap: clamp(2px, 0.4vh, 4px);
     flex: 1;
-    grid-auto-rows: 1fr;
+    grid-auto-rows: minmax(0, 1fr);
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
@@ -1038,6 +1038,1028 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-classic-stat-btn:active {
     transform: scale(0.95);
+}
+
+/* ========================================
+   DASHBOARD V2 CONTAINER & HEADER STYLES
+   ========================================
+   Dashboard container and header layout
+   ======================================== */
+
+.rpg-dashboard-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: visible; /* Allow horizontal overflow for dropdown menu */
+    min-height: 0;
+}
+
+.rpg-dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+    gap: 0.5rem;
+    flex-wrap: nowrap; /* Prevent wrapping when tabs expand - rely on horizontal scroll */
+    overflow: visible; /* Prevent clipping of dropdown menu */
+}
+
+.rpg-dashboard-header-left,
+.rpg-dashboard-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+/* Position context for dropdown menu */
+.rpg-dashboard-header-right {
+    position: relative;
+}
+
+/* Ensure buttons stay compact on mobile */
+@media (max-width: 768px) {
+    .rpg-dashboard-header-right {
+        gap: 0.25rem;
+    }
+
+    .rpg-dashboard-btn {
+        padding: 0.4rem;
+        width: 1.8rem;
+        height: 1.8rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Tab Navigation Wrapper */
+.rpg-tab-nav-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Scrollable Tabs Container */
+.rpg-dashboard-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    padding: 0.25rem 0;
+}
+
+/* Hide scrollbar */
+.rpg-dashboard-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+/* Individual Tab */
+.rpg-dashboard-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.5rem;
+    min-width: 2.5rem;
+    font-size: 0.75rem;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--rpg-text);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0.6;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.rpg-dashboard-tab:hover {
+    background: var(--rpg-accent);
+    opacity: 0.9;
+}
+
+.rpg-dashboard-tab.active {
+    background: var(--rpg-accent);
+    border-color: var(--rpg-border);
+    opacity: 1;
+    font-weight: 600;
+}
+
+.rpg-tab-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.rpg-tab-name {
+    font-size: 0.75rem;
+    display: none;
+}
+
+/* Show name on hover */
+.rpg-dashboard-tab:hover .rpg-tab-name {
+    display: inline;
+    margin-left: 0.3rem;
+}
+
+/* Icon-only mode when 4+ tabs - prevents layout issues from hover expansion */
+.rpg-dashboard-tabs.rpg-tabs-icon-only .rpg-dashboard-tab:hover .rpg-tab-name {
+    display: none;
+}
+
+/* Tab Navigation Arrows */
+.rpg-tab-nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid var(--rpg-border);
+    background: var(--rpg-bg);
+    color: var(--rpg-text);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.rpg-tab-nav-arrow.visible {
+    display: flex;
+    opacity: 0.8;
+    pointer-events: auto;
+}
+
+.rpg-tab-nav-arrow:hover {
+    opacity: 1;
+    background: var(--rpg-highlight);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.rpg-tab-nav-left {
+    left: 0;
+}
+
+.rpg-tab-nav-right {
+    right: 0;
+}
+
+/* Fade Indicators */
+.rpg-tab-fade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3rem;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.rpg-tab-fade.visible {
+    opacity: 1;
+}
+
+.rpg-tab-fade-left {
+    left: 0;
+    background: linear-gradient(
+        to right,
+        var(--rpg-bg) 0%,
+        transparent 100%
+    );
+}
+
+.rpg-tab-fade-right {
+    right: 0;
+    background: linear-gradient(
+        to left,
+        var(--rpg-bg) 0%,
+        transparent 100%
+    );
+}
+
+/* Responsive Tab Sizing */
+@media (max-width: 768px) {
+    .rpg-dashboard-tab {
+        padding: 0.4rem;
+        min-width: 2rem;
+    }
+
+    .rpg-tab-icon {
+        font-size: 1rem;
+    }
+
+    .rpg-tab-name {
+        display: none !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .rpg-dashboard-tab {
+        padding: 0.3rem;
+        min-width: 1.8rem;
+    }
+
+    .rpg-tab-icon {
+        font-size: 0.9rem;
+    }
+}
+
+.rpg-dashboard-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.9rem;
+    border: 1px solid var(--rpg-border);
+    background: var(--rpg-accent);
+    color: var(--rpg-text);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rpg-dashboard-btn:hover {
+    background: var(--rpg-highlight);
+    transform: translateY(-1px);
+}
+
+.rpg-dashboard-btn i {
+    font-size: 0.9rem;
+}
+
+/* ========================================
+   Header Dropdown Menu
+   ======================================== */
+
+/* Dropdown Menu Container */
+.rpg-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    min-width: 200px;
+    max-width: 300px;
+    background: var(--rpg-bg);
+    border: 1px solid var(--rpg-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px var(--rpg-shadow);
+    z-index: 10003; /* Above modals (10000) and mobile toggle (10002) */
+    overflow: hidden;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Menu Item */
+.rpg-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: transparent;
+    color: var(--rpg-text);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 0.9rem;
+}
+
+.rpg-dropdown-item:hover,
+.rpg-dropdown-item:focus {
+    background: var(--rpg-highlight);
+    outline: none;
+}
+
+.rpg-dropdown-item:active {
+    transform: scale(0.98);
+}
+
+.rpg-dropdown-item i {
+    width: 1.2rem;
+    text-align: center;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+}
+
+.rpg-dropdown-item span {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Empty state */
+.rpg-dropdown-empty {
+    padding: 1rem;
+    text-align: center;
+    color: var(--SmartThemeBodyColor);
+    opacity: 0.6;
+    font-size: 0.85rem;
+}
+
+/* Menu button active state */
+.rpg-dashboard-btn[aria-expanded="true"] {
+    background: var(--SmartThemeQuoteColor);
+    border-color: var(--rpg-highlight);
+}
+
+/* Priority buttons always visible */
+.rpg-priority-btn {
+    order: -1;
+}
+
+/* Overflow/Hamburger menu buttons */
+.rpg-overflow-menu-btn,
+.rpg-hamburger-menu-btn {
+    order: 1000;
+}
+
+/* Responsive adjustments for dropdown */
+@media (max-width: 768px) {
+    .rpg-dropdown-menu {
+        min-width: 180px;
+        right: -0.5rem;
+    }
+
+    .rpg-dropdown-item {
+        padding: 0.65rem 0.85rem;
+        font-size: 0.85rem;
+    }
+
+    .rpg-dropdown-item i {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .rpg-dropdown-menu {
+        min-width: 160px;
+        max-width: calc(100vw - 2rem);
+    }
+
+    .rpg-dropdown-item {
+        padding: 0.6rem 0.75rem;
+        gap: 0.5rem;
+    }
+}
+
+/* ========================================
+   Dashboard Modals
+   ======================================== */
+
+/* Modal Overlay */
+.rpg-modal {
+    display: none; /* Hidden by default, shown with display: flex */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem; /* Ensure content doesn't touch screen edges on mobile */
+    pointer-events: auto; /* Ensure clicks work when moved to body container */
+}
+
+/* Modal Content Container */
+.rpg-modal-content {
+    background: var(--rpg-bg);
+    border: 2px solid var(--rpg-border);
+    border-radius: 8px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: auto;
+    box-shadow: 0 4px 20px var(--rpg-shadow);
+}
+
+/* Modal Header */
+.rpg-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--rpg-border);
+}
+
+.rpg-modal-header h3 {
+    margin: 0;
+    color: var(--rpg-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rpg-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--rpg-text);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    transition: all 0.2s;
+}
+
+.rpg-modal-close:hover {
+    color: var(--rpg-highlight);
+    transform: scale(1.1);
+}
+
+/* Modal Body */
+.rpg-modal-body {
+    padding: 1rem;
+}
+
+/* Modal Footer */
+.rpg-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-top: 1px solid var(--rpg-border);
+}
+
+/* Widget Grid in Modal */
+.rpg-widget-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+/* Widget Card */
+.rpg-widget-card {
+    padding: 1rem;
+    border: 2px solid var(--rpg-border);
+    border-radius: 8px;
+    background: var(--rpg-accent);
+    text-align: center;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.rpg-widget-card:hover {
+    border-color: var(--rpg-highlight);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--rpg-shadow);
+}
+
+.rpg-widget-card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.rpg-widget-card-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--rpg-text);
+}
+
+.rpg-widget-card-description {
+    font-size: 0.75rem;
+    color: var(--rpg-text);
+    opacity: 0.7;
+    line-height: 1.3;
+}
+
+.rpg-widget-card-add {
+    padding: 0.5rem 1rem;
+    background: var(--rpg-highlight);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rpg-widget-card-add:hover {
+    background: rgba(var(--rpg-highlight-rgb, 233, 69, 96), 0.8);
+    transform: scale(1.05);
+}
+
+/* Modal Buttons - Scoped to prevent dashboard styles from overriding */
+.rpg-modal .rpg-btn-primary,
+.rpg-modal .rpg-btn-secondary,
+.rpg-confirm-modal .rpg-btn-primary,
+.rpg-confirm-modal .rpg-btn-secondary {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem; /* Explicit readable button text size */
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rpg-modal .rpg-btn-primary,
+.rpg-confirm-modal .rpg-btn-primary {
+    background: var(--rpg-highlight);
+    border: none;
+    color: white;
+}
+
+.rpg-modal .rpg-btn-primary:hover,
+.rpg-confirm-modal .rpg-btn-primary:hover {
+    background: rgba(var(--rpg-highlight-rgb, 233, 69, 96), 0.8);
+}
+
+.rpg-modal .rpg-btn-secondary,
+.rpg-confirm-modal .rpg-btn-secondary {
+    background: transparent;
+    border: 1px solid var(--rpg-border);
+    color: var(--rpg-text);
+}
+
+.rpg-modal .rpg-btn-secondary:hover,
+.rpg-confirm-modal .rpg-btn-secondary:hover {
+    background: var(--rpg-accent);
+}
+
+/* Tab Drop Zone Highlight */
+.rpg-dashboard-tab.drop-target {
+    background: var(--rpg-highlight) !important;
+    color: white !important;
+    transform: scale(1.1);
+    box-shadow: 0 0 12px var(--rpg-highlight);
+}
+
+/* ========================================
+   Confirmation Dialog Styles
+   ======================================== */
+
+/* Confirmation Dialog Content */
+.rpg-confirm-content {
+    max-width: 450px;
+    width: calc(100% - 2rem); /* Account for modal padding */
+}
+
+/* Confirmation Dialog Header */
+.rpg-confirm-header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.rpg-confirm-icon {
+    font-size: 1.75rem;
+    flex-shrink: 0;
+}
+
+/* Confirmation Dialog Body */
+.rpg-confirm-body {
+    padding: 1.5rem 1rem;
+}
+
+.rpg-confirm-body p {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--rpg-text);
+    font-size: 1rem; /* Explicit readable size */
+}
+
+/* Confirmation Dialog Footer */
+.rpg-confirm-footer {
+    padding: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+/* Variant Styles - Danger (Red) */
+.rpg-confirm-danger .rpg-confirm-icon {
+    color: #ff4444;
+}
+
+.rpg-confirm-danger .rpg-btn-primary {
+    background: #ff4444;
+}
+
+.rpg-confirm-danger .rpg-btn-primary:hover {
+    background: #cc0000;
+}
+
+/* Variant Styles - Warning (Yellow/Orange) */
+.rpg-confirm-warning .rpg-confirm-icon {
+    color: #ffaa00;
+}
+
+.rpg-confirm-warning .rpg-btn-primary {
+    background: #ffaa00;
+    color: #1a1a1a;
+}
+
+.rpg-confirm-warning .rpg-btn-primary:hover {
+    background: #cc8800;
+}
+
+/* Variant Styles - Info (Blue) */
+.rpg-confirm-info .rpg-confirm-icon {
+    color: #00aaff;
+}
+
+.rpg-confirm-info .rpg-btn-primary {
+    background: #00aaff;
+}
+
+.rpg-confirm-info .rpg-btn-primary:hover {
+    background: #0088cc;
+}
+
+/* Mobile-specific modal adjustments */
+@media (max-width: 768px) {
+    /* Fix viewport height for mobile browsers with dynamic toolbars */
+    #document-body-modals,
+    .rpg-modal {
+        height: 100dvh; /* Dynamic viewport height accounts for mobile browser chrome */
+    }
+
+    /* General modal content adjustments */
+    .rpg-modal-content {
+        max-height: 85vh; /* Better mobile viewport handling (accounts for browser chrome) */
+        max-height: 85dvh; /* Use dynamic viewport height if supported */
+        max-width: calc(100vw - 2rem); /* Prevent horizontal overflow */
+    }
+
+    /* Confirmation dialog mobile adjustments */
+    .rpg-confirm-content {
+        max-width: 100%; /* Full width within modal padding */
+    }
+
+    /* Scale down padding on mobile */
+    .rpg-modal-header,
+    .rpg-modal-footer,
+    .rpg-confirm-footer {
+        padding: 0.75rem;
+    }
+
+    .rpg-confirm-body {
+        padding: 1rem 0.75rem;
+    }
+
+    /* Scale down fonts on mobile */
+    .rpg-confirm-icon {
+        font-size: 1.5rem;
+    }
+
+    .rpg-modal-header h3 {
+        font-size: 1rem;
+    }
+
+    .rpg-confirm-body p {
+        font-size: 0.95rem; /* Slightly smaller but still readable on mobile */
+    }
+
+    /* Make modal buttons touch-friendly on mobile */
+    .rpg-modal .rpg-btn-primary,
+    .rpg-modal .rpg-btn-secondary,
+    .rpg-confirm-modal .rpg-btn-primary,
+    .rpg-confirm-modal .rpg-btn-secondary {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+        font-size: 1.05rem; /* Touch-friendly size for mobile readability */
+    }
+
+    /* Add Widget dialog mobile optimizations */
+    .rpg-widget-grid {
+        grid-template-columns: 1fr; /* Single column on mobile for better readability */
+        gap: 0.75rem; /* Slightly tighter spacing */
+    }
+
+    .rpg-widget-card {
+        padding: 0.875rem; /* Slightly less padding on mobile */
+    }
+
+    .rpg-widget-card-icon {
+        font-size: 2rem; /* Scale down icon for mobile */
+    }
+
+    .rpg-widget-card-name {
+        font-size: 0.9rem; /* Slightly smaller name */
+    }
+
+    .rpg-widget-card-description {
+        font-size: 0.7rem; /* Compact description */
+        line-height: 1.25;
+    }
+
+    .rpg-widget-card-add {
+        min-height: 44px; /* Touch-friendly button size */
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+}
+
+.rpg-dashboard-grid {
+    position: relative;
+    width: 100%;
+    flex: 1; /* Fill available space in dashboard container */
+    overflow-y: auto; /* Allow scrolling within grid if needed */
+    overflow-x: hidden;
+    min-height: 0; /* Allow flex to shrink below natural size */
+}
+
+
+/* Hide resize handles by default */
+.resize-handles {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+/* Show resize handles in edit mode */
+.edit-mode .resize-handles {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Prevent text selection in edit mode (especially important for mobile) */
+.edit-mode .rpg-widget {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none; /* Prevent iOS callout menu */
+}
+
+/* Hide edit controls completely when not in edit mode */
+.rpg-dashboard-container:not(.edit-mode) .widget-edit-controls {
+    display: none !important;
+}
+
+/* Hide resize handles when widgets are locked */
+.widgets-locked .resize-handles {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Prevent grab cursor when widgets are locked */
+.widgets-locked .rpg-widget {
+    cursor: default !important;
+}
+
+/* ========================================
+   DASHBOARD V2 WIDGET STYLES
+   ========================================
+
+   When widgets are rendered in dashboard v2 (narrow side panel),
+   stack content vertically instead of side-by-side.
+
+   Modern hybrid approach:
+   - vw/vh: Widget layout positioning (handled by GridEngine)
+   - rem: Typography and spacing (accessible, user-scalable)
+   - px: Fixed details (borders, shadows)
+   - %: Container-relative sizing
+   ======================================== */
+
+/* Base widget container - ensures content stays within bounds */
+.rpg-widget {
+    box-sizing: border-box;
+    overflow: visible; /* Allow resize handles to extend beyond widget bounds */
+    display: flex;
+    flex-direction: column;
+    max-height: 100%; /* Prevent content from overflowing grid cell */
+
+    /* Unified widget styling - consistent look for all widgets */
+    background: rgba(0, 0, 0, 0.2);
+    border-left: 3px solid var(--rpg-highlight);
+    border-radius: 0.5rem;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+    padding: 0.5rem;
+}
+
+.rpg-widget > * {
+    box-sizing: border-box;
+    max-width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.rpg-widget .rpg-stats-content {
+    display: flex;
+    flex-direction: column;  /* Stack vertically */
+    gap: 0.75rem;  /* rem for spacing */
+}
+
+.rpg-widget .rpg-stats-left,
+.rpg-widget .rpg-stats-right {
+    flex: none;  /* Don't split 50/50 */
+    width: 100%; /* Full width */
+}
+
+/* Classic stats grid - 2 columns to match dashboard grid */
+.rpg-widget .rpg-classic-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 0.25rem;  /* rem for spacing */
+}
+
+/* Classic stat cells */
+.rpg-widget .rpg-classic-stat {
+    padding: 0.4rem 0.3rem;  /* rem for spacing */
+}
+
+/* Typography - rem for accessibility */
+.rpg-widget .rpg-classic-stat-label {
+    font-size: 0.65rem;
+}
+
+.rpg-widget .rpg-classic-stat-value {
+    font-size: 0.8rem;
+}
+
+.rpg-widget .rpg-classic-stat-btn {
+    width: 1.5rem;   /* rem for button size */
+    height: 1.5rem;
+    font-size: 0.7rem;
+}
+
+/* User info widget - responsive layout */
+.rpg-user-info-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    height: 100%;
+    width: 100%;
+    padding: 0.5rem;
+}
+
+/* Vertical layout (1 column): centered avatar with text below */
+.rpg-user-info-container.rpg-layout-vertical {
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Horizontal layout (2+ columns): avatar left, text right */
+.rpg-user-info-container.rpg-layout-horizontal {
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+/* User portrait/avatar */
+.rpg-widget .rpg-user-portrait {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 2px solid var(--rpg-highlight);
+    box-shadow: 0 0 8px var(--rpg-highlight);
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+}
+
+.rpg-widget .rpg-user-portrait:hover {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Text container */
+.rpg-user-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    align-items: flex-start;
+}
+
+.rpg-layout-vertical .rpg-user-info-text {
+    align-items: center;
+    text-align: center;
+}
+
+/* User name */
+.rpg-user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--rpg-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Level container */
+.rpg-user-level {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Level label and value */
+.rpg-level-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--rpg-text);
+    opacity: 0.7;
+}
+
+.rpg-level-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--rpg-highlight);
+    padding: 0.15rem 0.4rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0.25rem;
+    min-width: 1.5rem;
+    text-align: center;
+    cursor: text;
+    transition: all 0.2s ease;
+}
+
+.rpg-level-value:hover {
+    background: var(--rpg-highlight);
+    color: var(--rpg-bg);
+}
+
+.rpg-level-value:focus {
+    outline: 2px solid var(--rpg-highlight);
+    outline-offset: 1px;
+    background: var(--rpg-bg);
+}
+
+/* Stat bars - rem for text, vh for bar height */
+.rpg-widget .rpg-stat-label {
+    font-size: 0.75rem;
+}
+
+.rpg-widget .rpg-stat-value {
+    font-size: 0.8rem;
+}
+
+.rpg-widget .rpg-stat-bar {
+    height: 1.2vh;  /* vh for layout element */
+}
+
+/* Mood widget - responsive sizing for dashboard */
+.rpg-widget .rpg-mood {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    height: 100%;
+    width: 100%;
+    padding: 0.25rem;
+}
+
+.rpg-widget .rpg-mood-emoji {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    cursor: text;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+.rpg-widget .rpg-mood-conditions {
+    font-size: 0.6rem;
+    line-height: 1.2;
+    text-align: center;
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    max-width: 100%;
+    opacity: 0.9;
+}
+
+/* Progress bars - rem for spacing */
+.rpg-widget .rpg-stats-grid {
+    gap: 0.5rem;
 }
 
 /* ============================================
@@ -1161,33 +2183,40 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     box-shadow: 0 4px 12px var(--rpg-shadow);
 }
 
-/* Location widget - flexible height */
+/* Location Widget */
 .rpg-location-widget {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem;
 }
 
 /* Calendar Widget */
 .rpg-calendar-widget {
     padding: 0.188em;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .rpg-calendar-top {
     background: var(--rpg-highlight);
     color: var(--rpg-bg);
-    font-size: clamp(0.5vw, 0.55vw, 0.6vw);
+    font-size: 0.65rem;
     font-weight: bold;
     padding: 0.125em 0.375em;
     border-radius: 3px 3px 0 0;
     width: 100%;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .rpg-calendar-day {
     background: rgba(255, 255, 255, 0.1);
     color: var(--rpg-text);
-    font-size: clamp(0.8vw, 1vw, 1.2vw);
+    font-size: 1.8rem;
     font-weight: bold;
-    padding: 0.25em;
+    padding: 0.1em;
     width: 100%;
     text-align: center;
     border: 2px solid var(--rpg-highlight);
@@ -1196,32 +2225,46 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 0;
 }
 
 .rpg-calendar-year {
-    font-size: clamp(0.5vw, 0.55vw, 0.6vw);
+    font-size: 0.55rem;
     color: var(--rpg-text);
     opacity: 0.7;
     margin-top: 0.062em;
-}
-
-/* Weather Widget Icon */
-.rpg-weather-icon {
-    font-size: clamp(18px, 3.5vw, 24px);
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
     flex-shrink: 0;
 }
 
+/* Weather Widget */
+.rpg-weather-widget {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.25rem;
+    gap: 0.2rem;
+}
+
+.rpg-weather-icon {
+    font-size: 1rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    flex-shrink: 0;
+    line-height: 1;
+    cursor: text;
+}
+
 .rpg-weather-forecast {
-    font-size: clamp(0.4vw, 0.5vw, 0.6vw);
+    font-size: 0.45rem;
     text-align: center;
     margin: 0;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.013em;
     opacity: 0.85;
-    line-height: 1.1;
-    word-wrap: break-word;
+    line-height: 1;
+    white-space: nowrap;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1233,22 +2276,29 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Temperature Widget - Thermometer */
 .rpg-temp-widget {
-    gap: 0.188em;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.25rem;
+    gap: 0.2rem;
 }
 
 .rpg-thermometer {
     position: relative;
-    width: 1.25rem;
+    width: 1.2rem;
     height: 2.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
+    flex-shrink: 1;
 }
 
 .rpg-thermometer-tube {
     position: relative;
-    width: 0.5rem;
-    height: 1.75rem;
+    width: 40%;
+    height: 70%;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid var(--rpg-border);
     border-radius: 0.625em 0.625em 0 0;
@@ -1267,8 +2317,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-thermometer-bulb {
     position: absolute;
     bottom: 0;
-    width: 0.875rem;
-    height: 0.875rem;
+    width: 70%;
+    height: 0;
+    padding-bottom: 70%;
     background: var(--rpg-highlight);
     border: 2px solid var(--rpg-border);
     border-radius: 50%;
@@ -1276,25 +2327,35 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-temp-value {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: 0.65rem;
     font-weight: bold;
     color: var(--rpg-text);
     text-align: center;
+    flex-shrink: 0;
+    line-height: 1;
 }
 
 /* Clock Widget */
 .rpg-clock-widget {
-    gap: 0.188em;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.25rem;
+    gap: 0.2rem;
 }
 
 .rpg-clock {
-    width: 2.625rem;
-    height: 2.625rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.4);
-    border: 3px solid var(--rpg-border);
+    border: 2px solid var(--rpg-border);
     box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
     position: relative;
+    flex-shrink: 1;
 }
 
 .rpg-clock-face {
@@ -1314,22 +2375,22 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-clock-hour {
-    width: 0.188rem;
-    height: 0.75rem;
-    margin-left: -0.094em;
+    width: 3%;
+    height: 28%;
+    margin-left: -1.5%;
     opacity: 0.9;
 }
 
 .rpg-clock-minute {
-    width: 0.125rem;
-    height: 1rem;
-    margin-left: -0.062em;
+    width: 2%;
+    height: 38%;
+    margin-left: -1%;
 }
 
 .rpg-clock-center {
     position: absolute;
-    width: 0.312rem;
-    height: 0.312rem;
+    width: 6%;
+    height: 6%;
     background: var(--rpg-highlight);
     border-radius: 50%;
     top: 50%;
@@ -1339,17 +2400,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-time-value {
-    font-size: clamp(0.5vw,0.6vw,0.7vw);
+    font-size: 0.65rem;
     font-weight: bold;
     color: var(--rpg-text);
+    flex-shrink: 0;
+    line-height: 1;
 }
 
 /* Location Widget - Map */
 .rpg-map-bg {
     width: 100%;
-    height: 1.875rem;
+    flex: 1;
+    min-height: 3rem;
     margin: 0;
-    margin-bottom: 0 !important;
     background:
         linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
         linear-gradient(-45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
@@ -1365,12 +2428,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     justify-content: center;
     position: relative;
     overflow: hidden;
-    flex-shrink: 0;
-    margin-bottom: 0.188em;
 }
 
 .rpg-map-marker {
-    font-size: 1vw;
+    font-size: 2rem;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
     animation: markerPulse 2s ease-in-out infinite;
 }
@@ -1381,16 +2442,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-location-text {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: 0.75rem;
     font-weight: bold;
     color: var(--rpg-text);
     text-align: center;
     line-height: 1.2;
-    padding: 0.125em 0.25em;
+    padding: 0.5rem 0.25rem;
     margin: 0;
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
+    flex-shrink: 0;
 }
 
 /* Row 3: Recent Events */
@@ -1651,6 +2713,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Remove centering for multiple character cards */
 }
 
+/* Remove duplicate border when thoughts-content is inside a dashboard widget */
+.rpg-widget .rpg-thoughts-content {
+    border-left: none;
+}
+
 /* Individual thought item */
 .rpg-thought-item {
     display: flex;
@@ -1781,6 +2848,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: rgba(0, 0, 0, 0.3);
     border-radius: clamp(4px, 0.5vh, 6px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: none; /* Remove left border to avoid double accent with parent container */
     transition: all 0.2s ease;
     width: 100%; /* Ensure cards take full width */
     box-sizing: border-box; /* Include padding and border in width calculation */
@@ -3337,6 +4405,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 }
 
+/* Mobile Enhancement (768px and below) */
+@media (max-width: 768px) {
+    /* Fix viewport height for mobile browsers with dynamic toolbars */
+    .rpg-dice-popup {
+        height: 100dvh; /* Dynamic viewport height accounts for mobile browser chrome */
+        --modal-max-height: 70dvh; /* Use dynamic viewport height */
+    }
+
+    .rpg-dice-popup-content {
+        max-height: var(--modal-max-height);
+    }
+}
+
 /* ============================================
    HTML PROMPT TOGGLE
    ============================================ */
@@ -3996,7 +5077,23 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         display: flex;
     }
 
-    /* Hide FAB when panel is open */
+    /* Show the mobile FAB refresh button (but hidden by opacity) */
+    .rpg-mobile-refresh {
+        display: flex;
+    }
+
+    /* Show refresh button when panel is open OR Dashboard v2 is visible, AND not hidden by generation mode */
+    body:has(.rpg-panel.rpg-mobile-open, #rpg-dashboard-container) .rpg-mobile-refresh:not(.rpg-hidden-mode) {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Hide desktop refresh button on mobile */
+    #rpg-manual-update {
+        display: none !important;
+    }
+
+    /* Hide toggle FAB when panel is open */
     body:has(.rpg-panel.rpg-mobile-open) .rpg-mobile-toggle {
         opacity: 0;
         pointer-events: none;
@@ -4334,6 +5431,197 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     .rpg-map-marker {
         font-size: clamp(16px, 4.1vw, 20px) !important;
+    }
+
+    /* ========================================
+       MOBILE DASHBOARD V2 LAYOUT
+       ======================================== */
+
+    /* Dashboard container - ensure it fills mobile panel properly */
+    #rpg-dashboard-container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Dashboard header - compact on mobile */
+    .rpg-dashboard-header {
+        flex-shrink: 0;
+        padding: 0.5rem;
+        gap: 0.5rem;
+    }
+
+    /* Dashboard tabs - scrollable on mobile */
+    #rpg-dashboard-tabs {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Dashboard buttons - smaller on mobile */
+    .rpg-dashboard-btn {
+        min-width: 2rem;
+        height: 2rem;
+        padding: 0.25rem;
+    }
+
+    .rpg-dashboard-btn i {
+        font-size: 0.8rem;
+    }
+
+    /* Dashboard grid - scrollable with proper height */
+    .rpg-dashboard-grid {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.5rem;
+    }
+
+    /* Widgets - reduce padding for mobile */
+    .rpg-widget {
+        padding: 0.25rem !important;
+    }
+
+    /* Remove contenteditable padding and control text display */
+    .rpg-editable {
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        word-break: break-word !important;
+        max-width: 100% !important;
+        line-height: 1.2 !important;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    /* Short single-value fields should stay on one line */
+    .rpg-temp-value.rpg-editable,
+    .rpg-time-value.rpg-editable,
+    .rpg-calendar-top.rpg-editable,
+    .rpg-calendar-day.rpg-editable,
+    .rpg-calendar-year.rpg-editable {
+        display: block !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        line-height: 1 !important;
+    }
+
+    /* ========================================
+       MOBILE 1x1 WIDGET FIXES (AGGRESSIVE)
+       ======================================== */
+
+    /* Calendar Widget - fit all 3 elements in 3.5rem height */
+    .rpg-widget .rpg-calendar-widget {
+        padding: 0.1rem !important;
+        gap: 0.05rem !important;
+        justify-content: space-between !important;
+    }
+
+    .rpg-widget .rpg-calendar-top {
+        font-size: 0.55rem !important;
+        padding: 0.1rem !important;
+        line-height: 1.1 !important;
+    }
+
+    .rpg-widget .rpg-calendar-day {
+        font-size: 1.5rem !important;
+        padding: 0.1rem !important;
+        line-height: 1 !important;
+        flex: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .rpg-widget .rpg-calendar-year {
+        font-size: 0.5rem !important;
+        padding: 0.1rem !important;
+        line-height: 1.1 !important;
+    }
+
+    /* Weather Widget - hide forecast field, show only icon (which contains full text) */
+    .rpg-widget .rpg-weather-widget {
+        padding: 0.3rem !important;
+        gap: 0 !important;
+        justify-content: center !important;
+    }
+
+    .rpg-widget .rpg-weather-icon {
+        font-size: 0.7rem !important;
+        line-height: 1.3 !important;
+        text-align: center !important;
+    }
+
+    .rpg-widget .rpg-weather-forecast {
+        display: none !important;
+    }
+
+    /* Temperature Widget - scale thermometer */
+    .rpg-widget .rpg-temp-widget {
+        padding: 0.3rem !important;
+        gap: 0.2rem !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    .rpg-widget .rpg-thermometer {
+        width: 1rem !important;
+        height: 2.2rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    .rpg-widget .rpg-thermometer-bulb {
+        width: 1.2rem !important;
+        height: 1.2rem !important;
+        margin-left: -0.1rem !important;
+    }
+
+    .rpg-widget .rpg-thermometer-tube {
+        width: 1rem !important;
+        height: 1.6rem !important;
+    }
+
+    .rpg-widget .rpg-temp-value {
+        font-size: 0.65rem !important;
+    }
+
+    /* Clock Widget - scale clock face */
+    .rpg-widget .rpg-clock-widget {
+        padding: 0.3rem !important;
+        gap: 0.15rem !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    .rpg-widget .rpg-clock {
+        width: 2.2rem !important;
+        height: 2.2rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    .rpg-widget .rpg-clock-face {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .rpg-widget .rpg-time-value {
+        font-size: 0.65rem !important;
+        line-height: 1.1 !important;
+    }
+
+    /* User Stats Widget - add bottom padding to prevent last bar (Arousal) from being clipped */
+    .rpg-widget .rpg-stats-grid {
+        padding-bottom: 0.5rem !important;
+    }
+
+    /* Mood Widget - increase conditions text size for mobile readability */
+    .rpg-widget .rpg-mood-conditions {
+        font-size: 0.7rem !important;
+        line-height: 1.3 !important;
     }
 
     /* ========================================
@@ -4748,12 +6036,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Touch-friendly improvements for mobile */
 @media (max-width: 768px) {
-    /* More padding for editable fields */
-    .rpg-editable {
-        padding: 0.5em;
-        min-height: 2.75rem;
-    }
-
     /* Larger close buttons */
     .rpg-thought-close {
         min-width: 2.75rem;
@@ -4781,6 +6063,23 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 1rem;
     padding: 0.5rem;
     font-size: 0.9rem;
+}
+
+/* Inventory Widget - Flex container for proper scrolling */
+.rpg-inventory-widget {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Inventory Views - Scrollable content area */
+.rpg-inventory-views {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Sub-tabs Navigation */
@@ -4825,7 +6124,18 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     cursor: pointer;
     transition: all 0.2s ease;
     font-weight: 500;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rpg-inventory-subtab i {
+    font-size: 1rem;
+}
+
+.rpg-subtab-label {
+    display: inline;
 }
 
 .rpg-inventory-subtab:hover {
@@ -5423,13 +6733,23 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
     .rpg-inventory-subtabs {
-        flex-direction: column;
-        gap: 0.35rem;
+        flex-direction: row;
+        gap: 0.5rem;
+        justify-content: space-between;
     }
 
     .rpg-inventory-subtab {
-        font-size: 1rem;
         padding: 0.75rem;
+        min-width: 3rem;
+    }
+
+    .rpg-inventory-subtab i {
+        font-size: 1.2rem;
+    }
+
+    /* Hide labels on mobile - icon only */
+    .rpg-subtab-label {
+        display: none;
     }
 
     .rpg-inventory-header {

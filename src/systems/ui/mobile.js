@@ -509,6 +509,13 @@ export function setupMobileTabs() {
     const isMobile = window.innerWidth <= 1000;
     if (!isMobile) return;
 
+    // Check if Dashboard v2 is present - if so, skip mobile tabs (dashboard has its own tab system)
+    const $dashboardContainer = $('#rpg-dashboard-container');
+    if ($dashboardContainer.length > 0) {
+        console.log('[RPG Mobile] Dashboard v2 detected - skipping old mobile tabs setup');
+        return;
+    }
+
     // Check if tabs already exist
     if ($('.rpg-mobile-tabs').length > 0) return;
 
