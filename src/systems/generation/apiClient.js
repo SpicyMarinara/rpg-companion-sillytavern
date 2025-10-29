@@ -18,6 +18,11 @@ import { saveChatData } from '../../core/persistence.js';
 import { generateSeparateUpdatePrompt } from './promptBuilder.js';
 import { parseResponse, parseUserStats } from './parser.js';
 import { refreshDashboard } from '../dashboard/dashboardIntegration.js';
+import { renderUserStats } from '../rendering/userStats.js';
+import { renderInfoBox } from '../rendering/infoBox.js';
+import { renderThoughts } from '../rendering/thoughts.js';
+import { renderInventory } from '../rendering/inventory.js';
+import { renderQuests } from '../rendering/quests.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -175,15 +180,16 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 //     characterThoughts: lastGeneratedData.characterThoughts ? 'exists' : 'null'
                 // });
 
-                // If there's no committed data yet (first time) or only has placeholder data, commit immediately
-                const hasNoRealData = !committedTrackerData.userStats && !committedTrackerData.infoBox && !committedTrackerData.characterThoughts;
-                const hasOnlyPlaceholderData = (
-                    (!committedTrackerData.userStats || committedTrackerData.userStats === '') &&
-                    (!committedTrackerData.infoBox || committedTrackerData.infoBox === 'Info Box\n---\n' || committedTrackerData.infoBox === '') &&
-                    (!committedTrackerData.characterThoughts || committedTrackerData.characterThoughts === 'Present Characters\n---\n' || committedTrackerData.characterThoughts === '')
+                // Only auto-commit on TRULY first generation (no committed data exists at all)
+                // This prevents auto-commit after refresh when we have saved committed data
+                const hasAnyCommittedContent = (
+                    (committedTrackerData.userStats && committedTrackerData.userStats.trim() !== '') ||
+                    (committedTrackerData.infoBox && committedTrackerData.infoBox.trim() !== '' && committedTrackerData.infoBox !== 'Info Box\n---\n') ||
+                    (committedTrackerData.characterThoughts && committedTrackerData.characterThoughts.trim() !== '' && committedTrackerData.characterThoughts !== 'Present Characters\n---\n')
                 );
 
-                if (hasNoRealData || hasOnlyPlaceholderData) {
+                // Only commit if we have NO committed content at all (truly first time ever)
+                if (!hasAnyCommittedContent) {
                     committedTrackerData.userStats = parsedData.userStats;
                     committedTrackerData.infoBox = parsedData.infoBox;
                     committedTrackerData.characterThoughts = parsedData.characterThoughts;
@@ -195,6 +201,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 renderInfoBox();
                 renderThoughts();
                 renderInventory();
+                renderQuests();
 
                 // Refresh dashboard widgets (v2 dashboard)
                 refreshDashboard();
@@ -207,6 +214,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 renderInfoBox();
                 renderThoughts();
                 renderInventory();
+                renderQuests();
 
                 // Refresh dashboard widgets (v2 dashboard)
                 refreshDashboard();

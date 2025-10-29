@@ -6,6 +6,7 @@
 import { extensionSettings, lastGeneratedData, committedTrackerData } from '../../core/state.js';
 import { saveSettings, saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
 import { buildInventorySummary } from '../generation/promptBuilder.js';
+import { buildUserStatsText } from '../rendering/userStats.js';
 import { renderInventory, getLocationId } from '../rendering/inventory.js';
 import { parseItems, serializeItems } from '../../utils/itemParser.js';
 import { sanitizeLocationName, sanitizeItemName } from '../../utils/security.js';
@@ -42,18 +43,8 @@ let openForms = {
  * This ensures manual edits are immediately visible to AI in next generation.
  */
 function updateLastGeneratedDataInventory() {
-    const stats = extensionSettings.userStats;
-    const inventorySummary = buildInventorySummary(stats.inventory);
-
-    // Rebuild the userStats text format
-    const statsText =
-        `Health: ${stats.health}%\n` +
-        `Satiety: ${stats.satiety}%\n` +
-        `Energy: ${stats.energy}%\n` +
-        `Hygiene: ${stats.hygiene}%\n` +
-        `Arousal: ${stats.arousal}%\n` +
-        `${stats.mood}: ${stats.conditions}\n` +
-        `${inventorySummary}`;
+    // Rebuild the userStats text format using custom stat names
+    const statsText = buildUserStatsText();
 
     // Update BOTH lastGeneratedData AND committedTrackerData
     // This makes manual edits immediately visible to AI

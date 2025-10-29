@@ -8,6 +8,70 @@ import { saveSettings } from '../../core/persistence.js';
 import { extractInventory } from './inventoryParser.js';
 
 /**
+ * Helper to separate emoji from text in a string
+ * Handles cases where there's no comma or space after emoji
+ * @param {string} str - String potentially containing emoji followed by text
+ * @returns {{emoji: string, text: string}} Separated emoji and text
+ */
+function separateEmojiFromText(str) {
+    if (!str) return { emoji: '', text: '' };
+
+    str = str.trim();
+
+    // Regex to match emoji at the start (handles most emoji including compound ones)
+    // This matches emoji sequences including skin tones, gender modifiers, etc.
+    const emojiRegex = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F910}-\u{1F96B}\u{1F980}-\u{1F9E0}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}]+/u;
+    const emojiMatch = str.match(emojiRegex);
+
+    if (emojiMatch) {
+        const emoji = emojiMatch[0];
+        let text = str.substring(emoji.length).trim();
+
+        // Remove leading comma or space if present
+        text = text.replace(/^[,\s]+/, '');
+
+        return { emoji, text };
+    }
+
+    // No emoji found - check if there's a comma separator anyway
+    const commaParts = str.split(',');
+    if (commaParts.length >= 2) {
+        return {
+            emoji: commaParts[0].trim(),
+            text: commaParts.slice(1).join(',').trim()
+        };
+    }
+
+    // No clear separation - return original as text
+    return { emoji: '', text: str };
+}
+
+/**
+ * Helper to strip enclosing brackets from text
+ * Removes [], {}, and () from the entire text if it's wrapped
+ * @param {string} text - Text that may be wrapped in brackets
+ * @returns {string} Text with brackets removed
+ */
+function stripBrackets(text) {
+    if (!text) return text;
+
+    // Remove leading and trailing whitespace first
+    text = text.trim();
+
+    // Check if the entire text is wrapped in brackets and remove them
+    // This handles cases where models wrap entire sections in brackets
+    while (
+        (text.startsWith('[') && text.endsWith(']')) ||
+        (text.startsWith('{') && text.endsWith('}')) ||
+        (text.startsWith('(') && text.endsWith(')'))
+    ) {
+        text = text.substring(1, text.length - 1).trim();
+    }
+
+    return text;
+}
+
+/**
  * Helper to log to both console and debug logs array
  */
 function debugLog(message, data = null) {
@@ -37,9 +101,15 @@ export function parseResponse(responseText) {
     debugLog('[RPG Parser] Response length:', responseText.length + ' chars');
     debugLog('[RPG Parser] First 500 chars:', responseText.substring(0, 500));
 
+    // Remove content inside thinking tags first (model's internal reasoning)
+    // This prevents parsing code blocks from the model's thinking process
+    let cleanedResponse = responseText.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    cleanedResponse = cleanedResponse.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+    debugLog('[RPG Parser] Removed thinking tags, new length:', cleanedResponse.length + ' chars');
+
     // Extract code blocks
     const codeBlockRegex = /```([^`]+)```/g;
-    const matches = [...responseText.matchAll(codeBlockRegex)];
+    const matches = [...cleanedResponse.matchAll(codeBlockRegex)];
 
     debugLog('[RPG Parser] Found', matches.length + ' code blocks');
 
@@ -63,21 +133,21 @@ export function parseResponse(responseText) {
             // Extract User Stats section
             const statsMatch = content.match(/(User )?Stats\s*\n\s*---[\s\S]*?(?=\n\s*\n\s*(Info Box|Present Characters)|$)/i);
             if (statsMatch && !result.userStats) {
-                result.userStats = statsMatch[0].trim();
+                result.userStats = stripBrackets(statsMatch[0].trim());
                 debugLog('[RPG Parser] ✓ Extracted Stats from combined block');
             }
 
             // Extract Info Box section
             const infoBoxMatch = content.match(/Info Box\s*\n\s*---[\s\S]*?(?=\n\s*\n\s*Present Characters|$)/i);
             if (infoBoxMatch && !result.infoBox) {
-                result.infoBox = infoBoxMatch[0].trim();
+                result.infoBox = stripBrackets(infoBoxMatch[0].trim());
                 debugLog('[RPG Parser] ✓ Extracted Info Box from combined block');
             }
 
             // Extract Present Characters section
             const charactersMatch = content.match(/Present Characters\s*\n\s*---[\s\S]*$/i);
             if (charactersMatch && !result.characterThoughts) {
-                result.characterThoughts = charactersMatch[0].trim();
+                result.characterThoughts = stripBrackets(charactersMatch[0].trim());
                 debugLog('[RPG Parser] ✓ Extracted Present Characters from combined block');
             }
         } else {
@@ -107,13 +177,13 @@ export function parseResponse(responseText) {
                 (content.includes(" | ") && (content.includes("Thoughts") || content.includes("💭")));
 
             if (isStats && !result.userStats) {
-                result.userStats = content;
+                result.userStats = stripBrackets(content);
                 debugLog('[RPG Parser] ✓ Matched: Stats section');
             } else if (isInfoBox && !result.infoBox) {
-                result.infoBox = content;
+                result.infoBox = stripBrackets(content);
                 debugLog('[RPG Parser] ✓ Matched: Info Box section');
             } else if (isCharacters && !result.characterThoughts) {
-                result.characterThoughts = content;
+                result.characterThoughts = stripBrackets(content);
                 debugLog('[RPG Parser] ✓ Matched: Present Characters section');
                 debugLog('[RPG Parser] Full content:', content);
             } else {
@@ -169,18 +239,36 @@ export function parseUserStats(statsText) {
         // Format 2: Status: [Emoji], [Conditions]
         // Format 3: [Emoji]: [Conditions] (legacy)
         // Format 4: Mood: [Emoji] - [Conditions]
+        // Format 5: Status: [Emoji Conditions] (no separator - FIXED)
         let moodMatch = null;
 
-        // Try new format: Status: emoji, conditions
-        const statusMatch = statsText.match(/Status:\s*(.+?),\s*(.+)/i);
+        // Try new format: Status: emoji, conditions OR Status: emojiConditions
+        const statusMatch = statsText.match(/Status:\s*(.+)/i);
         if (statusMatch) {
-            moodMatch = [null, statusMatch[1].trim(), statusMatch[2].trim()];
+            const statusContent = statusMatch[1].trim();
+            const { emoji, text } = separateEmojiFromText(statusContent);
+            if (emoji && text) {
+                moodMatch = [null, emoji, text];
+            } else if (statusContent.includes(',')) {
+                // Fallback to comma split if emoji detection failed
+                const parts = statusContent.split(',').map(p => p.trim());
+                moodMatch = [null, parts[0], parts.slice(1).join(', ')];
+            }
         }
-        // Try alternative: Mood: emoji, conditions
-        else {
-            const moodAltMatch = statsText.match(/Mood:\s*(.+?)[,\-]\s*(.+)/i);
+
+        // Try alternative: Mood: emoji, conditions OR Mood: emojiConditions
+        if (!moodMatch) {
+            const moodAltMatch = statsText.match(/Mood:\s*(.+)/i);
             if (moodAltMatch) {
-                moodMatch = [null, moodAltMatch[1].trim(), moodAltMatch[2].trim()];
+                const moodContent = moodAltMatch[1].trim();
+                const { emoji, text } = separateEmojiFromText(moodContent);
+                if (emoji && text) {
+                    moodMatch = [null, emoji, text];
+                } else if (moodContent.includes(',') || moodContent.includes('-')) {
+                    // Fallback to comma/dash split if emoji detection failed
+                    const parts = moodContent.split(/[,\-]/).map(p => p.trim());
+                    moodMatch = [null, parts[0], parts.slice(1).join(', ')];
+                }
             }
         }
 
@@ -243,6 +331,28 @@ export function parseUserStats(statsText) {
         if (moodMatch) {
             extensionSettings.userStats.mood = moodMatch[1].trim(); // Emoji
             extensionSettings.userStats.conditions = moodMatch[2].trim(); // Conditions
+        }
+
+        // Extract quests
+        const mainQuestMatch = statsText.match(/Main Quests?:\s*(.+)/i);
+        if (mainQuestMatch) {
+            extensionSettings.quests.main = mainQuestMatch[1].trim();
+            debugLog('[RPG Parser] Main quests extracted:', mainQuestMatch[1].trim());
+        }
+
+        const optionalQuestsMatch = statsText.match(/Optional Quests:\s*(.+)/i);
+        if (optionalQuestsMatch) {
+            const questsText = optionalQuestsMatch[1].trim();
+            if (questsText && questsText !== 'None') {
+                // Split by comma and clean up
+                extensionSettings.quests.optional = questsText
+                    .split(',')
+                    .map(q => q.trim())
+                    .filter(q => q && q !== 'None');
+            } else {
+                extensionSettings.quests.optional = [];
+            }
+            debugLog('[RPG Parser] Optional quests extracted:', extensionSettings.quests.optional);
         }
 
         debugLog('[RPG Parser] Final userStats after parsing:', {

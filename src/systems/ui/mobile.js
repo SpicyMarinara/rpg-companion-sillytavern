@@ -527,9 +527,10 @@ export function setupMobileTabs() {
     const $infoBox = $('#rpg-info-box');
     const $thoughts = $('#rpg-thoughts');
     const $inventory = $('#rpg-inventory');
+    const $quests = $('#rpg-quests');
 
     // If no sections exist, nothing to organize
-    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $inventory.length === 0) {
+    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $inventory.length === 0 && $quests.length === 0) {
         return;
     }
 
@@ -538,6 +539,7 @@ export function setupMobileTabs() {
     const hasStats = $userStats.length > 0;
     const hasInfo = $infoBox.length > 0 || $thoughts.length > 0;
     const hasInventory = $inventory.length > 0;
+    const hasQuests = $quests.length > 0;
 
     // Tab 1: Stats (User Stats only)
     if (hasStats) {
@@ -551,6 +553,10 @@ export function setupMobileTabs() {
     if (hasInventory) {
         tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="inventory"><i class="fa-solid fa-box"></i><span>Inventory</span></button>');
     }
+    // Tab 4: Quests
+    if (hasQuests) {
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="quests"><i class="fa-solid fa-scroll"></i><span>Quests</span></button>');
+    }
 
     const $tabNav = $('<div class="rpg-mobile-tabs">' + tabs.join('') + '</div>');
 
@@ -559,11 +565,13 @@ export function setupMobileTabs() {
     if (hasStats) firstTab = 'stats';
     else if (hasInfo) firstTab = 'info';
     else if (hasInventory) firstTab = 'inventory';
+    else if (hasQuests) firstTab = 'quests';
 
     // Create tab content wrappers
     const $statsTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'stats' ? 'active' : '') + '" data-tab-content="stats"></div>');
     const $infoTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'info' ? 'active' : '') + '" data-tab-content="info"></div>');
     const $inventoryTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'inventory' ? 'active' : '') + '" data-tab-content="inventory"></div>');
+    const $questsTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'quests' ? 'active' : '') + '" data-tab-content="quests"></div>');
 
     // Move sections into their respective tabs (detach to preserve event handlers)
     // Stats tab: User Stats only
@@ -588,6 +596,12 @@ export function setupMobileTabs() {
         $inventory.show();
     }
 
+    // Quests tab: Quests only
+    if ($quests.length > 0) {
+        $questsTab.append($quests.detach());
+        $quests.show();
+    }
+
     // Hide dividers on mobile
     $('.rpg-divider').hide();
 
@@ -598,6 +612,8 @@ export function setupMobileTabs() {
     // Only append tab content wrappers that have content
     if (hasStats) $mobileContainer.append($statsTab);
     if (hasInfo) $mobileContainer.append($infoTab);
+    if (hasInventory) $mobileContainer.append($inventoryTab);
+    if (hasQuests) $mobileContainer.append($questsTab);
     if (hasInventory) $mobileContainer.append($inventoryTab);
 
     // Insert mobile tab structure at the beginning of content box
@@ -626,6 +642,7 @@ export function removeMobileTabs() {
     const $infoBox = $('#rpg-info-box').detach();
     const $thoughts = $('#rpg-thoughts').detach();
     const $inventory = $('#rpg-inventory').detach();
+    const $quests = $('#rpg-quests').detach();
 
     // Remove mobile tab container
     $('.rpg-mobile-container').remove();
@@ -638,14 +655,16 @@ export function removeMobileTabs() {
     // Restore original sections to content box in correct order
     const $contentBox = $('.rpg-content-box');
 
-    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory
+    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory, Quests
     if ($dividerStats.length) {
         $dividerStats.before($userStats);
         $dividerInfo.before($infoBox);
         $dividerThoughts.before($thoughts);
         $contentBox.append($inventory);
+        $contentBox.append($quests);
     } else {
         // Fallback if dividers don't exist
+        $contentBox.prepend($quests);
         $contentBox.prepend($inventory);
         $contentBox.prepend($thoughts);
         $contentBox.prepend($infoBox);

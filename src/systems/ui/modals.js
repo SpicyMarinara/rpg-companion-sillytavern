@@ -16,6 +16,7 @@ import {
 import { saveSettings, saveChatData } from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { updateChatThoughts } from '../rendering/thoughts.js';
+import { renderQuests } from '../rendering/quests.js';
 import {
     rollDice as rollDiceCore,
     clearDiceRoll as clearDiceRollCore,
@@ -409,6 +410,12 @@ export function setupSettingsPopup() {
         // Clear dice roll
         extensionSettings.lastDiceRoll = null;
 
+        // Clear quests
+        extensionSettings.quests = {
+            main: "None",
+            optional: []
+        };
+
         // Save everything
         saveChatData();
         saveSettings();
@@ -417,6 +424,7 @@ export function setupSettingsPopup() {
         renderUserStats();
         updateDiceDisplayCore();
         updateChatThoughts(); // Clear the thought bubble in chat
+        renderQuests(); // Clear and re-render quests UI
 
         // console.log('[RPG Companion] Chat cache cleared');
     });

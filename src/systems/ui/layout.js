@@ -266,15 +266,11 @@ export function applyPanelPosition() {
  * Updates the UI based on generation mode selection.
  */
 export function updateGenerationModeUI() {
-    const $mobileBtn = $('#rpg-manual-update-mobile');
-
     if (extensionSettings.generationMode === 'together') {
-        // In "together" mode, hide both desktop and mobile refresh buttons
+        // In "together" mode, manual update button is hidden
         $('#rpg-manual-update').hide();
-        $mobileBtn.addClass('rpg-hidden-mode');
     } else {
-        // In "separate" mode, show both desktop and mobile refresh buttons
+        // In "separate" mode, manual update button is visible
         $('#rpg-manual-update').show();
-        $mobileBtn.removeClass('rpg-hidden-mode');
     }
 }
