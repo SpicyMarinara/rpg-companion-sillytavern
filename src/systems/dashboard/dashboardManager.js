@@ -746,21 +746,8 @@ export class DashboardManager {
             console.warn(`[DashboardManager] No render function for ${widget.type}`);
         }
 
-        // If in edit mode, disable content editing on this widget
-        if (this.editManager && this.editManager.isEditMode) {
-            const editableElements = element.querySelectorAll('[contenteditable="true"]');
-            editableElements.forEach(el => {
-                el.dataset.wasEditable = 'true';
-                el.contentEditable = 'false';
-            });
-
-            // Also disable input fields (except file inputs which should remain functional)
-            const inputElements = element.querySelectorAll('input:not([type="file"]), textarea');
-            inputElements.forEach(el => {
-                el.dataset.wasEnabled = el.disabled ? 'false' : 'true';
-                el.disabled = true;
-            });
-        }
+        // Note: Content editing will be disabled in bulk after all widgets are rendered
+        // (see onTabChange for global disable pass)
     }
 
     /**
@@ -1102,6 +1089,12 @@ export class DashboardManager {
                     console.warn(`[DashboardManager] Widget type "${widget.type}" not found in registry`);
                 }
             });
+        }
+
+        // Disable content editing once for all widgets if in edit mode
+        // (More efficient than per-widget queries - 2 queries vs 2N queries)
+        if (this.editManager && this.editManager.isEditMode) {
+            this.editManager.disableContentEditing();
         }
 
         this.notifyChange('tabChanged', { tabId });

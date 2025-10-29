@@ -482,8 +482,8 @@ export class EditModeManager {
             }
         });
 
-        // Ensure content editing is disabled for all widgets
-        this.disableContentEditing();
+        // Note: Content editing disabling is handled by enterEditMode() and onTabChange()
+        // No need to call it here as well
 
         console.log('[EditModeManager] Synced controls for', widgets.length, 'widgets');
     }
