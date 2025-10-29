@@ -28,6 +28,7 @@ export class ResizeHandler {
     constructor(gridEngine, options = {}) {
         this.gridEngine = gridEngine;
         this.editManager = options.editManager || null; // Reference to EditModeManager for lock state
+        this.resizeHandlesOverlay = options.resizeHandlesOverlay || null; // Overlay container for handles
         this.options = {
             showDimensions: true,
             showGrid: true,
@@ -74,7 +75,19 @@ export class ResizeHandler {
     initWidget(element, widget, onResizeEnd, constraints = {}) {
         // Create resize handles
         const handles = this.createResizeHandles();
-        element.appendChild(handles);
+
+        // Store reference to widget element for positioning
+        handles.dataset.widgetId = element.id;
+
+        // Append to overlay instead of widget to prevent overflow/scrollbar issues
+        if (this.resizeHandlesOverlay) {
+            this.resizeHandlesOverlay.appendChild(handles);
+            // Position handles to match widget bounds
+            this.updateHandlePosition(handles, element);
+        } else {
+            // Fallback to old behavior if overlay not available
+            element.appendChild(handles);
+        }
 
         // Store constraints
         const widgetConstraints = {
@@ -213,6 +226,25 @@ export class ResizeHandler {
         });
 
         return container;
+    }
+
+    /**
+     * Update handle container position to match widget bounds
+     * @param {HTMLElement} handles - Resize handles container
+     * @param {HTMLElement} element - Widget element
+     */
+    updateHandlePosition(handles, element) {
+        if (!handles || !element) return;
+
+        const overlay = this.resizeHandlesOverlay;
+        if (!overlay) return;
+
+        // Use offset properties for parent-relative positioning
+        // Both widget and overlay are children of the same grid container
+        handles.style.left = `${element.offsetLeft}px`;
+        handles.style.top = `${element.offsetTop}px`;
+        handles.style.width = `${element.offsetWidth}px`;
+        handles.style.height = `${element.offsetHeight}px`;
     }
 
     /**
@@ -416,6 +448,12 @@ export class ResizeHandler {
             onResizeEnd(widget, widget.w, widget.h, widget.x, widget.y);
         }
 
+        // Update handle positions to match new widget size
+        const handlerData = this.resizeHandlers.get(element);
+        if (handlerData && handlerData.handles) {
+            this.updateHandlePosition(handlerData.handles, element);
+        }
+
         this.cleanup();
         console.log('[ResizeHandler] Resize completed:', widget.id, `${widget.w}×${widget.h} at (${widget.x}, ${widget.y})`);
     }
@@ -444,6 +482,12 @@ export class ResizeHandler {
 
         // Remove resizing class
         element.classList.remove('resizing');
+
+        // Update handle positions to match restored widget size
+        const handlerData = this.resizeHandlers.get(element);
+        if (handlerData && handlerData.handles) {
+            this.updateHandlePosition(handlerData.handles, element);
+        }
 
         this.cleanup();
         console.log('[ResizeHandler] Resize cancelled');

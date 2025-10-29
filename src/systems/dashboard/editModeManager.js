@@ -23,6 +23,7 @@ export class EditModeManager {
      */
     constructor(config) {
         this.container = config.container;
+        this.editControlsOverlay = config.editControlsOverlay || null; // Overlay container for edit controls
         this.onSave = config.onSave;
         this.onCancel = config.onCancel;
         this.onWidgetAdd = config.onWidgetAdd;
@@ -68,6 +69,9 @@ export class EditModeManager {
 
         // Add edit class to container
         this.container.classList.add('edit-mode');
+
+        // Add controls to all currently rendered widgets
+        this.syncAllControls();
 
         this.notifyChange('editModeEntered');
         console.log('[EditModeManager] Entered edit mode');
@@ -180,8 +184,8 @@ export class EditModeManager {
             element.contentEditable = 'false';
         });
 
-        // Also disable input fields
-        const inputElements = this.container.querySelectorAll('input, textarea');
+        // Also disable input fields (except file inputs which should remain functional)
+        const inputElements = this.container.querySelectorAll('input:not([type="file"]), textarea');
         inputElements.forEach(element => {
             element.dataset.wasEnabled = element.disabled ? 'false' : 'true';
             element.disabled = true;
@@ -356,20 +360,86 @@ export class EditModeManager {
         controls.appendChild(settingsBtn);
         controls.appendChild(deleteBtn);
 
-        element.appendChild(controls);
+        // Store reference to widget element for positioning
+        controls.dataset.widgetId = widgetId;
 
-        // Show controls on hover
+        // Append to overlay instead of widget to prevent overflow/scrollbar issues
+        if (this.editControlsOverlay) {
+            this.editControlsOverlay.appendChild(controls);
+            // Position controls to match widget bounds
+            this.updateControlPosition(controls, element);
+        } else {
+            // Fallback to old behavior if overlay not available
+            element.appendChild(controls);
+        }
+
+        // Show controls on hover - keep visible when hovering controls themselves
+        let isHoveringWidget = false;
+        let isHoveringControls = false;
+        let hideTimeout = null;
+
+        const checkAndHideControls = () => {
+            // Clear any existing timeout
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+
+            // Add small delay to allow mouse to move between widget and controls
+            hideTimeout = setTimeout(() => {
+                if (!isHoveringWidget && !isHoveringControls) {
+                    controls.style.opacity = '0';
+                }
+            }, 100);
+        };
+
+        // Widget hover
         element.addEventListener('mouseenter', () => {
+            isHoveringWidget = true;
             if (this.isEditMode) {
                 controls.style.opacity = '1';
             }
         });
 
         element.addEventListener('mouseleave', () => {
-            controls.style.opacity = '0';
+            isHoveringWidget = false;
+            checkAndHideControls();
         });
 
-        this.widgetControlsMap.set(widgetId, controls);
+        // Controls hover - keep visible when hovering the buttons
+        controls.addEventListener('mouseenter', () => {
+            isHoveringControls = true;
+            controls.style.opacity = '1';
+        });
+
+        controls.addEventListener('mouseleave', () => {
+            isHoveringControls = false;
+            checkAndHideControls();
+        });
+
+        this.widgetControlsMap.set(widgetId, { controls, element });
+    }
+
+    /**
+     * Update control position to match widget bounds
+     * @param {HTMLElement} controls - Edit controls container
+     * @param {HTMLElement} element - Widget element
+     */
+    updateControlPosition(controls, element) {
+        if (!controls || !element) return;
+
+        const overlay = this.editControlsOverlay;
+        if (!overlay) return;
+
+        // Use offset properties for parent-relative positioning
+        // Both widget and overlay are children of the same grid container
+        const widgetLeft = element.offsetLeft;
+        const widgetTop = element.offsetTop;
+        const widgetWidth = element.offsetWidth;
+
+        // Position controls at top-right of widget (4px from top, 4px from right)
+        controls.style.left = `${widgetLeft + widgetWidth - 60}px`; // 60px approximate width of controls
+        controls.style.top = `${widgetTop + 4}px`;
+        controls.style.pointerEvents = 'auto'; // Ensure controls are clickable
     }
 
     /**
@@ -377,11 +447,56 @@ export class EditModeManager {
      * @param {string} widgetId - Widget ID
      */
     removeWidgetControls(widgetId) {
-        const controls = this.widgetControlsMap.get(widgetId);
-        if (controls) {
-            controls.remove();
+        const data = this.widgetControlsMap.get(widgetId);
+        if (data) {
+            if (data.controls) {
+                data.controls.remove();
+            }
             this.widgetControlsMap.delete(widgetId);
         }
+    }
+
+    /**
+     * Sync controls for all currently rendered widgets
+     * Adds controls to widgets that don't have them yet
+     */
+    syncAllControls() {
+        // Find all widget elements in the grid
+        const gridContainer = this.container.querySelector('#rpg-dashboard-grid');
+        if (!gridContainer) return;
+
+        const widgets = gridContainer.querySelectorAll('.rpg-widget');
+        widgets.forEach(widgetElement => {
+            const widgetId = widgetElement.dataset.widgetId;
+            if (!widgetId) return;
+
+            // Add controls if they don't exist yet
+            if (!this.widgetControlsMap.has(widgetId)) {
+                this.addWidgetControls(widgetElement, widgetId);
+            } else {
+                // Update position if controls already exist
+                const data = this.widgetControlsMap.get(widgetId);
+                if (data && data.controls) {
+                    this.updateControlPosition(data.controls, widgetElement);
+                }
+            }
+        });
+
+        console.log('[EditModeManager] Synced controls for', widgets.length, 'widgets');
+    }
+
+    /**
+     * Remove all widget controls
+     * Called when clearing the grid or switching tabs
+     */
+    removeAllControls() {
+        this.widgetControlsMap.forEach((data, widgetId) => {
+            if (data.controls) {
+                data.controls.remove();
+            }
+        });
+        this.widgetControlsMap.clear();
+        console.log('[EditModeManager] Removed all widget controls');
     }
 
     /**

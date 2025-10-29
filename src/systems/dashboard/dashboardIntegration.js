@@ -306,14 +306,21 @@ function setupDashboardEventListeners(dependencies) {
         });
     }
 
-    // Add widget button
+    // Add widget button - supports both desktop click and mobile touch
     const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
     if (addWidgetBtn) {
-        addWidgetBtn.addEventListener('click', () => {
+        // Use pointerdown for universal desktop/mobile support
+        const openAddWidget = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             if (dashboardManager) {
                 showAddWidgetDialog(dashboardManager);
             }
-        });
+        };
+
+        // Listen to both click (desktop) and pointerdown (mobile) for maximum compatibility
+        addWidgetBtn.addEventListener('click', openAddWidget);
+        addWidgetBtn.addEventListener('pointerdown', openAddWidget, { once: true });
     }
 
     // Export layout button
@@ -326,21 +333,50 @@ function setupDashboardEventListeners(dependencies) {
         });
     }
 
-    // Import layout button
+    // Import layout button - trigger file input on click
     const importBtn = document.querySelector('#rpg-dashboard-import-layout');
     const importFile = document.querySelector('#rpg-dashboard-import-file');
 
     if (importBtn && importFile) {
-        importBtn.addEventListener('click', () => {
-            importFile.click();
+        console.log('[RPG Companion] Import button and file input initialized');
+
+        // Trigger file picker on button click
+        importBtn.addEventListener('click', (e) => {
+            console.log('[RPG Companion] Import button clicked, triggering file picker');
+            console.log('[RPG Companion] File input element:', importFile);
+            console.log('[RPG Companion] File input visible:', importFile.offsetParent !== null);
+
+            try {
+                // Direct click works on desktop and mobile when input is properly positioned
+                importFile.click();
+                console.log('[RPG Companion] File input click() called successfully');
+            } catch (err) {
+                console.error('[RPG Companion] Error triggering file input:', err);
+            }
         });
 
+        // Handle file selection
         importFile.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (file && dashboardManager) {
-                dashboardManager.importLayout(file);
+            console.log('[RPG Companion] File input change event fired');
+            console.log('[RPG Companion] Selected file:', file);
+
+            if (file) {
+                if (dashboardManager) {
+                    console.log('[RPG Companion] Importing layout from:', file.name);
+                    dashboardManager.importLayout(file);
+                } else {
+                    console.error('[RPG Companion] Dashboard manager not available');
+                }
                 importFile.value = ''; // Reset file input
+            } else {
+                console.warn('[RPG Companion] No file selected');
             }
+        });
+    } else {
+        console.error('[RPG Companion] Import button or file input not found!', {
+            importBtn,
+            importFile
         });
     }
 }
@@ -354,7 +390,8 @@ function showAddWidgetDialog(manager) {
     const widgets = registry.getAll();
 
     // Create widget cards HTML
-    const widgetCardsHtml = widgets.map(([type, definition]) => `
+    // Note: registry.getAll() returns [{type, definition}, ...] not [[type, definition], ...]
+    const widgetCardsHtml = widgets.map(({type, definition}) => `
         <div class="rpg-widget-card" data-widget-type="${type}">
             <div class="rpg-widget-card-icon">${definition.icon}</div>
             <div class="rpg-widget-card-name">${definition.name}</div>
@@ -372,6 +409,22 @@ function showAddWidgetDialog(manager) {
         return;
     }
 
+    // CRITICAL: Move modal to document.body on first use to escape panel constraints
+    // The panel has transform in its transition which creates a containing block,
+    // constraining position:fixed children to the panel instead of viewport
+    if (modal.parentElement?.id !== 'document-body-modals') {
+        // Create container for modals at body level (only once)
+        let bodyModalsContainer = document.getElementById('document-body-modals');
+        if (!bodyModalsContainer) {
+            bodyModalsContainer = document.createElement('div');
+            bodyModalsContainer.id = 'document-body-modals';
+            bodyModalsContainer.style.cssText = 'position: fixed; inset: 0; pointer-events: none; z-index: 10000; display: flex; align-items: center; justify-content: center;';
+            document.body.appendChild(bodyModalsContainer);
+        }
+        bodyModalsContainer.appendChild(modal);
+        console.log('[RPG Companion] Moved Add Widget modal to document.body for proper viewport positioning');
+    }
+
     const widgetSelector = modal.querySelector('#rpg-widget-selector');
     if (widgetSelector) {
         widgetSelector.innerHTML = widgetCardsHtml;
@@ -380,7 +433,8 @@ function showAddWidgetDialog(manager) {
         widgetSelector.querySelectorAll('.rpg-widget-card-add').forEach(btn => {
             btn.addEventListener('click', () => {
                 const widgetType = btn.dataset.widgetType;
-                const activeTab = manager.tabManager.getActiveTabId();
+                // Use activeTabId property instead of getActiveTabId() method
+                const activeTab = manager.tabManager.activeTabId;
 
                 manager.addWidget(widgetType, activeTab);
                 hideModal('rpg-add-widget-modal');
@@ -388,7 +442,9 @@ function showAddWidgetDialog(manager) {
         });
     }
 
+    // Show modal with proper pointer events (parent has pointer-events: none)
     modal.style.display = 'flex';
+    modal.style.pointerEvents = 'auto';
 
     // Set up modal close handlers
     modal.querySelectorAll('[data-close="add-widget"]').forEach(btn => {
@@ -424,7 +480,8 @@ export function createDefaultLayout(manager) {
 
     console.log('[RPG Companion] Creating default dashboard layout with modular widgets...');
 
-    const mainTab = manager.tabManager.getActiveTabId();
+    // Use activeTabId property instead of getActiveTabId() method
+    const mainTab = manager.tabManager.activeTabId;
 
     // Add modular user widgets
     // Row 0: User Info (avatar, name, level) - full width

@@ -20,6 +20,7 @@ import { DragDropHandler } from './dragDrop.js';
 import { ResizeHandler } from './resizeHandler.js';
 import { EditModeManager } from './editModeManager.js';
 import { LayoutPersistence } from './layoutPersistence.js';
+import { generateDefaultDashboard } from './defaultLayout.js';
 
 /**
  * @typedef {Object} DashboardConfig
@@ -86,6 +87,8 @@ export class DashboardManager {
         // Container elements
         this.gridContainer = null;
         this.tabContainer = null;
+        this.resizeHandlesOverlay = null;
+        this.editControlsOverlay = null;
 
         this.changeListeners = new Set();
 
@@ -159,6 +162,7 @@ export class DashboardManager {
         // Initialize Edit Mode Manager first (needed by drag/resize handlers)
         this.editManager = new EditModeManager({
             container: this.container,
+            editControlsOverlay: this.editControlsOverlay,
             onSave: () => this.handleEditSave(),
             onCancel: (originalLayout) => this.handleEditCancel(originalLayout),
             onWidgetAdd: (type) => this.addWidget(type),
@@ -174,13 +178,14 @@ export class DashboardManager {
             dashboardManager: this
         });
 
-        // Initialize Resize Handler (with editManager reference)
+        // Initialize Resize Handler (with editManager and overlay references)
         this.resizeHandler = new ResizeHandler(this.gridEngine, {
             minWidth: 1,
             minHeight: 2,
             maxWidth: 4, // Max 4 columns (will be clamped to actual column count)
             maxHeight: 10,
-            editManager: this.editManager
+            editManager: this.editManager,
+            resizeHandlesOverlay: this.resizeHandlesOverlay
         });
 
         // Initialize Layout Persistence
@@ -240,7 +245,21 @@ export class DashboardManager {
             this.container.appendChild(this.gridContainer);
         }
 
-        console.log('[DashboardManager] Container structure ready');
+        // Create overlay containers for resize handles and edit controls
+        // These are positioned outside the widget DOM to prevent overflow/scrollbar issues
+        this.resizeHandlesOverlay = document.createElement('div');
+        this.resizeHandlesOverlay.id = 'rpg-resize-handles-overlay';
+        this.resizeHandlesOverlay.className = 'rpg-overlay-container';
+        this.resizeHandlesOverlay.style.cssText = 'position: absolute; inset: 0; pointer-events: none; z-index: 9999;';
+        this.gridContainer.appendChild(this.resizeHandlesOverlay);
+
+        this.editControlsOverlay = document.createElement('div');
+        this.editControlsOverlay.id = 'rpg-edit-controls-overlay';
+        this.editControlsOverlay.className = 'rpg-overlay-container';
+        this.editControlsOverlay.style.cssText = 'position: absolute; inset: 0; pointer-events: none; z-index: 10000;';
+        this.gridContainer.appendChild(this.editControlsOverlay);
+
+        console.log('[DashboardManager] Container structure ready (including overlays)');
     }
 
     /**
@@ -735,8 +754,8 @@ export class DashboardManager {
                 el.contentEditable = 'false';
             });
 
-            // Also disable input fields
-            const inputElements = element.querySelectorAll('input, textarea');
+            // Also disable input fields (except file inputs which should remain functional)
+            const inputElements = element.querySelectorAll('input:not([type="file"]), textarea');
             inputElements.forEach(el => {
                 el.dataset.wasEnabled = el.disabled ? 'false' : 'true';
                 el.disabled = true;
@@ -755,6 +774,32 @@ export class DashboardManager {
         element.style.top = pos.top;
         element.style.width = pos.width;
         element.style.height = pos.height;
+
+        // Update overlay positions (resize handles and edit controls) to match new widget position
+        this.syncOverlaysForWidget(element, widget.id);
+    }
+
+    /**
+     * Sync overlay elements (handles and controls) for a specific widget
+     * @param {HTMLElement} element - Widget element
+     * @param {string} widgetId - Widget ID
+     */
+    syncOverlaysForWidget(element, widgetId) {
+        // Update resize handles position
+        if (this.resizeHandler) {
+            const handlerData = this.resizeHandler.resizeHandlers.get(element);
+            if (handlerData && handlerData.handles) {
+                this.resizeHandler.updateHandlePosition(handlerData.handles, element);
+            }
+        }
+
+        // Update edit controls position
+        if (this.editManager && this.editManager.isEditMode) {
+            const controlData = this.editManager.widgetControlsMap.get(widgetId);
+            if (controlData && controlData.controls) {
+                this.editManager.updateControlPosition(controlData.controls, element);
+            }
+        }
     }
 
     /**
@@ -1098,6 +1143,11 @@ export class DashboardManager {
      * Clear all widgets from grid
      */
     clearGrid() {
+        // Clean up edit controls overlay first
+        if (this.editManager) {
+            this.editManager.removeAllControls();
+        }
+
         // Destroy all widgets
         this.widgets.forEach((widgetData, widgetId) => {
             const definition = this.registry.get(widgetData.widget.type);
@@ -1351,8 +1401,13 @@ export class DashboardManager {
      * Reset to default layout
      */
     async resetLayout() {
+        // Regenerate fresh default layout to ensure all original widgets are restored
+        // This ensures deleted widgets come back on reset
+        console.log('[DashboardManager] Regenerating fresh default layout...');
+        this.defaultLayout = generateDefaultDashboard();
+
         if (!this.defaultLayout) {
-            console.warn('[DashboardManager] No default layout defined');
+            console.warn('[DashboardManager] Failed to generate default layout');
             return;
         }
 

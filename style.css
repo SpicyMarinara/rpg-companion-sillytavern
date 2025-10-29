@@ -1748,6 +1748,35 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         padding: 0.75rem 1rem;
         font-size: 1.05rem; /* Touch-friendly size for mobile readability */
     }
+
+    /* Add Widget dialog mobile optimizations */
+    .rpg-widget-grid {
+        grid-template-columns: 1fr; /* Single column on mobile for better readability */
+        gap: 0.75rem; /* Slightly tighter spacing */
+    }
+
+    .rpg-widget-card {
+        padding: 0.875rem; /* Slightly less padding on mobile */
+    }
+
+    .rpg-widget-card-icon {
+        font-size: 2rem; /* Scale down icon for mobile */
+    }
+
+    .rpg-widget-card-name {
+        font-size: 0.9rem; /* Slightly smaller name */
+    }
+
+    .rpg-widget-card-description {
+        font-size: 0.7rem; /* Compact description */
+        line-height: 1.25;
+    }
+
+    .rpg-widget-card-add {
+        min-height: 44px; /* Touch-friendly button size */
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
 }
 
 .rpg-dashboard-grid {

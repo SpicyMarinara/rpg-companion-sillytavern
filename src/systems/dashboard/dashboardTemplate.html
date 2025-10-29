@@ -64,7 +64,9 @@
                 <!-- Menu items added dynamically -->
             </div>
 
-            <input type="file" id="rpg-dashboard-import-file" accept=".json" style="display: none;" />
+            <!-- File input: visually hidden but accessible for mobile compatibility -->
+            <!-- Use 1px size for better browser compatibility while keeping hidden -->
+            <input type="file" id="rpg-dashboard-import-file" accept=".json" style="position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; z-index: -1; pointer-events: auto;" />
         </div>
     </div>
 
