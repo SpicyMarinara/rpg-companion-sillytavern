@@ -1062,7 +1062,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: center;
     padding: 0;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* Prevent wrapping when tabs expand - rely on horizontal scroll */
     overflow: visible; /* Prevent clipping of dropdown menu */
 }
 
@@ -1168,6 +1168,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-dashboard-tab:hover .rpg-tab-name {
     display: inline;
     margin-left: 0.3rem;
+}
+
+/* Icon-only mode when 4+ tabs - prevents layout issues from hover expansion */
+.rpg-dashboard-tabs.rpg-tabs-icon-only .rpg-dashboard-tab:hover .rpg-tab-name {
+    display: none;
 }
 
 /* Tab Navigation Arrows */

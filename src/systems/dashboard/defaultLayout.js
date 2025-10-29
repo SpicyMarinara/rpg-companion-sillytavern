@@ -178,6 +178,26 @@ export function generateDefaultDashboard() {
                         }
                     }
                 ]
+            },
+            // Tab 4: Quests (Full tab for quest system)
+            {
+                id: 'tab-quests',
+                name: 'Quests',
+                icon: 'fa-solid fa-scroll',
+                order: 3,
+                widgets: [
+                    {
+                        id: 'widget-quests',
+                        type: 'quests',
+                        x: 0,
+                        y: 0,
+                        w: 2,
+                        h: 5,
+                        config: {
+                            defaultSubTab: 'main'
+                        }
+                    }
+                ]
             }
         ],
 

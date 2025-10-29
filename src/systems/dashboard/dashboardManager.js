@@ -405,6 +405,13 @@ export class DashboardManager {
             this.tabContainer.appendChild(button);
         });
 
+        // Icon-only mode when 4+ tabs to prevent header wrapping on hover
+        if (tabs.length > 3) {
+            this.tabContainer.classList.add('rpg-tabs-icon-only');
+        } else {
+            this.tabContainer.classList.remove('rpg-tabs-icon-only');
+        }
+
         console.log(`[DashboardManager] Rendered ${tabs.length} tabs`);
     }
 
