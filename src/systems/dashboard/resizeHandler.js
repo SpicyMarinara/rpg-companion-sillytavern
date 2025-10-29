@@ -330,14 +330,17 @@ export class ResizeHandler {
         const deltaX = clientX - startX;
         const deltaY = clientY - startY;
 
+        // Convert rem to pixels for calculations
+        const gapPx = this.gridEngine.remToPixels(this.gridEngine.gap);
+        const rowHeightPx = this.gridEngine.remToPixels(this.gridEngine.rowHeight);
+
         // Get column/row size in pixels (containerWidth already set by ResizeObserver in DashboardManager)
-        const totalGaps = this.gridEngine.gap * (this.gridEngine.columns + 1);
+        const totalGaps = gapPx * (this.gridEngine.columns + 1);
         const colWidth = (this.gridEngine.containerWidth - totalGaps) / this.gridEngine.columns;
-        const rowHeight = this.gridEngine.rowHeight;
 
         // Convert pixel delta to grid units
-        const deltaGridX = Math.round(deltaX / (colWidth + this.gridEngine.gap));
-        const deltaGridY = Math.round(deltaY / (rowHeight + this.gridEngine.gap));
+        const deltaGridX = Math.round(deltaX / (colWidth + gapPx));
+        const deltaGridY = Math.round(deltaY / (rowHeightPx + gapPx));
 
         // Calculate new dimensions based on handle type
         let newW = startWidth;
