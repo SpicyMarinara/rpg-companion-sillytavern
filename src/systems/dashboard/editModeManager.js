@@ -482,6 +482,9 @@ export class EditModeManager {
             }
         });
 
+        // Ensure content editing is disabled for all widgets
+        this.disableContentEditing();
+
         console.log('[EditModeManager] Synced controls for', widgets.length, 'widgets');
     }
 

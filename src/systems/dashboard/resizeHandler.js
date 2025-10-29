@@ -71,8 +71,9 @@ export class ResizeHandler {
      * @param {Object} widget - Widget data object
      * @param {Function} onResizeEnd - Callback when resize completes (widget, newW, newH, newX, newY)
      * @param {Object} constraints - Size constraints {minW, minH, maxW, maxH}
+     * @param {Array<Object>} widgets - All widgets (for grid height calculation)
      */
-    initWidget(element, widget, onResizeEnd, constraints = {}) {
+    initWidget(element, widget, onResizeEnd, constraints = {}, widgets = []) {
         // Create resize handles
         const handles = this.createResizeHandles();
 
@@ -112,7 +113,7 @@ export class ResizeHandler {
                 }
                 e.preventDefault();
                 e.stopPropagation();
-                this.startResize(e, handleType, element, widget, onResizeEnd, widgetConstraints);
+                this.startResize(e, handleType, element, widget, onResizeEnd, widgetConstraints, widgets);
             };
 
             const touchStartHandler = (e) => {
@@ -123,7 +124,7 @@ export class ResizeHandler {
                 this.touchTimer = setTimeout(() => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.startResize(e.touches[0], handleType, element, widget, onResizeEnd, widgetConstraints);
+                    this.startResize(e.touches[0], handleType, element, widget, onResizeEnd, widgetConstraints, widgets);
                 }, this.options.touchDelay);
             };
 
@@ -255,8 +256,9 @@ export class ResizeHandler {
      * @param {Object} widget - Widget data
      * @param {Function} onResizeEnd - Callback when resize completes
      * @param {Object} constraints - Size constraints
+     * @param {Array<Object>} widgets - All widgets (for grid height calculation)
      */
-    startResize(e, handleType, element, widget, onResizeEnd, constraints) {
+    startResize(e, handleType, element, widget, onResizeEnd, constraints, widgets = []) {
         // Create dimension overlay
         const overlay = this.createDimensionOverlay();
 
@@ -273,7 +275,8 @@ export class ResizeHandler {
             overlay,
             isResizing: true,
             onResizeEnd,
-            constraints
+            constraints,
+            widgets
         };
 
         // Add event listeners
@@ -551,13 +554,18 @@ export class ResizeHandler {
     showGridOverlay() {
         if (this.gridOverlay) return;
 
+        // Calculate actual grid height based on widget positions (returns rem)
+        const widgets = this.resizeState?.widgets || [];
+        const gridHeightRem = this.gridEngine.calculateGridHeight(widgets);
+        const gridHeightPx = this.gridEngine.remToPixels(gridHeightRem);
+
         this.gridOverlay = document.createElement('div');
         this.gridOverlay.className = 'grid-overlay';
         this.gridOverlay.style.position = 'absolute';
         this.gridOverlay.style.top = '0';
         this.gridOverlay.style.left = '0';
         this.gridOverlay.style.width = '100%';
-        this.gridOverlay.style.height = '100%';
+        this.gridOverlay.style.height = gridHeightPx + 'px';
         this.gridOverlay.style.pointerEvents = 'none';
         this.gridOverlay.style.zIndex = '9999';
 
@@ -584,19 +592,25 @@ export class ResizeHandler {
     highlightGridCells(x, y, w, h) {
         if (!this.gridOverlay) return;
 
+        // Clear previous highlights
         this.gridOverlay.innerHTML = '';
 
-        const totalGaps = this.gridEngine.gap * (this.gridEngine.columns + 1);
+        // Convert rem to pixels for calculations
+        const gapPx = this.gridEngine.remToPixels(this.gridEngine.gap);
+        const rowHeightPx = this.gridEngine.remToPixels(this.gridEngine.rowHeight);
+
+        // Calculate column width in pixels
+        const totalGaps = gapPx * (this.gridEngine.columns + 1);
         const colWidth = (this.gridEngine.containerWidth - totalGaps) / this.gridEngine.columns;
 
         for (let row = y; row < y + h; row++) {
             for (let col = x; col < x + w; col++) {
                 const cell = document.createElement('div');
                 cell.style.position = 'absolute';
-                cell.style.left = (col * (colWidth + this.gridEngine.gap) + this.gridEngine.gap) + 'px';
-                cell.style.top = (row * (this.gridEngine.rowHeight + this.gridEngine.gap) + this.gridEngine.gap) + 'px';
+                cell.style.left = (col * (colWidth + gapPx) + gapPx) + 'px';
+                cell.style.top = (row * (rowHeightPx + gapPx) + gapPx) + 'px';
                 cell.style.width = colWidth + 'px';
-                cell.style.height = this.gridEngine.rowHeight + 'px';
+                cell.style.height = rowHeightPx + 'px';
                 cell.style.backgroundColor = 'rgba(78, 204, 163, 0.3)';
                 cell.style.border = '2px solid rgba(78, 204, 163, 0.6)';
                 cell.style.borderRadius = '4px';

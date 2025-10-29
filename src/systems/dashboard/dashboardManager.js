@@ -705,7 +705,7 @@ export class DashboardManager {
         }, {
             minW: definition.minSize.w,
             minH: definition.minSize.h
-        });
+        }, allWidgets);
 
         // Add edit mode controls
         if (this.editManager) {
@@ -1104,6 +1104,11 @@ export class DashboardManager {
             });
         }
 
+        // Disable content editing if in edit mode
+        if (this.editManager && this.editManager.isEditMode) {
+            this.editManager.disableContentEditing();
+        }
+
         this.notifyChange('tabChanged', { tabId });
     }
 
@@ -1283,8 +1288,10 @@ export class DashboardManager {
     /**
      * Apply dashboard configuration
      * @param {Object} config - Dashboard configuration
+     * @param {Object} options - Optional parameters
+     * @param {boolean} options.skipInitialSwitch - Skip switching to first tab (caller will handle)
      */
-    applyDashboardConfig(config) {
+    applyDashboardConfig(config, options = {}) {
         console.log('[DashboardManager] Applying dashboard config');
 
         // Migrate emoji icons to Font Awesome
@@ -1330,8 +1337,8 @@ export class DashboardManager {
             this.dashboard.defaultTab = this.dashboard.tabs[0].id;
         }
 
-        // Switch to first tab
-        if (config.tabs.length > 0) {
+        // Switch to first tab (unless caller will handle it)
+        if (!options.skipInitialSwitch && config.tabs.length > 0) {
             this.switchTab(config.tabs[0].id);
         }
 
@@ -1418,7 +1425,8 @@ export class DashboardManager {
         });
 
         await this.persistence.resetToDefault(this.defaultLayout);
-        this.applyDashboardConfig(this.defaultLayout);
+        // Skip initial switch in applyDashboardConfig since we'll switch after layout calculations
+        this.applyDashboardConfig(this.defaultLayout, { skipInitialSwitch: true });
 
         // Reset all widgets to default sizes
         const allWidgets = [];

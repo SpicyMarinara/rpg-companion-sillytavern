@@ -246,10 +246,20 @@ function setupDashboardEventListeners(dependencies) {
     // Auto-layout button
     const autoLayoutBtn = document.querySelector('#rpg-dashboard-auto-layout');
     if (autoLayoutBtn) {
-        autoLayoutBtn.addEventListener('click', () => {
+        autoLayoutBtn.addEventListener('click', async () => {
             if (dashboardManager) {
-                console.log('[RPG Companion] Auto-layout button clicked');
-                dashboardManager.autoLayoutWidgets();
+                const confirmed = await showConfirmDialog({
+                    title: 'Auto-Arrange All Widgets?',
+                    message: 'This will reorganize all widgets across all tabs and may change their positions. This action cannot be undone.',
+                    variant: 'warning',
+                    confirmText: 'Auto-Arrange',
+                    cancelText: 'Cancel'
+                });
+
+                if (confirmed) {
+                    console.log('[RPG Companion] Auto-layout button clicked');
+                    dashboardManager.autoLayoutWidgets();
+                }
             }
         });
     }
