@@ -1104,11 +1104,6 @@ export class DashboardManager {
             });
         }
 
-        // Disable content editing if in edit mode
-        if (this.editManager && this.editManager.isEditMode) {
-            this.editManager.disableContentEditing();
-        }
-
         this.notifyChange('tabChanged', { tabId });
     }
 
