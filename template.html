@@ -73,10 +73,15 @@
                 <i class="fa-solid fa-sync"></i> Refresh RPG Info
             </button>
 
-            <!-- Settings Button -->
-            <button id="rpg-open-settings" class="rpg-btn-settings">
-                <i class="fa-solid fa-gear"></i> Settings
-            </button>
+            <!-- Settings and Edit Trackers Buttons Row -->
+            <div class="rpg-settings-buttons-row">
+                <button id="rpg-open-tracker-editor" class="rpg-btn-settings rpg-btn-half">
+                    <i class="fa-solid fa-sliders"></i> Edit Trackers
+                </button>
+                <button id="rpg-open-settings" class="rpg-btn-settings rpg-btn-half">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -319,5 +324,50 @@
                 </button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Tracker Editor Modal -->
+<div id="rpg-tracker-editor-popup" class="rpg-settings-popup" role="dialog" aria-modal="true" aria-labelledby="rpg-editor-title" style="display: none;">
+    <div class="rpg-settings-popup-content">
+        <header class="rpg-settings-popup-header">
+            <h3 id="rpg-editor-title">
+                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                <span>Edit Trackers</span>
+            </h3>
+            <button id="rpg-close-tracker-editor" class="rpg-popup-close" type="button" aria-label="Close tracker editor">&times;</button>
+        </header>
+
+        <!-- Tabs -->
+        <div class="rpg-editor-tabs">
+            <button class="rpg-editor-tab active" data-tab="userStats">
+                <i class="fa-solid fa-heart-pulse"></i> User Stats
+            </button>
+            <button class="rpg-editor-tab" data-tab="infoBox">
+                <i class="fa-solid fa-info-circle"></i> Info Box
+            </button>
+            <button class="rpg-editor-tab" data-tab="presentCharacters">
+                <i class="fa-solid fa-users"></i> Present Characters
+            </button>
+        </div>
+
+        <div class="rpg-settings-popup-body">
+            <!-- Tab contents will be rendered by JavaScript -->
+            <div id="rpg-editor-tab-userStats" class="rpg-editor-tab-content"></div>
+            <div id="rpg-editor-tab-infoBox" class="rpg-editor-tab-content" style="display: none;"></div>
+            <div id="rpg-editor-tab-presentCharacters" class="rpg-editor-tab-content" style="display: none;"></div>
+        </div>
+
+        <footer class="rpg-settings-popup-footer">
+            <button id="rpg-editor-reset" class="rpg-btn-secondary" type="button">
+                <i class="fa-solid fa-rotate-left"></i> Reset to Defaults
+            </button>
+            <div class="rpg-footer-right">
+                <button id="rpg-editor-cancel" class="rpg-btn-secondary" type="button">Cancel</button>
+                <button id="rpg-editor-save" class="rpg-btn-primary" type="button">
+                    <i class="fa-solid fa-save"></i> Save & Apply
+                </button>
+            </div>
+        </footer>
     </div>
 </div>

@@ -27,30 +27,37 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ### Core Functionality
 
-- **📊 User Stats Tracker**: Visual progress bars for health, sustenance, energy, hygiene, arousal, mood, and conditions
-- **🌍 Info Box Dashboard**: Beautiful widgets displaying date, weather, temperature, time, and location of the current scene
-- **💭 Character Thoughts**: Floating thought bubbles showing AI characters' internal monologue
+- **📊 User Stats Tracker**: Fully customizable stats with visual progress bars, custom status fields, skills section, and dynamic inventory management
+- **🌍 Info Box Dashboard**: Configurable widgets for date, weather, temperature, time, location, and recent events
+- **💭 Present Characters Panel**: Track multiple characters with custom fields, relationship badges, character-specific stats, and internal thoughts
+- **🎭 Floating Thought Bubbles**: Optional thought bubbles positioned next to character avatars in chat
 - **🎲 Classic RPG Stats**: STR, DEX, CON, INT, WIS, CHA attributes with dice roll support
-- **📦 Inventory System**: Track items your character is carrying
+- **📦 Advanced Inventory System**: Multi-location storage (On Person, Stored locations, Assets) with v2 format
+- **🎯 Character Stats**: Track health, energy, or any custom stats for each present character with color interpolation
 - **📜 Immersive HTML**: Enhance the immersion by including creative HTML/CSS/JS elements in your roleplay
 - **➡️ Plot Progression**: Progress the plot with randomized events or natural progression with a click of a button
 - **🎨 Multiple Themes**: Cyberpunk, Fantasy, Minimal, Dark, Light, and Custom themes
-- **✏️ Live Editing**: Edit stats, thoughts, weather, and more directly in the panels
+- **✏️ Live Editing**: Edit all tracker fields directly in the panels with auto-save
 - **💾 Per-Swipe Data Storage**: Each swipe preserves its own tracker data
+- **🎛️ Tracker Configuration**: Customize every aspect of trackers - add/remove stats, fields, widgets, and more
 
 ### Smart Features
 
 - **🔄 Swipe Detection**: Automatically handles swipes and maintains correct tracker context
 - **📝 Context-Aware**: Weather, stats, and character states naturally influence the narrative
-- **🎭 Multiple Characters**: Tracks thoughts and relationships for all present characters
+- **🎭 Multiple Characters**: Tracks thoughts, relationships, and stats for all present characters
 - **📍 Thought Bubbles in Chat**: Optional floating thought bubbles positioned next to character avatars
 - **🌈 Customizable Colors**: Create your own theme with custom color schemes
-- **📱 Mobile Support**: Works on mobile and tablet devices
+- **📱 Mobile Support**: Responsive design with horizontal scrolling for stats
+- **🔧 Advanced Configuration**: Add custom stats, fields, and widgets through Tracker Settings
+- **🎨 Color Interpolation**: Stats smoothly transition from low to high colors based on values
+- **💬 Multi-line Format**: Clean, structured format for AI generation and parsing
+- **🧹 Auto-cleanup**: Automatically removes placeholder brackets from AI responses
 
 ### To-Do
 
 1. Allow users to use a different model for the separate trackers generation
-2. Make all trackers and fields customizable
+2. ~~Make all trackers and fields customizable~~ ✅ Done!
 3. ~~Kill myself~~
 
 ## ⚙️ Settings
@@ -140,11 +147,31 @@ Cons:
 
 You can edit most fields by clicking on them:
 
-- **Stats**: Click on percentage values, mood emoji, conditions, or inventory
-- **Info Box**: Click on date fields, weather, temperature, time, or location
-- **Character Thoughts**: Click on emoji, name, traits, relationship, or thoughts
+- **User Stats**: Click on stat percentages, mood emoji, status fields, skills, inventory items, or quests
+- **Info Box**: Click on date fields, weather, temperature, time, location, or recent events
+- **Present Characters**: Click on character emoji, name, custom fields, relationship badge, or stats
+- **Thought Bubbles**: Click on thought text to edit (bubble will refresh to maintain positioning)
 
-Note: When editing character thoughts in the floating bubble, the bubble will refresh to maintain proper positioning.
+### Tracker Configuration
+
+Access comprehensive customization through the Tracker Settings button:
+
+**User Stats Configuration:**
+- Add/remove custom stats with unique names
+- Configure Status section (mood emoji + custom fields)
+- Configure Skills section with custom skill fields
+- Toggle RPG attributes display
+
+**Info Box Configuration:**
+- Enable/disable individual widgets (Date, Weather, Temperature, Time, Location, Recent Events)
+- Choose temperature unit (Celsius/Fahrenheit)
+
+**Present Characters Configuration:**
+- Add custom character fields (appearance, action, demeanor, etc.)
+- Configure relationship status options
+- Enable character-specific stats tracking
+- Customize thought bubble label and description
+- All fields are dynamically generated in prompts
 
 ### Swipe Support
 

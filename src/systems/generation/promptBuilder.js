@@ -92,6 +92,7 @@ export function generateTrackerExample() {
 export function generateTrackerInstructions(includeHtmlPrompt = true, includeContinuation = true) {
     const userName = getContext().name1;
     const classicStats = extensionSettings.classicStats;
+    const trackerConfig = extensionSettings.trackerConfig;
     let instructions = '';
 
     // Check if any trackers are enabled
@@ -104,24 +105,36 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
         // Add format specifications for each enabled tracker
         if (extensionSettings.showUserStats) {
-            // Get custom stat names with fallback defaults
-            const statNames = extensionSettings.statNames || {
-                health: 'Health',
-                satiety: 'Satiety',
-                energy: 'Energy',
-                hygiene: 'Hygiene',
-                arousal: 'Arousal'
-            };
+            const userStatsConfig = trackerConfig?.userStats;
+            const enabledStats = userStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
 
             instructions += '```\n';
             instructions += `${userName}'s Stats\n`;
             instructions += '---\n';
-            instructions += `- ${statNames.health}: X%\n`;
-            instructions += `- ${statNames.satiety}: X%\n`;
-            instructions += `- ${statNames.energy}: X%\n`;
-            instructions += `- ${statNames.hygiene}: X%\n`;
-            instructions += `- ${statNames.arousal}: X%\n`;
-            instructions += 'Status: [Mood Emoji, Conditions (up to three traits)]\n';
+
+            // Add custom stats dynamically
+            for (const stat of enabledStats) {
+                instructions += `- ${stat.name}: X%\n`;
+            }
+
+            // Add status section if enabled
+            if (userStatsConfig?.statusSection?.enabled) {
+                const statusFields = userStatsConfig.statusSection.customFields || [];
+                const statusFieldsText = statusFields.map(f => `${f}`).join(', ');
+
+                if (userStatsConfig.statusSection.showMoodEmoji) {
+                    instructions += `Status: [Mood Emoji${statusFieldsText ? ', ' + statusFieldsText : ''}]\n`;
+                } else if (statusFieldsText) {
+                    instructions += `Status: [${statusFieldsText}]\n`;
+                }
+            }
+
+            // Add skills section if enabled
+            if (userStatsConfig?.skillsSection?.enabled) {
+                const skillFields = userStatsConfig.skillsSection.customFields || [];
+                const skillFieldsText = skillFields.map(f => `[${f}]`).join(', ');
+                instructions += `Skills: [${skillFieldsText || 'Skill1, Skill2, etc.'}]\n`;
+            }
 
             // Add inventory format based on feature flag
             if (FEATURE_FLAGS.useNewInventory) {
@@ -142,23 +155,90 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         }
 
         if (extensionSettings.showInfoBox) {
+            const infoBoxConfig = trackerConfig?.infoBox;
+            const widgets = infoBoxConfig?.widgets || {};
+
             instructions += '```\n';
             instructions += 'Info Box\n';
             instructions += '---\n';
-            instructions += 'Date: [Weekday, Month, Year]\n';
-            instructions += 'Weather: [Weather Emoji, Forecast]\n';
-            instructions += 'Temperature: [Temperature in °C]\n';
-            instructions += 'Time: [Time Start → Time End]\n';
-            instructions += 'Location: [Location]\n';
-            instructions += 'Recent Events: [Up to three past events leading to the ongoing scene (short descriptors with no details, for example, "last-night date with Mary")]\n';
+
+            // Add only enabled widgets
+            if (widgets.date?.enabled) {
+                instructions += 'Date: [Weekday, Month, Year]\n';
+            }
+            if (widgets.weather?.enabled) {
+                instructions += 'Weather: [Weather Emoji, Forecast]\n';
+            }
+            if (widgets.temperature?.enabled) {
+                const unit = widgets.temperature.unit === 'fahrenheit' ? '°F' : '°C';
+                instructions += `Temperature: [Temperature in ${unit}]\n`;
+            }
+            if (widgets.time?.enabled) {
+                instructions += 'Time: [Time Start → Time End]\n';
+            }
+            if (widgets.location?.enabled) {
+                instructions += 'Location: [Location]\n';
+            }
+            if (widgets.recentEvents?.enabled) {
+                instructions += 'Recent Events: [Up to three past events leading to the ongoing scene (short descriptors with no details, for example, "last-night date with Mary")]\n';
+            }
+
             instructions += '```\n\n';
         }
 
         if (extensionSettings.showCharacterThoughts) {
+            const presentCharsConfig = trackerConfig?.presentCharacters;
+            const enabledFields = presentCharsConfig?.customFields?.filter(f => f && f.enabled && f.name) || [];
+            const relationshipFields = presentCharsConfig?.relationshipFields || [];
+            const thoughtsConfig = presentCharsConfig?.thoughts;
+            const characterStats = presentCharsConfig?.characterStats;
+            const enabledCharStats = characterStats?.enabled && characterStats?.customStats?.filter(s => s && s.enabled && s.name) || [];
+
             instructions += '```\n';
             instructions += 'Present Characters\n';
             instructions += '---\n';
-            instructions += `[Present Character's Emoji (do not include ${userName}; state "Unavailable" if no major characters are present in the scene)]: [Name, Visible Physical State (up to three traits), Observable Demeanor Cue (one trait)] | [Enemy/Neutral/Friend/Lover] | [Internal Monologue (in first person POV, up to three sentences long)]\n`;
+
+            // Build relationship placeholders (e.g., "Lover/Friend")
+            const relationshipPlaceholders = relationshipFields
+                .filter(r => r && r.trim())
+                .map(r => `${r}`)
+                .join('/');
+
+            // Build custom field placeholders (e.g., "[Appearance] | [Current Action]")
+            const fieldPlaceholders = enabledFields
+                .map(f => `[${f.name}]`)
+                .join(' | ');
+
+            // Character block format
+            instructions += `- [Name (do not include ${userName}; state "Unavailable" if no major characters are present in the scene)]\n`;
+
+            // Details line with emoji and custom fields
+            if (fieldPlaceholders) {
+                instructions += `Details: [Present Character's Emoji] | ${fieldPlaceholders}\n`;
+            } else {
+                instructions += `Details: [Present Character's Emoji]\n`;
+            }
+
+            // Relationship line (only if relationships are enabled)
+            if (relationshipPlaceholders) {
+                instructions += `Relationship: [${relationshipPlaceholders}]\n`;
+            }
+
+            // Stats line (if enabled)
+            if (enabledCharStats.length > 0) {
+                const statPlaceholders = enabledCharStats.map(s => `${s.name}: X%`).join(' | ');
+                instructions += `Stats: ${statPlaceholders}\n`;
+            }
+
+            // Thoughts line (if enabled)
+            if (thoughtsConfig?.enabled) {
+                const thoughtsName = thoughtsConfig.name || 'Thoughts';
+                const thoughtsDescription = thoughtsConfig.description || 'Internal monologue (in first person POV, up to three sentences long)';
+                instructions += `${thoughtsName}: [${thoughtsDescription}]\n`;
+            }
+
+            instructions += `- … (Repeat the format above for every other present major character)\n`;
+
             instructions += '```\n\n';
         }
 
@@ -197,7 +277,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
 /**
  * Generates a formatted contextual summary for SEPARATE mode injection.
- * This creates a hybrid summary with clean formatting for main roleplay generation.
+ * Includes the full tracker data in original format (without code fences and separators).
  * Uses COMMITTED data (not displayed data) for generation context.
  *
  * @returns {string} Formatted contextual summary
@@ -207,122 +287,50 @@ export function generateContextualSummary() {
     const userName = getContext().name1;
     let summary = '';
 
-    // console.log('[RPG Companion] generateContextualSummary called');
-    // console.log('[RPG Companion] committedTrackerData.userStats:', committedTrackerData.userStats);
-    // console.log('[RPG Companion] extensionSettings.userStats:', JSON.stringify(extensionSettings.userStats));
+    // Helper function to clean tracker data (remove code fences and separator lines)
+    const cleanTrackerData = (data) => {
+        if (!data) return '';
+        return data
+            .split('\n')
+            .filter(line => {
+                const trimmed = line.trim();
+                return trimmed &&
+                       !trimmed.startsWith('```') &&
+                       trimmed !== '---';
+            })
+            .join('\n');
+    };
 
-    // Parse the data into readable format
+    // Add User Stats tracker data if enabled
     if (extensionSettings.showUserStats && committedTrackerData.userStats) {
-        const stats = extensionSettings.userStats;
-        // console.log('[RPG Companion] Building stats summary with:', stats);
-        summary += `${userName}'s Stats:\n`;
-        summary += `Condition: Health ${stats.health}%, Satiety ${stats.satiety}%, Energy ${stats.energy}%, Hygiene ${stats.hygiene}%, Arousal ${stats.arousal}% | ${stats.mood} ${stats.conditions}\n`;
-
-        // Add inventory summary using v2-aware builder
-        if (stats.inventory) {
-            const inventorySummary = buildInventorySummary(stats.inventory);
-            if (inventorySummary && inventorySummary !== 'None') {
-                summary += `${inventorySummary}\n`;
-            }
+        const cleanedStats = cleanTrackerData(committedTrackerData.userStats);
+        if (cleanedStats) {
+            summary += cleanedStats + '\n\n';
         }
-
-        // Add quests summary
-        if (extensionSettings.quests) {
-            if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
-                summary += `Main Quests: ${extensionSettings.quests.main}\n`;
-            }
-            if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
-                const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
-                if (optionalQuests) {
-                    summary += `Optional Quests: ${optionalQuests}\n`;
-                }
-            }
-        }
-
-        // Include classic stats (attributes) and dice roll only if there was a dice roll
-        if (extensionSettings.lastDiceRoll) {
-            const classicStats = extensionSettings.classicStats;
-            const roll = extensionSettings.lastDiceRoll;
-            summary += `Attributes: STR ${classicStats.str}, DEX ${classicStats.dex}, CON ${classicStats.con}, INT ${classicStats.int}, WIS ${classicStats.wis}, CHA ${classicStats.cha}, LVL ${extensionSettings.level}\n`;
-            summary += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeed or fail the action they attempt.\n`;
-        }
-        summary += `\n`;
     }
 
+    // Add Info Box tracker data if enabled
     if (extensionSettings.showInfoBox && committedTrackerData.infoBox) {
-        // Parse info box data - support both new and legacy formats
-        const lines = committedTrackerData.infoBox.split('\n');
-        let date = '', weather = '', temp = '', time = '', location = '', recentEvents = '';
-
-        // console.log('[RPG Companion] 🔍 Parsing Info Box lines:', lines);
-
-        for (const line of lines) {
-            // console.log('[RPG Companion] 🔍 Processing line:', line);
-
-            // New format with text labels
-            if (line.startsWith('Date:')) {
-                date = line.replace('Date:', '').trim();
-            } else if (line.startsWith('Weather:')) {
-                weather = line.replace('Weather:', '').trim();
-            } else if (line.startsWith('Temperature:')) {
-                temp = line.replace('Temperature:', '').trim();
-            } else if (line.startsWith('Time:')) {
-                time = line.replace('Time:', '').trim();
-            } else if (line.startsWith('Location:')) {
-                location = line.replace('Location:', '').trim();
-            } else if (line.startsWith('Recent Events:')) {
-                recentEvents = line.replace('Recent Events:', '').trim();
-            }
-            // Legacy format with emojis (for backward compatibility)
-            else if (line.includes('🗓️:')) {
-                date = line.replace('🗓️:', '').trim();
-            } else if (line.includes('🌡️:')) {
-                temp = line.replace('🌡️:', '').trim();
-            } else if (line.includes('🕒:')) {
-                time = line.replace('🕒:', '').trim();
-            } else if (line.includes('🗺️:')) {
-                location = line.replace('🗺️:', '').trim();
-            } else {
-                // Check for weather emojis in legacy format
-                const weatherEmojis = ['🌤️', '☀️', '⛅', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '🌫️'];
-                const startsWithWeatherEmoji = weatherEmojis.some(emoji => line.startsWith(emoji + ':'));
-                if (startsWithWeatherEmoji && !line.includes('🌡️') && !line.includes('🗺️')) {
-                    weather = line.substring(line.indexOf(':') + 1).trim();
-                }
-            }
-        }
-
-        // console.log('[RPG Companion] 🔍 Parsed values - date:', date, 'weather:', weather, 'temp:', temp, 'time:', time, 'location:', location);
-
-        if (date || weather || temp || time || location || recentEvents) {
-            summary += `Information:\n`;
-            summary += `Scene: `;
-            if (date) summary += `${date}`;
-            if (location) summary += ` | ${location}`;
-            if (time) summary += ` | ${time}`;
-            if (weather) summary += ` | ${weather}`;
-            if (temp) summary += ` | ${temp}`;
-            summary += `\n`;
-            if (recentEvents) summary += `Recent Events: ${recentEvents}\n`;
-            summary += `\n`;
+        const cleanedInfoBox = cleanTrackerData(committedTrackerData.infoBox);
+        if (cleanedInfoBox) {
+            summary += cleanedInfoBox + '\n\n';
         }
     }
 
+    // Add Present Characters tracker data if enabled
     if (extensionSettings.showCharacterThoughts && committedTrackerData.characterThoughts) {
-        const lines = committedTrackerData.characterThoughts.split('\n').filter(l => l.trim() && !l.includes('---') && !l.includes('Present Characters'));
-
-        if (lines.length > 0 && !lines[0].toLowerCase().includes('unavailable')) {
-            summary += `Present Characters And Their Thoughts:\n`;
-            for (const line of lines) {
-                const parts = line.split('|').map(p => p.trim());
-                if (parts.length >= 3) {
-                    const nameAndState = parts[0]; // Emoji, name, physical state, demeanor
-                    const relationship = parts[1];
-                    const thoughts = parts[2];
-                    summary += `${nameAndState} (${relationship}) | ${thoughts}\n`;
-                }
-            }
+        const cleanedThoughts = cleanTrackerData(committedTrackerData.characterThoughts);
+        if (cleanedThoughts) {
+            summary += cleanedThoughts + '\n\n';
         }
+    }
+
+    // Include attributes and dice roll only if there was a dice roll
+    if (extensionSettings.lastDiceRoll) {
+        const classicStats = extensionSettings.classicStats;
+        const roll = extensionSettings.lastDiceRoll;
+        summary += `${userName}'s attributes: STR ${classicStats.str}, DEX ${classicStats.dex}, CON ${classicStats.con}, INT ${classicStats.int}, WIS ${classicStats.wis}, CHA ${classicStats.cha}, LVL ${extensionSettings.level}\n`;
+        summary += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
     }
 
     return summary.trim();
@@ -354,14 +362,10 @@ export function generateRPGPromptText() {
         if (extensionSettings.quests) {
             if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
                 promptText += `Main Quests: ${extensionSettings.quests.main}\n`;
-            } else {
-                promptText += `Main Quests: None\n`;
             }
             if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
                 const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
                 promptText += `Optional Quests: ${optionalQuests || 'None'}\n`;
-            } else {
-                promptText += `Optional Quests: None\n`;
             }
             promptText += `\n`;
         }

@@ -60,6 +60,76 @@ export let extensionSettings = {
         hygiene: 'Hygiene',
         arousal: 'Arousal'
     },
+    // Tracker customization configuration
+    trackerConfig: {
+        userStats: {
+            // Array of custom stats (allows add/remove/rename)
+            customStats: [
+                { id: 'health', name: 'Health', enabled: true },
+                { id: 'satiety', name: 'Satiety', enabled: true },
+                { id: 'energy', name: 'Energy', enabled: true },
+                { id: 'hygiene', name: 'Hygiene', enabled: true },
+                { id: 'arousal', name: 'Arousal', enabled: true }
+            ],
+            // RPG Attributes toggle
+            showRPGAttributes: true,
+            // Status section config
+            statusSection: {
+                enabled: true,
+                showMoodEmoji: true,
+                customFields: ['Conditions'] // User can edit what to track
+            },
+            // Optional skills field
+            skillsSection: {
+                enabled: false,
+                label: 'Skills' // User-editable
+            }
+        },
+        infoBox: {
+            widgets: {
+                date: { enabled: true, format: 'Weekday, Month, Year' }, // Format options in UI
+                weather: { enabled: true },
+                temperature: { enabled: true, unit: 'C' }, // 'C' or 'F'
+                time: { enabled: true },
+                location: { enabled: true },
+                recentEvents: { enabled: true }
+            }
+        },
+        presentCharacters: {
+            // Fixed fields (always shown)
+            showEmoji: true,
+            showName: true,
+            // Relationship fields (shown after name, separated by /)
+            relationshipFields: ['Lover', 'Friend', 'Ally', 'Enemy', 'Neutral'],
+            // Relationship to emoji mapping (shown on character portraits)
+            relationshipEmojis: {
+                'Lover': '❤️',
+                'Friend': '⭐',
+                'Ally': '🤝',
+                'Enemy': '⚔️',
+                'Neutral': '⚖️'
+            },
+            // Custom fields (appearance, demeanor, etc. - shown after relationship, separated by |)
+            customFields: [
+                { id: 'appearance', name: 'Appearance', enabled: true, description: 'Visible physical appearance (clothing, hair, notable features)' },
+                { id: 'demeanor', name: 'Demeanor', enabled: true, description: 'Observable demeanor or emotional state' }
+            ],
+            // Thoughts configuration (separate line)
+            thoughts: {
+                enabled: true,
+                name: 'Thoughts',
+                description: 'Internal monologue (in first person POV, up to three sentences long)'
+            },
+            // Character stats toggle (optional feature)
+            characterStats: {
+                enabled: false,
+                customStats: [
+                    { id: 'health', name: 'Health', enabled: true },
+                    { id: 'arousal', name: 'Arousal', enabled: true }
+                ]
+            }
+        }
+    },
     quests: {
         main: "None",        // Current main quest title
         optional: []         // Array of optional quest titles

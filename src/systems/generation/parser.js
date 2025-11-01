@@ -47,10 +47,11 @@ function separateEmojiFromText(str) {
 }
 
 /**
- * Helper to strip enclosing brackets from text
- * Removes [], {}, and () from the entire text if it's wrapped
- * @param {string} text - Text that may be wrapped in brackets
- * @returns {string} Text with brackets removed
+ * Helper to strip enclosing brackets from text and remove placeholder brackets
+ * Removes [], {}, and () from the entire text if it's wrapped, plus removes
+ * placeholder content like [Location], [Mood Emoji], etc.
+ * @param {string} text - Text that may contain brackets
+ * @returns {string} Text with brackets and placeholders removed
  */
 function stripBrackets(text) {
     if (!text) return text;
@@ -68,7 +69,58 @@ function stripBrackets(text) {
         text = text.substring(1, text.length - 1).trim();
     }
 
-    return text;
+    // Remove placeholder text patterns like [Location], [Mood Emoji], [Name], etc.
+    // Pattern matches: [anything with letters/spaces inside]
+    // This preserves actual content while removing template placeholders
+    const placeholderPattern = /\[([A-Za-z\s\/]+)\]/g;
+
+    // Check if a bracketed text looks like a placeholder vs real content
+    const isPlaceholder = (match, content) => {
+        // Common placeholder words to detect
+        const placeholderKeywords = [
+            'location', 'mood', 'emoji', 'name', 'description', 'placeholder',
+            'time', 'date', 'weather', 'temperature', 'action', 'appearance',
+            'skill', 'quest', 'item', 'character', 'field', 'value', 'details',
+            'relationship', 'thoughts', 'stat', 'status', 'lover', 'friend',
+            'enemy', 'neutral', 'weekday', 'month', 'year', 'forecast'
+        ];
+
+        const lowerContent = content.toLowerCase().trim();
+
+        // If it contains common placeholder keywords, it's likely a placeholder
+        if (placeholderKeywords.some(keyword => lowerContent.includes(keyword))) {
+            return true;
+        }
+
+        // If it's a short generic phrase (1-3 words) with only letters/spaces, might be placeholder
+        const wordCount = content.trim().split(/\s+/).length;
+        if (wordCount <= 3 && /^[A-Za-z\s\/]+$/.test(content)) {
+            return true;
+        }
+
+        return false;
+    };
+
+    // Replace placeholders with empty string, keep real content
+    text = text.replace(placeholderPattern, (match, content) => {
+        if (isPlaceholder(match, content)) {
+            return ''; // Remove placeholder
+        }
+        return match; // Keep real bracketed content
+    });
+
+    // Clean up any resulting empty labels (e.g., "Status: " with nothing after)
+    text = text.replace(/^([A-Za-z\s]+):\s*$/gm, ''); // Remove lines that are just "Label: " with nothing
+    text = text.replace(/^([A-Za-z\s]+):\s*,/gm, '$1:'); // Fix "Label: ," patterns
+    text = text.replace(/:\s*\|/g, ':'); // Fix ": |" patterns
+    text = text.replace(/\|\s*\|/g, '|'); // Fix "| |" patterns (double pipes from removed content)
+    text = text.replace(/\|\s*$/gm, ''); // Remove trailing pipes at end of lines
+
+    // Clean up multiple spaces and empty lines
+    text = text.replace(/\s{2,}/g, ' '); // Multiple spaces to single space
+    text = text.replace(/^\s*\n/gm, ''); // Remove empty lines
+
+    return text.trim();
 }
 
 /**
@@ -173,8 +225,8 @@ export function parseResponse(responseText) {
                 content.match(/Present Characters\s*\n\s*---/i) ||
                 content.match(/Characters\s*\n\s*---/i) ||
                 content.match(/Character Thoughts\s*\n\s*---/i) ||
-                // Fallback: look for table-like structure with emoji and pipes
-                (content.includes(" | ") && (content.includes("Thoughts") || content.includes("💭")));
+                // Fallback: look for new multi-line format patterns
+                (content.match(/^-\s+\w+/m) && content.match(/Details:/i));
 
             if (isStats && !result.userStats) {
                 result.userStats = stripBrackets(content);
@@ -193,7 +245,7 @@ export function parseResponse(responseText) {
                 debugLog('[RPG Parser]   - Has "Info Box\\n---"?', !!content.match(/Info Box\s*\n\s*---/i));
                 debugLog('[RPG Parser]   - Has info keywords?', !!(content.match(/Date:/i) && content.match(/Location:/i)));
                 debugLog('[RPG Parser]   - Has "Present Characters\\n---"?', !!content.match(/Present Characters\s*\n\s*---/i));
-                debugLog('[RPG Parser]   - Has " | " + thoughts?', !!(content.includes(" | ") && (content.includes("Thoughts") || content.includes("💭"))));
+                debugLog('[RPG Parser]   - Has new format ("- Name" + "Details:")?', !!(content.match(/^-\s+\w+/m) && content.match(/Details:/i)));
             }
         }
     }
@@ -219,88 +271,92 @@ export function parseUserStats(statsText) {
     debugLog('[RPG Parser] Stats text preview:', statsText.substring(0, 200));
 
     try {
-        // Extract percentages and mood/conditions
-        const healthMatch = statsText.match(/Health:\s*(\d+)%/);
-        const satietyMatch = statsText.match(/Satiety:\s*(\d+)%/);
-        const energyMatch = statsText.match(/Energy:\s*(\d+)%/);
-        const hygieneMatch = statsText.match(/Hygiene:\s*(\d+)%/);
-        const arousalMatch = statsText.match(/Arousal:\s*(\d+)%/);
+        // Get custom stat configuration
+        const trackerConfig = extensionSettings.trackerConfig;
+        const customStats = trackerConfig?.userStats?.customStats || [];
+        const enabledStats = customStats.filter(s => s && s.enabled && s.name && s.id);
 
-        debugLog('[RPG Parser] Stat matches:', {
-            health: healthMatch ? healthMatch[1] : 'NOT FOUND',
-            satiety: satietyMatch ? satietyMatch[1] : 'NOT FOUND',
-            energy: energyMatch ? energyMatch[1] : 'NOT FOUND',
-            hygiene: hygieneMatch ? hygieneMatch[1] : 'NOT FOUND',
-            arousal: arousalMatch ? arousalMatch[1] : 'NOT FOUND'
-        });
+        debugLog('[RPG Parser] Enabled custom stats:', enabledStats.map(s => s.name));
 
-        // Match mood/status with multiple format variations
-        // Format 1: Status: [Emoji, Conditions]
-        // Format 2: Status: [Emoji], [Conditions]
-        // Format 3: [Emoji]: [Conditions] (legacy)
-        // Format 4: Mood: [Emoji] - [Conditions]
-        // Format 5: Status: [Emoji Conditions] (no separator - FIXED)
-        let moodMatch = null;
-
-        // Try new format: Status: emoji, conditions OR Status: emojiConditions
-        const statusMatch = statsText.match(/Status:\s*(.+)/i);
-        if (statusMatch) {
-            const statusContent = statusMatch[1].trim();
-            const { emoji, text } = separateEmojiFromText(statusContent);
-            if (emoji && text) {
-                moodMatch = [null, emoji, text];
-            } else if (statusContent.includes(',')) {
-                // Fallback to comma split if emoji detection failed
-                const parts = statusContent.split(',').map(p => p.trim());
-                moodMatch = [null, parts[0], parts.slice(1).join(', ')];
+        // Dynamically parse custom stats
+        for (const stat of enabledStats) {
+            const statRegex = new RegExp(`${stat.name}:\\s*(\\d+)%`, 'i');
+            const match = statsText.match(statRegex);
+            if (match) {
+                // Store using the stat ID (lowercase normalized name)
+                const statId = stat.id;
+                extensionSettings.userStats[statId] = parseInt(match[1]);
+                debugLog(`[RPG Parser] Parsed ${stat.name}:`, match[1]);
+            } else {
+                debugLog(`[RPG Parser] ${stat.name} NOT FOUND`);
             }
         }
 
-        // Try alternative: Mood: emoji, conditions OR Mood: emojiConditions
-        if (!moodMatch) {
-            const moodAltMatch = statsText.match(/Mood:\s*(.+)/i);
-            if (moodAltMatch) {
-                const moodContent = moodAltMatch[1].trim();
-                const { emoji, text } = separateEmojiFromText(moodContent);
-                if (emoji && text) {
-                    moodMatch = [null, emoji, text];
-                } else if (moodContent.includes(',') || moodContent.includes('-')) {
-                    // Fallback to comma/dash split if emoji detection failed
-                    const parts = moodContent.split(/[,\-]/).map(p => p.trim());
-                    moodMatch = [null, parts[0], parts.slice(1).join(', ')];
+        // Parse RPG attributes if enabled
+        if (trackerConfig?.userStats?.showRPGAttributes) {
+            const strMatch = statsText.match(/STR:\s*(\d+)/i);
+            const dexMatch = statsText.match(/DEX:\s*(\d+)/i);
+            const conMatch = statsText.match(/CON:\s*(\d+)/i);
+            const intMatch = statsText.match(/INT:\s*(\d+)/i);
+            const wisMatch = statsText.match(/WIS:\s*(\d+)/i);
+            const chaMatch = statsText.match(/CHA:\s*(\d+)/i);
+            const lvlMatch = statsText.match(/LVL:\s*(\d+)/i);
+
+            if (strMatch) extensionSettings.classicStats.str = parseInt(strMatch[1]);
+            if (dexMatch) extensionSettings.classicStats.dex = parseInt(dexMatch[1]);
+            if (conMatch) extensionSettings.classicStats.con = parseInt(conMatch[1]);
+            if (intMatch) extensionSettings.classicStats.int = parseInt(intMatch[1]);
+            if (wisMatch) extensionSettings.classicStats.wis = parseInt(wisMatch[1]);
+            if (chaMatch) extensionSettings.classicStats.cha = parseInt(chaMatch[1]);
+            if (lvlMatch) extensionSettings.level = parseInt(lvlMatch[1]);
+
+            debugLog('[RPG Parser] RPG Attributes parsed');
+        }
+
+        // Match status section if enabled
+        const statusConfig = trackerConfig?.userStats?.statusSection;
+        if (statusConfig?.enabled) {
+            let moodMatch = null;
+
+            // Try Status: format
+            const statusMatch = statsText.match(/Status:\s*(.+)/i);
+            if (statusMatch) {
+                const statusContent = statusMatch[1].trim();
+
+                // Extract mood emoji if enabled
+                if (statusConfig.showMoodEmoji) {
+                    const { emoji, text } = separateEmojiFromText(statusContent);
+                    if (emoji) {
+                        extensionSettings.userStats.mood = emoji;
+                        // Remaining text contains custom status fields
+                        if (text) {
+                            extensionSettings.userStats.conditions = text;
+                        }
+                        moodMatch = true;
+                    }
+                } else {
+                    // No mood emoji, whole status is conditions
+                    extensionSettings.userStats.conditions = statusContent;
+                    moodMatch = true;
                 }
             }
+
+            debugLog('[RPG Parser] Status match:', {
+                found: !!moodMatch,
+                mood: extensionSettings.userStats.mood,
+                conditions: extensionSettings.userStats.conditions
+            });
         }
 
-        // Legacy format fallback: [Emoji]: [Conditions]
-        if (!moodMatch) {
-            const lines = statsText.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                // Skip lines with percentages or known keywords
-                if (line.includes('%') ||
-                    line.toLowerCase().startsWith('inventory:') ||
-                    line.toLowerCase().startsWith('status:') ||
-                    line.toLowerCase().startsWith('health:') ||
-                    line.toLowerCase().startsWith('energy:') ||
-                    line.toLowerCase().startsWith('satiety:') ||
-                    line.toLowerCase().startsWith('hygiene:') ||
-                    line.toLowerCase().startsWith('arousal:')) continue;
-
-                // Match emoji/mood followed by colon and conditions
-                const match = line.match(/^(.+?):\s*(.+)$/);
-                if (match && match[1].length <= 10) { // Emoji/mood should be short
-                    moodMatch = match;
-                    break;
-                }
+        // Parse skills section if enabled
+        const skillsConfig = trackerConfig?.userStats?.skillsSection;
+        if (skillsConfig?.enabled) {
+            const skillsMatch = statsText.match(/Skills:\s*(.+)/i);
+            if (skillsMatch) {
+                extensionSettings.userStats.skills = skillsMatch[1].trim();
+                debugLog('[RPG Parser] Skills extracted:', skillsMatch[1].trim());
             }
         }
-
-        debugLog('[RPG Parser] Mood/Status match:', {
-            found: !!moodMatch,
-            emoji: moodMatch ? moodMatch[1] : 'NOT FOUND',
-            conditions: moodMatch ? moodMatch[2] : 'NOT FOUND'
-        });
 
         // Extract inventory - use v2 parser if feature flag enabled, otherwise fallback to v1
         if (FEATURE_FLAGS.useNewInventory) {
@@ -320,17 +376,6 @@ export function parseUserStats(statsText) {
             } else {
                 debugLog('[RPG Parser] Inventory v1 not found');
             }
-        }
-
-        // Update extension settings
-        if (healthMatch) extensionSettings.userStats.health = parseInt(healthMatch[1]);
-        if (satietyMatch) extensionSettings.userStats.satiety = parseInt(satietyMatch[1]);
-        if (energyMatch) extensionSettings.userStats.energy = parseInt(energyMatch[1]);
-        if (hygieneMatch) extensionSettings.userStats.hygiene = parseInt(hygieneMatch[1]);
-        if (arousalMatch) extensionSettings.userStats.arousal = parseInt(arousalMatch[1]);
-        if (moodMatch) {
-            extensionSettings.userStats.mood = moodMatch[1].trim(); // Emoji
-            extensionSettings.userStats.conditions = moodMatch[2].trim(); // Conditions
         }
 
         // Extract quests

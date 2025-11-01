@@ -118,6 +118,9 @@ export function onGenerationStarted(type, data) {
         // Don't include HTML prompt in instructions - inject it separately to avoid duplication on swipes
         const instructions = generateTrackerInstructions(false, true);
 
+        // Clear separate mode context injection - we don't use contextual summary in together mode
+        setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
+
         // console.log('[RPG Companion] Example:', example ? 'exists' : 'empty');
         // console.log('[RPG Companion] Chat length:', chat ? chat.length : 'chat is null');
 

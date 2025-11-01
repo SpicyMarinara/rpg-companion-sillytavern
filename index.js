@@ -87,6 +87,9 @@ import {
     getSettingsModal
 } from './src/systems/ui/modals.js';
 import {
+    initTrackerEditor
+} from './src/systems/ui/trackerEditor.js';
+import {
     togglePlotButtons,
     updateCollapseToggleIcon,
     setupCollapseToggle,
@@ -435,6 +438,7 @@ async function initUI() {
     setupDiceRoller();
     setupClassicStatsButtons();
     setupSettingsPopup();
+    initTrackerEditor();
     addDiceQuickReply();
     setupPlotButtons(sendPlotProgression);
     setupMobileKeyboardHandling();
