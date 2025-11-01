@@ -4,7 +4,6 @@
  */
 
 import { saveSettingsDebounced, chat_metadata, saveChatDebounced } from '../../../../../../script.js';
-import { power_user } from '../../../../../power-user.js';
 import { getContext } from '../../../../../extensions.js';
 import {
     extensionSettings,
@@ -57,19 +56,17 @@ function validateSettings(settings) {
  */
 export function loadSettings() {
     try {
-        // Validate power_user structure
-        if (!power_user || typeof power_user !== 'object') {
-            console.warn('[RPG Companion] power_user is not available, using default settings');
+        const context = getContext();
+        const extension_settings = context.extension_settings || context.extensionSettings;
+
+        // Validate extension_settings structure
+        if (!extension_settings || typeof extension_settings !== 'object') {
+            console.warn('[RPG Companion] extension_settings is not available, using default settings');
             return;
         }
 
-        if (!power_user.extensions) {
-            power_user.extensions = {};
-            // console.log('[RPG Companion] Created power_user.extensions object');
-        }
-
-        if (power_user.extensions[extensionName]) {
-            const savedSettings = power_user.extensions[extensionName];
+        if (extension_settings[extensionName]) {
+            const savedSettings = extension_settings[extensionName];
 
             // Validate loaded settings
             if (!validateSettings(savedSettings)) {
@@ -117,10 +114,15 @@ export function loadSettings() {
  * Saves the extension settings to the global settings object.
  */
 export function saveSettings() {
-    if (!power_user.extensions) {
-        power_user.extensions = {};
+    const context = getContext();
+    const extension_settings = context.extension_settings || context.extensionSettings;
+
+    if (!extension_settings) {
+        console.error('[RPG Companion] extension_settings is not available, cannot save');
+        return;
     }
-    power_user.extensions[extensionName] = extensionSettings;
+
+    extension_settings[extensionName] = extensionSettings;
     saveSettingsDebounced();
 }
 

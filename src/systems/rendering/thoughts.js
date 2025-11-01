@@ -447,132 +447,133 @@ export function renderThoughts() {
 
 /**
  * Updates a specific character field in Present Characters data and re-renders.
- * Handles character creation if character doesn't exist yet.
+ * Works with the new multi-line format.
  *
  * @param {string} characterName - Name of the character to update
- * @param {string} field - Field to update (emoji, name, traits, thoughts, relationship)
+ * @param {string} field - Field to update (emoji, name, custom field name, Relationship, stat name)
  * @param {string} value - New value for the field
  */
 export function updateCharacterField(characterName, field, value) {
-    // console.log('[RPG Companion] 📝 updateCharacterField called - character:', characterName, 'field:', field, 'value:', value);
-    // console.log('[RPG Companion] 📝 Current lastGeneratedData.characterThoughts:', lastGeneratedData.characterThoughts);
-
     // Initialize if it doesn't exist
     if (!lastGeneratedData.characterThoughts) {
         lastGeneratedData.characterThoughts = 'Present Characters\n---\n';
     }
 
     const lines = lastGeneratedData.characterThoughts.split('\n');
+    const presentCharsConfig = extensionSettings.trackerConfig?.presentCharacters;
+    const enabledFields = presentCharsConfig?.customFields?.filter(f => f && f.enabled && f.name) || [];
+    const characterStats = presentCharsConfig?.characterStats;
+    const enabledCharStats = characterStats?.enabled && characterStats?.customStats?.filter(s => s && s.enabled && s.name) || [];
+
     let characterFound = false;
+    let inTargetCharacter = false;
+    let characterStartIndex = -1;
+    let characterEndIndex = -1;
 
-    const updatedLines = lines.map(line => {
-        // Case-insensitive character name matching
-        if (line.toLowerCase().includes(characterName.toLowerCase())) {
-            characterFound = true;
-            const parts = line.split('|').map(p => p.trim());
-            if (parts.length >= 2) {
-                const firstPart = parts[0];
-                const emojiMatch = firstPart.match(/^(.+?):\s*(.+)$/);
+    // Find the character block
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
 
-                if (emojiMatch) {
-                    let emoji = emojiMatch[1].trim();
-                    let info = emojiMatch[2].trim();
-                    let relationship = parts[1] ? parts[1].trim() : '';
-                    let thoughts = parts[2] ? parts[2].trim() : '';
-
-                    // Handle 4-part format (with demeanor)
-                    if (parts.length >= 4) {
-                        relationship = parts[2] ? parts[2].trim() : '';
-                        thoughts = parts[3] ? parts[3].trim() : '';
-                    }
-
-                    const infoParts = info.split(',').map(p => p.trim());
-                    let name = infoParts[0];
-                    let traits = infoParts.slice(1).join(', ');
-
-                    if (field === 'emoji') {
-                        emoji = value;
-                    } else if (field === 'name') {
-                        name = value;
-                    } else if (field === 'traits') {
-                        traits = value;
-                    } else if (field === 'thoughts') {
-                        thoughts = value;
-                    } else if (field === 'relationship') {
-                        const emojiToRelationship = {
-                            '⚔️': 'Enemy',
-                            '⚖️': 'Neutral',
-                            '⭐': 'Friend',
-                            '❤️': 'Lover'
-                        };
-                        relationship = emojiToRelationship[value] || value;
-                    }
-
-                    const newInfo = traits ? `${name}, ${traits}` : name;
-                    return `${emoji}: ${newInfo} | ${relationship} | ${thoughts}`;
-                }
+        if (line.startsWith('- ')) {
+            const name = line.substring(2).trim();
+            if (name.toLowerCase() === characterName.toLowerCase()) {
+                characterFound = true;
+                inTargetCharacter = true;
+                characterStartIndex = i;
+            } else if (inTargetCharacter) {
+                characterEndIndex = i;
+                break;
             }
-        }
-        return line;
-    });
-
-    // If character wasn't found, create a new character line
-    if (!characterFound) {
-        // Find the divider line
-        const dividerIndex = updatedLines.findIndex(line => line.includes('---'));
-        if (dividerIndex >= 0) {
-            // Create initial character line with the edited field
-            let emoji = '😊';
-            let name = characterName;
-            let traits = 'Traits';
-            let relationship = 'Neutral';
-            let thoughts = '';
-
-            // Apply the edited field
-            if (field === 'emoji') {
-                emoji = value;
-            } else if (field === 'name') {
-                name = value;
-            } else if (field === 'traits') {
-                traits = value;
-            } else if (field === 'thoughts') {
-                thoughts = value;
-            } else if (field === 'relationship') {
-                const emojiToRelationship = {
-                    '⚔️': 'Enemy',
-                    '⚖️': 'Neutral',
-                    '⭐': 'Friend',
-                    '❤️': 'Lover'
-                };
-                relationship = emojiToRelationship[value] || value;
-            }
-
-            const newCharacterLine = `${emoji}: ${name}, ${traits} | ${relationship} | ${thoughts}`;
-            // Insert after the divider
-            updatedLines.splice(dividerIndex + 1, 0, newCharacterLine);
         }
     }
 
-    lastGeneratedData.characterThoughts = updatedLines.join('\n');
-    // console.log('[RPG Companion] 💾 Updated lastGeneratedData.characterThoughts:', lastGeneratedData.characterThoughts);
+    if (characterFound && characterEndIndex === -1) {
+        characterEndIndex = lines.length;
+    }
 
-    // Update BOTH lastGeneratedData AND committedTrackerData
-    // This makes manual edits immediately visible to AI
-    committedTrackerData.characterThoughts = updatedLines.join('\n');
+    if (characterFound) {
+        // Update the specific field within the character block
+        for (let i = characterStartIndex; i < characterEndIndex; i++) {
+            const line = lines[i].trim();
 
-    // Also update the last assistant message's swipe data
+            if (field === 'name' && line.startsWith('- ')) {
+                lines[i] = `- ${value}`;
+            }
+            else if (field === 'emoji' && line.startsWith('Details:')) {
+                const parts = line.substring(line.indexOf(':') + 1).split('|').map(p => p.trim());
+                parts[0] = value;
+                lines[i] = `Details: ${parts.join(' | ')}`;
+            }
+            else if (line.startsWith('Details:')) {
+                const fieldIndex = enabledFields.findIndex(f => f.name === field);
+                if (fieldIndex !== -1) {
+                    const parts = line.substring(line.indexOf(':') + 1).split('|').map(p => p.trim());
+                    if (parts.length > fieldIndex + 1) {
+                        parts[fieldIndex + 1] = value;
+                        lines[i] = `Details: ${parts.join(' | ')}`;
+                    }
+                }
+            }
+            else if (field === 'Relationship' && line.startsWith('Relationship:')) {
+                const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
+                const relationshipValue = emojiToRelationship[value] || value;
+                lines[i] = `Relationship: ${relationshipValue}`;
+            }
+            else if (line.startsWith('Stats:')) {
+                const statIndex = enabledCharStats.findIndex(s => s.name === field);
+                if (statIndex !== -1) {
+                    const statsContent = line.substring(line.indexOf(':') + 1).trim();
+                    const statParts = statsContent.split('|').map(p => p.trim());
+
+                    for (let j = 0; j < statParts.length; j++) {
+                        if (statParts[j].startsWith(field + ':')) {
+                            statParts[j] = `${field}: ${value}%`;
+                            break;
+                        }
+                    }
+                    lines[i] = `Stats: ${statParts.join(' | ')}`;
+                }
+            }
+        }
+    } else {
+        // Create new character block
+        const dividerIndex = lines.findIndex(line => line.includes('---'));
+        if (dividerIndex >= 0) {
+            const newCharacterLines = [`- ${characterName}`];
+
+            let detailsParts = [field === 'emoji' ? value : '😊'];
+            for (let i = 0; i < enabledFields.length; i++) {
+                detailsParts.push(field === enabledFields[i].name ? value : '');
+            }
+            newCharacterLines.push(`Details: ${detailsParts.join(' | ')}`);
+
+            if (presentCharsConfig?.relationshipFields?.length > 0) {
+                const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
+                const relationshipValue = field === 'Relationship' ? (emojiToRelationship[value] || value) : 'Neutral';
+                newCharacterLines.push(`Relationship: ${relationshipValue}`);
+            }
+
+            if (enabledCharStats.length > 0) {
+                const statsParts = enabledCharStats.map(s => `${s.name}: ${field === s.name ? value : '0'}%`);
+                newCharacterLines.push(`Stats: ${statsParts.join(' | ')}`);
+            }
+
+            lines.splice(dividerIndex + 1, 0, ...newCharacterLines);
+        }
+    }
+
+    lastGeneratedData.characterThoughts = lines.join('\n');
+    committedTrackerData.characterThoughts = lines.join('\n');
+
     const chat = getContext().chat;
     if (chat && chat.length > 0) {
-        // Find the last assistant message
         for (let i = chat.length - 1; i >= 0; i--) {
             const message = chat[i];
             if (!message.is_user) {
-                // Found last assistant message - update its swipe data
                 if (message.extra && message.extra.rpg_companion_swipes) {
                     const swipeId = message.swipe_id || 0;
                     if (message.extra.rpg_companion_swipes[swipeId]) {
-                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = updatedLines.join('\n');
-                        // console.log('[RPG Companion] Updated thoughts in message swipe data');
+                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = lines.join('\n');
                     }
                 }
                 break;
@@ -581,18 +582,12 @@ export function updateCharacterField(characterName, field, value) {
     }
 
     saveChatData();
-
-    // Always update the sidebar panel
     renderThoughts();
 
-    // For thoughts edited from the bubble, delay recreation to allow blur event to complete
-    // This ensures the edit is saved first, then the bubble is recreated with correct layout
-    if (field === 'thoughts') {
-        setTimeout(() => {
-            updateChatThoughts();
-        }, 100);
+    const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
+    if (field === thoughtsFieldName) {
+        setTimeout(() => updateChatThoughts(), 100);
     } else {
-        // For other fields, recreate immediately
         updateChatThoughts();
     }
 }
