@@ -51,11 +51,35 @@ export function registerUserStatsWidget(registry, dependencies) {
         render(container, config = {}) {
             const settings = getExtensionSettings();
             const stats = settings.userStats;
+            const trackerConfig = settings.trackerConfig?.userStats;
+
+            // Get globally enabled stats from trackerConfig
+            const globallyEnabledStats = trackerConfig?.customStats
+                ?.filter(stat => stat.enabled)
+                .map(stat => ({ id: stat.id, name: stat.name })) || [];
+
+            // If no globally enabled stats, fall back to defaults
+            const availableStats = globallyEnabledStats.length > 0
+                ? globallyEnabledStats
+                : [
+                    { id: 'health', name: 'Health' },
+                    { id: 'satiety', name: 'Satiety' },
+                    { id: 'energy', name: 'Energy' },
+                    { id: 'hygiene', name: 'Hygiene' },
+                    { id: 'arousal', name: 'Arousal' }
+                ];
+
+            // Apply widget-level filter if specified (config.visibleStats overrides)
+            let visibleStats = availableStats;
+            if (config.visibleStats && config.visibleStats.length > 0) {
+                visibleStats = availableStats.filter(stat =>
+                    config.visibleStats.includes(stat.id)
+                );
+            }
 
             // Merge default config with user config
             const finalConfig = {
                 statBarGradient: true,
-                visibleStats: ['health', 'satiety', 'energy', 'hygiene', 'arousal'],
                 ...config
             };
 
@@ -64,23 +88,32 @@ export function registerUserStatsWidget(registry, dependencies) {
                 ? `linear-gradient(to right, ${settings.statBarColorLow}, ${settings.statBarColorHigh})`
                 : settings.statBarColorHigh;
 
-            // Build progress bars HTML
-            const progressBarsHtml = finalConfig.visibleStats.map(statName => {
-                const label = statName.charAt(0).toUpperCase() + statName.slice(1);
+            // Build progress bars HTML using trackerConfig names
+            const progressBarsHtml = visibleStats.map(stat => {
                 return createProgressBar({
-                    label,
-                    value: stats[statName],
+                    label: stat.name,
+                    value: stats[stat.id] || 0,
                     gradient,
                     editable: true,
-                    field: statName
+                    field: stat.id
                 });
             }).join('');
+
+            // Show message if no stats are enabled
+            const content = visibleStats.length > 0
+                ? progressBarsHtml
+                : `<div class="rpg-widget-empty-state">
+                    <p>⚠️ No stats enabled</p>
+                    <p style="font-size: 0.85em; opacity: 0.7;">
+                        Enable stats in <a href="#" class="rpg-open-tracker-settings">Tracker Settings</a>
+                    </p>
+                </div>`;
 
             // Render HTML
             const html = `
                 <div class="rpg-stats-content rpg-stats-modular">
                     <div class="rpg-stats-grid">
-                        ${progressBarsHtml}
+                        ${content}
                     </div>
                 </div>
             `;
@@ -89,6 +122,15 @@ export function registerUserStatsWidget(registry, dependencies) {
 
             // Attach event handlers
             attachEventHandlers(container, settings, onStatsChange);
+
+            // Handle "Tracker Settings" link click
+            const trackerSettingsLink = container.querySelector('.rpg-open-tracker-settings');
+            if (trackerSettingsLink) {
+                trackerSettingsLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.getElementById('rpg-open-tracker-editor')?.click();
+                });
+            }
         },
 
         /**
@@ -96,23 +138,34 @@ export function registerUserStatsWidget(registry, dependencies) {
          * @returns {Object} Configuration schema
          */
         getConfig() {
+            const settings = getExtensionSettings();
+            const trackerConfig = settings.trackerConfig?.userStats;
+
+            // Get enabled stats from trackerConfig for options
+            const enabledStats = trackerConfig?.customStats
+                ?.filter(stat => stat.enabled)
+                .map(stat => ({ value: stat.id, label: stat.name })) || [
+                { value: 'health', label: 'Health' },
+                { value: 'satiety', label: 'Satiety' },
+                { value: 'energy', label: 'Energy' },
+                { value: 'hygiene', label: 'Hygiene' },
+                { value: 'arousal', label: 'Arousal' }
+            ];
+
             return {
                 statBarGradient: {
                     type: 'boolean',
                     label: 'Use Gradient for Stat Bars',
-                    default: true
+                    default: true,
+                    description: 'Show progress bars with color gradient from low to high'
                 },
                 visibleStats: {
                     type: 'multiselect',
                     label: 'Visible Stats',
-                    default: ['health', 'satiety', 'energy', 'hygiene', 'arousal'],
-                    options: [
-                        { value: 'health', label: 'Health' },
-                        { value: 'satiety', label: 'Satiety' },
-                        { value: 'energy', label: 'Energy' },
-                        { value: 'hygiene', label: 'Hygiene' },
-                        { value: 'arousal', label: 'Arousal' }
-                    ]
+                    default: null, // null means "show all enabled stats"
+                    options: enabledStats,
+                    description: 'Select which stats to show in this widget (leave empty to show all enabled stats)',
+                    hint: 'To add/remove/rename stats globally, use Tracker Settings'
                 }
             };
         },
@@ -144,7 +197,15 @@ export function registerUserStatsWidget(registry, dependencies) {
          * @returns {Object} Optimal size { w, h }
          */
         getOptimalSize(config = {}) {
-            const visibleStatCount = config.visibleStats?.length || 5;
+            const settings = getExtensionSettings();
+            const trackerConfig = settings.trackerConfig?.userStats;
+
+            // Count globally enabled stats
+            const globallyEnabledCount = trackerConfig?.customStats
+                ?.filter(stat => stat.enabled).length || 5;
+
+            // If widget has visibleStats override, use that count
+            const visibleStatCount = config.visibleStats?.length || globallyEnabledCount;
 
             // Each stat bar needs ~0.4 rows of height
             // Add 0.5 row for padding/margins

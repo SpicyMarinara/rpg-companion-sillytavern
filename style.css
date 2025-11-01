@@ -7684,3 +7684,61 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 }
 
+
+/* ========================================
+   Tracker Settings & Widget Integration
+   ======================================== */
+
+/* Tracker Editor Help Text */
+.rpg-editor-help {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75em;
+    padding: 0.75em 1em;
+    margin: 0 0 1em 0;
+    background: rgba(100, 149, 237, 0.1);
+    border: 1px solid rgba(100, 149, 237, 0.3);
+    border-radius: 0.375em;
+    color: var(--rpg-text);
+    font-size: 0.875em;
+    line-height: 1.5;
+}
+
+.rpg-editor-help i {
+    color: #6495ed;
+    font-size: 1.1em;
+    margin-top: 0.15em;
+    flex-shrink: 0;
+}
+
+/* Empty Widget State */
+.rpg-widget-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2em 1em;
+    text-align: center;
+    color: var(--rpg-text);
+    opacity: 0.7;
+    height: 100%;
+}
+
+.rpg-widget-empty-state p {
+    margin: 0.5em 0;
+}
+
+.rpg-widget-empty-state p:first-child {
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.rpg-widget-empty-state a {
+    color: var(--rpg-highlight);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.rpg-widget-empty-state a:hover {
+    opacity: 0.8;
+}

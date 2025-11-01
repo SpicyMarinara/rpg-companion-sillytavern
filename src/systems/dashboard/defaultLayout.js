@@ -225,20 +225,32 @@ export function migrateV1ToV2Dashboard(oldSettings) {
     // Respect user's visibility preferences from v1.x
     const statusTab = dashboard.tabs[0];
 
-    // Remove widgets that were hidden in v1.x
-    if (!oldSettings.showUserStats) {
+    // Check trackerConfig for field-level disabling
+    const trackerConfig = oldSettings.trackerConfig;
+
+    // Remove userStats widget if hidden in v1.x OR all stats disabled in trackerConfig
+    const allStatsDisabled = trackerConfig?.userStats?.customStats
+        ?.every(stat => !stat.enabled) ?? false;
+
+    if (!oldSettings.showUserStats || allStatsDisabled) {
         statusTab.widgets = statusTab.widgets.filter(w => w.type !== 'userStats');
-        console.log('[DefaultLayout] Removed userStats widget (was hidden in v1.x)');
+        console.log('[DefaultLayout] Removed userStats widget', allStatsDisabled ? '(all stats disabled in trackerConfig)' : '(was hidden in v1.x)');
     }
 
+    // Remove infoBox widget if hidden in v1.x
+    // Note: We keep individual info widgets (calendar, weather, etc.) even if fields are disabled
+    // because widgets will show disabled state with link to Tracker Settings
     if (!oldSettings.showInfoBox) {
         statusTab.widgets = statusTab.widgets.filter(w => w.type !== 'infoBox');
         console.log('[DefaultLayout] Removed infoBox widget (was hidden in v1.x)');
     }
 
-    if (!oldSettings.showCharacterThoughts) {
+    // Remove presentCharacters widget if hidden in v1.x OR thoughts disabled in trackerConfig
+    const thoughtsDisabled = trackerConfig?.presentCharacters?.thoughts?.enabled === false;
+
+    if (!oldSettings.showCharacterThoughts || thoughtsDisabled) {
         statusTab.widgets = statusTab.widgets.filter(w => w.type !== 'presentCharacters');
-        console.log('[DefaultLayout] Removed presentCharacters widget (was hidden in v1.x)');
+        console.log('[DefaultLayout] Removed presentCharacters widget', thoughtsDisabled ? '(thoughts disabled in trackerConfig)' : '(was hidden in v1.x)');
     }
 
     // Remove inventory tab if it was hidden in v1.x
