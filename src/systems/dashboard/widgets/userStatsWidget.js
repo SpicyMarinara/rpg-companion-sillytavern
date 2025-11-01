@@ -99,21 +99,11 @@ export function registerUserStatsWidget(registry, dependencies) {
                 });
             }).join('');
 
-            // Show message if no stats are enabled
-            const content = visibleStats.length > 0
-                ? progressBarsHtml
-                : `<div class="rpg-widget-empty-state">
-                    <p>⚠️ No stats enabled</p>
-                    <p style="font-size: 0.85em; opacity: 0.7;">
-                        Enable stats in <a href="#" class="rpg-open-tracker-settings">Tracker Settings</a>
-                    </p>
-                </div>`;
-
             // Render HTML
             const html = `
                 <div class="rpg-stats-content rpg-stats-modular">
                     <div class="rpg-stats-grid">
-                        ${content}
+                        ${progressBarsHtml}
                     </div>
                 </div>
             `;
@@ -122,15 +112,6 @@ export function registerUserStatsWidget(registry, dependencies) {
 
             // Attach event handlers
             attachEventHandlers(container, settings, onStatsChange);
-
-            // Handle "Tracker Settings" link click
-            const trackerSettingsLink = container.querySelector('.rpg-open-tracker-settings');
-            if (trackerSettingsLink) {
-                trackerSettingsLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    document.getElementById('rpg-open-tracker-editor')?.click();
-                });
-            }
         },
 
         /**

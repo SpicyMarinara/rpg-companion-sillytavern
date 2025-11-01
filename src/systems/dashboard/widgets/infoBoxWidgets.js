@@ -13,43 +13,6 @@
  */
 
 /**
- * Check if a field is enabled in trackerConfig and render disabled state if not
- * @param {HTMLElement} container - Widget container
- * @param {string} fieldName - Field name in trackerConfig (e.g., 'date', 'weather', 'temperature')
- * @param {string} displayName - Display name for the field (e.g., 'Date', 'Weather')
- * @param {Object} dependencies - Dependencies object
- * @returns {boolean} True if enabled, false if disabled
- */
-function checkFieldEnabled(container, fieldName, displayName, dependencies) {
-    const { getExtensionSettings } = dependencies;
-    const settings = getExtensionSettings();
-    const trackerConfig = settings.trackerConfig?.infoBox;
-    const fieldEnabled = trackerConfig?.widgets?.[fieldName]?.enabled !== false;
-
-    if (!fieldEnabled) {
-        container.innerHTML = `
-            <div class="rpg-widget-empty-state">
-                <p>⚠️ ${displayName} disabled</p>
-                <p style="font-size: 0.85em; opacity: 0.7;">
-                    Enable in <a href="#" class="rpg-open-tracker-settings">Tracker Settings</a>
-                </p>
-            </div>
-        `;
-
-        // Handle tracker settings link
-        const link = container.querySelector('.rpg-open-tracker-settings');
-        if (link) {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                document.getElementById('rpg-open-tracker-editor')?.click();
-            });
-        }
-    }
-
-    return fieldEnabled;
-}
-
-/**
  * Parse Info Box data from shared data source
  * @param {string} infoBoxText - Raw info box text
  * @returns {Object} Parsed data
@@ -236,12 +199,6 @@ export function registerCalendarWidget(registry, dependencies) {
 
         render(container, config = {}) {
             const { getInfoBoxData } = dependencies;
-
-            // Check if date field is enabled in trackerConfig
-            if (!checkFieldEnabled(container, 'date', 'Date', dependencies)) {
-                return;
-            }
-
             const data = parseInfoBoxData(getInfoBoxData());
 
             const monthShort = data.month ? data.month.substring(0, 3).toUpperCase() : 'MON';
@@ -330,12 +287,6 @@ export function registerWeatherWidget(registry, dependencies) {
 
         render(container, config = {}) {
             const { getInfoBoxData } = dependencies;
-
-            // Check if weather field is enabled in trackerConfig
-            if (!checkFieldEnabled(container, 'weather', 'Weather', dependencies)) {
-                return;
-            }
-
             const data = parseInfoBoxData(getInfoBoxData());
 
             const weatherEmoji = data.weatherEmoji || '🌤️';
@@ -368,12 +319,6 @@ export function registerTemperatureWidget(registry, dependencies) {
 
         render(container, config = {}) {
             const { getInfoBoxData } = dependencies;
-
-            // Check if temperature field is enabled in trackerConfig
-            if (!checkFieldEnabled(container, 'temperature', 'Temperature', dependencies)) {
-                return;
-            }
-
             const data = parseInfoBoxData(getInfoBoxData());
 
             const tempDisplay = data.temperature || '20°C';
@@ -415,12 +360,6 @@ export function registerClockWidget(registry, dependencies) {
 
         render(container, config = {}) {
             const { getInfoBoxData } = dependencies;
-
-            // Check if time field is enabled in trackerConfig
-            if (!checkFieldEnabled(container, 'time', 'Time', dependencies)) {
-                return;
-            }
-
             const data = parseInfoBoxData(getInfoBoxData());
 
             const timeDisplay = data.timeEnd || data.timeStart || '12:00';
@@ -471,12 +410,6 @@ export function registerLocationWidget(registry, dependencies) {
 
         render(container, config = {}) {
             const { getInfoBoxData } = dependencies;
-
-            // Check if location field is enabled in trackerConfig
-            if (!checkFieldEnabled(container, 'location', 'Location', dependencies)) {
-                return;
-            }
-
             const data = parseInfoBoxData(getInfoBoxData());
 
             const locationDisplay = data.location || 'Location';

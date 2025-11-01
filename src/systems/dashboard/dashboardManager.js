@@ -219,6 +219,12 @@ export class DashboardManager {
         // Measure container width and set up responsive sizing
         this.setupContainerSizing();
 
+        // Listen for tracker config changes (reactive integration)
+        document.addEventListener('rpg:trackerConfigChanged', (e) => {
+            console.log('[DashboardManager] Tracker config changed, refreshing widgets');
+            this.onTrackerConfigChanged(e.detail.config);
+        });
+
         // Render tab navigation
         this.renderTabs();
 
@@ -1662,6 +1668,129 @@ export class DashboardManager {
                 console.error('[DashboardManager] Error in change listener:', error);
             }
         });
+    }
+
+    /**
+     * Handle tracker configuration changes from editor
+     * Removes disabled widgets and refreshes remaining widgets
+     * @param {Object} config - New tracker configuration
+     */
+    onTrackerConfigChanged(config) {
+        console.log('[DashboardManager] Processing tracker config changes...');
+
+        // Step 1: Remove widgets that are now disabled
+        const removedWidgets = this.removeDisabledWidgets(config);
+
+        // Step 2: If widgets were removed, auto-layout affected tabs
+        if (removedWidgets.length > 0) {
+            const affectedTabs = new Set(removedWidgets.map(w => w.tabId));
+            affectedTabs.forEach(tabId => {
+                const tab = this.tabManager.getTab(tabId);
+                if (tab && tab.widgets && tab.widgets.length > 0) {
+                    console.log(`[DashboardManager] Auto-layouting tab ${tabId} after widget removal`);
+                    this.gridEngine.autoLayout(tab.widgets, { preserveOrder: true });
+                }
+            });
+        }
+
+        // Step 3: Refresh all remaining widgets (re-render with new config)
+        this.refreshAllWidgets();
+
+        // Step 4: Save layout changes
+        this.triggerAutoSave();
+
+        console.log('[DashboardManager] Tracker config refresh complete');
+    }
+
+    /**
+     * Remove widgets that should no longer be shown based on config
+     * @param {Object} config - Tracker configuration
+     * @returns {Array} Array of removed widget info {widgetId, tabId, type}
+     */
+    removeDisabledWidgets(config) {
+        const removed = [];
+
+        // Iterate through all tabs
+        this.dashboard.tabs.forEach(tab => {
+            if (!tab.widgets) return;
+
+            // Find widgets to remove
+            const toRemove = tab.widgets.filter(widget =>
+                this.shouldWidgetBeRemoved(widget.type, config)
+            );
+
+            // Remove each widget
+            toRemove.forEach(widget => {
+                console.log(`[DashboardManager] Removing disabled widget: ${widget.type} (${widget.id})`);
+
+                // If widget is in current tab and rendered, clean it up
+                if (tab.id === this.currentTabId) {
+                    const widgetData = this.widgets.get(widget.id);
+                    if (widgetData) {
+                        const definition = this.registry.get(widget.type);
+                        if (definition && definition.onRemove) {
+                            definition.onRemove(widgetData.element, widget.config);
+                        }
+                        this.dragHandler.destroyWidget(widgetData.element);
+                        this.resizeHandler.destroyWidget(widgetData.element);
+                        widgetData.element.remove();
+                        this.widgets.delete(widget.id);
+                    }
+                }
+
+                removed.push({
+                    widgetId: widget.id,
+                    tabId: tab.id,
+                    type: widget.type
+                });
+            });
+
+            // Remove from tab's widget array
+            tab.widgets = tab.widgets.filter(widget =>
+                !toRemove.some(r => r.id === widget.id)
+            );
+        });
+
+        console.log(`[DashboardManager] Removed ${removed.length} disabled widgets`);
+        return removed;
+    }
+
+    /**
+     * Determine if widget should be removed based on tracker config
+     * @param {string} widgetType - Widget type
+     * @param {Object} config - Tracker configuration
+     * @returns {boolean} True if widget should be removed
+     */
+    shouldWidgetBeRemoved(widgetType, config) {
+        const rules = {
+            'calendar': () => config.infoBox?.widgets?.date?.enabled === false,
+            'weather': () => config.infoBox?.widgets?.weather?.enabled === false,
+            'temperature': () => config.infoBox?.widgets?.temperature?.enabled === false,
+            'clock': () => config.infoBox?.widgets?.time?.enabled === false,
+            'location': () => config.infoBox?.widgets?.location?.enabled === false,
+            'userStats': () => {
+                const customStats = config.userStats?.customStats || [];
+                return customStats.filter(s => s.enabled).length === 0;
+            },
+            'presentCharacters': () => config.presentCharacters?.thoughts?.enabled === false
+        };
+
+        const rule = rules[widgetType];
+        return rule ? rule() : false;
+    }
+
+    /**
+     * Refresh all rendered widgets (re-render with current data)
+     */
+    refreshAllWidgets() {
+        console.log('[DashboardManager] Refreshing all widgets...');
+        this.widgets.forEach((widgetData) => {
+            const definition = this.registry.get(widgetData.widget.type);
+            if (definition && widgetData.element) {
+                this.renderWidgetContent(widgetData.element, widgetData.widget, definition);
+            }
+        });
+        console.log('[DashboardManager] All widgets refreshed');
     }
 
     /**
