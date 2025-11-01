@@ -270,151 +270,211 @@ export function renderInfoBox() {
     //     location: data.location
     // });
 
+    // Get tracker configuration
+    const config = extensionSettings.trackerConfig?.infoBox;
+
     // Build visual dashboard HTML
     // Wrap all content in a scrollable container
     let html = '<div class="rpg-info-content">';
 
     // Row 1: Date, Weather, Temperature, Time widgets
-    html += '<div class="rpg-dashboard rpg-dashboard-row-1">';
+    const row1Widgets = [];
 
-    // Calendar widget - always show (editable even if empty)
-    // Display abbreviated version but allow editing full value
-    const monthShort = data.month ? data.month.substring(0, 3).toUpperCase() : 'MON';
-    const weekdayShort = data.weekday ? data.weekday.substring(0, 3).toUpperCase() : 'DAY';
-    const yearDisplay = data.year || 'YEAR';
-    html += `
-        <div class="rpg-dashboard-widget rpg-calendar-widget">
-            <div class="rpg-calendar-top rpg-editable" contenteditable="true" data-field="month" data-full-value="${data.month || ''}" title="Click to edit">${monthShort}</div>
-            <div class="rpg-calendar-day rpg-editable" contenteditable="true" data-field="weekday" data-full-value="${data.weekday || ''}" title="Click to edit">${weekdayShort}</div>
-            <div class="rpg-calendar-year rpg-editable" contenteditable="true" data-field="year" data-full-value="${data.year || ''}" title="Click to edit">${yearDisplay}</div>
-        </div>
-    `;
+    // Calendar widget - show if enabled
+    if (config?.widgets?.date?.enabled) {
+        // Apply date format conversion
+        let monthDisplay = data.month || 'MON';
+        let weekdayDisplay = data.weekday || 'DAY';
+        let yearDisplay = data.year || 'YEAR';
 
-    // Weather widget - always show (editable even if empty)
-    const weatherEmoji = data.weatherEmoji || '🌤️';
-    const weatherForecast = data.weatherForecast || 'Weather';
-    html += `
-        <div class="rpg-dashboard-widget rpg-weather-widget">
-            <div class="rpg-weather-icon rpg-editable" contenteditable="true" data-field="weatherEmoji" title="Click to edit emoji">${weatherEmoji}</div>
-            <div class="rpg-weather-forecast rpg-editable" contenteditable="true" data-field="weatherForecast" title="Click to edit">${weatherForecast}</div>
-        </div>
-    `;
+        // Apply format based on config
+        const dateFormat = config.widgets.date.format || 'dd/mm/yy';
+        if (dateFormat === 'dd/mm/yy') {
+            monthDisplay = monthDisplay.substring(0, 3).toUpperCase();
+            weekdayDisplay = weekdayDisplay.substring(0, 3).toUpperCase();
+        } else if (dateFormat === 'mm/dd/yy') {
+            // For US format, show month first, day second
+            monthDisplay = monthDisplay.substring(0, 3).toUpperCase();
+            weekdayDisplay = weekdayDisplay.substring(0, 3).toUpperCase();
+        } else if (dateFormat === 'yyyy-mm-dd') {
+            // ISO format - show full names
+            monthDisplay = monthDisplay;
+            weekdayDisplay = weekdayDisplay;
+        }
 
-    // Temperature widget - always show (editable even if empty)
-    const tempDisplay = data.temperature || '20°C';
-    const tempValue = data.tempValue || 20;
-    const tempPercent = Math.min(100, Math.max(0, ((tempValue + 20) / 60) * 100));
-    const tempColor = tempValue < 10 ? '#4a90e2' : tempValue < 25 ? '#67c23a' : '#e94560';
-    html += `
-        <div class="rpg-dashboard-widget rpg-temp-widget">
-            <div class="rpg-thermometer">
-                <div class="rpg-thermometer-bulb"></div>
-                <div class="rpg-thermometer-tube">
-                    <div class="rpg-thermometer-fill" style="height: ${tempPercent}%; background: ${tempColor}"></div>
-                </div>
+        row1Widgets.push(`
+            <div class="rpg-dashboard-widget rpg-calendar-widget">
+                <div class="rpg-calendar-top rpg-editable" contenteditable="true" data-field="month" data-full-value="${data.month || ''}" title="Click to edit">${monthDisplay}</div>
+                <div class="rpg-calendar-day rpg-editable" contenteditable="true" data-field="weekday" data-full-value="${data.weekday || ''}" title="Click to edit">${weekdayDisplay}</div>
+                <div class="rpg-calendar-year rpg-editable" contenteditable="true" data-field="year" data-full-value="${data.year || ''}" title="Click to edit">${yearDisplay}</div>
             </div>
-            <div class="rpg-temp-value rpg-editable" contenteditable="true" data-field="temperature" title="Click to edit">${tempDisplay}</div>
-        </div>
-    `;
-
-    // Time widget - always show (editable even if empty)
-    // Display the end time (second time in range) if available, otherwise start time
-    const timeDisplay = data.timeEnd || data.timeStart || '12:00';
-    // Parse time for clock hands
-    const timeMatch = timeDisplay.match(/(\d+):(\d+)/);
-    let hourAngle = 0;
-    let minuteAngle = 0;
-    if (timeMatch) {
-        const hours = parseInt(timeMatch[1]);
-        const minutes = parseInt(timeMatch[2]);
-        hourAngle = (hours % 12) * 30 + minutes * 0.5; // 30° per hour + 0.5° per minute
-        minuteAngle = minutes * 6; // 6° per minute
+        `);
     }
-    html += `
-        <div class="rpg-dashboard-widget rpg-clock-widget">
-            <div class="rpg-clock">
-                <div class="rpg-clock-face">
-                    <div class="rpg-clock-hour" style="transform: rotate(${hourAngle}deg)"></div>
-                    <div class="rpg-clock-minute" style="transform: rotate(${minuteAngle}deg)"></div>
-                    <div class="rpg-clock-center"></div>
+
+    // Weather widget - show if enabled
+    if (config?.widgets?.weather?.enabled) {
+        const weatherEmoji = data.weatherEmoji || '🌤️';
+        const weatherForecast = data.weatherForecast || 'Weather';
+        row1Widgets.push(`
+            <div class="rpg-dashboard-widget rpg-weather-widget">
+                <div class="rpg-weather-icon rpg-editable" contenteditable="true" data-field="weatherEmoji" title="Click to edit emoji">${weatherEmoji}</div>
+                <div class="rpg-weather-forecast rpg-editable" contenteditable="true" data-field="weatherForecast" title="Click to edit">${weatherForecast}</div>
+            </div>
+        `);
+    }
+
+    // Temperature widget - show if enabled
+    if (config?.widgets?.temperature?.enabled) {
+        let tempDisplay = data.temperature || '20°C';
+        let tempValue = data.tempValue || 20;
+
+        // Apply temperature unit conversion
+        const preferredUnit = config.widgets.temperature.unit || 'celsius';
+        if (data.temperature) {
+            // Detect current unit in the data
+            const isCelsius = tempDisplay.includes('°C');
+            const isFahrenheit = tempDisplay.includes('°F');
+
+            if (preferredUnit === 'fahrenheit' && isCelsius) {
+                // Convert C to F
+                const fahrenheit = Math.round((tempValue * 9/5) + 32);
+                tempDisplay = `${fahrenheit}°F`;
+                tempValue = fahrenheit;
+            } else if (preferredUnit === 'celsius' && isFahrenheit) {
+                // Convert F to C
+                const celsius = Math.round((tempValue - 32) * 5/9);
+                tempDisplay = `${celsius}°C`;
+                tempValue = celsius;
+            }
+        } else {
+            // No data yet, use default for preferred unit
+            tempDisplay = preferredUnit === 'fahrenheit' ? '68°F' : '20°C';
+            tempValue = preferredUnit === 'fahrenheit' ? 68 : 20;
+        }
+
+        const tempPercent = Math.min(100, Math.max(0, ((tempValue + 20) / 60) * 100));
+        const tempColor = tempValue < 10 ? '#4a90e2' : tempValue < 25 ? '#67c23a' : '#e94560';
+        row1Widgets.push(`
+            <div class="rpg-dashboard-widget rpg-temp-widget">
+                <div class="rpg-thermometer">
+                    <div class="rpg-thermometer-bulb"></div>
+                    <div class="rpg-thermometer-tube">
+                        <div class="rpg-thermometer-fill" style="height: ${tempPercent}%; background: ${tempColor}"></div>
+                    </div>
+                </div>
+                <div class="rpg-temp-value rpg-editable" contenteditable="true" data-field="temperature" title="Click to edit">${tempDisplay}</div>
+            </div>
+        `);
+    }
+
+    // Time widget - show if enabled
+    if (config?.widgets?.time?.enabled) {
+        const timeDisplay = data.timeEnd || data.timeStart || '12:00';
+        // Parse time for clock hands
+        const timeMatch = timeDisplay.match(/(\d+):(\d+)/);
+        let hourAngle = 0;
+        let minuteAngle = 0;
+        if (timeMatch) {
+            const hours = parseInt(timeMatch[1]);
+            const minutes = parseInt(timeMatch[2]);
+            hourAngle = (hours % 12) * 30 + minutes * 0.5; // 30° per hour + 0.5° per minute
+            minuteAngle = minutes * 6; // 6° per minute
+        }
+        row1Widgets.push(`
+            <div class="rpg-dashboard-widget rpg-clock-widget">
+                <div class="rpg-clock">
+                    <div class="rpg-clock-face">
+                        <div class="rpg-clock-hour" style="transform: rotate(${hourAngle}deg)"></div>
+                        <div class="rpg-clock-minute" style="transform: rotate(${minuteAngle}deg)"></div>
+                        <div class="rpg-clock-center"></div>
+                    </div>
+                </div>
+                <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="timeStart" title="Click to edit">${timeDisplay}</div>
+            </div>
+        `);
+    }
+
+    // Only create row 1 if there are widgets to show
+    if (row1Widgets.length > 0) {
+        html += '<div class="rpg-dashboard rpg-dashboard-row-1">';
+        html += row1Widgets.join('');
+        html += '</div>';
+    }
+
+    // Row 2: Location widget (full width) - show if enabled
+    if (config?.widgets?.location?.enabled) {
+        const locationDisplay = data.location || 'Location';
+        html += `
+            <div class="rpg-dashboard rpg-dashboard-row-2">
+                <div class="rpg-dashboard-widget rpg-location-widget">
+                    <div class="rpg-map-bg">
+                        <div class="rpg-map-marker">📍</div>
+                    </div>
+                    <div class="rpg-location-text rpg-editable" contenteditable="true" data-field="location" title="Click to edit">${locationDisplay}</div>
                 </div>
             </div>
-            <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="timeStart" title="Click to edit">${timeDisplay}</div>
-        </div>
-    `;
+        `;
+    }
 
-    html += '</div>';
-
-    // Row 2: Location widget (full width) - always show (editable even if empty)
-    const locationDisplay = data.location || 'Location';
-    html += `
-        <div class="rpg-dashboard rpg-dashboard-row-2">
-            <div class="rpg-dashboard-widget rpg-location-widget">
-                <div class="rpg-map-bg">
-                    <div class="rpg-map-marker">📍</div>
-                </div>
-                <div class="rpg-location-text rpg-editable" contenteditable="true" data-field="location" title="Click to edit">${locationDisplay}</div>
-            </div>
-        </div>
-    `;
-
-    // Row 3: Recent Events widget (notebook style) - dynamically show 1-3 events
-    // Parse Recent Events from infoBox string
-    let recentEvents = [];
-    if (committedTrackerData.infoBox) {
-        const recentEventsLine = committedTrackerData.infoBox.split('\n').find(line => line.startsWith('Recent Events:'));
-        if (recentEventsLine) {
-            const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
-            if (eventsString) {
-                recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
+    // Row 3: Recent Events widget (notebook style) - show if enabled
+    if (config?.widgets?.recentEvents?.enabled) {
+        // Parse Recent Events from infoBox string
+        let recentEvents = [];
+        if (committedTrackerData.infoBox) {
+            const recentEventsLine = committedTrackerData.infoBox.split('\n').find(line => line.startsWith('Recent Events:'));
+            if (recentEventsLine) {
+                const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
+                if (eventsString) {
+                    recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
+                }
             }
         }
-    }
 
-    const validEvents = recentEvents.filter(e => e && e.trim() && e !== 'Event 1' && e !== 'Event 2' && e !== 'Event 3');
+        const validEvents = recentEvents.filter(e => e && e.trim() && e !== 'Event 1' && e !== 'Event 2' && e !== 'Event 3');
 
-    // If no valid events, show at least one placeholder
-    if (validEvents.length === 0) {
-        validEvents.push('Click to add event');
-    }
+        // If no valid events, show at least one placeholder
+        if (validEvents.length === 0) {
+            validEvents.push('Click to add event');
+        }
 
-    html += `
-        <div class="rpg-dashboard rpg-dashboard-row-3">
-            <div class="rpg-dashboard-widget rpg-events-widget">
-                <div class="rpg-notebook-header">
-                    <div class="rpg-notebook-ring"></div>
-                    <div class="rpg-notebook-ring"></div>
-                    <div class="rpg-notebook-ring"></div>
-                </div>
-                <div class="rpg-notebook-title">Recent Events</div>
-                <div class="rpg-notebook-lines">
-    `;
-
-    // Dynamically generate event lines (max 3)
-    for (let i = 0; i < Math.min(validEvents.length, 3); i++) {
         html += `
-                    <div class="rpg-notebook-line">
-                        <span class="rpg-bullet">•</span>
-                        <span class="rpg-event-text rpg-editable" contenteditable="true" data-field="event${i + 1}" title="Click to edit">${validEvents[i]}</span>
+            <div class="rpg-dashboard rpg-dashboard-row-3">
+                <div class="rpg-dashboard-widget rpg-events-widget">
+                    <div class="rpg-notebook-header">
+                        <div class="rpg-notebook-ring"></div>
+                        <div class="rpg-notebook-ring"></div>
+                        <div class="rpg-notebook-ring"></div>
                     </div>
+                    <div class="rpg-notebook-title">Recent Events</div>
+                    <div class="rpg-notebook-lines">
         `;
-    }
 
-    // If we have less than 3 events, add empty placeholders with + icon
-    for (let i = validEvents.length; i < 3; i++) {
+        // Dynamically generate event lines (max 3)
+        for (let i = 0; i < Math.min(validEvents.length, 3); i++) {
+            html += `
+                        <div class="rpg-notebook-line">
+                            <span class="rpg-bullet">•</span>
+                            <span class="rpg-event-text rpg-editable" contenteditable="true" data-field="event${i + 1}" title="Click to edit">${validEvents[i]}</span>
+                        </div>
+            `;
+        }
+
+        // If we have less than 3 events, add empty placeholders with + icon
+        for (let i = validEvents.length; i < 3; i++) {
+            html += `
+                        <div class="rpg-notebook-line rpg-event-add">
+                            <span class="rpg-bullet">+</span>
+                            <span class="rpg-event-text rpg-editable rpg-event-placeholder" contenteditable="true" data-field="event${i + 1}" title="Click to add event">Add event...</span>
+                        </div>
+            `;
+        }
+
         html += `
-                    <div class="rpg-notebook-line rpg-event-add">
-                        <span class="rpg-bullet">+</span>
-                        <span class="rpg-event-text rpg-editable rpg-event-placeholder" contenteditable="true" data-field="event${i + 1}" title="Click to add event">Add event...</span>
                     </div>
-        `;
-    }
-
-    html += `
                 </div>
             </div>
-        </div>
-    `;
+        `;
+    }
 
     // Close the scrollable content wrapper
     html += '</div>';

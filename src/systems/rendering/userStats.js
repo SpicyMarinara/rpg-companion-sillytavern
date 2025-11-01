@@ -26,16 +26,45 @@ import { buildInventorySummary } from '../generation/promptBuilder.js';
  */
 export function buildUserStatsText() {
     const stats = extensionSettings.userStats;
-    const statNames = extensionSettings.statNames || {
-        health: 'Health',
-        satiety: 'Satiety',
-        energy: 'Energy',
-        hygiene: 'Hygiene',
-        arousal: 'Arousal'
+    const config = extensionSettings.trackerConfig?.userStats || {
+        customStats: [
+            { id: 'health', name: 'Health', enabled: true },
+            { id: 'satiety', name: 'Satiety', enabled: true },
+            { id: 'energy', name: 'Energy', enabled: true },
+            { id: 'hygiene', name: 'Hygiene', enabled: true },
+            { id: 'arousal', name: 'Arousal', enabled: true }
+        ],
+        statusSection: { enabled: true, showMoodEmoji: true, customFields: ['Conditions'] },
+        skillsSection: { enabled: false, label: 'Skills' }
     };
-    const inventorySummary = buildInventorySummary(stats.inventory);
 
-    return `${statNames.health}: ${stats.health}%\n${statNames.satiety}: ${stats.satiety}%\n${statNames.energy}: ${stats.energy}%\n${statNames.hygiene}: ${stats.hygiene}%\n${statNames.arousal}: ${stats.arousal}%\n${stats.mood}: ${stats.conditions}\n${inventorySummary}`;
+    let text = '';
+
+    // Add enabled custom stats
+    const enabledStats = config.customStats.filter(stat => stat && stat.enabled && stat.name && stat.id);
+    for (const stat of enabledStats) {
+        const value = stats[stat.id] !== undefined ? stats[stat.id] : 100;
+        text += `${stat.name}: ${value}%\n`;
+    }
+
+    // Add status section if enabled
+    if (config.statusSection.enabled) {
+        if (config.statusSection.showMoodEmoji) {
+            text += `${stats.mood}: `;
+        }
+        text += `${stats.conditions || 'None'}\n`;
+    }
+
+    // Add inventory summary
+    const inventorySummary = buildInventorySummary(stats.inventory);
+    text += inventorySummary;
+
+    // Add skills if enabled
+    if (config.skillsSection.enabled && stats.skills) {
+        text += `\n${config.skillsSection.label}: ${stats.skills}`;
+    }
+
+    return text.trim();
 }
 
 /**
@@ -49,12 +78,17 @@ export function renderUserStats() {
     }
 
     const stats = extensionSettings.userStats;
-    const statNames = extensionSettings.statNames || {
-        health: 'Health',
-        satiety: 'Satiety',
-        energy: 'Energy',
-        hygiene: 'Hygiene',
-        arousal: 'Arousal'
+    const config = extensionSettings.trackerConfig?.userStats || {
+        customStats: [
+            { id: 'health', name: 'Health', enabled: true },
+            { id: 'satiety', name: 'Satiety', enabled: true },
+            { id: 'energy', name: 'Energy', enabled: true },
+            { id: 'hygiene', name: 'Hygiene', enabled: true },
+            { id: 'arousal', name: 'Arousal', enabled: true }
+        ],
+        showRPGAttributes: true,
+        statusSection: { enabled: true, showMoodEmoji: true, customFields: ['Conditions'] },
+        skillsSection: { enabled: false, label: 'Skills' }
     };
     const userName = getContext().name1;
 
@@ -63,12 +97,9 @@ export function renderUserStats() {
         lastGeneratedData.userStats = buildUserStatsText();
     }
 
-    // Get user portrait - handle both default-user and custom persona folders
-    // Use a base64-encoded SVG placeholder as fallback to avoid 400 errors
+    // Get user portrait
     let userPortrait = FALLBACK_AVATAR_DATA_URI;
-
     if (user_avatar) {
-        // Try to get the thumbnail using our safe helper
         const thumbnailUrl = getSafeThumbnailUrl('persona', user_avatar);
         if (thumbnailUrl) {
             userPortrait = thumbnailUrl;
@@ -78,64 +109,71 @@ export function renderUserStats() {
     // Create gradient from low to high color
     const gradient = `linear-gradient(to right, ${extensionSettings.statBarColorLow}, ${extensionSettings.statBarColorHigh})`;
 
-    const html = `
-        <div class="rpg-stats-content">
-            <div class="rpg-stats-left">
-                <div class="rpg-user-info-row">
-                    <img src="${userPortrait}" alt="${userName}" class="rpg-user-portrait" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                    <span class="rpg-user-name">${userName}</span>
-                    <span style="opacity: 0.5;">|</span>
-                    <span class="rpg-level-label">LVL</span>
-                    <span class="rpg-level-value rpg-editable" contenteditable="true" data-field="level" title="Click to edit level">${extensionSettings.level}</span>
+    let html = '<div class="rpg-stats-content"><div class="rpg-stats-left">';
+
+    // User info row
+    html += `
+        <div class="rpg-user-info-row">
+            <img src="${userPortrait}" alt="${userName}" class="rpg-user-portrait" onerror="this.style.opacity='0.5';this.onerror=null;" />
+            <span class="rpg-user-name">${userName}</span>
+            <span style="opacity: 0.5;">|</span>
+            <span class="rpg-level-label">LVL</span>
+            <span class="rpg-level-value rpg-editable" contenteditable="true" data-field="level" title="Click to edit level">${extensionSettings.level}</span>
+        </div>
+    `;
+
+    // Dynamic stats grid - only show enabled stats
+    html += '<div class="rpg-stats-grid">';
+    const enabledStats = config.customStats.filter(stat => stat && stat.enabled && stat.name && stat.id);
+
+    for (const stat of enabledStats) {
+        const value = stats[stat.id] !== undefined ? stats[stat.id] : 100;
+        html += `
+            <div class="rpg-stat-row">
+                <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="${stat.id}" title="Click to edit stat name">${stat.name}:</span>
+                <div class="rpg-stat-bar" style="background: ${gradient}">
+                    <div class="rpg-stat-fill" style="width: ${100 - value}%"></div>
                 </div>
-                <div class="rpg-stats-grid">
-                    <div class="rpg-stat-row">
-                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="health" title="Click to edit stat name">${statNames.health}:</span>
-                        <div class="rpg-stat-bar" style="background: ${gradient}">
-                            <div class="rpg-stat-fill" style="width: ${100 - stats.health}%"></div>
-                        </div>
-                        <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="health" title="Click to edit">${stats.health}%</span>
-                    </div>
-
-                    <div class="rpg-stat-row">
-                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="satiety" title="Click to edit stat name">${statNames.satiety}:</span>
-                        <div class="rpg-stat-bar" style="background: ${gradient}">
-                            <div class="rpg-stat-fill" style="width: ${100 - stats.satiety}%"></div>
-                        </div>
-                        <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="satiety" title="Click to edit">${stats.satiety}%</span>
-                    </div>
-
-                    <div class="rpg-stat-row">
-                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="energy" title="Click to edit stat name">${statNames.energy}:</span>
-                        <div class="rpg-stat-bar" style="background: ${gradient}">
-                            <div class="rpg-stat-fill" style="width: ${100 - stats.energy}%"></div>
-                        </div>
-                        <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="energy" title="Click to edit">${stats.energy}%</span>
-                    </div>
-
-                    <div class="rpg-stat-row">
-                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="hygiene" title="Click to edit stat name">${statNames.hygiene}:</span>
-                        <div class="rpg-stat-bar" style="background: ${gradient}">
-                            <div class="rpg-stat-fill" style="width: ${100 - stats.hygiene}%"></div>
-                        </div>
-                        <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="hygiene" title="Click to edit">${stats.hygiene}%</span>
-                    </div>
-
-                    <div class="rpg-stat-row">
-                        <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="arousal" title="Click to edit stat name">${statNames.arousal}:</span>
-                        <div class="rpg-stat-bar" style="background: ${gradient}">
-                            <div class="rpg-stat-fill" style="width: ${100 - stats.arousal}%"></div>
-                        </div>
-                        <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="arousal" title="Click to edit">${stats.arousal}%</span>
-                    </div>
-                </div>
-
-                <div class="rpg-mood">
-                    <div class="rpg-mood-emoji rpg-editable" contenteditable="true" data-field="mood" title="Click to edit emoji">${stats.mood}</div>
-                    <div class="rpg-mood-conditions rpg-editable" contenteditable="true" data-field="conditions" title="Click to edit conditions">${stats.conditions}</div>
-                </div>
+                <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="${stat.id}" title="Click to edit">${value}%</span>
             </div>
+        `;
+    }
+    html += '</div>';
 
+    // Status section (conditionally rendered)
+    if (config.statusSection.enabled) {
+        html += '<div class="rpg-mood">';
+
+        if (config.statusSection.showMoodEmoji) {
+            html += `<div class="rpg-mood-emoji rpg-editable" contenteditable="true" data-field="mood" title="Click to edit emoji">${stats.mood}</div>`;
+        }
+
+        // Render custom status fields
+        if (config.statusSection.customFields && config.statusSection.customFields.length > 0) {
+            // For now, use first field as "conditions" for backward compatibility
+            const conditionsValue = stats.conditions || 'None';
+            html += `<div class="rpg-mood-conditions rpg-editable" contenteditable="true" data-field="conditions" title="Click to edit conditions">${conditionsValue}</div>`;
+        }
+
+        html += '</div>';
+    }
+
+    // Skills section (conditionally rendered)
+    if (config.skillsSection.enabled) {
+        const skillsValue = stats.skills || 'None';
+        html += `
+            <div class="rpg-skills-section">
+                <span class="rpg-skills-label">${config.skillsSection.label}:</span>
+                <div class="rpg-skills-value rpg-editable" contenteditable="true" data-field="skills" title="Click to edit skills">${skillsValue}</div>
+            </div>
+        `;
+    }
+
+    html += '</div>'; // Close rpg-stats-left
+
+    // RPG Attributes section (conditionally rendered)
+    if (config.showRPGAttributes) {
+        html += `
             <div class="rpg-stats-right">
                 <div class="rpg-classic-stats">
                     <div class="rpg-classic-stats-grid">
@@ -190,8 +228,10 @@ export function renderUserStats() {
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+    }
+
+    html += '</div>'; // Close rpg-stats-content
 
     $userStatsContainer.html(html);
 

@@ -4,7 +4,6 @@
  */
 
 import { saveSettingsDebounced, chat_metadata, saveChatDebounced } from '../../../../../../script.js';
-import { power_user } from '../../../../../power-user.js';
 import { getContext } from '../../../../../extensions.js';
 import {
     extensionSettings,
@@ -58,19 +57,17 @@ function validateSettings(settings) {
  */
 export function loadSettings() {
     try {
-        // Validate power_user structure
-        if (!power_user || typeof power_user !== 'object') {
-            console.warn('[RPG Companion] power_user is not available, using default settings');
+        const context = getContext();
+        const extension_settings = context.extension_settings || context.extensionSettings;
+
+        // Validate extension_settings structure
+        if (!extension_settings || typeof extension_settings !== 'object') {
+            console.warn('[RPG Companion] extension_settings is not available, using default settings');
             return;
         }
 
-        if (!power_user.extensions) {
-            power_user.extensions = {};
-            // console.log('[RPG Companion] Created power_user.extensions object');
-        }
-
-        if (power_user.extensions[extensionName]) {
-            const savedSettings = power_user.extensions[extensionName];
+        if (extension_settings[extensionName]) {
+            const savedSettings = extension_settings[extensionName];
 
             // Validate loaded settings
             if (!validateSettings(savedSettings)) {
@@ -110,6 +107,13 @@ export function loadSettings() {
                 saveSettings();
             }
         }
+
+        // Migrate to trackerConfig if it doesn't exist
+        if (!extensionSettings.trackerConfig) {
+            console.log('[RPG Companion] Migrating to trackerConfig format');
+            migrateToTrackerConfig();
+            saveSettings(); // Persist migration
+        }
     } catch (error) {
         console.error('[RPG Companion] Error loading settings:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);
@@ -125,10 +129,15 @@ export function loadSettings() {
  * Saves the extension settings to the global settings object.
  */
 export function saveSettings() {
-    if (!power_user.extensions) {
-        power_user.extensions = {};
+    const context = getContext();
+    const extension_settings = context.extension_settings || context.extensionSettings;
+
+    if (!extension_settings) {
+        console.error('[RPG Companion] extension_settings is not available, cannot save');
+        return;
     }
-    power_user.extensions[extensionName] = extensionSettings;
+
+    extension_settings[extensionName] = extensionSettings;
     saveSettingsDebounced();
 }
 
@@ -357,6 +366,140 @@ function validateInventoryStructure(inventory, source) {
         saveSettings();
         if (source === 'chat') {
             saveChatData();
+        }
+    }
+}
+
+/**
+ * Migrates old settings format to new trackerConfig format
+ * Converts statNames to customStats array and sets up default config
+ */
+function migrateToTrackerConfig() {
+    // Initialize trackerConfig if it doesn't exist
+    if (!extensionSettings.trackerConfig) {
+        extensionSettings.trackerConfig = {
+            userStats: {
+                customStats: [],
+                showRPGAttributes: true,
+                statusSection: {
+                    enabled: true,
+                    showMoodEmoji: true,
+                    customFields: ['Conditions']
+                },
+                skillsSection: {
+                    enabled: false,
+                    label: 'Skills'
+                }
+            },
+            infoBox: {
+                widgets: {
+                    date: { enabled: true, format: 'Weekday, Month, Year' },
+                    weather: { enabled: true },
+                    temperature: { enabled: true, unit: 'C' },
+                    time: { enabled: true },
+                    location: { enabled: true },
+                    recentEvents: { enabled: true }
+                }
+            },
+            presentCharacters: {
+                showEmoji: true,
+                showName: true,
+                customFields: [
+                    { id: 'physicalState', label: 'Physical State', enabled: true, placeholder: 'Visible Physical State (up to three traits)' },
+                    { id: 'demeanor', label: 'Demeanor Cue', enabled: true, placeholder: 'Observable Demeanor Cue (one trait)' },
+                    { id: 'relationship', label: 'Relationship', enabled: true, type: 'relationship', placeholder: 'Enemy/Neutral/Friend/Lover' },
+                    { id: 'internalMonologue', label: 'Internal Monologue', enabled: true, placeholder: 'Internal Monologue (in first person POV, up to three sentences long)' }
+                ],
+                characterStats: {
+                    enabled: false,
+                    stats: []
+                }
+            }
+        };
+    }
+
+    // Migrate old statNames to customStats if statNames exists
+    if (extensionSettings.statNames && extensionSettings.trackerConfig.userStats.customStats.length === 0) {
+        const statOrder = ['health', 'satiety', 'energy', 'hygiene', 'arousal'];
+        extensionSettings.trackerConfig.userStats.customStats = statOrder.map(id => ({
+            id: id,
+            name: extensionSettings.statNames[id] || id.charAt(0).toUpperCase() + id.slice(1),
+            enabled: true
+        }));
+        console.log('[RPG Companion] Migrated statNames to customStats array');
+    }
+
+    // Ensure all stats have corresponding values in userStats
+    if (extensionSettings.userStats) {
+        for (const stat of extensionSettings.trackerConfig.userStats.customStats) {
+            if (extensionSettings.userStats[stat.id] === undefined) {
+                extensionSettings.userStats[stat.id] = stat.id === 'arousal' ? 0 : 100;
+            }
+        }
+    }
+
+    // Migrate old presentCharacters structure to new format
+    if (extensionSettings.trackerConfig.presentCharacters) {
+        const pc = extensionSettings.trackerConfig.presentCharacters;
+
+        // Check if using old flat customFields structure (has 'label' or 'placeholder' keys)
+        if (pc.customFields && pc.customFields.length > 0) {
+            const hasOldFormat = pc.customFields.some(f => f.label || f.placeholder || f.type === 'relationship');
+
+            if (hasOldFormat) {
+                console.log('[RPG Companion] Migrating Present Characters to new structure');
+
+                // Extract relationship fields from old customFields
+                const relationshipFields = ['Lover', 'Friend', 'Ally', 'Enemy', 'Neutral'];
+
+                // Extract non-relationship fields and convert to new format
+                const newCustomFields = pc.customFields
+                    .filter(f => f.type !== 'relationship' && f.id !== 'internalMonologue')
+                    .map(f => ({
+                        id: f.id,
+                        name: f.label || f.name || 'Field',
+                        enabled: f.enabled !== false,
+                        description: f.placeholder || f.description || ''
+                    }));
+
+                // Extract thoughts config from old Internal Monologue field
+                const thoughtsField = pc.customFields.find(f => f.id === 'internalMonologue');
+                const thoughts = {
+                    enabled: thoughtsField ? (thoughtsField.enabled !== false) : true,
+                    name: 'Thoughts',
+                    description: thoughtsField?.placeholder || 'Internal monologue (in first person POV, up to three sentences long)'
+                };
+
+                // Update to new structure
+                pc.relationshipFields = relationshipFields;
+                pc.customFields = newCustomFields;
+                pc.thoughts = thoughts;
+
+                console.log('[RPG Companion] Present Characters migration complete');
+                saveSettings(); // Persist the migration
+            }
+        }
+
+        // Ensure new structure exists even if migration wasn't needed
+        if (!pc.relationshipFields) {
+            pc.relationshipFields = ['Lover', 'Friend', 'Ally', 'Enemy', 'Neutral'];
+        }
+        if (!pc.relationshipEmojis) {
+            // Create default emoji mapping from relationshipFields
+            pc.relationshipEmojis = {
+                'Lover': '❤️',
+                'Friend': '⭐',
+                'Ally': '🤝',
+                'Enemy': '⚔️',
+                'Neutral': '⚖️'
+            };
+        }
+        if (!pc.thoughts) {
+            pc.thoughts = {
+                enabled: true,
+                name: 'Thoughts',
+                description: 'Internal monologue (in first person POV, up to three sentences long)'
+            };
         }
     }
 }
