@@ -82,85 +82,45 @@ export function generateDefaultDashboard() {
                     }
                 ]
             },
-            // Tab 2: Scene (Scene info widgets + characters)
+            // Tab 2: Scene (Combined scene info widget + events + characters)
             {
                 id: 'tab-scene',
                 name: 'Scene',
                 icon: 'fa-solid fa-map',
                 order: 1,
                 widgets: [
-                    // Row 0: Calendar (left) + Weather (right)
+                    // Row 0-2: Scene Info (combined: calendar, weather, temp, clock, location)
                     {
-                        id: 'widget-calendar',
-                        type: 'calendar',
+                        id: 'widget-sceneinfo',
+                        type: 'sceneInfo',
                         x: 0,
                         y: 0,
-                        w: 1,
-                        h: 1,
-                        config: {}
-                    },
-                    {
-                        id: 'widget-weather',
-                        type: 'weather',
-                        x: 1,
-                        y: 0,
-                        w: 1,
-                        h: 1,
-                        config: {
-                            compact: false
-                        }
-                    },
-                    // Row 1: Temperature (left) + Clock (right)
-                    {
-                        id: 'widget-temperature',
-                        type: 'temperature',
-                        x: 0,
-                        y: 1,
-                        w: 1,
-                        h: 1,
-                        config: {
-                            unit: 'celsius'
-                        }
-                    },
-                    {
-                        id: 'widget-clock',
-                        type: 'clock',
-                        x: 1,
-                        y: 1,
-                        w: 1,
-                        h: 1,
-                        config: {
-                            format: 'digital'
-                        }
-                    },
-                    // Row 2-3: Location (full width)
-                    {
-                        id: 'widget-location',
-                        type: 'location',
-                        x: 0,
-                        y: 2,
                         w: 2,
-                        h: 2,
-                        config: {}
+                        h: 3,
+                        config: {
+                            views: ['calendar', 'weather', 'temperature', 'clock', 'location'],
+                            defaultView: 'calendar',
+                            showEmptyViews: false
+                        }
                     },
-                    // Row 4-5: Recent Events (notebook style, full width)
+                    // Row 3-4: Recent Events (notebook style, full width)
                     {
                         id: 'widget-recentevents',
                         type: 'recentEvents',
                         x: 0,
-                        y: 4,
+                        y: 3,
                         w: 2,
                         h: 2,
                         config: {
                             maxEvents: 3
                         }
                     },
-                    // Row 6-10: Present Characters (full width, will expand with auto-layout)
+                    // Row 5-8: Present Characters (full width, will expand with auto-layout)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
-                        y: 6,
+                        y: 5,
                         w: 2,
                         h: 4,
                         config: {
