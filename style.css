@@ -6373,5 +6373,133 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     .rpg-main-quest-actions button {
         width: 100%;
     }
+
+    /* ========================================
+       MOBILE FONT SIZE OVERRIDES
+       Fix all vw-based font sizes for mobile readability
+       ======================================== */
+
+    /* Collapse toggle button */
+    .rpg-collapse-toggle {
+        font-size: clamp(16px, 3vw, 20px) !important;
+    }
+
+    /* Top position panel titles */
+    .rpg-panel.rpg-position-top .rpg-stats-title {
+        font-size: clamp(12px, 2.6vw, 16px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-mood {
+        font-size: clamp(10px, 2vw, 13px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-classic-stats-title {
+        font-size: clamp(10px, 2vw, 13px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-classic-stat-label {
+        font-size: clamp(8px, 1.7vw, 11px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-classic-stat-value {
+        font-size: clamp(12px, 2.6vw, 16px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-classic-stat-btn {
+        font-size: clamp(10px, 2.2vw, 14px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-info-content,
+    .rpg-panel.rpg-position-top .rpg-thoughts-content {
+        font-size: clamp(10px, 2.2vw, 14px) !important;
+    }
+
+    /* Panel header */
+    .rpg-panel-header h3 {
+        font-size: clamp(14px, 3.4vw, 18px) !important;
+    }
+
+    /* Loading indicator */
+    .rpg-loading {
+        font-size: clamp(12px, 2.6vw, 16px) !important;
+    }
+
+    /* Dice display */
+    .rpg-dice-display {
+        font-size: clamp(10px, 2vw, 13px) !important;
+    }
+
+    .rpg-dice-display i {
+        font-size: clamp(12px, 2.6vw, 16px) !important;
+    }
+
+    .rpg-clear-dice-btn {
+        font-size: clamp(14px, 3vw, 18px) !important;
+    }
 }
+
+/* ========================================
+   MOBILE FONT SIZE OVERRIDES (ALL SCREENS)
+   Apply to screens up to 1000px
+   ======================================== */
+@media (max-width: 1000px) {
+    /* Collapse toggle button */
+    .rpg-collapse-toggle {
+        font-size: clamp(16px, 3vw, 20px) !important;
+    }
+
+    /* Top position panel titles */
+    .rpg-panel.rpg-position-top .rpg-stats-title {
+        font-size: clamp(12px, 2.6vw, 16px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-mood {
+        font-size: clamp(10px, 2vw, 13px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-classic-stats-title {
+        font-size: clamp(10px, 2vw, 13px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-classic-stat-label {
+        font-size: clamp(8px, 1.7vw, 11px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-classic-stat-value {
+        font-size: clamp(12px, 2.6vw, 16px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-classic-stat-btn {
+        font-size: clamp(10px, 2.2vw, 14px) !important;
+    }
+
+    .rpg-panel.rpg-position-top .rpg-info-content,
+    .rpg-panel.rpg-position-top .rpg-thoughts-content {
+        font-size: clamp(10px, 2.2vw, 14px) !important;
+    }
+
+    /* Panel header */
+    .rpg-panel-header h3 {
+        font-size: clamp(14px, 3.4vw, 18px) !important;
+    }
+
+    /* Loading indicator */
+    .rpg-loading {
+        font-size: clamp(12px, 2.6vw, 16px) !important;
+    }
+
+    /* Dice display */
+    .rpg-dice-display {
+        font-size: clamp(10px, 2vw, 13px) !important;
+    }
+
+    .rpg-dice-display i {
+        font-size: clamp(12px, 2.6vw, 16px) !important;
+    }
+
+    .rpg-clear-dice-btn {
+        font-size: clamp(14px, 3vw, 18px) !important;
+    }
+}
+
 
