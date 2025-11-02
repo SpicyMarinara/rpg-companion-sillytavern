@@ -76,6 +76,7 @@ export class DashboardManager {
         this.currentTabId = null;
         this.widgets = new Map(); // widgetId => { widget data, element, tab }
         this.defaultLayout = null;
+        this.previousTrackerConfig = null; // For detecting config changes
 
         // Dashboard data structure (for TabManager)
         this.dashboard = {
@@ -1671,6 +1672,169 @@ export class DashboardManager {
     }
 
     /**
+     * Widget-to-tab mapping for smart widget placement
+     * Maps widget types to their preferred tab IDs
+     */
+    static WIDGET_TO_TAB_MAP = {
+        'calendar': 'tab-scene',
+        'weather': 'tab-scene',
+        'temperature': 'tab-scene',
+        'clock': 'tab-scene',
+        'location': 'tab-scene',
+        'presentCharacters': 'tab-scene',
+        'userStats': 'tab-status',
+        'userInfo': 'tab-status',
+        'userMood': 'tab-status',
+        'userAttributes': 'tab-status',
+        'inventory': 'tab-inventory',
+        'quests': 'tab-quests'
+    };
+
+    /**
+     * Detect config changes between old and new tracker configs
+     * Identifies fields that transitioned from disabled to enabled
+     * @param {Object} oldConfig - Previous tracker configuration
+     * @param {Object} newConfig - New tracker configuration
+     * @returns {Array<string>} Array of widget types that should be re-added
+     */
+    detectConfigChanges(oldConfig, newConfig) {
+        if (!oldConfig) {
+            // First run, no changes to detect
+            return [];
+        }
+
+        const widgetsToAdd = [];
+
+        // Check infoBox widgets (calendar, weather, temperature, clock, location)
+        const infoBoxWidgetMap = {
+            'date': 'calendar',
+            'weather': 'weather',
+            'temperature': 'temperature',
+            'time': 'clock',
+            'location': 'location'
+        };
+
+        Object.entries(infoBoxWidgetMap).forEach(([fieldKey, widgetType]) => {
+            const wasDisabled = oldConfig.infoBox?.widgets?.[fieldKey]?.enabled === false;
+            const isNowEnabled = newConfig.infoBox?.widgets?.[fieldKey]?.enabled !== false;
+
+            if (wasDisabled && isNowEnabled) {
+                widgetsToAdd.push(widgetType);
+                console.log(`[DashboardManager] Detected re-enabled field: ${fieldKey} → widget: ${widgetType}`);
+            }
+        });
+
+        // Check userStats widget (enabled when at least one stat is enabled)
+        const oldStatsEnabled = oldConfig.userStats?.customStats?.filter(s => s.enabled).length > 0;
+        const newStatsEnabled = newConfig.userStats?.customStats?.filter(s => s.enabled).length > 0;
+
+        if (!oldStatsEnabled && newStatsEnabled) {
+            widgetsToAdd.push('userStats');
+            console.log('[DashboardManager] Detected re-enabled userStats widget');
+        }
+
+        // Check presentCharacters widget
+        const wasThoughtsDisabled = oldConfig.presentCharacters?.thoughts?.enabled === false;
+        const isThoughtsEnabled = newConfig.presentCharacters?.thoughts?.enabled !== false;
+
+        if (wasThoughtsDisabled && isThoughtsEnabled) {
+            widgetsToAdd.push('presentCharacters');
+            console.log('[DashboardManager] Detected re-enabled presentCharacters widget');
+        }
+
+        return widgetsToAdd;
+    }
+
+    /**
+     * Add widgets that were re-enabled in tracker config
+     * @param {Array<string>} widgetTypes - Array of widget types to add
+     */
+    addEnabledWidgets(widgetTypes) {
+        if (widgetTypes.length === 0) {
+            return;
+        }
+
+        console.log(`[DashboardManager] Adding ${widgetTypes.length} re-enabled widgets:`, widgetTypes);
+
+        const addedWidgets = [];
+
+        widgetTypes.forEach(widgetType => {
+            // Get widget definition
+            const definition = this.registry.get(widgetType);
+            if (!definition) {
+                console.warn(`[DashboardManager] Widget type "${widgetType}" not found in registry`);
+                return;
+            }
+
+            // Determine target tab using mapping
+            const preferredTabId = DashboardManager.WIDGET_TO_TAB_MAP[widgetType] || 'tab-status';
+            const targetTab = this.tabManager.getTab(preferredTabId);
+
+            // Fallback to first tab if preferred tab doesn't exist
+            const tab = targetTab || this.dashboard.tabs[0];
+            if (!tab) {
+                console.warn(`[DashboardManager] No tab available to add widget ${widgetType}`);
+                return;
+            }
+
+            // Check for duplicates - don't add if widget type already exists in this tab
+            const alreadyExists = tab.widgets?.some(w => w.type === widgetType);
+            if (alreadyExists) {
+                console.log(`[DashboardManager] Widget ${widgetType} already exists in tab ${tab.id}, skipping`);
+                return;
+            }
+
+            // Generate unique widget ID
+            const widgetId = `widget-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            // Find available position in the target tab
+            const position = this.findAvailablePositionInWidgets(
+                definition.defaultSize,
+                tab.widgets || []
+            );
+
+            // Create widget data
+            const widget = {
+                id: widgetId,
+                type: widgetType,
+                x: position.x,
+                y: position.y,
+                w: definition.defaultSize.w,
+                h: definition.defaultSize.h,
+                config: {}
+            };
+
+            // Add to tab
+            if (!tab.widgets) {
+                tab.widgets = [];
+            }
+            tab.widgets.push(widget);
+
+            console.log(`[DashboardManager] Added widget ${widgetType} (${widgetId}) to tab ${tab.id} at (${position.x}, ${position.y})`);
+
+            addedWidgets.push({
+                widgetId,
+                widgetType,
+                tabId: tab.id
+            });
+        });
+
+        // Auto-layout affected tabs to optimize positioning
+        if (addedWidgets.length > 0) {
+            const affectedTabs = new Set(addedWidgets.map(w => w.tabId));
+            affectedTabs.forEach(tabId => {
+                const tab = this.tabManager.getTab(tabId);
+                if (tab && tab.widgets && tab.widgets.length > 0) {
+                    console.log(`[DashboardManager] Auto-layouting tab ${tabId} after widget addition`);
+                    this.gridEngine.autoLayout(tab.widgets, { preserveOrder: true });
+                }
+            });
+        }
+
+        console.log(`[DashboardManager] Added ${addedWidgets.length} widgets`);
+    }
+
+    /**
      * Handle tracker configuration changes from editor
      * Removes disabled widgets and refreshes remaining widgets
      * @param {Object} config - New tracker configuration
@@ -1678,25 +1842,54 @@ export class DashboardManager {
     onTrackerConfigChanged(config) {
         console.log('[DashboardManager] Processing tracker config changes...');
 
-        // Step 1: Remove widgets that are now disabled
+        // Step 1: Detect config changes (disabled → enabled)
+        const widgetsToAdd = this.detectConfigChanges(this.previousTrackerConfig, config);
+
+        // Step 2: Remove widgets that are now disabled
         const removedWidgets = this.removeDisabledWidgets(config);
 
-        // Step 2: If widgets were removed, auto-layout affected tabs
+        // Step 3: Add widgets that were re-enabled
+        this.addEnabledWidgets(widgetsToAdd);
+
+        // Step 4: If widgets were removed or added, auto-layout affected tabs
+        const allAffectedTabs = new Set([
+            ...removedWidgets.map(w => w.tabId),
+            // Note: addEnabledWidgets already handles auto-layout for added widgets
+        ]);
+
         if (removedWidgets.length > 0) {
-            const affectedTabs = new Set(removedWidgets.map(w => w.tabId));
-            affectedTabs.forEach(tabId => {
+            allAffectedTabs.forEach(tabId => {
                 const tab = this.tabManager.getTab(tabId);
                 if (tab && tab.widgets && tab.widgets.length > 0) {
-                    console.log(`[DashboardManager] Auto-layouting tab ${tabId} after widget removal`);
+                    console.log(`[DashboardManager] Auto-layouting tab ${tabId} after changes`);
                     this.gridEngine.autoLayout(tab.widgets, { preserveOrder: true });
                 }
             });
         }
 
-        // Step 3: Refresh all remaining widgets (re-render with new config)
+        // Step 5: Refresh all widgets (re-render with new config)
+        // This updates widget content (e.g., renamed stats) without repositioning
         this.refreshAllWidgets();
 
-        // Step 4: Save layout changes
+        // Step 6: If widgets were added to current tab, re-render to show them
+        if (widgetsToAdd.length > 0) {
+            const currentTab = this.tabManager.getTab(this.currentTabId);
+            if (currentTab) {
+                // Re-render current tab to show newly added widgets
+                this.clearGrid();
+                currentTab.widgets.forEach(widget => {
+                    const definition = this.registry.get(widget.type);
+                    if (definition) {
+                        this.renderWidget(widget, definition);
+                    }
+                });
+            }
+        }
+
+        // Step 7: Store current config for next comparison
+        this.previousTrackerConfig = JSON.parse(JSON.stringify(config)); // Deep clone
+
+        // Step 8: Save layout changes
         this.triggerAutoSave();
 
         console.log('[DashboardManager] Tracker config refresh complete');
