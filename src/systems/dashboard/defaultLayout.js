@@ -155,14 +155,14 @@ export function generateDefaultDashboard() {
                             maxEvents: 3
                         }
                     },
-                    // Row 6-8: Present Characters (full width, will expand with auto-layout)
+                    // Row 6-10: Present Characters (full width, will expand with auto-layout)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
                         y: 6,
                         w: 2,
-                        h: 3,
+                        h: 4,
                         config: {
                             cardLayout: 'grid',
                             showThoughtBubbles: true

@@ -104,6 +104,14 @@ export async function initializeDashboard(dependencies) {
         dashboardManager.setDefaultLayout(defaultLayout);
         console.log('[RPG Companion] Default layout set with', defaultLayout.tabs.length, 'tabs');
 
+        // Initialize previousTrackerConfig to enable widget detection on first load
+        // Without this, detectConfigChanges() returns [] because oldConfig is null
+        const settings = dependencies.getExtensionSettings();
+        if (settings?.trackerConfig && dashboardManager) {
+            dashboardManager.previousTrackerConfig = JSON.parse(JSON.stringify(settings.trackerConfig));
+            console.log('[RPG Companion] Initialized previousTrackerConfig for widget detection');
+        }
+
         // Set up dashboard event listeners
         setupDashboardEventListeners(dependencies);
 

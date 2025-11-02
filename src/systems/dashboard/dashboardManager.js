@@ -1439,6 +1439,11 @@ export class DashboardManager {
         console.log('[DashboardManager] Regenerating fresh default layout...');
         this.defaultLayout = generateDefaultDashboard();
 
+        // Reset previousTrackerConfig for fresh widget detection
+        // This ensures the comparison logic works correctly after reset
+        this.previousTrackerConfig = null;
+        console.log('[DashboardManager] Reset previousTrackerConfig for fresh widget detection');
+
         if (!this.defaultLayout) {
             console.warn('[DashboardManager] Failed to generate default layout');
             return;
