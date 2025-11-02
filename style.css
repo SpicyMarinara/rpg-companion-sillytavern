@@ -2563,7 +2563,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-notebook-title {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: 12px;
+    font-size: clamp(10px, 0.6vw, 14px);
     font-weight: bold;
     color: var(--rpg-highlight);
     text-align: center;
@@ -2600,7 +2601,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-bullet {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: 12px;
+    font-size: clamp(10px, 0.6vw, 14px);
     color: var(--rpg-highlight);
     flex-shrink: 0;
     line-height: 1.4;
@@ -2613,7 +2615,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-event-text {
-    font-size: clamp(0.45vw, 0.55vw, 0.65vw);
+    font-size: 11px;
+    font-size: clamp(9px, 0.55vw, 13px);
     color: var(--rpg-text);
     line-height: 1.4;
     flex: 1;
@@ -6223,6 +6226,47 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     .rpg-widget .rpg-mood-conditions {
         font-size: 0.7rem !important;
         line-height: 1.3 !important;
+    }
+
+    /* Recent Events Widget - optimize notebook for mobile */
+    .rpg-widget .rpg-events-widget {
+        padding: 0.2rem !important;
+        gap: 0.1rem !important;
+    }
+
+    .rpg-widget .rpg-notebook-header {
+        padding: 0.2rem !important;
+        gap: 0.15rem !important;
+    }
+
+    .rpg-widget .rpg-notebook-ring {
+        width: 0.15rem !important;
+        height: 0.35rem !important;
+    }
+
+    .rpg-widget .rpg-notebook-title {
+        font-size: 0.6rem !important;
+        padding: 0.15rem 0.3rem !important;
+        letter-spacing: 0.02em !important;
+    }
+
+    .rpg-widget .rpg-notebook-lines {
+        padding: 0.2rem 0.4rem 0.3rem 0.4rem !important;
+        gap: 0.1rem !important;
+    }
+
+    .rpg-widget .rpg-notebook-line {
+        gap: 0.25rem !important;
+    }
+
+    .rpg-widget .rpg-bullet {
+        font-size: 0.6rem !important;
+    }
+
+    .rpg-widget .rpg-event-text {
+        font-size: 0.55rem !important;
+        line-height: 1.3 !important;
+        padding: 0.1rem 0.2rem !important;
     }
 
     /* ========================================

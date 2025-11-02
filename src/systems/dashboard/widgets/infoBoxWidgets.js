@@ -538,7 +538,7 @@ export function registerRecentEventsWidget(registry, dependencies) {
                 eventsHtml += `
                     <div class="rpg-notebook-line">
                         <span class="rpg-bullet">•</span>
-                        <span class="rpg-event-text rpg-editable-event" contenteditable="true" data-event-index="${i}" title="Click to edit">${validEvents[i]}</span>
+                        <span class="rpg-event-text rpg-editable" contenteditable="true" data-event-index="${i}" title="Click to edit">${validEvents[i]}</span>
                     </div>
                 `;
             }
@@ -548,22 +548,24 @@ export function registerRecentEventsWidget(registry, dependencies) {
                 eventsHtml += `
                     <div class="rpg-notebook-line rpg-event-add">
                         <span class="rpg-bullet">+</span>
-                        <span class="rpg-event-text rpg-editable-event rpg-event-placeholder" contenteditable="true" data-event-index="${i}" title="Click to add event">Add event...</span>
+                        <span class="rpg-event-text rpg-editable rpg-event-placeholder" contenteditable="true" data-event-index="${i}" title="Click to add event">Add event...</span>
                     </div>
                 `;
             }
 
             // Render HTML
             const html = `
-                <div class="rpg-events-widget">
-                    <div class="rpg-notebook-header">
-                        <div class="rpg-notebook-ring"></div>
-                        <div class="rpg-notebook-ring"></div>
-                        <div class="rpg-notebook-ring"></div>
-                    </div>
-                    <div class="rpg-notebook-title">Recent Events</div>
-                    <div class="rpg-notebook-lines">
-                        ${eventsHtml}
+                <div class="rpg-dashboard-widget">
+                    <div class="rpg-events-widget">
+                        <div class="rpg-notebook-header">
+                            <div class="rpg-notebook-ring"></div>
+                            <div class="rpg-notebook-ring"></div>
+                            <div class="rpg-notebook-ring"></div>
+                        </div>
+                        <div class="rpg-notebook-title">Recent Events</div>
+                        <div class="rpg-notebook-lines">
+                            ${eventsHtml}
+                        </div>
                     </div>
                 </div>
             `;
@@ -607,7 +609,7 @@ export function registerRecentEventsWidget(registry, dependencies) {
  * @private
  */
 function attachRecentEventsHandlers(container, dependencies) {
-    const eventFields = container.querySelectorAll('.rpg-editable-event');
+    const eventFields = container.querySelectorAll('.rpg-editable');
 
     eventFields.forEach(field => {
         const eventIndex = parseInt(field.dataset.eventIndex);
