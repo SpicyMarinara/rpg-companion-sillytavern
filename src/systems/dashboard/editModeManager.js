@@ -59,18 +59,10 @@ export class EditModeManager {
         // Store original layout for cancel
         this.originalLayout = this.captureLayout();
 
-        // Hide edit mode button, show done button and edit mode controls
+        // Hide edit mode button (menu-only controls managed by headerOverflowManager)
         const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
-        const doneBtn = document.querySelector('#rpg-dashboard-done-edit');
-        const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
-        const exportBtn = document.querySelector('#rpg-dashboard-export-layout');
-        const importBtn = document.querySelector('#rpg-dashboard-import-layout');
 
         if (editModeBtn) editModeBtn.style.display = 'none';
-        if (doneBtn) doneBtn.style.display = '';
-        if (addWidgetBtn) addWidgetBtn.style.display = '';
-        if (exportBtn) exportBtn.style.display = '';
-        if (importBtn) importBtn.style.display = '';
 
         // Disable content editing to prevent keyboard from messing up layout
         this.disableContentEditing();
@@ -112,18 +104,10 @@ export class EditModeManager {
         // Re-enable content editing
         this.enableContentEditing();
 
-        // Show edit mode button, hide done button and edit controls
+        // Show edit mode button (menu-only controls managed by headerOverflowManager)
         const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
-        const doneBtn = document.querySelector('#rpg-dashboard-done-edit');
-        const addWidgetBtn = document.querySelector('#rpg-dashboard-add-widget');
-        const exportBtn = document.querySelector('#rpg-dashboard-export-layout');
-        const importBtn = document.querySelector('#rpg-dashboard-import-layout');
 
         if (editModeBtn) editModeBtn.style.display = '';
-        if (doneBtn) doneBtn.style.display = 'none';
-        if (addWidgetBtn) addWidgetBtn.style.display = 'none';
-        if (exportBtn) exportBtn.style.display = 'none';
-        if (importBtn) importBtn.style.display = 'none';
 
         // Remove edit class from container
         this.container.classList.remove('edit-mode');

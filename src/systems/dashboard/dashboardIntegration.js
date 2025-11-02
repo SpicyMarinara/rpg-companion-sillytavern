@@ -127,6 +127,11 @@ export async function initializeDashboard(dependencies) {
         if (headerRight) {
             headerOverflowManager = new HeaderOverflowManager(headerRight);
             headerOverflowManager.init();
+
+            // Wire up editModeManager for menu filtering
+            if (dashboardManager?.editManager) {
+                headerOverflowManager.setEditModeManager(dashboardManager.editManager);
+            }
         }
 
         console.log('[RPG Companion] Dashboard v2 initialized successfully');

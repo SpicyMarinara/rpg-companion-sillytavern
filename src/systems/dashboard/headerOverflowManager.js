@@ -27,6 +27,7 @@ export class HeaderOverflowManager {
         this.menuOpen = false;
         this.resizeObserver = null;
         this.resizeTimeout = null;
+        this.editModeManager = null; // Reference to EditModeManager for menu filtering
 
         // Element references
         this.priorityButtons = null;
@@ -40,6 +41,14 @@ export class HeaderOverflowManager {
         this.boundCloseMenu = this.closeMenu.bind(this);
         this.boundKeyHandler = this.handleKeyDown.bind(this);
         this.boundClickOutside = this.handleClickOutside.bind(this);
+    }
+
+    /**
+     * Set EditModeManager reference for menu filtering
+     * @param {EditModeManager} editModeManager - Edit mode manager instance
+     */
+    setEditModeManager(editModeManager) {
+        this.editModeManager = editModeManager;
     }
 
     /**
@@ -138,18 +147,24 @@ export class HeaderOverflowManager {
     }
 
     /**
-     * Full Mode: Show all buttons
+     * Full Mode: Show all buttons except menu-only
      */
     setFullMode() {
-        // Show all overflow buttons
+        // Show all overflow buttons except menu-only ones
         this.overflowButtons.forEach(btn => {
-            // Only show buttons that don't have inline display:none in the template
-            const inlineStyle = btn.getAttribute('style');
-            if (!inlineStyle || !inlineStyle.includes('display: none')) {
-                btn.style.display = '';
+            // Menu-only buttons always stay hidden (managed by menu)
+            if (btn.classList.contains('rpg-menu-only-btn')) {
+                btn.style.display = 'none';
+                btn.dataset.wasVisible = 'true'; // Mark as available for menu
+            } else {
+                // Only show buttons that don't have inline display:none in the template
+                const inlineStyle = btn.getAttribute('style');
+                if (!inlineStyle || !inlineStyle.includes('display: none')) {
+                    btn.style.display = '';
+                }
+                // Clear the wasVisible flag for non-menu-only buttons
+                delete btn.dataset.wasVisible;
             }
-            // Clear the wasVisible flag
-            delete btn.dataset.wasVisible;
         });
 
         // Hide menu buttons
@@ -164,8 +179,13 @@ export class HeaderOverflowManager {
         // Hide overflow buttons (will be in dropdown)
         // Store original visibility before hiding
         this.overflowButtons.forEach(btn => {
-            const computedStyle = window.getComputedStyle(btn);
-            btn.dataset.wasVisible = computedStyle.display !== 'none' ? 'true' : 'false';
+            // Menu-only buttons are always available in menu
+            if (btn.classList.contains('rpg-menu-only-btn')) {
+                btn.dataset.wasVisible = 'true';
+            } else {
+                const computedStyle = window.getComputedStyle(btn);
+                btn.dataset.wasVisible = computedStyle.display !== 'none' ? 'true' : 'false';
+            }
             btn.style.display = 'none';
         });
 
@@ -184,8 +204,13 @@ export class HeaderOverflowManager {
         // Hide all overflow buttons
         // Store original visibility before hiding
         this.overflowButtons.forEach(btn => {
-            const computedStyle = window.getComputedStyle(btn);
-            btn.dataset.wasVisible = computedStyle.display !== 'none' ? 'true' : 'false';
+            // Menu-only buttons are always available in menu
+            if (btn.classList.contains('rpg-menu-only-btn')) {
+                btn.dataset.wasVisible = 'true';
+            } else {
+                const computedStyle = window.getComputedStyle(btn);
+                btn.dataset.wasVisible = computedStyle.display !== 'none' ? 'true' : 'false';
+            }
             btn.style.display = 'none';
         });
 
@@ -209,8 +234,20 @@ export class HeaderOverflowManager {
             : this.overflowButtons;
 
         // Filter visible buttons (only include buttons that were visible before being hidden)
+        // Also filter menu-only buttons based on edit mode state
+        const isEditMode = this.editModeManager?.isEditMode || false;
         const visibleButtons = buttonsToShow.filter(btn => {
-            return btn.dataset.wasVisible === 'true';
+            // Check if button was marked as visible
+            if (btn.dataset.wasVisible !== 'true') {
+                return false;
+            }
+
+            // Menu-only buttons only show when in edit mode
+            if (btn.classList.contains('rpg-menu-only-btn')) {
+                return isEditMode;
+            }
+
+            return true;
         });
 
         if (visibleButtons.length === 0) {
