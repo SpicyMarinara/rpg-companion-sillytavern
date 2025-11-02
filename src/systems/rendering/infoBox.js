@@ -329,18 +329,18 @@ export function renderInfoBox() {
         let tempValue = data.tempValue || 20;
 
         // Apply temperature unit conversion
-        const preferredUnit = config.widgets.temperature.unit || 'celsius';
+        const preferredUnit = config.widgets.temperature.unit || 'C';
         if (data.temperature) {
             // Detect current unit in the data
             const isCelsius = tempDisplay.includes('°C');
             const isFahrenheit = tempDisplay.includes('°F');
 
-            if (preferredUnit === 'fahrenheit' && isCelsius) {
+            if (preferredUnit === 'F' && isCelsius) {
                 // Convert C to F
                 const fahrenheit = Math.round((tempValue * 9/5) + 32);
                 tempDisplay = `${fahrenheit}°F`;
                 tempValue = fahrenheit;
-            } else if (preferredUnit === 'celsius' && isFahrenheit) {
+            } else if (preferredUnit === 'C' && isFahrenheit) {
                 // Convert F to C
                 const celsius = Math.round((tempValue - 32) * 5/9);
                 tempDisplay = `${celsius}°C`;
@@ -348,12 +348,14 @@ export function renderInfoBox() {
             }
         } else {
             // No data yet, use default for preferred unit
-            tempDisplay = preferredUnit === 'fahrenheit' ? '68°F' : '20°C';
-            tempValue = preferredUnit === 'fahrenheit' ? 68 : 20;
+            tempDisplay = preferredUnit === 'F' ? '68°F' : '20°C';
+            tempValue = preferredUnit === 'F' ? 68 : 20;
         }
 
-        const tempPercent = Math.min(100, Math.max(0, ((tempValue + 20) / 60) * 100));
-        const tempColor = tempValue < 10 ? '#4a90e2' : tempValue < 25 ? '#67c23a' : '#e94560';
+        // Calculate thermometer display (convert to Celsius for consistent thresholds)
+        const tempInCelsius = preferredUnit === 'F' ? Math.round((tempValue - 32) * 5/9) : tempValue;
+        const tempPercent = Math.min(100, Math.max(0, ((tempInCelsius + 20) / 60) * 100));
+        const tempColor = tempInCelsius < 10 ? '#4a90e2' : tempInCelsius < 25 ? '#67c23a' : '#e94560';
         row1Widgets.push(`
             <div class="rpg-dashboard-widget rpg-temp-widget">
                 <div class="rpg-thermometer">

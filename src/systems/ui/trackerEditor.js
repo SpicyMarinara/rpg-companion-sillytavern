@@ -443,7 +443,7 @@ function renderPresentCharactersTab() {
                 <input type="text" value="${relationship}" class="rpg-relationship-name" placeholder="Relationship type">
                 <span class="rpg-arrow">→</span>
                 <input type="text" value="${emoji}" class="rpg-relationship-emoji" placeholder="Emoji" maxlength="4">
-                <button class="rpg-field-remove rpg-remove-relationship" data-relationship="${relationship}" title="Remove"><i class="fa-solid fa-trash"></i></button>
+                <button class="rpg-remove-relationship" data-relationship="${relationship}" title="Remove"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
     }

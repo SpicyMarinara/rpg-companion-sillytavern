@@ -1980,17 +1980,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-character-stat {
     flex-shrink: 0;
+}
+
+.rpg-character-stat .rpg-stat-name {
     font-size: clamp(0.5vw, 0.6vw, 0.7vw) !important;
     font-weight: 600 !important;
     white-space: nowrap !important;
-}
-
-.rpg-character-stat .rpg-stat-label {
-    color: var(--rpg-text) !important;
-}
-
-.rpg-character-stat .rpg-stat-value {
-    font-weight: bold !important;
 }
 
 /* Placeholder styles for empty sections */
@@ -3885,7 +3880,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: 0.95em;
 }
 
-.rpg-field-remove {
+.rpg-field-remove,
+.rpg-remove-relationship {
     flex-shrink: 0;
     padding: 0.375em 0.625em;
     background: var(--rpg-highlight);
@@ -3896,7 +3892,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transition: opacity 0.2s;
 }
 
-.rpg-field-remove:hover {
+.rpg-field-remove:hover,
+.rpg-remove-relationship:hover {
     opacity: 0.8;
 }
 
@@ -4936,6 +4933,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     .rpg-map-marker {
         font-size: clamp(16px, 4.1vw, 20px) !important;
+    }
+
+    /* Recent Events widget - mobile text sizing */
+    .rpg-notebook-title {
+        font-size: clamp(9px, 2.2vw, 11px) !important;
+    }
+
+    .rpg-bullet {
+        font-size: clamp(9px, 2.2vw, 11px) !important;
+    }
+
+    .rpg-event-text {
+        font-size: clamp(8px, 2vw, 10px) !important;
     }
 
     /* ========================================

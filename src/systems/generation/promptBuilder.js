@@ -170,7 +170,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += 'Weather: [Weather Emoji, Forecast]\n';
             }
             if (widgets.temperature?.enabled) {
-                const unit = widgets.temperature.unit === 'fahrenheit' ? '°F' : '°C';
+                const unit = widgets.temperature.unit === 'F' ? '°F' : '°C';
                 instructions += `Temperature: [Temperature in ${unit}]\n`;
             }
             if (widgets.time?.enabled) {
