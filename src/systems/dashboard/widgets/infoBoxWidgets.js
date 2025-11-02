@@ -24,7 +24,8 @@ function parseInfoBoxData(infoBoxText) {
             weatherEmoji: '', weatherForecast: '',
             temperature: '', tempValue: 0,
             timeStart: '', timeEnd: '',
-            location: ''
+            location: '',
+            recentEvents: []
         };
     }
 
@@ -34,7 +35,8 @@ function parseInfoBoxData(infoBoxText) {
         weatherEmoji: '', weatherForecast: '',
         temperature: '', tempValue: 0,
         timeStart: '', timeEnd: '',
-        location: ''
+        location: '',
+        recentEvents: []
     };
 
     for (const line of lines) {
@@ -85,6 +87,13 @@ function parseInfoBoxData(infoBoxText) {
                     data.weatherEmoji = potentialEmoji;
                     data.weatherForecast = forecast;
                 }
+            }
+        }
+        // Recent Events parsing
+        else if (line.startsWith('Recent Events:')) {
+            const eventsString = line.replace('Recent Events:', '').trim();
+            if (eventsString) {
+                data.recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
             }
         }
     }
@@ -475,4 +484,245 @@ function attachSimpleEditHandlers(container, dependencies) {
             document.execCommand('insertText', false, text);
         });
     });
+}
+
+/**
+ * Register Recent Events Widget
+ * @param {WidgetRegistry} registry - Widget registry instance
+ * @param {Object} dependencies - External dependencies
+ * @param {Function} dependencies.getExtensionSettings - Get extension settings
+ * @param {Function} dependencies.saveSettings - Save settings
+ */
+export function registerRecentEventsWidget(registry, dependencies) {
+    const { getExtensionSettings, saveSettings } = dependencies;
+
+    registry.register('recentEvents', {
+        name: 'Recent Events',
+        icon: '📝',
+        description: 'Recent events notebook',
+        category: 'scene',
+        minSize: { w: 2, h: 2 },
+        defaultSize: { w: 2, h: 2 },
+        requiresSchema: false,
+
+        /**
+         * Render widget content
+         * @param {HTMLElement} container - Widget container
+         * @param {Object} config - Widget configuration
+         */
+        render(container, config = {}) {
+            const settings = getExtensionSettings();
+            const infoBoxData = settings.committedTrackerData?.infoBox || '';
+            const data = parseInfoBoxData(infoBoxData);
+
+            // Merge default config with user config
+            const finalConfig = {
+                maxEvents: 3,
+                ...config
+            };
+
+            // Get events array (filter out placeholders)
+            let validEvents = data.recentEvents.filter(e =>
+                e && e.trim() &&
+                e !== 'Event 1' && e !== 'Event 2' && e !== 'Event 3' &&
+                e !== 'Click to add event' && e !== 'Add event...'
+            );
+
+            // If no valid events, show at least one placeholder
+            if (validEvents.length === 0) {
+                validEvents = ['Click to add event'];
+            }
+
+            // Build events HTML
+            let eventsHtml = '';
+
+            // Render existing events (max maxEvents)
+            for (let i = 0; i < Math.min(validEvents.length, finalConfig.maxEvents); i++) {
+                eventsHtml += `
+                    <div class="rpg-notebook-line">
+                        <span class="rpg-bullet">•</span>
+                        <span class="rpg-event-text rpg-editable-event" contenteditable="true" data-event-index="${i}" title="Click to edit">${validEvents[i]}</span>
+                    </div>
+                `;
+            }
+
+            // Add empty placeholders with + icon
+            for (let i = validEvents.length; i < finalConfig.maxEvents; i++) {
+                eventsHtml += `
+                    <div class="rpg-notebook-line rpg-event-add">
+                        <span class="rpg-bullet">+</span>
+                        <span class="rpg-event-text rpg-editable-event rpg-event-placeholder" contenteditable="true" data-event-index="${i}" title="Click to add event">Add event...</span>
+                    </div>
+                `;
+            }
+
+            // Render HTML
+            const html = `
+                <div class="rpg-events-widget">
+                    <div class="rpg-notebook-header">
+                        <div class="rpg-notebook-ring"></div>
+                        <div class="rpg-notebook-ring"></div>
+                        <div class="rpg-notebook-ring"></div>
+                    </div>
+                    <div class="rpg-notebook-title">Recent Events</div>
+                    <div class="rpg-notebook-lines">
+                        ${eventsHtml}
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+
+            // Attach event handlers
+            attachRecentEventsHandlers(container, settings, saveSettings);
+        },
+
+        /**
+         * Get configuration options
+         * @returns {Object} Configuration schema
+         */
+        getConfig() {
+            return {
+                maxEvents: {
+                    type: 'number',
+                    label: 'Max Events',
+                    default: 3,
+                    min: 1,
+                    max: 5,
+                    description: 'Maximum number of events to display'
+                }
+            };
+        },
+
+        /**
+         * Handle configuration changes
+         * @param {HTMLElement} container - Widget container
+         * @param {Object} newConfig - New configuration
+         */
+        onConfigChange(container, newConfig) {
+            this.render(container, newConfig);
+        }
+    });
+}
+
+/**
+ * Attach event handlers for Recent Events widget
+ * @private
+ */
+function attachRecentEventsHandlers(container, settings, saveSettings) {
+    const eventFields = container.querySelectorAll('.rpg-editable-event');
+
+    eventFields.forEach(field => {
+        const eventIndex = parseInt(field.dataset.eventIndex);
+        let originalValue = field.textContent.trim();
+
+        field.addEventListener('focus', () => {
+            originalValue = field.textContent.trim();
+            // Clear placeholder text on focus
+            if (field.classList.contains('rpg-event-placeholder')) {
+                field.textContent = '';
+            }
+            // Select all text
+            const range = document.createRange();
+            range.selectNodeContents(field);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
+
+        field.addEventListener('blur', () => {
+            const value = field.textContent.trim();
+
+            // Restore placeholder if empty
+            if (!value && field.classList.contains('rpg-event-placeholder')) {
+                field.textContent = 'Add event...';
+                return;
+            }
+
+            // Update if changed
+            if (value !== originalValue) {
+                updateRecentEvent(eventIndex, value, settings, saveSettings);
+            }
+        });
+
+        field.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                field.blur();
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                field.textContent = originalValue;
+                field.blur();
+            }
+        });
+
+        // Prevent paste with formatting
+        field.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+            document.execCommand('insertText', false, text);
+        });
+    });
+}
+
+/**
+ * Update a specific recent event in infoBox data
+ * @private
+ */
+function updateRecentEvent(eventIndex, value, settings, saveSettings) {
+    // Parse current infoBox to get existing events
+    const infoBoxData = settings.committedTrackerData?.infoBox || '';
+    const lines = infoBoxData.split('\n');
+    let recentEvents = [];
+
+    // Find existing Recent Events line
+    const recentEventsLine = lines.find(line => line.startsWith('Recent Events:'));
+    if (recentEventsLine) {
+        const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
+        if (eventsString) {
+            recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
+        }
+    }
+
+    // Ensure array has enough slots
+    while (recentEvents.length <= eventIndex) {
+        recentEvents.push('');
+    }
+
+    // Update the specific event
+    recentEvents[eventIndex] = value;
+
+    // Filter out empty events and rebuild the line
+    const validEvents = recentEvents.filter(e => e && e.trim());
+    const newRecentEventsLine = validEvents.length > 0
+        ? `Recent Events: ${validEvents.join(', ')}`
+        : '';
+
+    // Update infoBox with new Recent Events line
+    const updatedLines = lines.filter(line => !line.startsWith('Recent Events:'));
+    if (newRecentEventsLine) {
+        // Add Recent Events line at the end (before any empty lines)
+        let insertIndex = updatedLines.length;
+        for (let i = updatedLines.length - 1; i >= 0; i--) {
+            if (updatedLines[i].trim() !== '') {
+                insertIndex = i + 1;
+                break;
+            }
+        }
+        updatedLines.splice(insertIndex, 0, newRecentEventsLine);
+    }
+
+    const updatedInfoBox = updatedLines.join('\n');
+
+    // Update committed and last generated data
+    settings.committedTrackerData.infoBox = updatedInfoBox;
+    if (settings.lastGeneratedData) {
+        settings.lastGeneratedData.infoBox = updatedInfoBox;
+    }
+
+    // Save settings
+    saveSettings();
+
+    console.log(`[Recent Events Widget] Updated event ${eventIndex}: "${value}"`);
 }

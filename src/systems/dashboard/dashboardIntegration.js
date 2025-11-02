@@ -21,7 +21,7 @@ import { registerUserInfoWidget } from './widgets/userInfoWidget.js';
 import { registerUserStatsWidget } from './widgets/userStatsWidget.js';
 import { registerUserMoodWidget } from './widgets/userMoodWidget.js';
 import { registerUserAttributesWidget } from './widgets/userAttributesWidget.js';
-import { registerCalendarWidget, registerWeatherWidget, registerTemperatureWidget, registerClockWidget, registerLocationWidget } from './widgets/infoBoxWidgets.js';
+import { registerCalendarWidget, registerWeatherWidget, registerTemperatureWidget, registerClockWidget, registerLocationWidget, registerRecentEventsWidget } from './widgets/infoBoxWidgets.js';
 import { registerPresentCharactersWidget } from './widgets/presentCharactersWidget.js';
 import { registerInventoryWidget } from './widgets/inventoryWidget.js';
 import { registerQuestsWidget } from './widgets/questsWidget.js';
@@ -209,6 +209,7 @@ function registerAllWidgets(registry, dependencies) {
     registerTemperatureWidget(registry, dependencies);
     registerClockWidget(registry, dependencies);
     registerLocationWidget(registry, dependencies);
+    registerRecentEventsWidget(registry, dependencies);
 
     // Social widgets
     registerPresentCharactersWidget(registry, dependencies);

@@ -143,12 +143,24 @@ export function generateDefaultDashboard() {
                         h: 2,
                         config: {}
                     },
-                    // Row 4-6: Present Characters (full width, will expand with auto-layout)
+                    // Row 4-5: Recent Events (notebook style, full width)
+                    {
+                        id: 'widget-recentevents',
+                        type: 'recentEvents',
+                        x: 0,
+                        y: 4,
+                        w: 2,
+                        h: 2,
+                        config: {
+                            maxEvents: 3
+                        }
+                    },
+                    // Row 6-8: Present Characters (full width, will expand with auto-layout)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
-                        y: 4,
+                        y: 6,
                         w: 2,
                         h: 3,
                         config: {

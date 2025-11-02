@@ -1681,6 +1681,7 @@ export class DashboardManager {
         'temperature': 'tab-scene',
         'clock': 'tab-scene',
         'location': 'tab-scene',
+        'recentEvents': 'tab-scene',
         'presentCharacters': 'tab-scene',
         'userStats': 'tab-status',
         'userInfo': 'tab-status',
@@ -1705,13 +1706,14 @@ export class DashboardManager {
 
         const widgetsToAdd = [];
 
-        // Check infoBox widgets (calendar, weather, temperature, clock, location)
+        // Check infoBox widgets (calendar, weather, temperature, clock, location, recentEvents)
         const infoBoxWidgetMap = {
             'date': 'calendar',
             'weather': 'weather',
             'temperature': 'temperature',
             'time': 'clock',
-            'location': 'location'
+            'location': 'location',
+            'recentEvents': 'recentEvents'
         };
 
         Object.entries(infoBoxWidgetMap).forEach(([fieldKey, widgetType]) => {
@@ -1961,6 +1963,7 @@ export class DashboardManager {
             'temperature': () => config.infoBox?.widgets?.temperature?.enabled === false,
             'clock': () => config.infoBox?.widgets?.time?.enabled === false,
             'location': () => config.infoBox?.widgets?.location?.enabled === false,
+            'recentEvents': () => config.infoBox?.widgets?.recentEvents?.enabled === false,
             'userStats': () => {
                 const customStats = config.userStats?.customStats || [];
                 return customStats.filter(s => s.enabled).length === 0;
