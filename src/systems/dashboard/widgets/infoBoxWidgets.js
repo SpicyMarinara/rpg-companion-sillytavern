@@ -494,8 +494,6 @@ function attachSimpleEditHandlers(container, dependencies) {
  * @param {Function} dependencies.saveSettings - Save settings
  */
 export function registerRecentEventsWidget(registry, dependencies) {
-    const { getExtensionSettings, saveSettings } = dependencies;
-
     registry.register('recentEvents', {
         name: 'Recent Events',
         icon: '📝',
@@ -511,9 +509,8 @@ export function registerRecentEventsWidget(registry, dependencies) {
          * @param {Object} config - Widget configuration
          */
         render(container, config = {}) {
-            const settings = getExtensionSettings();
-            const infoBoxData = settings.committedTrackerData?.infoBox || '';
-            const data = parseInfoBoxData(infoBoxData);
+            const { getInfoBoxData } = dependencies;
+            const data = parseInfoBoxData(getInfoBoxData());
 
             // Merge default config with user config
             const finalConfig = {
@@ -574,7 +571,7 @@ export function registerRecentEventsWidget(registry, dependencies) {
             container.innerHTML = html;
 
             // Attach event handlers
-            attachRecentEventsHandlers(container, settings, saveSettings);
+            attachRecentEventsHandlers(container, dependencies);
         },
 
         /**
@@ -609,7 +606,7 @@ export function registerRecentEventsWidget(registry, dependencies) {
  * Attach event handlers for Recent Events widget
  * @private
  */
-function attachRecentEventsHandlers(container, settings, saveSettings) {
+function attachRecentEventsHandlers(container, dependencies) {
     const eventFields = container.querySelectorAll('.rpg-editable-event');
 
     eventFields.forEach(field => {
@@ -641,7 +638,7 @@ function attachRecentEventsHandlers(container, settings, saveSettings) {
 
             // Update if changed
             if (value !== originalValue) {
-                updateRecentEvent(eventIndex, value, settings, saveSettings);
+                updateRecentEvent(eventIndex, value, dependencies);
             }
         });
 
@@ -670,9 +667,11 @@ function attachRecentEventsHandlers(container, settings, saveSettings) {
  * Update a specific recent event in infoBox data
  * @private
  */
-function updateRecentEvent(eventIndex, value, settings, saveSettings) {
+function updateRecentEvent(eventIndex, value, dependencies) {
+    const { getInfoBoxData, setInfoBoxData, onDataChange } = dependencies;
+
     // Parse current infoBox to get existing events
-    const infoBoxData = settings.committedTrackerData?.infoBox || '';
+    const infoBoxData = getInfoBoxData() || '';
     const lines = infoBoxData.split('\n');
     let recentEvents = [];
 
@@ -715,14 +714,13 @@ function updateRecentEvent(eventIndex, value, settings, saveSettings) {
 
     const updatedInfoBox = updatedLines.join('\n');
 
-    // Update committed and last generated data
-    settings.committedTrackerData.infoBox = updatedInfoBox;
-    if (settings.lastGeneratedData) {
-        settings.lastGeneratedData.infoBox = updatedInfoBox;
-    }
+    // Save using dependency function (handles all necessary updates)
+    setInfoBoxData(updatedInfoBox);
 
-    // Save settings
-    saveSettings();
+    // Notify change
+    if (onDataChange) {
+        onDataChange('infoBox', 'recentEvents', value, { eventIndex });
+    }
 
     console.log(`[Recent Events Widget] Updated event ${eventIndex}: "${value}"`);
 }

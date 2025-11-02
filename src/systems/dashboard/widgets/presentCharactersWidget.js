@@ -43,54 +43,93 @@ function parseCharacterThoughts(thoughtsText) {
 
     const lines = thoughtsText.split('\n');
     const presentCharacters = [];
+    let currentChar = null;
 
     for (const line of lines) {
-        // Skip empty lines, headers, dividers
-        if (!line.trim() ||
-            line.includes('Present Characters') ||
-            line.includes('---') ||
-            line.trim().startsWith('```')) {
+        const trimmed = line.trim();
+
+        // Skip headers, dividers, and empty lines
+        if (!trimmed ||
+            trimmed.includes('Present Characters') ||
+            trimmed.includes('---') ||
+            trimmed.startsWith('```')) {
             continue;
         }
 
-        const parts = line.split('|').map(p => p.trim());
+        // New character entry (starts with -)
+        if (trimmed.startsWith('-')) {
+            // Save previous character
+            if (currentChar && currentChar.name && currentChar.name.toLowerCase() !== 'unavailable') {
+                presentCharacters.push(currentChar);
+            }
 
-        // Require at least 3 parts: Emoji:Name | Relationship | Thoughts
-        if (parts.length >= 3) {
-            const firstPart = parts[0].trim();
-            const emojiMatch = firstPart.match(/^(.+?):\s*(.+)$/);
+            // Start new character
+            const name = trimmed.replace(/^-\s*/, '').trim();
+            currentChar = {
+                name,
+                emoji: '😊', // Default emoji
+                traits: '',
+                relationship: 'Neutral',
+                thoughts: ''
+            };
+        }
+        // Details line: "Details: 🧐 | Trait1, Trait2 | More traits"
+        else if (trimmed.startsWith('Details:') && currentChar) {
+            const detailsText = trimmed.replace('Details:', '').trim();
+            const parts = detailsText.split('|').map(p => p.trim());
 
-            if (emojiMatch) {
-                const emoji = emojiMatch[1].trim();
-                const info = emojiMatch[2].trim();
+            // First part is emoji
+            if (parts[0]) {
+                currentChar.emoji = parts[0];
+            }
 
-                let relationship, thoughts, traits;
+            // Remaining parts are traits
+            if (parts.length > 1) {
+                currentChar.traits = parts.slice(1).join(', ');
+            }
+        }
+        // Relationship line: "Relationship: Ally (details)"
+        else if (trimmed.startsWith('Relationship:') && currentChar) {
+            currentChar.relationship = trimmed.replace('Relationship:', '').trim();
+        }
+        // Thoughts line: "Thoughts: ..."
+        else if (trimmed.startsWith('Thoughts:') && currentChar) {
+            currentChar.thoughts = trimmed.replace('Thoughts:', '').trim()
+                .replace(/^["']|["']$/g, ''); // Remove surrounding quotes
+        }
+        // Stats line: "Stats: ..." (optional, currently ignored but could be stored)
+        else if (trimmed.startsWith('Stats:') && currentChar) {
+            // Optional: could parse and store stats if needed
+            // For now, we'll skip it as the widget doesn't display character stats
+        }
+        // Legacy single-line format fallback: "🧐: Name, Traits | Relationship | Thoughts"
+        else if (trimmed.includes('|') && !currentChar) {
+            const parts = trimmed.split('|').map(p => p.trim());
 
-                if (parts.length === 3) {
-                    // 3-part format
-                    relationship = parts[1].trim();
-                    thoughts = parts[2].trim();
+            if (parts.length >= 3) {
+                const firstPart = parts[0].trim();
+                const emojiMatch = firstPart.match(/^(.+?):\s*(.+)$/);
+
+                if (emojiMatch) {
+                    const emoji = emojiMatch[1].trim();
+                    const info = emojiMatch[2].trim();
                     const infoParts = info.split(',').map(p => p.trim());
-                    traits = infoParts.slice(1).join(', ');
-                } else {
-                    // 4-part format (includes demeanor)
-                    const demeanor = parts[1].trim();
-                    relationship = parts[2].trim();
-                    thoughts = parts[3].trim();
-                    const infoParts = info.split(',').map(p => p.trim());
-                    const baseTraits = infoParts.slice(1).join(', ');
-                    traits = baseTraits ? `${baseTraits}, ${demeanor}` : demeanor;
-                }
+                    const name = infoParts[0] || '';
+                    const traits = infoParts.slice(1).join(', ');
+                    const relationship = parts[1].trim();
+                    const thoughts = parts[2].trim();
 
-                // Parse name (first part before comma)
-                const infoParts = info.split(',').map(p => p.trim());
-                const name = infoParts[0] || '';
-
-                if (name && name.toLowerCase() !== 'unavailable') {
-                    presentCharacters.push({ emoji, name, traits, relationship, thoughts });
+                    if (name && name.toLowerCase() !== 'unavailable') {
+                        presentCharacters.push({ emoji, name, traits, relationship, thoughts });
+                    }
                 }
             }
         }
+    }
+
+    // Save last character
+    if (currentChar && currentChar.name && currentChar.name.toLowerCase() !== 'unavailable') {
+        presentCharacters.push(currentChar);
     }
 
     return presentCharacters;
