@@ -17,7 +17,7 @@
  * @param {string} infoBoxText - Raw info box text
  * @returns {Object} Parsed data
  */
-function parseInfoBoxData(infoBoxText) {
+export function parseInfoBoxData(infoBoxText) {
     if (!infoBoxText) {
         return {
             date: '', weekday: '', month: '', year: '',
