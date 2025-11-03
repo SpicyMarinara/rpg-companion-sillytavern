@@ -89,38 +89,34 @@ export function generateDefaultDashboard() {
                 icon: 'fa-solid fa-map',
                 order: 1,
                 widgets: [
-                    // Row 0-2: Scene Info (combined: calendar, weather, temp, clock, location)
+                    // Row 0-1: Scene Info (combined: calendar, weather, temp, clock, location)
                     {
                         id: 'widget-sceneinfo',
                         type: 'sceneInfo',
                         x: 0,
                         y: 0,
                         w: 2,
-                        h: 3,
-                        config: {
-                            views: ['calendar', 'weather', 'temperature', 'clock', 'location'],
-                            defaultView: 'calendar',
-                            showEmptyViews: false
-                        }
+                        h: 2,
+                        config: {}
                     },
-                    // Row 3-4: Recent Events (notebook style, full width)
+                    // Row 2-3: Recent Events (notebook style, full width)
                     {
                         id: 'widget-recentevents',
                         type: 'recentEvents',
                         x: 0,
-                        y: 3,
+                        y: 2,
                         w: 2,
                         h: 2,
                         config: {
                             maxEvents: 3
                         }
                     },
-                    // Row 5-8: Present Characters (full width, will expand with auto-layout)
+                    // Row 4-7: Present Characters (full width, will expand with auto-layout)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
-                        y: 5,
+                        y: 4,
                         w: 2,
                         h: 4,
                         config: {

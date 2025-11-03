@@ -1,186 +1,231 @@
 /**
- * Scene Info Multi-View Widget
+ * Scene Info Grid Widget
  *
- * Combines Calendar, Weather, Temperature, Clock, and Location widgets into one
- * tabbed interface to reduce vertical scroll on mobile.
+ * Displays calendar, weather, temperature, clock, and location in a compact
+ * information-dense grid layout. All data points visible at once for maximum
+ * scannability.
  *
- * Features:
- * - Tab switching between different scene info views
- * - Reuses existing infoBox widget render functions (no code duplication)
- * - Smart empty state detection (hides tabs for widgets with no data)
- * - Configurable view selection
- * - Per-instance state management
+ * Design: 2-column grid with location header + 4 data cards
+ * Inspiration: Apple Widgets, Material Design, modern dashboard patterns
  */
 
 import { parseInfoBoxData } from './infoBoxWidgets.js';
 
-// Per-widget instance state
-const widgetStates = new Map();
-
 /**
- * Get or create widget state
- * @param {string} widgetId - Widget instance ID
- * @returns {Object} Widget state
+ * Format date for display
+ * @param {string} date - Date value
+ * @param {string} month - Month name
+ * @param {string} weekday - Weekday name
+ * @returns {Object} Formatted date parts
  */
-function getWidgetState(widgetId) {
-    if (!widgetStates.has(widgetId)) {
-        widgetStates.set(widgetId, {
-            activeSubTab: 'calendar' // Default view
-        });
+function formatDate(date, month, weekday) {
+    if (!date && !month && !weekday) {
+        return { value: 'No Date', label: '' };
     }
-    return widgetStates.get(widgetId);
+
+    const monthShort = month ? month.substring(0, 3).toUpperCase() : 'MON';
+    const dayNum = date || '1';
+
+    return {
+        value: `${monthShort} ${dayNum}`,
+        label: weekday ? weekday.substring(0, 3) : ''
+    };
 }
 
 /**
- * View metadata (icons, labels, etc.)
+ * Format time for display
+ * @param {string} timeStart - Start time
+ * @param {string} timeEnd - End time
+ * @returns {Object} Formatted time parts
  */
-const VIEW_META = {
-    calendar: { icon: '📅', label: 'Cal', fullLabel: 'Calendar' },
-    weather: { icon: '🌤️', label: 'Wea', fullLabel: 'Weather' },
-    temperature: { icon: '🌡️', label: 'Tmp', fullLabel: 'Temperature' },
-    clock: { icon: '🕐', label: 'Clk', fullLabel: 'Clock' },
-    location: { icon: '📍', label: 'Loc', fullLabel: 'Location' }
-};
+function formatTime(timeStart, timeEnd) {
+    const timeDisplay = timeEnd || timeStart || '12:00';
 
-/**
- * Check if a view has data
- * @param {string} viewType - Widget type (calendar, weather, etc.)
- * @param {Object} data - Parsed info box data
- * @returns {boolean} True if view has data
- */
-function hasViewData(viewType, data) {
-    switch (viewType) {
-        case 'calendar':
-            return !!(data.date && data.date !== '');
-        case 'weather':
-            return !!(data.weatherEmoji || data.weatherForecast);
-        case 'temperature':
-            return !!(data.temperature && data.temperature !== '');
-        case 'clock':
-            return !!(data.timeStart || data.timeEnd);
-        case 'location':
-            return !!(data.location && data.location !== 'Location' && data.location !== '');
-        default:
-            return true;
-    }
+    return {
+        value: timeDisplay,
+        label: '' // Could add timezone if available
+    };
 }
 
 /**
- * Filter views based on data availability
- * @param {Array<string>} views - List of view types
- * @param {Object} data - Parsed info box data
- * @param {Object} config - Widget configuration
- * @returns {Array<string>} Filtered views
+ * Format weather for display
+ * @param {string} weatherEmoji - Weather emoji
+ * @param {string} weatherForecast - Weather description
+ * @returns {Object} Formatted weather parts
  */
-function filterEmptyViews(views, data, config) {
-    if (config.showEmptyViews) {
-        return views;
-    }
+function formatWeather(weatherEmoji, weatherForecast) {
+    const emoji = weatherEmoji || '🌤️';
+    const forecast = weatherForecast || 'Clear';
 
-    return views.filter(viewType => hasViewData(viewType, data));
+    return {
+        icon: emoji,
+        value: forecast.split(' ')[0] || forecast, // First word
+        label: forecast
+    };
 }
 
 /**
- * Render tab bar
- * @param {Array<string>} views - List of view types
- * @param {string} activeView - Currently active view
- * @returns {string} Tab bar HTML
+ * Format temperature for display
+ * @param {string} temperature - Temperature value
+ * @returns {Object} Formatted temperature parts
  */
-function renderViewTabs(views, activeView) {
-    if (views.length === 0) {
-        return '';
+function formatTemp(temperature) {
+    if (!temperature) {
+        return { value: '20°C', label: '' };
     }
+
+    return {
+        value: temperature,
+        label: '' // Could add "Feels like" if available
+    };
+}
+
+/**
+ * Format location for display
+ * @param {string} location - Location name
+ * @returns {Object} Formatted location parts
+ */
+function formatLocation(location) {
+    if (!location || location === 'Location') {
+        return { value: 'No Location', label: '' };
+    }
+
+    // Split on comma or dash for secondary text
+    const parts = location.split(/[,\-]/);
+    return {
+        value: parts[0].trim(),
+        label: parts.slice(1).join(', ').trim()
+    };
+}
+
+/**
+ * Render info grid item
+ * @param {Object} item - Item data
+ * @param {string} item.icon - Icon emoji
+ * @param {string} item.value - Primary value
+ * @param {string} item.label - Secondary label
+ * @param {string} field - Field name for editing
+ * @param {string} gridArea - CSS grid area name
+ * @returns {string} HTML for grid item
+ */
+function renderInfoItem(item, field, gridArea) {
+    const hasLabel = item.label && item.label !== '';
+    const areaClass = gridArea ? `rpg-info-${gridArea}` : '';
 
     return `
-        <div class="rpg-inventory-subtabs">
-            ${views.map(viewType => {
-                const meta = VIEW_META[viewType] || { icon: '📄', label: viewType };
-                const isActive = activeView === viewType;
-
-                return `
-                    <button class="rpg-inventory-subtab ${isActive ? 'active' : ''}"
-                            data-tab="${viewType}"
-                            title="${meta.fullLabel}"
-                            aria-label="Switch to ${meta.fullLabel}">
-                        <span style="font-size: 1.2rem;">${meta.icon}</span>
-                        <span class="rpg-subtab-label">${meta.label}</span>
-                    </button>
-                `;
-            }).join('')}
+        <div class="rpg-info-item ${areaClass}" data-field="${field}">
+            <span class="item-icon">${item.icon}</span>
+            <div class="item-content">
+                <span class="item-value rpg-editable" contenteditable="true" data-field="${field}" title="Click to edit">${item.value}</span>
+                ${hasLabel ? `<span class="item-label">${item.label}</span>` : ''}
+            </div>
         </div>
     `;
 }
 
 /**
- * Render all views (hidden initially, toggle visibility)
- * @param {Array<string>} views - List of view types
- * @param {string} activeView - Currently active view
- * @param {Object} registry - Widget registry
- * @param {Object} dependencies - Widget dependencies
- * @returns {string} Views container HTML
+ * Render location header (full width)
+ * @param {Object} location - Location data
+ * @returns {string} HTML for location header
  */
-function renderAllViews(views, activeView, registry, dependencies) {
-    const viewsHtml = views.map(viewType => {
-        const widgetDef = registry.get(viewType);
-        if (!widgetDef) {
-            console.warn(`[SceneInfoWidget] Widget type "${viewType}" not found in registry`);
-            return `
-                <div class="rpg-scene-info-view" data-view="${viewType}" style="display: none;">
-                    <div class="rpg-scene-empty">Widget "${viewType}" not available</div>
-                </div>
-            `;
-        }
+function renderLocationHeader(location) {
+    const hasDescription = location.label && location.label !== '';
 
-        // Create temporary container for widget render
-        const tempContainer = document.createElement('div');
-        tempContainer.className = 'rpg-scene-info-view';
-        tempContainer.dataset.view = viewType;
-        tempContainer.style.display = viewType === activeView ? 'block' : 'none';
-
-        // Call existing widget's render function
-        try {
-            widgetDef.render(tempContainer, {});
-        } catch (error) {
-            console.error(`[SceneInfoWidget] Error rendering ${viewType}:`, error);
-            tempContainer.innerHTML = `<div class="rpg-scene-empty">Error rendering ${viewType}</div>`;
-        }
-
-        return tempContainer.outerHTML;
-    }).join('');
-
-    return `<div class="rpg-scene-info-views">${viewsHtml}</div>`;
+    return `
+        <div class="rpg-info-item rpg-info-location" data-field="location">
+            <span class="item-icon">📍</span>
+            <div class="item-content">
+                <span class="item-value rpg-editable" contenteditable="true" data-field="location" title="Click to edit">${location.value}</span>
+                ${hasDescription ? `<span class="item-label">${location.label}</span>` : ''}
+            </div>
+        </div>
+    `;
 }
 
 /**
- * Attach tab switching event handlers
+ * Attach edit handlers to editable fields
  * @param {HTMLElement} container - Widget container
- * @param {string} widgetId - Widget instance ID
+ * @param {Object} dependencies - Widget dependencies
  */
-function attachTabHandlers(container, widgetId) {
-    const widget = container.querySelector('.rpg-scene-info-widget');
-    if (!widget) return;
+function attachEditHandlers(container, dependencies) {
+    const editableFields = container.querySelectorAll('.rpg-editable');
 
-    const state = getWidgetState(widgetId);
+    editableFields.forEach(field => {
+        const fieldName = field.dataset.field;
+        let originalValue = field.textContent.trim();
 
-    // Tab click handlers
-    widget.querySelectorAll('.rpg-inventory-subtab').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tab = btn.dataset.tab;
+        field.addEventListener('focus', () => {
+            originalValue = field.textContent.trim();
 
-            // Update state
-            state.activeSubTab = tab;
+            // Select all text on focus
+            const range = document.createRange();
+            range.selectNodeContents(field);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
 
-            // Toggle view visibility
-            widget.querySelectorAll('.rpg-scene-info-view').forEach(view => {
-                view.style.display = view.dataset.view === tab ? 'block' : 'none';
-            });
+        field.addEventListener('blur', () => {
+            const value = field.textContent.trim();
+            if (value && value !== originalValue) {
+                updateInfoBoxField(dependencies, fieldName, value);
+            }
+        });
 
-            // Update active tab styling
-            widget.querySelectorAll('.rpg-inventory-subtab').forEach(b =>
-                b.classList.remove('active'));
-            btn.classList.add('active');
+        field.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                field.blur();
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                field.textContent = originalValue;
+                field.blur();
+            }
+        });
+
+        // Prevent paste with formatting
+        field.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+            document.execCommand('insertText', false, text);
         });
     });
+}
+
+/**
+ * Update info box field in shared data
+ * @param {Object} dependencies - Widget dependencies
+ * @param {string} field - Field name
+ * @param {string} value - New value
+ */
+function updateInfoBoxField(dependencies, field, value) {
+    const { getInfoBoxData, setInfoBoxData, onDataChange } = dependencies;
+    let infoBoxData = getInfoBoxData() || '';
+
+    // Simple replace for now - could be more sophisticated
+    const fieldMap = {
+        'date': /Date: [^\n]+/,
+        'time': /Time: [^\n]+/,
+        'weather': /Weather: [^\n]+/,
+        'temperature': /Temperature: [^\n]+/,
+        'location': /Location: [^\n]+/
+    };
+
+    const pattern = fieldMap[field];
+    if (pattern) {
+        const replacement = `${field.charAt(0).toUpperCase() + field.slice(1)}: ${value}`;
+        if (pattern.test(infoBoxData)) {
+            infoBoxData = infoBoxData.replace(pattern, replacement);
+        } else {
+            infoBoxData += `\n${replacement}`;
+        }
+
+        setInfoBoxData(infoBoxData);
+        if (onDataChange) {
+            onDataChange('infoBox', field, value);
+        }
+    }
 }
 
 /**
@@ -190,11 +235,11 @@ export function registerSceneInfoWidget(registry, dependencies) {
     registry.register('sceneInfo', {
         name: 'Scene Info',
         icon: '🗺️',
-        description: 'Multi-view scene information (calendar, weather, time, location)',
+        description: 'Compact scene information grid (calendar, weather, time, location)',
         category: 'scene',
         minSize: { w: 2, h: 2 },
-        defaultSize: { w: 2, h: 3 },
-        maxAutoSize: { w: 2, h: 4 },
+        defaultSize: { w: 2, h: 2 },
+        maxAutoSize: { w: 2, h: 3 },
         requiresSchema: false,
 
         /**
@@ -203,53 +248,31 @@ export function registerSceneInfoWidget(registry, dependencies) {
          * @param {Object} config - Widget configuration
          */
         render(container, config = {}) {
-            // Get widget ID from parent element
-            const widgetElement = container.closest('.rpg-widget');
-            const widgetId = widgetElement?.dataset?.widgetId || 'scene-info-default';
-
-            // Get or create widget state
-            const state = getWidgetState(widgetId);
-
-            // Default configuration
-            const defaultViews = ['calendar', 'weather', 'temperature', 'clock', 'location'];
-            const views = config.views || defaultViews;
-
-            // Get data and filter empty views
             const { getInfoBoxData } = dependencies;
             const data = parseInfoBoxData(getInfoBoxData());
-            const availableViews = filterEmptyViews(views, data, config);
 
-            // Handle case where no views are available
-            if (availableViews.length === 0) {
-                container.innerHTML = `
-                    <div class="rpg-dashboard-widget">
-                        <div class="rpg-scene-empty" style="padding: 1rem; text-align: center; color: var(--rpg-text); opacity: 0.6;">
-                            No scene information available
-                        </div>
-                    </div>
-                `;
-                return;
-            }
+            // Format data for display
+            const date = formatDate(data.date, data.month, data.weekday);
+            const time = formatTime(data.timeStart, data.timeEnd);
+            const weather = formatWeather(data.weatherEmoji, data.weatherForecast);
+            const temp = formatTemp(data.temperature);
+            const location = formatLocation(data.location);
 
-            // Ensure active tab is valid
-            if (!availableViews.includes(state.activeSubTab)) {
-                state.activeSubTab = config.defaultView || availableViews[0];
-            }
-
-            // Render widget HTML
+            // Build grid HTML
             const html = `
                 <div class="rpg-dashboard-widget">
-                    <div class="rpg-scene-info-widget" data-widget-id="${widgetId}">
-                        ${renderViewTabs(availableViews, state.activeSubTab)}
-                        ${renderAllViews(availableViews, state.activeSubTab, registry, dependencies)}
+                    <div class="rpg-scene-info-grid">
+                        ${renderLocationHeader(location)}
+                        ${renderInfoItem({ icon: '📅', value: date.value, label: date.label }, 'date', 'calendar')}
+                        ${renderInfoItem({ icon: '🕐', value: time.value, label: time.label }, 'time', 'clock')}
+                        ${renderInfoItem({ icon: weather.icon, value: weather.value, label: weather.label }, 'weather', 'weather')}
+                        ${renderInfoItem({ icon: '🌡️', value: temp.value, label: temp.label }, 'temperature', 'temperature')}
                     </div>
                 </div>
             `;
 
             container.innerHTML = html;
-
-            // Attach event handlers
-            attachTabHandlers(container, widgetId);
+            attachEditHandlers(container, dependencies);
         },
 
         /**
@@ -258,37 +281,17 @@ export function registerSceneInfoWidget(registry, dependencies) {
          */
         getConfig() {
             return {
-                views: {
-                    type: 'multiselect',
-                    label: 'Visible Views',
-                    default: ['calendar', 'weather', 'temperature', 'clock', 'location'],
-                    options: [
-                        { value: 'calendar', label: 'Calendar' },
-                        { value: 'weather', label: 'Weather' },
-                        { value: 'temperature', label: 'Temperature' },
-                        { value: 'clock', label: 'Clock' },
-                        { value: 'location', label: 'Location' }
-                    ],
-                    description: 'Select which views to show in the widget'
-                },
-                defaultView: {
-                    type: 'select',
-                    label: 'Default View',
-                    default: 'calendar',
-                    options: [
-                        { value: 'calendar', label: 'Calendar' },
-                        { value: 'weather', label: 'Weather' },
-                        { value: 'temperature', label: 'Temperature' },
-                        { value: 'clock', label: 'Clock' },
-                        { value: 'location', label: 'Location' }
-                    ],
-                    description: 'Which view to show by default'
-                },
-                showEmptyViews: {
+                showLabels: {
                     type: 'boolean',
-                    label: 'Show Empty Views',
+                    label: 'Show Secondary Labels',
+                    default: true,
+                    description: 'Show secondary text (weekday, timezone, etc.)'
+                },
+                compactMode: {
+                    type: 'boolean',
+                    label: 'Compact Mode',
                     default: false,
-                    description: 'Show tabs even when they have no data'
+                    description: 'Reduce padding and font sizes'
                 }
             };
         },
