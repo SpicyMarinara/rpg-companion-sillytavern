@@ -20,15 +20,18 @@ import { parseInfoBoxData } from './infoBoxWidgets.js';
  */
 function formatDate(date, month, weekday) {
     if (!date && !month && !weekday) {
-        return { value: 'No Date', label: '' };
+        return { icon: '📅', value: 'No Date', label: '' };
     }
 
-    const monthShort = month ? month.substring(0, 3).toUpperCase() : 'MON';
+    // Format: "15 Jan" on main line, "Monday" as label
+    const monthShort = month ? month.substring(0, 3) : 'Mon';
     const dayNum = date || '1';
+    const weekdayLabel = weekday || '';
 
     return {
-        value: `${monthShort} ${dayNum}`,
-        label: weekday ? weekday.substring(0, 3) : ''
+        icon: '📅',
+        value: `${dayNum} ${monthShort}`,
+        label: weekdayLabel
     };
 }
 
@@ -42,6 +45,7 @@ function formatTime(timeStart, timeEnd) {
     const timeDisplay = timeEnd || timeStart || '12:00';
 
     return {
+        icon: '🕐',
         value: timeDisplay,
         label: '' // Could add timezone if available
     };
@@ -54,13 +58,13 @@ function formatTime(timeStart, timeEnd) {
  * @returns {Object} Formatted weather parts
  */
 function formatWeather(weatherEmoji, weatherForecast) {
-    const emoji = weatherEmoji || '🌤️';
+    const emoji = weatherEmoji || '☀️';
     const forecast = weatherForecast || 'Clear';
 
     return {
-        icon: emoji,
-        value: forecast.split(' ')[0] || forecast, // First word
-        label: forecast
+        icon: '', // No icon on left
+        value: `${forecast} ${emoji}`, // Forecast text with emoji on right
+        label: ''
     };
 }
 
@@ -71,10 +75,11 @@ function formatWeather(weatherEmoji, weatherForecast) {
  */
 function formatTemp(temperature) {
     if (!temperature) {
-        return { value: '20°C', label: '' };
+        return { icon: '🌡️', value: '20°C', label: '' };
     }
 
     return {
+        icon: '🌡️',
         value: temperature,
         label: '' // Could add "Feels like" if available
     };
@@ -101,7 +106,7 @@ function formatLocation(location) {
 /**
  * Render info grid item
  * @param {Object} item - Item data
- * @param {string} item.icon - Icon emoji
+ * @param {string} item.icon - Icon emoji (optional)
  * @param {string} item.value - Primary value
  * @param {string} item.label - Secondary label
  * @param {string} field - Field name for editing
@@ -110,11 +115,12 @@ function formatLocation(location) {
  */
 function renderInfoItem(item, field, gridArea) {
     const hasLabel = item.label && item.label !== '';
+    const hasIcon = item.icon && item.icon !== '';
     const areaClass = gridArea ? `rpg-info-${gridArea}` : '';
 
     return `
         <div class="rpg-info-item ${areaClass}" data-field="${field}">
-            <span class="item-icon">${item.icon}</span>
+            ${hasIcon ? `<span class="item-icon">${item.icon}</span>` : ''}
             <div class="item-content">
                 <span class="item-value rpg-editable" contenteditable="true" data-field="${field}" title="Click to edit">${item.value}</span>
                 ${hasLabel ? `<span class="item-label">${item.label}</span>` : ''}
@@ -262,10 +268,10 @@ export function registerSceneInfoWidget(registry, dependencies) {
             const html = `
                 <div class="rpg-scene-info-grid">
                     ${renderLocationHeader(location)}
-                    ${renderInfoItem({ icon: '📅', value: date.value, label: date.label }, 'date', 'calendar')}
-                    ${renderInfoItem({ icon: '🕐', value: time.value, label: time.label }, 'time', 'clock')}
-                    ${renderInfoItem({ icon: weather.icon, value: weather.value, label: weather.label }, 'weather', 'weather')}
-                    ${renderInfoItem({ icon: '🌡️', value: temp.value, label: temp.label }, 'temperature', 'temperature')}
+                    ${renderInfoItem(date, 'date', 'calendar')}
+                    ${renderInfoItem(time, 'time', 'clock')}
+                    ${renderInfoItem(weather, 'weather', 'weather')}
+                    ${renderInfoItem(temp, 'temperature', 'temperature')}
                 </div>
             `;
 
