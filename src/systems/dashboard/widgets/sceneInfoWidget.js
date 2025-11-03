@@ -13,25 +13,30 @@ import { parseInfoBoxData } from './infoBoxWidgets.js';
 
 /**
  * Format date for display
- * @param {string} date - Date value
- * @param {string} month - Month name
+ * @param {string} fullDate - Full date string from infoBox
  * @param {string} weekday - Weekday name
+ * @param {string} month - Month/day description (e.g. "3rd Day of the Ninth Month")
  * @returns {Object} Formatted date parts
  */
-function formatDate(date, month, weekday) {
-    if (!date && !month && !weekday) {
+function formatDate(fullDate, weekday, month) {
+    if (!fullDate && !month) {
         return { icon: '📅', value: 'No Date', label: '' };
     }
 
-    // Format: "15 Jan" on main line, "Monday" as label
-    const monthShort = month ? month.substring(0, 3) : 'Mon';
-    const dayNum = date || '1';
-    const weekdayLabel = weekday || '';
+    // parseInfoBoxData splits date on commas:
+    // "Tuesday, 3rd Day of the Ninth Month, Autumn, Year..." becomes:
+    //   weekday = "Tuesday"
+    //   month = "3rd Day of the Ninth Month"
+    //   year = "Autumn"
+    // Display the most important part (month/day) with weekday as label
+
+    const displayValue = month || fullDate;
+    const displayLabel = weekday || '';
 
     return {
         icon: '📅',
-        value: `${dayNum} ${monthShort}`,
-        label: weekdayLabel
+        value: displayValue,
+        label: displayLabel
     };
 }
 
@@ -53,13 +58,23 @@ function formatTime(timeStart, timeEnd) {
 
 /**
  * Format weather for display
- * @param {string} weatherEmoji - Weather emoji
+ * @param {string} weatherEmoji - Weather emoji or emoji string
  * @param {string} weatherForecast - Weather description
  * @returns {Object} Formatted weather parts
  */
 function formatWeather(weatherEmoji, weatherForecast) {
-    const emoji = weatherEmoji || '☀️';
+    // Data format is "Weather: emoji, forecast" parsed as:
+    //   weatherEmoji = emoji character(s)
+    //   weatherForecast = description text
+    // Display just the forecast with emoji at the end
+
     const forecast = weatherForecast || 'Clear';
+
+    // Only add emoji if it's actually an emoji (not text like "Clear")
+    // Check if weatherEmoji looks like an emoji (short string with emoji characters)
+    const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+    const isEmoji = weatherEmoji && weatherEmoji.length <= 3 && emojiRegex.test(weatherEmoji);
+    const emoji = isEmoji ? weatherEmoji : '☀️';
 
     return {
         icon: '', // No icon on left
@@ -95,11 +110,13 @@ function formatLocation(location) {
         return { value: 'No Location', label: '' };
     }
 
-    // Split on comma or dash for secondary text
-    const parts = location.split(/[,\-]/);
+    // Split on comma only (not hyphen - those are part of names)
+    // Example: "Seol Yi-hwan's Private Quarters, Palace District"
+    // -> value: "Seol Yi-hwan's Private Quarters", label: "Palace District"
+    const parts = location.split(',').map(p => p.trim());
     return {
-        value: parts[0].trim(),
-        label: parts.slice(1).join(', ').trim()
+        value: parts[0],
+        label: parts.slice(1).join(', ')
     };
 }
 
@@ -258,7 +275,7 @@ export function registerSceneInfoWidget(registry, dependencies) {
             const data = parseInfoBoxData(getInfoBoxData());
 
             // Format data for display
-            const date = formatDate(data.date, data.month, data.weekday);
+            const date = formatDate(data.date, data.weekday, data.month);
             const time = formatTime(data.timeStart, data.timeEnd);
             const weather = formatWeather(data.weatherEmoji, data.weatherForecast);
             const temp = formatTemp(data.temperature);
