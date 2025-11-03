@@ -93,10 +93,15 @@ export function registerUserAttributesWidget(registry, dependencies) {
                 </div>
             `).join('');
 
-            // Render HTML
+            // Calculate optimal column count based on visible attributes and widget width
+            const attrCount = visibleAttrs.length;
+            const widgetWidth = config._width || this.defaultSize.w;  // Get from config or default
+            const optimalCols = calculateOptimalColumns(attrCount, widgetWidth);
+
+            // Render HTML with dynamic grid columns
             const html = `
                 <div class="rpg-classic-stats">
-                    <div class="rpg-classic-stats-grid">
+                    <div class="rpg-classic-stats-grid" style="grid-template-columns: repeat(${optimalCols}, 1fr);">
                         ${statsHtml}
                     </div>
                 </div>
@@ -164,13 +169,14 @@ export function registerUserAttributesWidget(registry, dependencies) {
             const statsGrid = container.querySelector('.rpg-classic-stats-grid');
             if (!statsGrid) return;
 
-            // Compact single-column layout for narrow widgets
-            if (newW < 2) {
-                statsGrid.style.gridTemplateColumns = '1fr';
-            } else {
-                // 2-column grid for wider widgets
-                statsGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-            }
+            // Count visible attributes from DOM
+            const attrCount = statsGrid.querySelectorAll('.rpg-classic-stat').length;
+
+            // Recalculate optimal columns based on new width
+            const optimalCols = calculateOptimalColumns(attrCount, newW);
+
+            // Apply new grid layout
+            statsGrid.style.gridTemplateColumns = `repeat(${optimalCols}, 1fr)`;
         },
 
         /**
@@ -191,16 +197,78 @@ export function registerUserAttributesWidget(registry, dependencies) {
             const filterList = config.visibleAttrs || config.visibleStats;
             const visibleAttrCount = filterList?.length || globallyEnabledCount;
 
-            // Each attribute needs ~0.35 rows in 2-column grid
-            // For 6 attrs: 3 rows (0.5 row padding = 3.5 total)
-            const optimalHeight = Math.ceil((visibleAttrCount / 2) * 0.7 + 0.5);
+            // Determine optimal width and columns based on attribute count
+            // For 9 attributes: prefer 3 columns (3×3 grid)
+            // For 6 attributes: prefer 2 columns (3×2 grid)
+            // For 12 attributes: prefer 3 columns (4×3 grid)
+            let optimalWidth = 2;  // Default
+            if (visibleAttrCount >= 9) {
+                optimalWidth = 3;  // Need wider widget for 3+ columns
+            }
+
+            // Calculate optimal columns for this width
+            const optimalCols = calculateOptimalColumns(visibleAttrCount, optimalWidth);
+            const rows = Math.ceil(visibleAttrCount / optimalCols);
+
+            // Each row needs ~0.7 grid units height
+            const optimalHeight = Math.ceil(rows * 0.7 + 0.5);
 
             return {
-                w: 2, // Prefer 2-column grid layout
+                w: optimalWidth,
                 h: Math.max(this.minSize.h, optimalHeight)
             };
         }
     });
+}
+
+/**
+ * Calculate optimal column count for attribute grid
+ * Balances visual layout to minimize orphaned items and create square-ish grids
+ *
+ * @param {number} attrCount - Number of attributes to display
+ * @param {number} widgetWidth - Widget width in grid units (1-4)
+ * @returns {number} Optimal column count (1-4)
+ * @private
+ */
+function calculateOptimalColumns(attrCount, widgetWidth) {
+    // Special cases
+    if (attrCount === 0) return 1;
+    if (attrCount === 1) return 1;
+    if (widgetWidth < 2) return 1;  // Too narrow for multi-column
+
+    // Cap at 4 columns or attrCount (don't create more columns than items)
+    const maxCols = Math.min(4, widgetWidth, attrCount);
+
+    // Try to find a column count that divides evenly (no orphans)
+    for (let cols = maxCols; cols >= 2; cols--) {
+        if (attrCount % cols === 0) {
+            return cols;  // Perfect division!
+        }
+    }
+
+    // No perfect division - use heuristic to minimize orphans and prefer square-ish layouts
+    let bestCols = 2;
+    let bestScore = -Infinity;
+
+    for (let cols = 2; cols <= maxCols; cols++) {
+        const rows = Math.ceil(attrCount / cols);
+        const orphans = (cols * rows) - attrCount;  // Empty cells in last row
+        const aspectRatio = rows / cols;  // Ideal is ~1.0 (square)
+
+        // Score: prefer fewer orphans (heavily weighted) and square-ish layout
+        // orphanPenalty: 1/(orphans+1) gives 1.0 for no orphans, 0.5 for 1 orphan, 0.33 for 2, etc.
+        // aspectScore: 1/(|aspectRatio-1.0|+0.1) gives higher score for square-ish layouts
+        const orphanPenalty = 1 / (orphans + 1);
+        const aspectScore = 1 / (Math.abs(aspectRatio - 1.0) + 0.1);
+        const score = orphanPenalty * 10 + aspectScore;  // Weight orphans heavily
+
+        if (score > bestScore) {
+            bestScore = score;
+            bestCols = cols;
+        }
+    }
+
+    return bestCols;
 }
 
 /**
