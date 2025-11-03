@@ -58,29 +58,47 @@ function formatTime(timeStart, timeEnd) {
 
 /**
  * Format weather for display
- * @param {string} weatherEmoji - Weather emoji or emoji string
+ * @param {string} weatherEmoji - Weather emoji or symbol string
  * @param {string} weatherForecast - Weather description
  * @returns {Object} Formatted weather parts
  */
 function formatWeather(weatherEmoji, weatherForecast) {
-    // Data format is "Weather: emoji, forecast" parsed as:
-    //   weatherEmoji = emoji character(s)
-    //   weatherForecast = description text
-    // Display just the forecast with emoji at the end
-
     const forecast = weatherForecast || 'Clear';
 
-    // Only add emoji if it's actually an emoji (not text like "Clear")
-    // Check if weatherEmoji looks like an emoji (short string with emoji characters)
-    const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
-    const isEmoji = weatherEmoji && weatherEmoji.length <= 3 && emojiRegex.test(weatherEmoji);
-    const emoji = isEmoji ? weatherEmoji : '☀️';
+    // If no emoji provided, display forecast text only
+    if (!weatherEmoji) {
+        return {
+            icon: '',
+            value: forecast,
+            label: ''
+        };
+    }
 
-    return {
-        icon: '', // No icon on left
-        value: `${forecast} ${emoji}`, // Forecast text with emoji on right
-        label: ''
-    };
+    // Validate emoji/symbol (relaxed check)
+    // Allow: actual emojis, custom symbols (+++, ***, etc.)
+    const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+    const symbolRegex = /^[+*#~\-=_]+$/;  // Custom weather symbols
+    const looksLikeEmojiOrSymbol = weatherEmoji.length <= 5 && (
+        emojiRegex.test(weatherEmoji) ||
+        symbolRegex.test(weatherEmoji)
+    );
+
+    if (looksLikeEmojiOrSymbol) {
+        // Valid emoji or symbol - append to forecast
+        return {
+            icon: '',
+            value: `${forecast} ${weatherEmoji}`,
+            label: ''
+        };
+    } else {
+        // weatherEmoji is actually text (e.g., "Clear") - combine with forecast
+        // Handles: prose weather like "The air crackles with magical energy"
+        return {
+            icon: '',
+            value: `${weatherEmoji} ${forecast}`.trim(),
+            label: ''
+        };
+    }
 }
 
 /**
@@ -110,13 +128,22 @@ function formatLocation(location) {
         return { value: 'No Location', label: '' };
     }
 
-    // Split on comma only (not hyphen - those are part of names)
-    // Example: "Seol Yi-hwan's Private Quarters, Palace District"
-    // -> value: "Seol Yi-hwan's Private Quarters", label: "Palace District"
-    const parts = location.split(',').map(p => p.trim());
+    // Split on FIRST comma only to get primary location + context
+    // Preserves hyphens in names (e.g., "Seol Yi-hwan")
+    // Example: "The Winding Stair, Third Floor, East Wing, Palace, City"
+    // -> value: "The Winding Stair", label: "Third Floor, East Wing, Palace, City"
+    const firstCommaIndex = location.indexOf(',');
+    if (firstCommaIndex !== -1 && firstCommaIndex < location.length - 1) {
+        return {
+            value: location.substring(0, firstCommaIndex).trim(),
+            label: location.substring(firstCommaIndex + 1).trim()  // Keep all remaining text
+        };
+    }
+
+    // No comma or comma at end - display full text
     return {
-        value: parts[0],
-        label: parts.slice(1).join(', ')
+        value: location,
+        label: ''
     };
 }
 

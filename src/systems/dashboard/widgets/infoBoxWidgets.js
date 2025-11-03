@@ -43,11 +43,22 @@ export function parseInfoBoxData(infoBoxText) {
         // Date parsing (text or emoji format)
         if (line.startsWith('Date:') || line.includes('🗓️:')) {
             const dateStr = line.replace(/^(Date:|🗓️:)/, '').trim();
-            const dateParts = dateStr.split(',').map(p => p.trim());
-            data.weekday = dateParts[0] || '';
-            data.month = dateParts[1] || '';
-            data.year = dateParts[2] || '';
-            data.date = dateStr;
+
+            // Try structured comma-separated format (e.g., "Tuesday, 15 January, 2024")
+            if (dateStr.includes(',') && dateStr.split(',').length >= 2) {
+                const dateParts = dateStr.split(',').map(p => p.trim());
+                data.weekday = dateParts[0] || '';
+                data.month = dateParts[1] || '';
+                data.year = dateParts[2] || '';
+                data.date = dateStr;
+            } else {
+                // Unstructured format - store full text for display
+                // Handles: ISO dates, fantasy calendars, prose, stardates
+                data.weekday = '';
+                data.month = dateStr;  // Store in month field (primary display)
+                data.year = '';
+                data.date = dateStr;
+            }
         }
         // Temperature parsing
         else if (line.startsWith('Temperature:') || line.includes('🌡️:')) {
@@ -73,9 +84,27 @@ export function parseInfoBoxData(infoBoxText) {
         // Weather parsing (text format)
         else if (line.startsWith('Weather:')) {
             const weatherStr = line.replace('Weather:', '').trim();
-            const weatherParts = weatherStr.split(',').map(p => p.trim());
-            data.weatherEmoji = weatherParts[0] || '';
-            data.weatherForecast = weatherParts[1] || '';
+
+            // Try comma-separated format
+            if (weatherStr.includes(',')) {
+                const parts = weatherStr.split(',');
+                data.weatherEmoji = parts[0].trim();
+                // JOIN remaining parts to preserve multi-part forecasts
+                // e.g., "🌧️, Heavy rain, flooding expected" → emoji="🌧️", forecast="Heavy rain, flooding expected"
+                data.weatherForecast = parts.slice(1).join(', ').trim();
+            } else {
+                // No comma - try to detect emoji prefix
+                const emojiMatch = weatherStr.match(/^([\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+)\s+(.+)$/u);
+                if (emojiMatch) {
+                    data.weatherEmoji = emojiMatch[1];
+                    data.weatherForecast = emojiMatch[2];
+                } else {
+                    // Pure text description - no emoji
+                    // Handles: prose weather like "The air crackles with magical energy"
+                    data.weatherEmoji = '';
+                    data.weatherForecast = weatherStr;
+                }
+            }
         }
         // Weather parsing (legacy emoji format)
         else if (!data.weatherEmoji && line.includes(':') && !line.includes('Info Box') && !line.includes('---')) {
