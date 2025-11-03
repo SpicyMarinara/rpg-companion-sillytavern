@@ -103,11 +103,11 @@ export async function onMessageReceived(data) {
             // console.log('[RPG Companion] Parsing together mode response:', responseText);
 
             const parsedData = parseResponse(responseText);
-            console.log('[RPG Companion] Parsed data results:', {
-                hasUserStats: !!parsedData.userStats,
-                hasInfoBox: !!parsedData.infoBox,
-                hasCharacterThoughts: !!parsedData.characterThoughts
-            });
+            // console.log('[RPG Companion] Parsed data results:', {
+            //     hasUserStats: !!parsedData.userStats,
+            //     hasInfoBox: !!parsedData.infoBox,
+            //     hasCharacterThoughts: !!parsedData.characterThoughts
+            // });
 
             // Update stored data (both lastGeneratedData for old UI and extensionSettings for dashboard widgets)
             if (parsedData.userStats) {
@@ -171,9 +171,7 @@ export async function onMessageReceived(data) {
                 lastMessage.swipes[currentSwipeId] = cleanedMessage.trim();
             }
 
-            // console.log('[RPG Companion] Cleaned message, removed tracker code blocks');
-
-            // Render the updated data (old panel UI)
+            // Render the updated data FIRST (before cleaning DOM)
             renderUserStats();
             renderInfoBox();
             renderThoughts();
@@ -182,6 +180,17 @@ export async function onMessageReceived(data) {
 
             // Refresh dashboard widgets (v2 dashboard)
             refreshDashboard();
+
+            // Then update the DOM to reflect the cleaned message
+            const lastMessageElement = $('#chat').children('.mes').last();
+            if (lastMessageElement.length) {
+                const messageText = lastMessageElement.find('.mes_text');
+                if (messageText.length) {
+                    messageText.html(substituteParams(cleanedMessage.trim()));
+                }
+            }
+
+            // console.log('[RPG Companion] Cleaned message, removed tracker code blocks from DOM');
 
             // Save to chat metadata
             saveChatData();

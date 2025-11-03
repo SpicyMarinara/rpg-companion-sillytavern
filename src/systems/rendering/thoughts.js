@@ -396,7 +396,7 @@ export function renderThoughts() {
                         const statColor = getStatColor(statValue, extensionSettings.statBarColorLow, extensionSettings.statBarColorHigh);
                         html += `
                                 <div class="rpg-character-stat">
-                                    <span class="rpg-stat-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${stat.name}" title="Click to edit ${stat.name}">${stat.name}: <span style="color: ${statColor}">${statValue}%</span></span>
+                                    <span class="rpg-stat-name">${stat.name}: </span><span class="rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${stat.name}" style="color: ${statColor}" title="Click to edit ${stat.name}">${statValue}%</span>
                                 </div>
                         `;
                     }
@@ -431,6 +431,7 @@ export function renderThoughts() {
         const character = $(this).data('character');
         const field = $(this).data('field');
         const value = $(this).text().trim();
+        console.log('[RPG Companion] Character stat edit:', { character, field, value });
         updateCharacterField(character, field, value);
     });
 
@@ -492,9 +493,19 @@ export function updateCharacterField(characterName, field, value) {
     }
 
     if (characterFound) {
-        // Update the specific field within the character block
+        // Check if we're updating a character stat
+        const isStatField = enabledCharStats.findIndex(s => s.name === field) !== -1;
+        let statsLineExists = false;
+        let statsLineIndex = -1;
+
+        // First pass: check if Stats line exists and update other fields
         for (let i = characterStartIndex; i < characterEndIndex; i++) {
             const line = lines[i].trim();
+
+            if (line.startsWith('Stats:')) {
+                statsLineExists = true;
+                statsLineIndex = i;
+            }
 
             if (field === 'name' && line.startsWith('- ')) {
                 lines[i] = `- ${value}`;
@@ -519,20 +530,68 @@ export function updateCharacterField(characterName, field, value) {
                 const relationshipValue = emojiToRelationship[value] || value;
                 lines[i] = `Relationship: ${relationshipValue}`;
             }
-            else if (line.startsWith('Stats:')) {
-                const statIndex = enabledCharStats.findIndex(s => s.name === field);
-                if (statIndex !== -1) {
-                    const statsContent = line.substring(line.indexOf(':') + 1).trim();
-                    const statParts = statsContent.split('|').map(p => p.trim());
+        }
 
-                    for (let j = 0; j < statParts.length; j++) {
-                        if (statParts[j].startsWith(field + ':')) {
-                            statParts[j] = `${field}: ${value}%`;
-                            break;
-                        }
+        // Handle stat updates
+        if (isStatField) {
+            // Clean the value: remove % if present, parse as integer, clamp 0-100
+            let cleanValue = value.replace('%', '').trim();
+            let numValue = parseInt(cleanValue);
+            if (isNaN(numValue)) {
+                numValue = 0;
+            }
+            numValue = Math.max(0, Math.min(100, numValue));
+
+            console.log('[RPG Companion] Updating stat:', { field, rawValue: value, cleanValue, numValue });
+
+            if (statsLineExists) {
+                // Update existing Stats line
+                const line = lines[statsLineIndex];
+                const statsContent = line.substring(line.indexOf(':') + 1).trim();
+                const statParts = statsContent.split('|').map(p => p.trim());
+
+                let statFound = false;
+                for (let j = 0; j < statParts.length; j++) {
+                    if (statParts[j].startsWith(field + ':')) {
+                        statParts[j] = `${field}: ${numValue}%`;
+                        statFound = true;
+                        console.log('[RPG Companion] Updated stat part:', statParts[j]);
+                        break;
                     }
-                    lines[i] = `Stats: ${statParts.join(' | ')}`;
                 }
+
+                // If stat wasn't found in existing parts, add it
+                if (!statFound) {
+                    statParts.push(`${field}: ${numValue}%`);
+                    console.log('[RPG Companion] Added new stat to existing line:', `${field}: ${numValue}%`);
+                }
+
+                lines[statsLineIndex] = `Stats: ${statParts.join(' | ')}`;
+                console.log('[RPG Companion] Updated stats line:', lines[statsLineIndex]);
+            } else {
+                // Create new Stats line with all enabled stats (defaulting to 0% except the one being edited)
+                const statsParts = enabledCharStats.map(s => {
+                    if (s.name === field) {
+                        return `${s.name}: ${numValue}%`;
+                    }
+                    return `${s.name}: 0%`;
+                });
+                const newStatsLine = `Stats: ${statsParts.join(' | ')}`;
+
+                // Insert before Thoughts line or at end of character block
+                let insertIndex = characterEndIndex;
+                for (let i = characterStartIndex; i < characterEndIndex; i++) {
+                    const line = lines[i].trim();
+                    const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
+                    if (line.startsWith(thoughtsFieldName + ':')) {
+                        insertIndex = i;
+                        break;
+                    }
+                }
+
+                lines.splice(insertIndex, 0, newStatsLine);
+                console.log('[RPG Companion] Created new stats line:', newStatsLine);
+                characterEndIndex++; // Adjust end index since we inserted a line
             }
         }
     } else {
@@ -554,7 +613,19 @@ export function updateCharacterField(characterName, field, value) {
             }
 
             if (enabledCharStats.length > 0) {
-                const statsParts = enabledCharStats.map(s => `${s.name}: ${field === s.name ? value : '0'}%`);
+                const statsParts = enabledCharStats.map(s => {
+                    if (field === s.name) {
+                        // Clean the value: remove % if present, parse as integer, clamp 0-100
+                        let cleanValue = value.replace('%', '').trim();
+                        let numValue = parseInt(cleanValue);
+                        if (isNaN(numValue)) {
+                            numValue = 0;
+                        }
+                        numValue = Math.max(0, Math.min(100, numValue));
+                        return `${s.name}: ${numValue}%`;
+                    }
+                    return `${s.name}: 0%`;
+                });
                 newCharacterLines.push(`Stats: ${statsParts.join(' | ')}`);
             }
 
@@ -564,6 +635,8 @@ export function updateCharacterField(characterName, field, value) {
 
     lastGeneratedData.characterThoughts = lines.join('\n');
     committedTrackerData.characterThoughts = lines.join('\n');
+
+    console.log('[RPG Companion] Updated characterThoughts data:', lastGeneratedData.characterThoughts);
 
     const chat = getContext().chat;
     if (chat && chat.length > 0) {

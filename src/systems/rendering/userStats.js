@@ -86,7 +86,14 @@ export function renderUserStats() {
             { id: 'hygiene', name: 'Hygiene', enabled: true },
             { id: 'arousal', name: 'Arousal', enabled: true }
         ],
-        showRPGAttributes: true,
+        rpgAttributes: [
+            { id: 'str', name: 'STR', enabled: true },
+            { id: 'dex', name: 'DEX', enabled: true },
+            { id: 'con', name: 'CON', enabled: true },
+            { id: 'int', name: 'INT', enabled: true },
+            { id: 'wis', name: 'WIS', enabled: true },
+            { id: 'cha', name: 'CHA', enabled: true }
+        ],
         statusSection: { enabled: true, showMoodEmoji: true, customFields: ['Conditions'] },
         skillsSection: { enabled: false, label: 'Skills' }
     };
@@ -171,64 +178,49 @@ export function renderUserStats() {
 
     html += '</div>'; // Close rpg-stats-left
 
-    // RPG Attributes section (conditionally rendered)
-    if (config.showRPGAttributes) {
+    // RPG Attributes section (dynamically generated from config)
+    // Check if RPG Attributes section is enabled
+    const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
+
+    if (showRPGAttributes) {
+        // Use attributes from config, with fallback to defaults if not configured
+        const rpgAttributes = (config.rpgAttributes && config.rpgAttributes.length > 0) ? config.rpgAttributes : [
+            { id: 'str', name: 'STR', enabled: true },
+            { id: 'dex', name: 'DEX', enabled: true },
+            { id: 'con', name: 'CON', enabled: true },
+            { id: 'int', name: 'INT', enabled: true },
+            { id: 'wis', name: 'WIS', enabled: true },
+            { id: 'cha', name: 'CHA', enabled: true }
+        ];
+        const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
+
+        if (enabledAttributes.length > 0) {
         html += `
             <div class="rpg-stats-right">
                 <div class="rpg-classic-stats">
                     <div class="rpg-classic-stats-grid">
-                        <div class="rpg-classic-stat" data-stat="str">
-                            <span class="rpg-classic-stat-label">STR</span>
+        `;
+
+        enabledAttributes.forEach(attr => {
+            const value = extensionSettings.classicStats[attr.id] !== undefined ? extensionSettings.classicStats[attr.id] : 10;
+            html += `
+                        <div class="rpg-classic-stat" data-stat="${attr.id}">
+                            <span class="rpg-classic-stat-label">${attr.name}</span>
                             <div class="rpg-classic-stat-buttons">
-                                <button class="rpg-classic-stat-btn rpg-stat-decrease" data-stat="str">−</button>
-                                <span class="rpg-classic-stat-value">${extensionSettings.classicStats.str}</span>
-                                <button class="rpg-classic-stat-btn rpg-stat-increase" data-stat="str">+</button>
+                                <button class="rpg-classic-stat-btn rpg-stat-decrease" data-stat="${attr.id}">−</button>
+                                <span class="rpg-classic-stat-value">${value}</span>
+                                <button class="rpg-classic-stat-btn rpg-stat-increase" data-stat="${attr.id}">+</button>
                             </div>
                         </div>
-                        <div class="rpg-classic-stat" data-stat="dex">
-                            <span class="rpg-classic-stat-label">DEX</span>
-                            <div class="rpg-classic-stat-buttons">
-                                <button class="rpg-classic-stat-btn rpg-stat-decrease" data-stat="dex">−</button>
-                                <span class="rpg-classic-stat-value">${extensionSettings.classicStats.dex}</span>
-                                <button class="rpg-classic-stat-btn rpg-stat-increase" data-stat="dex">+</button>
-                            </div>
-                        </div>
-                        <div class="rpg-classic-stat" data-stat="con">
-                            <span class="rpg-classic-stat-label">CON</span>
-                            <div class="rpg-classic-stat-buttons">
-                                <button class="rpg-classic-stat-btn rpg-stat-decrease" data-stat="con">−</button>
-                                <span class="rpg-classic-stat-value">${extensionSettings.classicStats.con}</span>
-                                <button class="rpg-classic-stat-btn rpg-stat-increase" data-stat="con">+</button>
-                            </div>
-                        </div>
-                        <div class="rpg-classic-stat" data-stat="int">
-                            <span class="rpg-classic-stat-label">INT</span>
-                            <div class="rpg-classic-stat-buttons">
-                                <button class="rpg-classic-stat-btn rpg-stat-decrease" data-stat="int">−</button>
-                                <span class="rpg-classic-stat-value">${extensionSettings.classicStats.int}</span>
-                                <button class="rpg-classic-stat-btn rpg-stat-increase" data-stat="int">+</button>
-                            </div>
-                        </div>
-                        <div class="rpg-classic-stat" data-stat="wis">
-                            <span class="rpg-classic-stat-label">WIS</span>
-                            <div class="rpg-classic-stat-buttons">
-                                <button class="rpg-classic-stat-btn rpg-stat-decrease" data-stat="wis">−</button>
-                                <span class="rpg-classic-stat-value">${extensionSettings.classicStats.wis}</span>
-                                <button class="rpg-classic-stat-btn rpg-stat-increase" data-stat="wis">+</button>
-                            </div>
-                        </div>
-                        <div class="rpg-classic-stat" data-stat="cha">
-                            <span class="rpg-classic-stat-label">CHA</span>
-                            <div class="rpg-classic-stat-buttons">
-                                <button class="rpg-classic-stat-btn rpg-stat-decrease" data-stat="cha">−</button>
-                                <span class="rpg-classic-stat-value">${extensionSettings.classicStats.cha}</span>
-                                <button class="rpg-classic-stat-btn rpg-stat-increase" data-stat="cha">+</button>
-                            </div>
-                        </div>
+            `;
+        });
+
+        html += `
                     </div>
                 </div>
             </div>
         `;
+        }
     }
 
     html += '</div>'; // Close rpg-stats-content

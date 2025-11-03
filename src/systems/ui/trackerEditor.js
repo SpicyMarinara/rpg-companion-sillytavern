@@ -137,6 +137,14 @@ function resetToDefaults() {
                 { id: 'arousal', name: 'Arousal', enabled: true }
             ],
             showRPGAttributes: true,
+            rpgAttributes: [
+                { id: 'str', name: 'STR', enabled: true },
+                { id: 'dex', name: 'DEX', enabled: true },
+                { id: 'con', name: 'CON', enabled: true },
+                { id: 'int', name: 'INT', enabled: true },
+                { id: 'wis', name: 'WIS', enabled: true },
+                { id: 'cha', name: 'CHA', enabled: true }
+            ],
             statusSection: {
                 enabled: true,
                 showMoodEmoji: true,
@@ -221,11 +229,46 @@ function renderUserStatsTab() {
     html += '</div>';
     html += '<button class="rpg-btn-secondary" id="rpg-add-stat"><i class="fa-solid fa-plus"></i> Add Custom Stat</button>';
 
-    // RPG Attributes toggle
+    // RPG Attributes section
+    html += '<h4><i class="fa-solid fa-dice-d20"></i> RPG Attributes</h4>';
+
+    // Enable/disable toggle for entire RPG Attributes section
+    const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
     html += '<div class="rpg-editor-toggle-row">';
-    html += `<input type="checkbox" id="rpg-show-rpg-attrs" ${config.showRPGAttributes ? 'checked' : ''}>`;
-    html += '<label for="rpg-show-rpg-attrs">Show RPG Attributes (STR, DEX, etc.)</label>';
+    html += `<input type="checkbox" id="rpg-show-rpg-attrs" ${showRPGAttributes ? 'checked' : ''}>`;
+    html += '<label for="rpg-show-rpg-attrs">Enable RPG Attributes Section</label>';
     html += '</div>';
+
+    html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
+
+    // Ensure rpgAttributes exists in the actual config (not just local fallback)
+    if (!config.rpgAttributes || config.rpgAttributes.length === 0) {
+        config.rpgAttributes = [
+            { id: 'str', name: 'STR', enabled: true },
+            { id: 'dex', name: 'DEX', enabled: true },
+            { id: 'con', name: 'CON', enabled: true },
+            { id: 'int', name: 'INT', enabled: true },
+            { id: 'wis', name: 'WIS', enabled: true },
+            { id: 'cha', name: 'CHA', enabled: true }
+        ];
+        // Save the defaults back to the actual config
+        extensionSettings.trackerConfig.userStats.rpgAttributes = config.rpgAttributes;
+    }
+
+    const rpgAttributes = config.rpgAttributes;
+
+    rpgAttributes.forEach((attr, index) => {
+        html += `
+            <div class="rpg-editor-stat-item" data-index="${index}">
+                <input type="checkbox" ${attr.enabled ? 'checked' : ''} class="rpg-attr-toggle" data-index="${index}">
+                <input type="text" value="${attr.name}" class="rpg-attr-name" data-index="${index}" placeholder="Attribute Name">
+                <button class="rpg-attr-remove" data-index="${index}" title="Remove attribute"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    html += '<button class="rpg-btn-secondary" id="rpg-add-attr"><i class="fa-solid fa-plus"></i> Add Attribute</button>';
 
     // Status Section
     html += '<h4><i class="fa-solid fa-face-smile"></i> Status Section</h4>';
@@ -296,7 +339,52 @@ function setupUserStatsListeners() {
         extensionSettings.trackerConfig.userStats.customStats[index].name = $(this).val();
     });
 
-    // RPG attributes toggle
+    // Add attribute
+    $('#rpg-add-attr').off('click').on('click', function() {
+        // Ensure rpgAttributes array exists with defaults if needed
+        if (!extensionSettings.trackerConfig.userStats.rpgAttributes || extensionSettings.trackerConfig.userStats.rpgAttributes.length === 0) {
+            extensionSettings.trackerConfig.userStats.rpgAttributes = [
+                { id: 'str', name: 'STR', enabled: true },
+                { id: 'dex', name: 'DEX', enabled: true },
+                { id: 'con', name: 'CON', enabled: true },
+                { id: 'int', name: 'INT', enabled: true },
+                { id: 'wis', name: 'WIS', enabled: true },
+                { id: 'cha', name: 'CHA', enabled: true }
+            ];
+        }
+        const newId = 'attr_' + Date.now();
+        extensionSettings.trackerConfig.userStats.rpgAttributes.push({
+            id: newId,
+            name: 'NEW',
+            enabled: true
+        });
+        // Initialize value in classicStats if doesn't exist
+        if (extensionSettings.classicStats[newId] === undefined) {
+            extensionSettings.classicStats[newId] = 10;
+        }
+        renderUserStatsTab();
+    });
+
+    // Remove attribute
+    $('.rpg-attr-remove').off('click').on('click', function() {
+        const index = $(this).data('index');
+        extensionSettings.trackerConfig.userStats.rpgAttributes.splice(index, 1);
+        renderUserStatsTab();
+    });
+
+    // Toggle attribute
+    $('.rpg-attr-toggle').off('change').on('change', function() {
+        const index = $(this).data('index');
+        extensionSettings.trackerConfig.userStats.rpgAttributes[index].enabled = $(this).is(':checked');
+    });
+
+    // Rename attribute
+    $('.rpg-attr-name').off('blur').on('blur', function() {
+        const index = $(this).data('index');
+        extensionSettings.trackerConfig.userStats.rpgAttributes[index].name = $(this).val();
+    });
+
+    // Enable/disable RPG Attributes section toggle
     $('#rpg-show-rpg-attrs').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.showRPGAttributes = $(this).is(':checked');
     });
@@ -452,7 +540,7 @@ function renderPresentCharactersTab() {
                 <input type="text" value="${relationship}" class="rpg-relationship-name" placeholder="Relationship type">
                 <span class="rpg-arrow">→</span>
                 <input type="text" value="${emoji}" class="rpg-relationship-emoji" placeholder="Emoji" maxlength="4">
-                <button class="rpg-field-remove rpg-remove-relationship" data-relationship="${relationship}" title="Remove"><i class="fa-solid fa-trash"></i></button>
+                <button class="rpg-remove-relationship" data-relationship="${relationship}" title="Remove"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
     }

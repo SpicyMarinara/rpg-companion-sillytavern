@@ -57,6 +57,41 @@ export function buildInventorySummary(inventory) {
 }
 
 /**
+ * Builds a dynamic attributes string based on configured RPG attributes.
+ * Uses custom attribute names and values from classicStats.
+ *
+ * @returns {string} Formatted attributes string (e.g., "STR 10, DEX 12, INT 15, LVL 5")
+ */
+function buildAttributesString() {
+    const trackerConfig = extensionSettings.trackerConfig;
+    const classicStats = extensionSettings.classicStats;
+    const userStatsConfig = trackerConfig?.userStats;
+
+    // Get enabled attributes from config
+    const rpgAttributes = userStatsConfig?.rpgAttributes || [
+        { id: 'str', name: 'STR', enabled: true },
+        { id: 'dex', name: 'DEX', enabled: true },
+        { id: 'con', name: 'CON', enabled: true },
+        { id: 'int', name: 'INT', enabled: true },
+        { id: 'wis', name: 'WIS', enabled: true },
+        { id: 'cha', name: 'CHA', enabled: true }
+    ];
+
+    const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
+
+    // Build attributes string dynamically
+    const attributeParts = enabledAttributes.map(attr => {
+        const value = classicStats[attr.id] !== undefined ? classicStats[attr.id] : 10;
+        return `${attr.name} ${value}`;
+    });
+
+    // Add level at the end
+    attributeParts.push(`LVL ${extensionSettings.level}`);
+
+    return attributeParts.join(', ');
+}
+
+/**
  * Generates an example block showing current tracker states in markdown code blocks.
  * Uses COMMITTED data (not displayed data) for generation context.
  *
@@ -170,7 +205,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += 'Weather: [Weather Emoji, Forecast]\n';
             }
             if (widgets.temperature?.enabled) {
-                const unit = widgets.temperature.unit === 'fahrenheit' ? '°F' : '°C';
+                const unit = widgets.temperature.unit === 'F' ? '°F' : '°C';
                 instructions += `Temperature: [Temperature in ${unit}]\n`;
             }
             if (widgets.time?.enabled) {
@@ -250,7 +285,8 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         // Include attributes and dice roll only if there was a dice roll
         if (extensionSettings.lastDiceRoll) {
             const roll = extensionSettings.lastDiceRoll;
-            instructions += `${userName}'s attributes: STR ${classicStats.str}, DEX ${classicStats.dex}, CON ${classicStats.con}, INT ${classicStats.int}, WIS ${classicStats.wis}, CHA ${classicStats.cha}, LVL ${extensionSettings.level}\n`;
+            const attributesString = buildAttributesString();
+            instructions += `${userName}'s attributes: ${attributesString}\n`;
             instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
         }
     }
@@ -327,9 +363,9 @@ export function generateContextualSummary() {
 
     // Include attributes and dice roll only if there was a dice roll
     if (extensionSettings.lastDiceRoll) {
-        const classicStats = extensionSettings.classicStats;
         const roll = extensionSettings.lastDiceRoll;
-        summary += `${userName}'s attributes: STR ${classicStats.str}, DEX ${classicStats.dex}, CON ${classicStats.con}, INT ${classicStats.int}, WIS ${classicStats.wis}, CHA ${classicStats.cha}, LVL ${extensionSettings.level}\n`;
+        const attributesString = buildAttributesString();
+        summary += `${userName}'s attributes: ${attributesString}\n`;
         summary += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
     }
 

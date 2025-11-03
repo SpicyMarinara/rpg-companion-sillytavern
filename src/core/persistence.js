@@ -381,6 +381,14 @@ function migrateToTrackerConfig() {
             userStats: {
                 customStats: [],
                 showRPGAttributes: true,
+                rpgAttributes: [
+                    { id: 'str', name: 'STR', enabled: true },
+                    { id: 'dex', name: 'DEX', enabled: true },
+                    { id: 'con', name: 'CON', enabled: true },
+                    { id: 'int', name: 'INT', enabled: true },
+                    { id: 'wis', name: 'WIS', enabled: true },
+                    { id: 'cha', name: 'CHA', enabled: true }
+                ],
                 statusSection: {
                     enabled: true,
                     showMoodEmoji: true,
@@ -434,6 +442,47 @@ function migrateToTrackerConfig() {
         for (const stat of extensionSettings.trackerConfig.userStats.customStats) {
             if (extensionSettings.userStats[stat.id] === undefined) {
                 extensionSettings.userStats[stat.id] = stat.id === 'arousal' ? 0 : 100;
+            }
+        }
+    }
+
+    // Migrate old showRPGAttributes boolean to rpgAttributes array
+    if (extensionSettings.trackerConfig.userStats.showRPGAttributes !== undefined) {
+        const shouldShow = extensionSettings.trackerConfig.userStats.showRPGAttributes;
+        extensionSettings.trackerConfig.userStats.rpgAttributes = [
+            { id: 'str', name: 'STR', enabled: shouldShow },
+            { id: 'dex', name: 'DEX', enabled: shouldShow },
+            { id: 'con', name: 'CON', enabled: shouldShow },
+            { id: 'int', name: 'INT', enabled: shouldShow },
+            { id: 'wis', name: 'WIS', enabled: shouldShow },
+            { id: 'cha', name: 'CHA', enabled: shouldShow }
+        ];
+        delete extensionSettings.trackerConfig.userStats.showRPGAttributes;
+        console.log('[RPG Companion] Migrated showRPGAttributes to rpgAttributes array');
+    }
+
+    // Ensure rpgAttributes exists even if no migration was needed
+    if (!extensionSettings.trackerConfig.userStats.rpgAttributes) {
+        extensionSettings.trackerConfig.userStats.rpgAttributes = [
+            { id: 'str', name: 'STR', enabled: true },
+            { id: 'dex', name: 'DEX', enabled: true },
+            { id: 'con', name: 'CON', enabled: true },
+            { id: 'int', name: 'INT', enabled: true },
+            { id: 'wis', name: 'WIS', enabled: true },
+            { id: 'cha', name: 'CHA', enabled: true }
+        ];
+    }
+
+    // Ensure showRPGAttributes exists (defaults to true)
+    if (extensionSettings.trackerConfig.userStats.showRPGAttributes === undefined) {
+        extensionSettings.trackerConfig.userStats.showRPGAttributes = true;
+    }
+
+    // Ensure all rpgAttributes have corresponding values in classicStats
+    if (extensionSettings.classicStats) {
+        for (const attr of extensionSettings.trackerConfig.userStats.rpgAttributes) {
+            if (extensionSettings.classicStats[attr.id] === undefined) {
+                extensionSettings.classicStats[attr.id] = 10;
             }
         }
     }
