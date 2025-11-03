@@ -71,8 +71,15 @@ export let extensionSettings = {
                 { id: 'hygiene', name: 'Hygiene', enabled: true },
                 { id: 'arousal', name: 'Arousal', enabled: true }
             ],
-            // RPG Attributes toggle
-            showRPGAttributes: true,
+            // RPG Attributes (customizable D&D-style attributes)
+            rpgAttributes: [
+                { id: 'str', name: 'STR', enabled: true },
+                { id: 'dex', name: 'DEX', enabled: true },
+                { id: 'con', name: 'CON', enabled: true },
+                { id: 'int', name: 'INT', enabled: true },
+                { id: 'wis', name: 'WIS', enabled: true },
+                { id: 'cha', name: 'CHA', enabled: true }
+            ],
             // Status section config
             statusSection: {
                 enabled: true,

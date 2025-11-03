@@ -127,7 +127,14 @@ function resetToDefaults() {
                 { id: 'hygiene', name: 'Hygiene', enabled: true },
                 { id: 'arousal', name: 'Arousal', enabled: true }
             ],
-            showRPGAttributes: true,
+            rpgAttributes: [
+                { id: 'str', name: 'STR', enabled: true },
+                { id: 'dex', name: 'DEX', enabled: true },
+                { id: 'con', name: 'CON', enabled: true },
+                { id: 'int', name: 'INT', enabled: true },
+                { id: 'wis', name: 'WIS', enabled: true },
+                { id: 'cha', name: 'CHA', enabled: true }
+            ],
             statusSection: {
                 enabled: true,
                 showMoodEmoji: true,
@@ -212,11 +219,31 @@ function renderUserStatsTab() {
     html += '</div>';
     html += '<button class="rpg-btn-secondary" id="rpg-add-stat"><i class="fa-solid fa-plus"></i> Add Custom Stat</button>';
 
-    // RPG Attributes toggle
-    html += '<div class="rpg-editor-toggle-row">';
-    html += `<input type="checkbox" id="rpg-show-rpg-attrs" ${config.showRPGAttributes ? 'checked' : ''}>`;
-    html += '<label for="rpg-show-rpg-attrs">Show RPG Attributes (STR, DEX, etc.)</label>';
+    // RPG Attributes section
+    html += '<h4><i class="fa-solid fa-dice-d20"></i> RPG Attributes</h4>';
+    html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
+
+    const rpgAttributes = config.rpgAttributes || [
+        { id: 'str', name: 'STR', enabled: true },
+        { id: 'dex', name: 'DEX', enabled: true },
+        { id: 'con', name: 'CON', enabled: true },
+        { id: 'int', name: 'INT', enabled: true },
+        { id: 'wis', name: 'WIS', enabled: true },
+        { id: 'cha', name: 'CHA', enabled: true }
+    ];
+
+    rpgAttributes.forEach((attr, index) => {
+        html += `
+            <div class="rpg-editor-stat-item" data-index="${index}">
+                <input type="checkbox" ${attr.enabled ? 'checked' : ''} class="rpg-attr-toggle" data-index="${index}">
+                <input type="text" value="${attr.name}" class="rpg-attr-name" data-index="${index}" placeholder="Attribute Name">
+                <button class="rpg-attr-remove" data-index="${index}" title="Remove attribute"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+    });
+
     html += '</div>';
+    html += '<button class="rpg-btn-secondary" id="rpg-add-attr"><i class="fa-solid fa-plus"></i> Add Attribute</button>';
 
     // Status Section
     html += '<h4><i class="fa-solid fa-face-smile"></i> Status Section</h4>';
@@ -287,9 +314,41 @@ function setupUserStatsListeners() {
         extensionSettings.trackerConfig.userStats.customStats[index].name = $(this).val();
     });
 
-    // RPG attributes toggle
-    $('#rpg-show-rpg-attrs').off('change').on('change', function() {
-        extensionSettings.trackerConfig.userStats.showRPGAttributes = $(this).is(':checked');
+    // Add attribute
+    $('#rpg-add-attr').off('click').on('click', function() {
+        if (!extensionSettings.trackerConfig.userStats.rpgAttributes) {
+            extensionSettings.trackerConfig.userStats.rpgAttributes = [];
+        }
+        const newId = 'attr_' + Date.now();
+        extensionSettings.trackerConfig.userStats.rpgAttributes.push({
+            id: newId,
+            name: 'NEW',
+            enabled: true
+        });
+        // Initialize value in classicStats if doesn't exist
+        if (extensionSettings.classicStats[newId] === undefined) {
+            extensionSettings.classicStats[newId] = 10;
+        }
+        renderUserStatsTab();
+    });
+
+    // Remove attribute
+    $('.rpg-attr-remove').off('click').on('click', function() {
+        const index = $(this).data('index');
+        extensionSettings.trackerConfig.userStats.rpgAttributes.splice(index, 1);
+        renderUserStatsTab();
+    });
+
+    // Toggle attribute
+    $('.rpg-attr-toggle').off('change').on('change', function() {
+        const index = $(this).data('index');
+        extensionSettings.trackerConfig.userStats.rpgAttributes[index].enabled = $(this).is(':checked');
+    });
+
+    // Rename attribute
+    $('.rpg-attr-name').off('blur').on('blur', function() {
+        const index = $(this).data('index');
+        extensionSettings.trackerConfig.userStats.rpgAttributes[index].name = $(this).val();
     });
 
     // Status section toggles
