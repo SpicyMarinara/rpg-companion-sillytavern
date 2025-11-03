@@ -260,14 +260,12 @@ export function registerSceneInfoWidget(registry, dependencies) {
 
             // Build grid HTML
             const html = `
-                <div class="rpg-dashboard-widget">
-                    <div class="rpg-scene-info-grid">
-                        ${renderLocationHeader(location)}
-                        ${renderInfoItem({ icon: '📅', value: date.value, label: date.label }, 'date', 'calendar')}
-                        ${renderInfoItem({ icon: '🕐', value: time.value, label: time.label }, 'time', 'clock')}
-                        ${renderInfoItem({ icon: weather.icon, value: weather.value, label: weather.label }, 'weather', 'weather')}
-                        ${renderInfoItem({ icon: '🌡️', value: temp.value, label: temp.label }, 'temperature', 'temperature')}
-                    </div>
+                <div class="rpg-scene-info-grid">
+                    ${renderLocationHeader(location)}
+                    ${renderInfoItem({ icon: '📅', value: date.value, label: date.label }, 'date', 'calendar')}
+                    ${renderInfoItem({ icon: '🕐', value: time.value, label: time.label }, 'time', 'clock')}
+                    ${renderInfoItem({ icon: weather.icon, value: weather.value, label: weather.label }, 'weather', 'weather')}
+                    ${renderInfoItem({ icon: '🌡️', value: temp.value, label: temp.label }, 'temperature', 'temperature')}
                 </div>
             `;
 
