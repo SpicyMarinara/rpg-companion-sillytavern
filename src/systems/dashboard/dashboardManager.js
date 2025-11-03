@@ -1740,6 +1740,17 @@ export class DashboardManager {
             console.log('[DashboardManager] Detected re-enabled userStats widget');
         }
 
+        // Check userAttributes widget (enabled when RPG Attributes section is enabled AND at least one attribute is enabled)
+        const oldAttrsDisabled = oldConfig.userStats?.showRPGAttributes === false ||
+            (oldConfig.userStats?.rpgAttributes?.filter(a => a.enabled).length || 0) === 0;
+        const newAttrsEnabled = newConfig.userStats?.showRPGAttributes !== false &&
+            (newConfig.userStats?.rpgAttributes?.filter(a => a.enabled).length || 0) > 0;
+
+        if (oldAttrsDisabled && newAttrsEnabled) {
+            widgetsToAdd.push('userAttributes');
+            console.log('[DashboardManager] Detected re-enabled userAttributes widget');
+        }
+
         // Check presentCharacters widget
         const wasThoughtsDisabled = oldConfig.presentCharacters?.thoughts?.enabled === false;
         const isThoughtsEnabled = newConfig.presentCharacters?.thoughts?.enabled !== false;
@@ -1972,6 +1983,15 @@ export class DashboardManager {
             'userStats': () => {
                 const customStats = config.userStats?.customStats || [];
                 return customStats.filter(s => s.enabled).length === 0;
+            },
+            'userAttributes': () => {
+                // Remove if RPG Attributes section is disabled
+                if (config.userStats?.showRPGAttributes === false) {
+                    return true;
+                }
+                // Remove if all attributes are disabled
+                const rpgAttrs = config.userStats?.rpgAttributes || [];
+                return rpgAttrs.filter(attr => attr.enabled).length === 0;
             },
             'presentCharacters': () => config.presentCharacters?.thoughts?.enabled === false
         };
