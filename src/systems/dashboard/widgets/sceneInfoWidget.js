@@ -288,8 +288,19 @@ export function registerSceneInfoWidget(registry, dependencies) {
         description: 'Compact scene information grid (calendar, weather, time, location)',
         category: 'scene',
         minSize: { w: 2, h: 2 },
-        defaultSize: { w: 2, h: 2 },
-        maxAutoSize: { w: 2, h: 3 },
+        // Column-aware sizing: compact on mobile, spacious on desktop
+        defaultSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 2 }; // Mobile: 2×2 (compact, full width)
+            }
+            return { w: 3, h: 3 }; // Desktop: 3×3 (spacious)
+        },
+        maxAutoSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 3 }; // Mobile: 2×3 max (full width)
+            }
+            return { w: 3, h: 3 }; // Desktop: 3×3 max
+        },
         requiresSchema: false,
 
         /**
