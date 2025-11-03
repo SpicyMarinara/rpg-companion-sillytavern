@@ -762,7 +762,12 @@ export class DashboardManager {
         // Call widget render function
         if (definition && definition.render) {
             console.log(`[DashboardManager] Calling render for ${widget.type}`, element);
-            definition.render(element, widget.config || {});
+            // Pass widget dimensions along with config for layout calculations
+            definition.render(element, {
+                ...widget.config,
+                _width: widget.w,
+                _height: widget.h
+            });
             console.log(`[DashboardManager] After render, element children:`, element.children.length);
         } else {
             console.warn(`[DashboardManager] No render function for ${widget.type}`);

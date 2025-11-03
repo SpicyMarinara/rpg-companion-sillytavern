@@ -1910,9 +1910,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     width: 100%; /* Full width */
 }
 
-/* Classic stats grid - 2 columns to match dashboard grid */
+/* Classic stats grid - dynamic columns set by widget logic */
 .rpg-widget .rpg-classic-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem 0.25rem;  /* rem for spacing */
 }
 
@@ -6597,8 +6596,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         grid-row: 3; /* Align with mood */
     }
 
-    /* Attributes as ultra-compact 2x3 grid for mobile */
-    .rpg-classic-stats-grid {
+    /* Attributes as ultra-compact 2x3 grid for mobile (legacy panel only) */
+    .rpg-panel .rpg-classic-stats-grid {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
         grid-template-rows: repeat(3, 1fr) !important;
@@ -6857,8 +6856,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         grid-row: 4 !important;
     }
 
-    /* Make attributes grid single column too for readability */
-    .rpg-classic-stats-grid {
+    /* Make attributes grid 3-column for readability (legacy panel only) */
+    .rpg-panel .rpg-classic-stats-grid {
         grid-template-columns: repeat(3, 1fr) !important; /* 3 columns for attributes */
         grid-template-rows: repeat(2, 1fr) !important; /* 2 rows */
     }
