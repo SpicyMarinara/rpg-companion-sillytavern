@@ -2513,6 +2513,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     min-height: 0;
     overflow: visible;
     position: relative;
+    height: 100%;  /* Fill parent container */
+    flex: 1;       /* Participate in flex layout */
 }
 
 /* Notebook paper lines effect */
@@ -2583,6 +2585,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     padding: 0.25em 0.75em 0.5em 0.75em;
     position: relative;
     z-index: 1;
+    flex: 1;         /* Expand to fill remaining vertical space */
+    min-height: 0;   /* Prevent flex overflow */
 }
 
 .rpg-notebook-line {
