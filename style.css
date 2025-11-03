@@ -2594,6 +2594,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: flex-start;
     gap: 0.375em;
     position: relative;
+    width: 100%;  /* Force line to fill parent width */
 }
 
 .rpg-notebook-line.rpg-event-add {
