@@ -127,6 +127,7 @@ function resetToDefaults() {
                 { id: 'hygiene', name: 'Hygiene', enabled: true },
                 { id: 'arousal', name: 'Arousal', enabled: true }
             ],
+            showRPGAttributes: true,
             rpgAttributes: [
                 { id: 'str', name: 'STR', enabled: true },
                 { id: 'dex', name: 'DEX', enabled: true },
@@ -221,16 +222,31 @@ function renderUserStatsTab() {
 
     // RPG Attributes section
     html += '<h4><i class="fa-solid fa-dice-d20"></i> RPG Attributes</h4>';
+
+    // Enable/disable toggle for entire RPG Attributes section
+    const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
+    html += '<div class="rpg-editor-toggle-row">';
+    html += `<input type="checkbox" id="rpg-show-rpg-attrs" ${showRPGAttributes ? 'checked' : ''}>`;
+    html += '<label for="rpg-show-rpg-attrs">Enable RPG Attributes Section</label>';
+    html += '</div>';
+
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
 
-    const rpgAttributes = config.rpgAttributes || [
-        { id: 'str', name: 'STR', enabled: true },
-        { id: 'dex', name: 'DEX', enabled: true },
-        { id: 'con', name: 'CON', enabled: true },
-        { id: 'int', name: 'INT', enabled: true },
-        { id: 'wis', name: 'WIS', enabled: true },
-        { id: 'cha', name: 'CHA', enabled: true }
-    ];
+    // Ensure rpgAttributes exists in the actual config (not just local fallback)
+    if (!config.rpgAttributes || config.rpgAttributes.length === 0) {
+        config.rpgAttributes = [
+            { id: 'str', name: 'STR', enabled: true },
+            { id: 'dex', name: 'DEX', enabled: true },
+            { id: 'con', name: 'CON', enabled: true },
+            { id: 'int', name: 'INT', enabled: true },
+            { id: 'wis', name: 'WIS', enabled: true },
+            { id: 'cha', name: 'CHA', enabled: true }
+        ];
+        // Save the defaults back to the actual config
+        extensionSettings.trackerConfig.userStats.rpgAttributes = config.rpgAttributes;
+    }
+
+    const rpgAttributes = config.rpgAttributes;
 
     rpgAttributes.forEach((attr, index) => {
         html += `
@@ -316,8 +332,16 @@ function setupUserStatsListeners() {
 
     // Add attribute
     $('#rpg-add-attr').off('click').on('click', function() {
-        if (!extensionSettings.trackerConfig.userStats.rpgAttributes) {
-            extensionSettings.trackerConfig.userStats.rpgAttributes = [];
+        // Ensure rpgAttributes array exists with defaults if needed
+        if (!extensionSettings.trackerConfig.userStats.rpgAttributes || extensionSettings.trackerConfig.userStats.rpgAttributes.length === 0) {
+            extensionSettings.trackerConfig.userStats.rpgAttributes = [
+                { id: 'str', name: 'STR', enabled: true },
+                { id: 'dex', name: 'DEX', enabled: true },
+                { id: 'con', name: 'CON', enabled: true },
+                { id: 'int', name: 'INT', enabled: true },
+                { id: 'wis', name: 'WIS', enabled: true },
+                { id: 'cha', name: 'CHA', enabled: true }
+            ];
         }
         const newId = 'attr_' + Date.now();
         extensionSettings.trackerConfig.userStats.rpgAttributes.push({
@@ -349,6 +373,11 @@ function setupUserStatsListeners() {
     $('.rpg-attr-name').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.rpgAttributes[index].name = $(this).val();
+    });
+
+    // Enable/disable RPG Attributes section toggle
+    $('#rpg-show-rpg-attrs').off('change').on('change', function() {
+        extensionSettings.trackerConfig.userStats.showRPGAttributes = $(this).is(':checked');
     });
 
     // Status section toggles

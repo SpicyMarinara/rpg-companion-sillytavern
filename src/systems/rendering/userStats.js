@@ -179,10 +179,22 @@ export function renderUserStats() {
     html += '</div>'; // Close rpg-stats-left
 
     // RPG Attributes section (dynamically generated from config)
-    const rpgAttributes = config.rpgAttributes || [];
-    const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
+    // Check if RPG Attributes section is enabled
+    const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
 
-    if (enabledAttributes.length > 0) {
+    if (showRPGAttributes) {
+        // Use attributes from config, with fallback to defaults if not configured
+        const rpgAttributes = (config.rpgAttributes && config.rpgAttributes.length > 0) ? config.rpgAttributes : [
+            { id: 'str', name: 'STR', enabled: true },
+            { id: 'dex', name: 'DEX', enabled: true },
+            { id: 'con', name: 'CON', enabled: true },
+            { id: 'int', name: 'INT', enabled: true },
+            { id: 'wis', name: 'WIS', enabled: true },
+            { id: 'cha', name: 'CHA', enabled: true }
+        ];
+        const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
+
+        if (enabledAttributes.length > 0) {
         html += `
             <div class="rpg-stats-right">
                 <div class="rpg-classic-stats">
@@ -208,6 +220,7 @@ export function renderUserStats() {
                 </div>
             </div>
         `;
+        }
     }
 
     html += '</div>'; // Close rpg-stats-content

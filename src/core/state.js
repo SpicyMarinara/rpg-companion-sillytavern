@@ -72,6 +72,7 @@ export let extensionSettings = {
                 { id: 'arousal', name: 'Arousal', enabled: true }
             ],
             // RPG Attributes (customizable D&D-style attributes)
+            showRPGAttributes: true,
             rpgAttributes: [
                 { id: 'str', name: 'STR', enabled: true },
                 { id: 'dex', name: 'DEX', enabled: true },

@@ -3682,6 +3682,36 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     opacity: 0.8;
 }
 
+/* RPG Attributes editor styles (same as custom stats) */
+.rpg-attr-toggle {
+    flex-shrink: 0;
+}
+
+.rpg-attr-name {
+    flex: 1;
+    padding: 0.375em 0.5em;
+    background: var(--rpg-bg);
+    border: 1px solid var(--rpg-border);
+    border-radius: 0.25em;
+    color: var(--rpg-text);
+    font-size: 0.95em;
+}
+
+.rpg-attr-remove {
+    flex-shrink: 0;
+    padding: 0.375em 0.625em;
+    background: var(--rpg-highlight);
+    border: none;
+    border-radius: 0.25em;
+    color: white;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.rpg-attr-remove:hover {
+    opacity: 0.8;
+}
+
 /* Toggle rows */
 .rpg-editor-toggle-row {
     display: flex;

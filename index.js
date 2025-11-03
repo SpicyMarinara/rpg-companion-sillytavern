@@ -118,9 +118,6 @@ import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/sy
 import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
 import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
 
-// Utility modules
-import { importAllDefaults } from './src/utils/importDefaults.js';
-
 // Integration modules
 import {
     commitTrackerData,
@@ -601,14 +598,6 @@ jQuery(async () => {
             }
         } catch (error) {
             console.error('[RPG Companion] Conflict detection failed:', error);
-            // Non-critical - continue anyway
-        }
-
-        // Import default preset and regexes if user doesn't have them
-        try {
-            await importAllDefaults();
-        } catch (error) {
-            console.error('[RPG Companion] Failed to import defaults:', error);
             // Non-critical - continue anyway
         }
 

@@ -365,6 +365,7 @@ function migrateToTrackerConfig() {
         extensionSettings.trackerConfig = {
             userStats: {
                 customStats: [],
+                showRPGAttributes: true,
                 rpgAttributes: [
                     { id: 'str', name: 'STR', enabled: true },
                     { id: 'dex', name: 'DEX', enabled: true },
@@ -455,6 +456,11 @@ function migrateToTrackerConfig() {
             { id: 'wis', name: 'WIS', enabled: true },
             { id: 'cha', name: 'CHA', enabled: true }
         ];
+    }
+
+    // Ensure showRPGAttributes exists (defaults to true)
+    if (extensionSettings.trackerConfig.userStats.showRPGAttributes === undefined) {
+        extensionSettings.trackerConfig.userStats.showRPGAttributes = true;
     }
 
     // Ensure all rpgAttributes have corresponding values in classicStats
