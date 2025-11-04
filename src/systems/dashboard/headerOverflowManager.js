@@ -1,10 +1,11 @@
 /**
  * Header Overflow Manager
  *
- * Manages responsive button overflow behavior with three modes:
+ * Manages responsive button overflow behavior with four modes:
  * - Full Mode (>900px): All buttons visible
- * - Overflow Mode (500-900px): Priority buttons + "More" menu
- * - Compact Mode (<500px): Priority buttons + Hamburger menu
+ * - Overflow Mode (700-900px): Priority buttons + "More" menu
+ * - Compact Mode (400-700px): Priority buttons + Hamburger menu
+ * - Ultra-Compact Mode (<400px): Hamburger menu ONLY
  *
  * Uses ResizeObserver for accurate width detection and smooth transitions.
  */
@@ -18,7 +19,8 @@ export class HeaderOverflowManager {
         this.headerContainer = headerContainer;
         this.options = {
             fullModeWidth: 900, // px
-            compactModeWidth: 500, // px
+            compactModeWidth: 700, // px
+            ultraCompactModeWidth: 400, // px - New breakpoint for extreme narrowness
             debounceDelay: 100, // ms
             ...options
         };
@@ -111,7 +113,9 @@ export class HeaderOverflowManager {
     handleResize(width) {
         let newMode = 'full';
 
-        if (width < this.options.compactModeWidth) {
+        if (width < this.options.ultraCompactModeWidth) {
+            newMode = 'ultraCompact';
+        } else if (width < this.options.compactModeWidth) {
             newMode = 'compact';
         } else if (width < this.options.fullModeWidth) {
             newMode = 'overflow';
@@ -143,6 +147,9 @@ export class HeaderOverflowManager {
             case 'compact':
                 this.setCompactMode();
                 break;
+            case 'ultraCompact':
+                this.setUltraCompactMode();
+                break;
         }
     }
 
@@ -150,6 +157,14 @@ export class HeaderOverflowManager {
      * Full Mode: Show all buttons except menu-only
      */
     setFullMode() {
+        // Show priority buttons
+        this.priorityButtons.forEach(btn => {
+            const inlineStyle = btn.getAttribute('style');
+            if (!inlineStyle || !inlineStyle.includes('display: none')) {
+                btn.style.display = '';
+            }
+        });
+
         // Show all overflow buttons except menu-only ones
         this.overflowButtons.forEach(btn => {
             // Menu-only buttons always stay hidden (managed by menu)
@@ -176,6 +191,14 @@ export class HeaderOverflowManager {
      * Overflow Mode: Priority buttons + "More" menu
      */
     setOverflowMode() {
+        // Ensure priority buttons are visible
+        this.priorityButtons.forEach(btn => {
+            const inlineStyle = btn.getAttribute('style');
+            if (!inlineStyle || !inlineStyle.includes('display: none')) {
+                btn.style.display = '';
+            }
+        });
+
         // Hide overflow buttons (will be in dropdown)
         // Store original visibility before hiding
         this.overflowButtons.forEach(btn => {
@@ -201,10 +224,16 @@ export class HeaderOverflowManager {
      * Compact Mode: Priority buttons + Hamburger menu
      */
     setCompactMode() {
+        // Ensure priority buttons are visible
+        this.priorityButtons.forEach(btn => {
+            const inlineStyle = btn.getAttribute('style');
+            if (!inlineStyle || !inlineStyle.includes('display: none')) {
+                btn.style.display = '';
+            }
+        });
+
         // Hide all overflow buttons
-        // Store original visibility before hiding
         this.overflowButtons.forEach(btn => {
-            // Menu-only buttons are always available in menu
             if (btn.classList.contains('rpg-menu-only-btn')) {
                 btn.dataset.wasVisible = 'true';
             } else {
@@ -218,7 +247,37 @@ export class HeaderOverflowManager {
         this.overflowMenuBtn.style.display = 'none';
         this.hamburgerMenuBtn.style.display = '';
 
-        // Build menu with all buttons (including visible ones for context)
+        // Build menu with all buttons (priority + overflow)
+        this.buildDropdownMenu(true);
+    }
+
+    /**
+     * Ultra-Compact Mode: Hamburger menu ONLY
+     */
+    setUltraCompactMode() {
+        // Hide priority buttons
+        this.priorityButtons.forEach(btn => {
+            const computedStyle = window.getComputedStyle(btn);
+            btn.dataset.wasVisible = computedStyle.display !== 'none' ? 'true' : 'false';
+            btn.style.display = 'none';
+        });
+
+        // Hide all overflow buttons
+        this.overflowButtons.forEach(btn => {
+            if (btn.classList.contains('rpg-menu-only-btn')) {
+                btn.dataset.wasVisible = 'true';
+            } else {
+                const computedStyle = window.getComputedStyle(btn);
+                btn.dataset.wasVisible = computedStyle.display !== 'none' ? 'true' : 'false';
+            }
+            btn.style.display = 'none';
+        });
+
+        // Show hamburger menu button
+        this.overflowMenuBtn.style.display = 'none';
+        this.hamburgerMenuBtn.style.display = '';
+
+        // Build menu with ALL buttons
         this.buildDropdownMenu(true);
     }
 
@@ -229,8 +288,9 @@ export class HeaderOverflowManager {
     buildDropdownMenu(includeAll) {
         this.dropdownMenu.innerHTML = '';
 
+        // CORRECTED: When includeAll is true, combine priority and overflow buttons.
         const buttonsToShow = includeAll
-            ? [...this.overflowButtons]
+            ? [...this.priorityButtons, ...this.overflowButtons]
             : this.overflowButtons;
 
         // Filter visible buttons (only include buttons that were visible before being hidden)
@@ -314,7 +374,9 @@ export class HeaderOverflowManager {
         this.dropdownMenu.style.display = 'block';
 
         // Update aria-expanded
-        const menuBtn = this.currentMode === 'compact' ? this.hamburgerMenuBtn : this.overflowMenuBtn;
+        const menuBtn = this.currentMode === 'compact' || this.currentMode === 'ultraCompact'
+            ? this.hamburgerMenuBtn
+            : this.overflowMenuBtn;
         menuBtn.setAttribute('aria-expanded', 'true');
 
         // Add close listeners
@@ -376,7 +438,9 @@ export class HeaderOverflowManager {
                 e.preventDefault();
                 this.closeMenu();
                 // Return focus to menu button
-                const menuBtn = this.currentMode === 'compact' ? this.hamburgerMenuBtn : this.overflowMenuBtn;
+                const menuBtn = this.currentMode === 'compact' || this.currentMode === 'ultraCompact'
+                    ? this.hamburgerMenuBtn
+                    : this.overflowMenuBtn;
                 menuBtn.focus();
                 break;
 
@@ -434,8 +498,8 @@ export class HeaderOverflowManager {
      */
     refresh() {
         console.log('[HeaderOverflowManager] Refreshing menu...');
-        if (this.currentMode === 'overflow' || this.currentMode === 'compact') {
-            this.buildDropdownMenu(this.currentMode === 'compact');
+        if (this.currentMode !== 'full') {
+            this.buildDropdownMenu(this.currentMode === 'compact' || this.currentMode === 'ultraCompact');
         }
     }
 
