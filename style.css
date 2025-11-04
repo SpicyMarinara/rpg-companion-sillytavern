@@ -1479,13 +1479,13 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Modal Content Container */
 .rpg-modal-content {
-    background: var(--rpg-bg);
+    background: linear-gradient(135deg, rgba(22, 33, 62, 1) 0%, rgba(26, 26, 46, 1) 100%);
     border: 2px solid var(--rpg-border);
     border-radius: 8px;
     max-width: 600px;
     max-height: 80vh;
     overflow: auto;
-    box-shadow: 0 4px 20px var(--rpg-shadow);
+    box-shadow: 0 4px 18px var(--rpg-shadow), inset 0 0 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Modal Header */

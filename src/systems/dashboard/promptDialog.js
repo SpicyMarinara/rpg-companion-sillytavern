@@ -1,7 +1,7 @@
 /**
  * Prompt Dialog System
  *
- * Provides styled prompt dialogs for text input, similar to confirmDialog.
+ * Provides styled prompt dialogs for text input, matching extension theming.
  * Used for tab renaming, creation, etc.
  */
 
@@ -29,98 +29,55 @@ export function showPromptDialog(options) {
             validator = null
         } = options;
 
-        // Create modal container
+        // Create modal container (uses .rpg-modal class for theming)
         const modal = document.createElement('div');
         modal.className = 'rpg-modal rpg-prompt-modal';
         modal.style.display = 'flex';
-        modal.style.position = 'fixed';
-        modal.style.inset = '0';
-        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        modal.style.zIndex = '10001';
-        modal.style.alignItems = 'center';
-        modal.style.justifyContent = 'center';
 
-        // Create modal content
+        // Create modal content (uses .rpg-modal-content class for theming)
         const modalContent = document.createElement('div');
         modalContent.className = 'rpg-modal-content rpg-prompt-content';
         modalContent.style.cssText = `
-            background: #16213e;
-            border-radius: 8px;
-            padding: 0;
             min-width: 400px;
             max-width: 90vw;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         `;
 
-        // Header
+        // Header (uses .rpg-modal-header class)
         const header = document.createElement('div');
         header.className = 'rpg-modal-header';
-        header.style.cssText = `
-            padding: 20px;
-            border-bottom: 1px solid #0f3460;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        `;
 
         const headerContent = document.createElement('div');
         headerContent.style.display = 'flex';
         headerContent.style.alignItems = 'center';
-        headerContent.style.gap = '10px';
+        headerContent.style.gap = '0.5rem';
 
         const icon = document.createElement('i');
         icon.className = 'fa-solid fa-pencil';
-        icon.style.color = '#4ecca3';
-        icon.style.fontSize = '20px';
+        icon.style.color = 'var(--rpg-highlight)';
 
         const titleEl = document.createElement('h3');
         titleEl.textContent = title;
-        titleEl.style.cssText = `
-            margin: 0;
-            font-size: 18px;
-            color: #eeeeee;
-        `;
+        titleEl.style.margin = '0';
 
         const closeBtn = document.createElement('button');
         closeBtn.className = 'rpg-modal-close';
         closeBtn.innerHTML = '<i class="fa-solid fa-times"></i>';
-        closeBtn.style.cssText = `
-            background: transparent;
-            border: none;
-            color: #eeeeee;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 4px;
-            width: 28px;
-            height: 28px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        `;
-        closeBtn.onmouseenter = () => closeBtn.style.background = '#e94560';
-        closeBtn.onmouseleave = () => closeBtn.style.background = 'transparent';
 
         headerContent.appendChild(icon);
         headerContent.appendChild(titleEl);
         header.appendChild(headerContent);
         header.appendChild(closeBtn);
 
-        // Body
+        // Body (uses .rpg-modal-body class)
         const body = document.createElement('div');
         body.className = 'rpg-modal-body';
-        body.style.cssText = `
-            padding: 20px;
-        `;
 
         if (message) {
             const messageEl = document.createElement('p');
             messageEl.textContent = message;
             messageEl.style.cssText = `
-                margin: 0 0 15px 0;
-                color: #eeeeee;
-                font-size: 14px;
+                margin: 0 0 1rem 0;
+                color: var(--rpg-text);
             `;
             body.appendChild(messageEl);
         }
@@ -131,12 +88,12 @@ export function showPromptDialog(options) {
         input.placeholder = placeholder;
         input.style.cssText = `
             width: 100%;
-            padding: 10px;
-            background: #0f3460;
-            border: 1px solid #1a4d7a;
+            padding: 0.5rem;
+            background: var(--rpg-accent);
+            border: 1px solid var(--rpg-border);
             border-radius: 4px;
-            color: #eeeeee;
-            font-size: 14px;
+            color: var(--rpg-text);
+            font-size: 1rem;
             font-family: inherit;
             box-sizing: border-box;
         `;
@@ -144,58 +101,26 @@ export function showPromptDialog(options) {
         const errorEl = document.createElement('div');
         errorEl.className = 'rpg-prompt-error';
         errorEl.style.cssText = `
-            margin-top: 8px;
-            color: #e94560;
-            font-size: 12px;
-            min-height: 18px;
+            margin-top: 0.5rem;
+            color: var(--rpg-highlight);
+            font-size: 0.875rem;
+            min-height: 1.25rem;
         `;
 
         body.appendChild(input);
         body.appendChild(errorEl);
 
-        // Footer
+        // Footer (uses .rpg-modal-footer class)
         const footer = document.createElement('div');
         footer.className = 'rpg-modal-footer';
-        footer.style.cssText = `
-            padding: 20px;
-            border-top: 1px solid #0f3460;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        `;
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'rpg-btn-secondary';
-        cancelBtn.textContent = cancelText;
-        cancelBtn.style.cssText = `
-            padding: 10px 20px;
-            background: #0f3460;
-            border: none;
-            border-radius: 6px;
-            color: #eeeeee;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background 0.2s;
-        `;
-        cancelBtn.onmouseenter = () => cancelBtn.style.background = '#1a4d7a';
-        cancelBtn.onmouseleave = () => cancelBtn.style.background = '#0f3460';
+        cancelBtn.innerHTML = `<i class="fa-solid fa-times"></i> ${cancelText}`;
 
         const confirmBtn = document.createElement('button');
         confirmBtn.className = 'rpg-btn-primary';
-        confirmBtn.textContent = confirmText;
-        confirmBtn.style.cssText = `
-            padding: 10px 20px;
-            background: #4ecca3;
-            border: none;
-            border-radius: 6px;
-            color: #16213e;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        `;
-        confirmBtn.onmouseenter = () => confirmBtn.style.background = '#45b993';
-        confirmBtn.onmouseleave = () => confirmBtn.style.background = '#4ecca3';
+        confirmBtn.innerHTML = `<i class="fa-solid fa-check"></i> ${confirmText}`;
 
         footer.appendChild(cancelBtn);
         footer.appendChild(confirmBtn);

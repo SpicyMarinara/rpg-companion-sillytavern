@@ -45,7 +45,12 @@ export class TabContextMenu {
     attachHandlers() {
         if (!this.tabsContainer) return;
 
-        // Use event delegation for dynamically added tabs
+        // Long press support for mobile
+        let longPressTimer = null;
+        let longPressTarget = null;
+        let touchStartPos = { x: 0, y: 0 };
+
+        // Desktop: Right-click context menu
         this.tabsContainer.addEventListener('contextmenu', (e) => {
             // Find closest tab element
             const tabElement = e.target.closest('.rpg-dashboard-tab');
@@ -60,8 +65,77 @@ export class TabContextMenu {
             this.showMenu(e.pageX, e.pageY, tabId);
         });
 
-        // Close menu on any click outside
+        // Mobile: Long press support (touch and hold)
+        this.tabsContainer.addEventListener('touchstart', (e) => {
+            const tabElement = e.target.closest('.rpg-dashboard-tab');
+            if (!tabElement) return;
+
+            const tabId = tabElement.dataset.tabId;
+            if (!tabId) return;
+
+            // Store touch position
+            const touch = e.touches[0];
+            touchStartPos = { x: touch.pageX, y: touch.pageY };
+            longPressTarget = { tabId, x: touch.pageX, y: touch.pageY };
+
+            // Start long press timer (500ms)
+            longPressTimer = setTimeout(() => {
+                if (longPressTarget) {
+                    // Prevent default touch behavior
+                    e.preventDefault();
+                    // Show context menu at touch position
+                    this.showMenu(longPressTarget.x, longPressTarget.y, longPressTarget.tabId);
+                    // Provide haptic feedback if available
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
+                    longPressTarget = null;
+                }
+            }, 500);
+        }, { passive: false });
+
+        // Cancel long press on touch move (if moved too far)
+        this.tabsContainer.addEventListener('touchmove', (e) => {
+            if (!longPressTimer) return;
+
+            const touch = e.touches[0];
+            const deltaX = Math.abs(touch.pageX - touchStartPos.x);
+            const deltaY = Math.abs(touch.pageY - touchStartPos.y);
+
+            // Cancel if moved more than 10px
+            if (deltaX > 10 || deltaY > 10) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+                longPressTarget = null;
+            }
+        });
+
+        // Cancel long press on touch end (if timer still running)
+        this.tabsContainer.addEventListener('touchend', () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+                longPressTarget = null;
+            }
+        });
+
+        // Cancel long press on touch cancel
+        this.tabsContainer.addEventListener('touchcancel', () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+                longPressTarget = null;
+            }
+        });
+
+        // Close menu on any click/touch outside
         document.addEventListener('click', () => this.hideMenu());
+        document.addEventListener('touchstart', (e) => {
+            // Close menu if touching outside context menu
+            if (this.menu && !this.menu.contains(e.target)) {
+                this.hideMenu();
+            }
+        });
         document.addEventListener('contextmenu', (e) => {
             // Only hide if right-clicking outside tabs
             if (!e.target.closest('.rpg-dashboard-tab')) {
@@ -83,17 +157,17 @@ export class TabContextMenu {
         const tab = this.tabManager.getTab(tabId);
         if (!tab) return;
 
-        // Create menu container
+        // Create menu container (matches widget styling with solid background)
         this.menu = document.createElement('div');
         this.menu.className = 'rpg-tab-context-menu';
         this.menu.style.cssText = `
             position: fixed;
             left: ${x}px;
             top: ${y}px;
-            background: #16213e;
-            border: 1px solid #0f3460;
+            background: linear-gradient(135deg, rgba(22, 33, 62, 1) 0%, rgba(26, 26, 46, 1) 100%);
+            border: 2px solid var(--rpg-border);
             border-radius: 6px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 18px var(--rpg-shadow), inset 0 0 12px rgba(0, 0, 0, 0.3);
             z-index: 10002;
             min-width: 180px;
             padding: 6px 0;
@@ -115,7 +189,7 @@ export class TabContextMenu {
                 const separator = document.createElement('div');
                 separator.style.cssText = `
                     height: 1px;
-                    background: #0f3460;
+                    background: var(--rpg-border);
                     margin: 6px 0;
                 `;
                 this.menu.appendChild(separator);
@@ -142,8 +216,8 @@ export class TabContextMenu {
         const menuItem = document.createElement('div');
         menuItem.className = 'rpg-tab-context-menu-item';
 
-        const baseColor = item.danger ? '#e94560' : '#eeeeee';
-        const hoverBg = item.danger ? '#8b2a3a' : '#0f3460';
+        const baseColor = item.danger ? 'var(--rpg-highlight)' : 'var(--rpg-text)';
+        const hoverBg = item.danger ? 'rgba(233, 69, 96, 0.2)' : 'var(--rpg-accent)';
 
         menuItem.style.cssText = `
             padding: 10px 16px;
@@ -172,7 +246,7 @@ export class TabContextMenu {
         icon.style.cssText = `
             width: 16px;
             text-align: center;
-            color: ${item.danger ? '#e94560' : '#4ecca3'};
+            color: ${item.danger ? 'var(--rpg-highlight)' : 'var(--rpg-border)'};
         `;
 
         const label = document.createElement('span');
@@ -338,44 +412,31 @@ export class TabContextMenu {
      */
     showIconPicker(iconOptions, currentIcon) {
         return new Promise((resolve) => {
-            // Create modal
+            // Create modal (uses .rpg-modal class for theming)
             const modal = document.createElement('div');
             modal.className = 'rpg-modal';
-            modal.style.cssText = `
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,0.7);
-                z-index: 10001;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            `;
+            modal.style.display = 'flex';
 
+            // Modal content (uses .rpg-modal-content class for theming)
             const content = document.createElement('div');
             content.className = 'rpg-modal-content';
-            content.style.cssText = `
-                background: #16213e;
-                border-radius: 8px;
-                padding: 24px;
-                max-width: 500px;
-                max-height: 80vh;
-                overflow-y: auto;
-            `;
+            content.style.padding = '1.5rem';
+            content.style.maxWidth = '500px';
 
             const title = document.createElement('h3');
             title.textContent = 'Choose Icon';
             title.style.cssText = `
-                margin: 0 0 20px 0;
-                color: #eeeeee;
-                font-size: 18px;
+                margin: 0 0 1.25rem 0;
+                color: var(--rpg-text);
+                font-size: 1.25rem;
             `;
 
             const grid = document.createElement('div');
             grid.style.cssText = `
                 display: grid;
                 grid-template-columns: repeat(5, 1fr);
-                gap: 12px;
-                margin-bottom: 20px;
+                gap: 0.75rem;
+                margin-bottom: 1.25rem;
             `;
 
             // Extract icon name without fa-solid prefix for comparison
@@ -386,12 +447,12 @@ export class TabContextMenu {
                 const isSelected = option.icon === currentIconName;
 
                 iconBtn.style.cssText = `
-                    padding: 16px;
-                    background: ${isSelected ? '#4ecca3' : '#0f3460'};
-                    border: 2px solid ${isSelected ? '#4ecca3' : '#1a4d7a'};
+                    padding: 1rem;
+                    background: ${isSelected ? 'var(--rpg-highlight)' : 'var(--rpg-accent)'};
+                    border: 2px solid ${isSelected ? 'var(--rpg-highlight)' : 'var(--rpg-border)'};
                     border-radius: 6px;
-                    color: ${isSelected ? '#16213e' : '#eeeeee'};
-                    font-size: 24px;
+                    color: ${isSelected ? 'white' : 'var(--rpg-text)'};
+                    font-size: 1.5rem;
                     cursor: pointer;
                     transition: all 0.2s;
                     display: flex;
@@ -404,14 +465,14 @@ export class TabContextMenu {
 
                 iconBtn.onmouseenter = () => {
                     if (!isSelected) {
-                        iconBtn.style.background = '#1a4d7a';
-                        iconBtn.style.borderColor = '#4ecca3';
+                        iconBtn.style.borderColor = 'var(--rpg-highlight)';
+                        iconBtn.style.transform = 'scale(1.05)';
                     }
                 };
                 iconBtn.onmouseleave = () => {
                     if (!isSelected) {
-                        iconBtn.style.background = '#0f3460';
-                        iconBtn.style.borderColor = '#1a4d7a';
+                        iconBtn.style.borderColor = 'var(--rpg-border)';
+                        iconBtn.style.transform = 'scale(1)';
                     }
                 };
 
@@ -424,17 +485,9 @@ export class TabContextMenu {
             });
 
             const cancelBtn = document.createElement('button');
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.style.cssText = `
-                padding: 10px 20px;
-                background: #0f3460;
-                border: none;
-                border-radius: 6px;
-                color: #eeeeee;
-                font-size: 14px;
-                cursor: pointer;
-                width: 100%;
-            `;
+            cancelBtn.className = 'rpg-btn-secondary';
+            cancelBtn.innerHTML = '<i class="fa-solid fa-times"></i> Cancel';
+            cancelBtn.style.width = '100%';
             cancelBtn.onclick = () => {
                 modal.remove();
                 resolve(null);
