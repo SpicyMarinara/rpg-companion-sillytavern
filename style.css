@@ -2037,6 +2037,40 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: var(--rpg-bg);
 }
 
+/* Compact mode for narrow widths (< 3 grid units) */
+.rpg-user-info-compact {
+    padding: 0.3rem !important;
+    gap: 0.4rem !important;
+}
+
+.rpg-user-info-compact.rpg-layout-vertical {
+    gap: 0.3rem !important;
+}
+
+.rpg-user-info-compact .rpg-user-portrait {
+    width: 2rem !important;
+    height: 2rem !important;
+    border-width: 1.5px !important;
+    box-shadow: 0 0 4px var(--rpg-highlight) !important;
+}
+
+.rpg-user-info-compact .rpg-user-info-text {
+    gap: 0.15rem !important;
+}
+
+.rpg-user-info-compact .rpg-user-name {
+    font-size: 0.75rem !important;
+}
+
+.rpg-user-info-compact .rpg-level-label {
+    font-size: 0.65rem !important;
+}
+
+.rpg-user-info-compact .rpg-level-value {
+    font-size: 0.75rem !important;
+    padding: 0.1rem 0.3rem !important;
+}
+
 /* Stat bars - rem for text, vh for bar height */
 .rpg-widget .rpg-stat-label {
     font-size: 0.75rem;
@@ -2779,36 +2813,36 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     overflow: visible;
 }
 
-/* Compact mode for narrow desktop widths - mirrors mobile sizing */
+/* Compact mode for narrow desktop widths - mirrors extra-small mobile sizing (<340px) */
 .rpg-scene-info-compact .rpg-scene-info-grid {
-    gap: 0.3125rem !important;
-    padding: 0.3125rem !important;
+    gap: 0.25rem !important;
+    padding: 0.25rem !important;
 }
 
 .rpg-scene-info-compact .rpg-info-item {
-    padding: 0.3125rem !important;
-    gap: 0.3125rem !important;
-    border-radius: 0.3125rem !important;
+    padding: 0.25rem !important;
+    gap: 0.25rem !important;
+    border-radius: 0.25rem !important;
 }
 
 .rpg-scene-info-compact .rpg-info-item .item-icon {
-    font-size: 1rem !important;
+    font-size: 0.9375rem !important;
 }
 
 .rpg-scene-info-compact .rpg-info-item .item-value {
-    font-size: 0.8125rem !important;
-}
-
-.rpg-scene-info-compact .rpg-info-item .item-label {
-    font-size: 0.625rem !important;
-}
-
-.rpg-scene-info-compact .rpg-info-location .item-value {
     font-size: 0.75rem !important;
 }
 
+.rpg-scene-info-compact .rpg-info-item .item-label {
+    font-size: 0.5625rem !important;
+}
+
+.rpg-scene-info-compact .rpg-info-location .item-value {
+    font-size: 0.6875rem !important;
+}
+
 .rpg-scene-info-compact .rpg-info-location .item-label {
-    font-size: 0.625rem !important;
+    font-size: 0.5625rem !important;
 }
 
 /* Mobile responsive (max-width: 1000px) */

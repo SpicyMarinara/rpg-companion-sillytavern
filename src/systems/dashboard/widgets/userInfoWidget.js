@@ -153,24 +153,33 @@ export function registerUserInfoWidget(registry, dependencies) {
             const portrait = container.querySelector('.rpg-user-portrait');
             if (!infoContainer) return;
 
+            // Apply compact mode class at narrow widths
+            if (newW < 3) {
+                infoContainer.classList.add('rpg-user-info-compact');
+            } else {
+                infoContainer.classList.remove('rpg-user-info-compact');
+            }
+
             // Flexible hybrid layout based on width:
             // - 1 column (1x1, 1x2): Centered avatar with text below
             // - 2+ columns: Side-by-side (avatar left, text right)
             if (newW < 2) {
-                // Compact vertical layout: centered large avatar with text below
+                // Compact vertical layout: centered avatar with text below
                 infoContainer.classList.add('rpg-layout-vertical');
                 infoContainer.classList.remove('rpg-layout-horizontal');
+                // Avatar size handled by compact class
                 if (portrait) {
-                    portrait.style.width = '3rem';
-                    portrait.style.height = '3rem';
+                    portrait.style.width = '';
+                    portrait.style.height = '';
                 }
             } else {
                 // Horizontal layout: avatar left, text right
                 infoContainer.classList.add('rpg-layout-horizontal');
                 infoContainer.classList.remove('rpg-layout-vertical');
+                // Avatar size handled by compact class
                 if (portrait) {
-                    portrait.style.width = '2.5rem';
-                    portrait.style.height = '2.5rem';
+                    portrait.style.width = '';
+                    portrait.style.height = '';
                 }
             }
         }
