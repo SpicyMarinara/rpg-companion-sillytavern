@@ -59,10 +59,12 @@ export class EditModeManager {
         // Store original layout for cancel
         this.originalLayout = this.captureLayout();
 
-        // Hide edit mode button (menu-only controls managed by headerOverflowManager)
+        // Hide edit mode button, show done button (menu-only controls managed by headerOverflowManager)
         const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
+        const doneBtn = document.querySelector('#rpg-dashboard-done-edit');
 
         if (editModeBtn) editModeBtn.style.display = 'none';
+        if (doneBtn) doneBtn.style.display = '';
 
         // Disable content editing to prevent keyboard from messing up layout
         this.disableContentEditing();
@@ -104,10 +106,12 @@ export class EditModeManager {
         // Re-enable content editing
         this.enableContentEditing();
 
-        // Show edit mode button (menu-only controls managed by headerOverflowManager)
+        // Show edit mode button, hide done button (menu-only controls managed by headerOverflowManager)
         const editModeBtn = document.querySelector('#rpg-dashboard-edit-mode');
+        const doneBtn = document.querySelector('#rpg-dashboard-done-edit');
 
         if (editModeBtn) editModeBtn.style.display = '';
+        if (doneBtn) doneBtn.style.display = 'none';
 
         // Remove edit class from container
         this.container.classList.remove('edit-mode');

@@ -14,6 +14,7 @@ import { WidgetRegistry } from './widgetRegistry.js';
 import { generateDefaultDashboard } from './defaultLayout.js';
 import { TabScrollManager } from './tabScrollManager.js';
 import { HeaderOverflowManager } from './headerOverflowManager.js';
+import { TabContextMenu } from './tabContextMenu.js';
 import { showConfirmDialog } from './confirmDialog.js';
 
 // Widget imports
@@ -31,6 +32,7 @@ import { registerQuestsWidget } from './widgets/questsWidget.js';
 let dashboardManager = null;
 let tabScrollManager = null;
 let headerOverflowManager = null;
+let tabContextMenu = null;
 
 /**
  * Get the dashboard manager instance
@@ -121,6 +123,23 @@ export async function initializeDashboard(dependencies) {
         if (tabsContainer) {
             tabScrollManager = new TabScrollManager(tabsContainer);
             tabScrollManager.init();
+        }
+
+        // Initialize tab context menu
+        if (tabsContainer && dashboardManager?.tabManager) {
+            tabContextMenu = new TabContextMenu({
+                tabManager: dashboardManager.tabManager,
+                onTabChange: (event, data) => {
+                    console.log('[RPG Companion] Tab context menu event:', event, data);
+                    // Re-render tabs after tab operations
+                    dashboardManager.renderTabs();
+                    // Save dashboard state
+                    if (dashboardManager.autoSave) {
+                        saveSettings();
+                    }
+                }
+            });
+            tabContextMenu.init(tabsContainer);
         }
 
         // Initialize header overflow manager
