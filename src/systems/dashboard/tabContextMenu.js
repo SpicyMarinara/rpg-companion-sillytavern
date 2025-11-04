@@ -165,19 +165,41 @@ export class TabContextMenu {
         const panel = document.querySelector('.rpg-panel');
         if (panel && panel.dataset.theme) {
             this.menu.dataset.theme = panel.dataset.theme;
-        }
+            this.menu.style.cssText = `
+                position: fixed;
+                left: ${x}px;
+                top: ${y}px;
+                z-index: 10002;
+                min-width: 180px;
+                padding: 6px 0;
+                max-width: none;
+                max-height: none;
+                overflow: visible;
+            `;
+        } else {
+            // For default theme: read computed colors from panel and apply as solid (1.0 opacity)
+            const computedStyle = window.getComputedStyle(panel);
+            const bgColor = computedStyle.getPropertyValue('--rpg-bg').trim();
+            const accentColor = computedStyle.getPropertyValue('--rpg-accent').trim();
 
-        this.menu.style.cssText = `
-            position: fixed;
-            left: ${x}px;
-            top: ${y}px;
-            z-index: 10002;
-            min-width: 180px;
-            padding: 6px 0;
-            max-width: none;
-            max-height: none;
-            overflow: visible;
-        `;
+            // Convert rgba with 0.9 opacity to 1.0 opacity
+            const solidBg = bgColor.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgba($1, 1)');
+            const solidAccent = accentColor.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgba($1, 1)');
+
+            this.menu.style.cssText = `
+                position: fixed;
+                left: ${x}px;
+                top: ${y}px;
+                z-index: 10002;
+                min-width: 180px;
+                padding: 6px 0;
+                max-width: none;
+                max-height: none;
+                overflow: visible;
+                background: linear-gradient(135deg, ${solidAccent} 0%, ${solidBg} 100%) !important;
+                opacity: 1 !important;
+            `;
+        }
 
         // Menu items
         const items = [
@@ -223,7 +245,7 @@ export class TabContextMenu {
         menuItem.className = 'rpg-tab-context-menu-item';
 
         const baseColor = item.danger ? 'var(--rpg-highlight)' : 'var(--rpg-text)';
-        const hoverBg = item.danger ? 'rgba(233, 69, 96, 0.2)' : 'var(--rpg-accent)';
+        const hoverBg = item.danger ? 'rgba(233, 69, 96, 0.3)' : 'rgba(255, 255, 255, 0.1)';
 
         menuItem.style.cssText = `
             padding: 10px 16px;
@@ -431,6 +453,18 @@ export class TabContextMenu {
             const panel = document.querySelector('.rpg-panel');
             if (panel && panel.dataset.theme) {
                 content.dataset.theme = panel.dataset.theme;
+            } else {
+                // For default theme: read computed colors from panel and apply as solid (1.0 opacity)
+                const computedStyle = window.getComputedStyle(panel);
+                const bgColor = computedStyle.getPropertyValue('--rpg-bg').trim();
+                const accentColor = computedStyle.getPropertyValue('--rpg-accent').trim();
+
+                // Convert rgba with 0.9 opacity to 1.0 opacity
+                const solidBg = bgColor.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgba($1, 1)');
+                const solidAccent = accentColor.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgba($1, 1)');
+
+                content.style.background = `linear-gradient(135deg, ${solidAccent} 0%, ${solidBg} 100%)`;
+                content.style.opacity = '1';
             }
 
             content.style.padding = '1.5rem';

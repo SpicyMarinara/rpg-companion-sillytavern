@@ -42,12 +42,28 @@ export function showPromptDialog(options) {
         const panel = document.querySelector('.rpg-panel');
         if (panel && panel.dataset.theme) {
             modalContent.dataset.theme = panel.dataset.theme;
-        }
+            modalContent.style.cssText = `
+                min-width: 400px;
+                max-width: 90vw;
+            `;
+        } else {
+            // For default theme: read computed colors from panel and apply as solid (1.0 opacity)
+            const computedStyle = window.getComputedStyle(panel);
+            const bgColor = computedStyle.getPropertyValue('--rpg-bg').trim();
+            const accentColor = computedStyle.getPropertyValue('--rpg-accent').trim();
 
-        modalContent.style.cssText = `
-            min-width: 400px;
-            max-width: 90vw;
-        `;
+            // Convert rgba with 0.9 opacity to 1.0 opacity
+            const solidBg = bgColor.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgba($1, 1)');
+            const solidAccent = accentColor.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgba($1, 1)');
+
+            // Apply solid background + ensure full opacity
+            modalContent.style.cssText = `
+                min-width: 400px;
+                max-width: 90vw;
+                background: linear-gradient(135deg, ${solidAccent} 0%, ${solidBg} 100%) !important;
+                opacity: 1 !important;
+            `;
+        }
 
         // Header (uses .rpg-modal-header class)
         const header = document.createElement('div');
