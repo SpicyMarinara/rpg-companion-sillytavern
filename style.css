@@ -6950,6 +6950,23 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     overflow-x: hidden;
 }
 
+/* Quests Widget - Flex container for proper scrolling */
+.rpg-quests-widget {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Quests Views - Scrollable content area */
+.rpg-quests-views {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 /* Sub-tabs Navigation */
 .rpg-inventory-subtabs {
     display: flex;
@@ -7648,6 +7665,25 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 }
 
+/* Inventory Compact Mode (narrow widths, < 6 grid units) */
+.rpg-inventory-compact .rpg-inventory-subtabs {
+    gap: 0.25rem; /* Reduced from 0.5rem */
+}
+
+.rpg-inventory-compact .rpg-inventory-subtab {
+    padding: 0.4rem 0.6rem; /* Reduced from 0.5rem 1rem */
+    font-size: 0.85rem;
+}
+
+/* Hide labels on very narrow widths, show icons only */
+.rpg-inventory-compact .rpg-subtab-label {
+    display: none;
+}
+
+.rpg-inventory-compact .rpg-inventory-subtab i {
+    margin: 0;
+}
+
 /* ============================================
    QUESTS SYSTEM STYLING
    ============================================ */
@@ -7905,6 +7941,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-quest-cancel:hover {
     background: rgba(255, 255, 255, 0.1);
+}
+
+/* Quest widget header constraints for wide layouts */
+.rpg-quests-wide .rpg-quest-section-title {
+    max-width: 200px;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rpg-quests-wide .rpg-quest-header {
+    gap: 1rem;
 }
 
 /* Mobile Responsive Styles */

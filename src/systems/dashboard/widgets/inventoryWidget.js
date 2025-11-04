@@ -65,8 +65,19 @@ export function registerInventoryWidget(registry, dependencies) {
         description: 'Full inventory system with On Person, Stored, and Assets',
         category: 'inventory',
         minSize: { w: 2, h: 4 },
-        defaultSize: { w: 2, h: 6 },
-        maxAutoSize: { w: 3, h: 8 }, // Max size for auto-arrange expansion (full tab)
+        // Column-aware sizing: compact on mobile, spacious on desktop
+        defaultSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 5 }; // Mobile: 2×5 (full width, compact)
+            }
+            return { w: 2, h: 6 }; // Desktop: 2×6 (default)
+        },
+        maxAutoSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 8 }; // Mobile: 2×8 max (increased for expansion headroom)
+            }
+            return { w: 3, h: 8 }; // Desktop: 3×8 max (can expand)
+        },
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -113,14 +124,18 @@ export function registerInventoryWidget(registry, dependencies) {
         },
 
         onResize(container, newW, newH) {
-            // Adjust layout for narrow widgets
-            const widget = container.querySelector('.rpg-inventory-widget');
-            if (!widget) return;
+            // Re-render widget to update internal layout for new dimensions
+            // This ensures sub-tabs, item lists, and storage locations adapt correctly
+            this.render(container, this.config || {});
 
-            if (newW < 6) {
-                widget.classList.add('rpg-inventory-compact');
-            } else {
-                widget.classList.remove('rpg-inventory-compact');
+            // Apply compact mode styling if needed
+            const widget = container.querySelector('.rpg-inventory-widget');
+            if (widget) {
+                if (newW < 6) {
+                    widget.classList.add('rpg-inventory-compact');
+                } else {
+                    widget.classList.remove('rpg-inventory-compact');
+                }
             }
         },
 

@@ -395,8 +395,19 @@ export function registerQuestsWidget(registry, dependencies) {
         description: 'Quest tracking with main and optional quests',
         category: 'quests',
         minSize: { w: 2, h: 4 },
-        defaultSize: { w: 2, h: 5 },
-        maxAutoSize: { w: 3, h: 7 },
+        // Column-aware sizing: compact on mobile, spacious on desktop
+        defaultSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 4 }; // Mobile: 2×4 (full width, compact)
+            }
+            return { w: 2, h: 5 }; // Desktop: 2×5 (default)
+        },
+        maxAutoSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 7 }; // Mobile: 2×7 max (increased for expansion headroom)
+            }
+            return { w: 3, h: 7 }; // Desktop: 3×7 max (can expand)
+        },
         requiresSchema: false,
 
         render(container, config = {}) {
@@ -436,6 +447,24 @@ export function registerQuestsWidget(registry, dependencies) {
         // Called when widget data changes externally
         onDataUpdate(container, config = {}) {
             this.render(container, config);
+        },
+
+        // Called when widget is resized
+        onResize(container, newW, newH) {
+            // Re-render widget to update layout for new dimensions
+            this.render(container, this.config || {});
+
+            // Apply width-aware styling
+            const widget = container.querySelector('.rpg-quests-widget');
+            if (widget) {
+                if (newW >= 3) {
+                    // Wide layout: constrain title width
+                    widget.classList.add('rpg-quests-wide');
+                } else {
+                    // Narrow layout: allow title to flex
+                    widget.classList.remove('rpg-quests-wide');
+                }
+            }
         }
     });
 }

@@ -119,6 +119,7 @@ export class GridEngine {
      * Recalculates column count based on new width and notifies if changed.
      *
      * @param {number} width - Container width in pixels
+     * @returns {boolean} True if column count changed, false otherwise
      */
     setContainerWidth(width) {
         const oldColumns = this.columns;
@@ -131,7 +132,10 @@ export class GridEngine {
         if (oldColumns !== this.columns && this.onColumnsChange) {
             console.log('[GridEngine] Column count changed from', oldColumns, 'to', this.columns);
             this.onColumnsChange(this.columns, oldColumns);
+            return true; // Signal that columns changed
         }
+
+        return false; // Columns did NOT change
     }
 
     /**
