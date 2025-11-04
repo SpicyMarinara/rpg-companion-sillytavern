@@ -157,20 +157,26 @@ export class TabContextMenu {
         const tab = this.tabManager.getTab(tabId);
         if (!tab) return;
 
-        // Create menu container (matches widget styling with solid background)
+        // Create menu container (uses CSS variables, themed via data-theme attribute)
         this.menu = document.createElement('div');
-        this.menu.className = 'rpg-tab-context-menu';
+        this.menu.className = 'rpg-tab-context-menu rpg-modal-content'; // Use .rpg-modal-content for theme styling
+
+        // Copy theme from panel so menu inherits theme-specific styles
+        const panel = document.querySelector('.rpg-panel');
+        if (panel && panel.dataset.theme) {
+            this.menu.dataset.theme = panel.dataset.theme;
+        }
+
         this.menu.style.cssText = `
             position: fixed;
             left: ${x}px;
             top: ${y}px;
-            background: linear-gradient(135deg, rgba(22, 33, 62, 1) 0%, rgba(26, 26, 46, 1) 100%);
-            border: 2px solid var(--rpg-border);
-            border-radius: 6px;
-            box-shadow: 0 4px 18px var(--rpg-shadow), inset 0 0 12px rgba(0, 0, 0, 0.3);
             z-index: 10002;
             min-width: 180px;
             padding: 6px 0;
+            max-width: none;
+            max-height: none;
+            overflow: visible;
         `;
 
         // Menu items
@@ -420,6 +426,13 @@ export class TabContextMenu {
             // Modal content (uses .rpg-modal-content class for theming)
             const content = document.createElement('div');
             content.className = 'rpg-modal-content';
+
+            // Copy theme from panel so modal inherits theme CSS variables
+            const panel = document.querySelector('.rpg-panel');
+            if (panel && panel.dataset.theme) {
+                content.dataset.theme = panel.dataset.theme;
+            }
+
             content.style.padding = '1.5rem';
             content.style.maxWidth = '500px';
 

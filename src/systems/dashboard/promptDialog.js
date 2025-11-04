@@ -37,6 +37,13 @@ export function showPromptDialog(options) {
         // Create modal content (uses .rpg-modal-content class for theming)
         const modalContent = document.createElement('div');
         modalContent.className = 'rpg-modal-content rpg-prompt-content';
+
+        // Copy theme from panel so modal inherits theme CSS variables
+        const panel = document.querySelector('.rpg-panel');
+        if (panel && panel.dataset.theme) {
+            modalContent.dataset.theme = panel.dataset.theme;
+        }
+
         modalContent.style.cssText = `
             min-width: 400px;
             max-width: 90vw;

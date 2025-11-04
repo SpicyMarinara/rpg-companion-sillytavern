@@ -1479,7 +1479,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Modal Content Container */
 .rpg-modal-content {
-    background: linear-gradient(135deg, rgba(22, 33, 62, 1) 0%, rgba(26, 26, 46, 1) 100%);
+    background: linear-gradient(135deg, var(--rpg-accent) 0%, var(--rpg-bg) 100%);
     border: 2px solid var(--rpg-border);
     border-radius: 8px;
     max-width: 600px;
@@ -4095,6 +4095,34 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* ============================================
    THEME SUPPORT FOR ALL PANEL ELEMENTS
    ============================================ */
+
+/* Apply theme CSS variables to standalone elements (modals, menus) */
+.rpg-modal-content[data-theme="sci-fi"] {
+    --rpg-bg: #0a0e27;
+    --rpg-accent: #1a1f3a;
+    --rpg-text: #00fff9;
+    --rpg-highlight: #ff006e;
+    --rpg-border: #8b00ff;
+    --rpg-shadow: rgba(139, 0, 255, 0.5);
+}
+
+.rpg-modal-content[data-theme="fantasy"] {
+    --rpg-bg: #2b1810;
+    --rpg-accent: #3d2414;
+    --rpg-text: #f4e8d0;
+    --rpg-highlight: #d4af37;
+    --rpg-border: #8b6914;
+    --rpg-shadow: rgba(0, 0, 0, 0.7);
+}
+
+.rpg-modal-content[data-theme="cyberpunk"] {
+    --rpg-bg: #000000;
+    --rpg-accent: #0d0d0d;
+    --rpg-text: #00ff41;
+    --rpg-highlight: #ff2a6d;
+    --rpg-border: #05d9e8;
+    --rpg-shadow: rgba(5, 217, 232, 0.5);
+}
 
 /* Apply theme colors to tabs navigation */
 .rpg-panel[data-theme="sci-fi"] .rpg-tabs-nav,
