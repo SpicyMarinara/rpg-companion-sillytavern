@@ -78,6 +78,7 @@ export class DashboardManager {
         this.widgets = new Map(); // widgetId => { widget data, element, tab }
         this.defaultLayout = null;
         this.previousTrackerConfig = null; // For detecting config changes
+        this.resizeTimeout = null; // For debouncing resize events
 
         // Dashboard data structure (for TabManager)
         this.dashboard = {
@@ -126,39 +127,59 @@ export class DashboardManager {
             onColumnsChange: (newCols, oldCols) => {
                 console.log('[DashboardManager] Grid columns changed:', oldCols, '→', newCols);
 
-                // Auto-reflow current tab to optimize for new column count
+                // Update ALL tabs to keep them synchronized with new column count
+                // This prevents layout issues when switching to hidden tabs after resize
+                let totalWidgetsUpdated = 0;
                 const currentTab = this.tabManager.getTab(this.currentTabId);
-                if (currentTab && currentTab.widgets && currentTab.widgets.length > 0) {
-                    console.log(`[DashboardManager] Auto-reflowing ${currentTab.widgets.length} widgets for ${newCols} columns`);
 
-                    // Store current widget dimensions before auto-layout
+                this.dashboard.tabs.forEach(tab => {
+                    if (!tab.widgets || tab.widgets.length === 0) return;
+
+                    const isCurrentTab = tab.id === this.currentTabId;
+                    console.log(`[DashboardManager] Updating tab "${tab.name}" (${tab.widgets.length} widgets, ${isCurrentTab ? 'visible' : 'hidden'})`);
+
+                    // Store dimensions before resize (only for current tab, for onResize detection)
                     const dimensionsBefore = new Map();
-                    currentTab.widgets.forEach(widget => {
-                        dimensionsBefore.set(widget.id, { w: widget.w, h: widget.h });
-                    });
+                    if (isCurrentTab) {
+                        tab.widgets.forEach(widget => {
+                            dimensionsBefore.set(widget.id, { w: widget.w, h: widget.h });
+                        });
+                    }
+
+                    // Reset widget sizes to column-aware defaults before auto-layout
+                    // This ensures widgets adopt their appropriate sizes for the new column count
+                    // (e.g., userInfo expands from 1×1 to 2×1 when going from 2→3 columns)
+                    this.resetWidgetSizesToDefault(tab.widgets);
 
                     // Run auto-layout to reflow and expand widgets for new grid
                     // This prevents overlap and optimizes space usage
-                    this.gridEngine.autoLayout(currentTab.widgets, { preserveOrder: true });
+                    // Works on widget data arrays - no DOM access required
+                    this.gridEngine.autoLayout(tab.widgets, { preserveOrder: true });
 
-                    // Call onResize handlers for widgets whose dimensions changed
-                    // This allows widgets to update internal layouts (e.g., User Attributes grid columns)
-                    currentTab.widgets.forEach(widget => {
-                        const before = dimensionsBefore.get(widget.id);
-                        if (before && (before.w !== widget.w || before.h !== widget.h)) {
-                            const widgetData = this.widgets.get(widget.id);
-                            if (widgetData?.definition?.onResize && widgetData.element) {
-                                console.log(`[DashboardManager] Calling onResize for ${widget.type} (${before.w}x${before.h} → ${widget.w}x${widget.h})`);
-                                widgetData.definition.onResize(widgetData.element, widget.w, widget.h);
+                    // Call onResize handlers ONLY for currently visible widgets (DOM exists)
+                    // Hidden tab widgets don't have DOM elements, so skip their onResize handlers
+                    if (isCurrentTab) {
+                        tab.widgets.forEach(widget => {
+                            const before = dimensionsBefore.get(widget.id);
+                            if (before && (before.w !== widget.w || before.h !== widget.h)) {
+                                const widgetData = this.widgets.get(widget.id);
+                                if (widgetData?.definition?.onResize && widgetData.element) {
+                                    console.log(`[DashboardManager] Calling onResize for ${widget.type} (${before.w}x${before.h} → ${widget.w}x${widget.h})`);
+                                    widgetData.definition.onResize(widgetData.element, widget.w, widget.h);
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
 
-                    // Save changes
-                    this.triggerAutoSave();
-                }
+                    totalWidgetsUpdated += tab.widgets.length;
+                });
 
-                // Re-render all widgets with new layout
+                console.log(`[DashboardManager] Updated ${totalWidgetsUpdated} widgets across ${this.dashboard.tabs.length} tabs`);
+
+                // Save changes
+                this.triggerAutoSave();
+
+                // Re-render current tab widgets with new layout
                 this.renderAllWidgets();
             }
         });
@@ -315,8 +336,25 @@ export class DashboardManager {
             this.resizeObserver = new ResizeObserver((entries) => {
                 for (const entry of entries) {
                     const newWidth = entry.contentRect.width;
-                    console.log('[DashboardManager] Container resized to:', newWidth);
-                    this.gridEngine.setContainerWidth(newWidth);
+
+                    // setContainerWidth returns true if columns changed
+                    const columnsChanged = this.gridEngine.setContainerWidth(newWidth);
+
+                    // If columns changed, onColumnsChange already handled full reflow
+                    if (columnsChanged) {
+                        console.log('[DashboardManager] Container resized, columns changed. Full reflow handled.');
+                        // Clear any pending lightweight refresh to avoid conflicts
+                        clearTimeout(this.resizeTimeout);
+                        return;
+                    }
+
+                    // If columns did NOT change, trigger debounced lightweight refresh
+                    // This handles resizing within the same column count
+                    clearTimeout(this.resizeTimeout);
+                    this.resizeTimeout = setTimeout(() => {
+                        console.log('[DashboardManager] Container resized, no column change. Triggering lightweight refresh.');
+                        this.refreshWidgetsAfterResize();
+                    }, 150); // Using shorter 150ms debounce for better UX
                 }
             });
 
@@ -844,6 +882,27 @@ export class DashboardManager {
             this.repositionWidget(widgetData.element, widgetData.widget);
         });
         console.log('[DashboardManager] Repositioned all widgets');
+    }
+
+    /**
+     * Lightweight refresh of widgets after container resize without column change
+     * Repositions widgets to apply new CSS dimensions and calls onResize handlers
+     * Does NOT change widget grid positions (x, y, w, h)
+     */
+    refreshWidgetsAfterResize() {
+        // 1. Reposition all widgets to apply new CSS width/height percentages
+        this.renderAllWidgets();
+
+        // 2. Call onResize handlers for each widget to allow internal layout updates
+        this.widgets.forEach((widgetData) => {
+            if (widgetData?.definition?.onResize && widgetData.element) {
+                const widget = widgetData.widget;
+                // Pass grid units (w, h) for consistency with other onResize calls
+                widgetData.definition.onResize(widgetData.element, widget.w, widget.h);
+            }
+        });
+
+        console.log('[DashboardManager] Lightweight widget refresh complete');
     }
 
     /**
