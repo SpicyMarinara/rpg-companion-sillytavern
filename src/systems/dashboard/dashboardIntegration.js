@@ -296,7 +296,6 @@ function setupDashboardEventListeners(dependencies) {
                 });
 
                 if (confirmed) {
-                    console.log('[RPG Companion] Auto-layout button clicked');
                     dashboardManager.autoLayoutWidgets();
                 }
             }

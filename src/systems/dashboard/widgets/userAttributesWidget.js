@@ -172,8 +172,20 @@ export function registerUserAttributesWidget(registry, dependencies) {
             // Count visible attributes from DOM
             const attrCount = statsGrid.querySelectorAll('.rpg-classic-stat').length;
 
-            // Recalculate optimal columns based on new width
-            const optimalCols = calculateOptimalColumns(attrCount, newW);
+            // Get actual pixel width of container (not grid units)
+            // calculateOptimalColumns expects pixel width to determine if 3 columns fit
+            const containerWidth = container.offsetWidth;
+
+            console.log('[UserAttributes] onResize called:', {
+                gridUnits: `${newW}x${newH}`,
+                pixelWidth: containerWidth,
+                attrCount: attrCount
+            });
+
+            // Recalculate optimal columns based on actual pixel width
+            const optimalCols = calculateOptimalColumns(attrCount, containerWidth);
+
+            console.log('[UserAttributes] Calculated optimal columns:', optimalCols);
 
             // Apply new grid layout
             statsGrid.style.gridTemplateColumns = `repeat(${optimalCols}, 1fr)`;

@@ -14,7 +14,8 @@
  */
 
 // Performance: Disable console logging (console.error still active)
-const DEBUG = false;
+// Temporarily enabled for debugging auto-arrange onResize issue
+const DEBUG = true;
 const console = DEBUG ? window.console : {
     log: () => {},
     warn: () => {},
@@ -130,9 +131,28 @@ export class DashboardManager {
                 if (currentTab && currentTab.widgets && currentTab.widgets.length > 0) {
                     console.log(`[DashboardManager] Auto-reflowing ${currentTab.widgets.length} widgets for ${newCols} columns`);
 
+                    // Store current widget dimensions before auto-layout
+                    const dimensionsBefore = new Map();
+                    currentTab.widgets.forEach(widget => {
+                        dimensionsBefore.set(widget.id, { w: widget.w, h: widget.h });
+                    });
+
                     // Run auto-layout to reflow and expand widgets for new grid
                     // This prevents overlap and optimizes space usage
                     this.gridEngine.autoLayout(currentTab.widgets, { preserveOrder: true });
+
+                    // Call onResize handlers for widgets whose dimensions changed
+                    // This allows widgets to update internal layouts (e.g., User Attributes grid columns)
+                    currentTab.widgets.forEach(widget => {
+                        const before = dimensionsBefore.get(widget.id);
+                        if (before && (before.w !== widget.w || before.h !== widget.h)) {
+                            const widgetData = this.widgets.get(widget.id);
+                            if (widgetData?.definition?.onResize && widgetData.element) {
+                                console.log(`[DashboardManager] Calling onResize for ${widget.type} (${before.w}x${before.h} → ${widget.w}x${widget.h})`);
+                                widgetData.definition.onResize(widgetData.element, widget.w, widget.h);
+                            }
+                        }
+                    });
 
                     // Save changes
                     this.triggerAutoSave();
@@ -871,6 +891,7 @@ export class DashboardManager {
      * @param {Array<Object>} widgets - All widgets to distribute
      */
     distributeWidgetsByCategory(widgets) {
+        console.log('[DashboardManager] ===== DISTRIBUTE WIDGETS BY CATEGORY CALLED =====');
         console.log('[DashboardManager] Distributing widgets across multiple tabs');
 
         // Group widgets by category
@@ -919,7 +940,6 @@ export class DashboardManager {
                 widgets: groups.scene
             });
 
-            // Auto-layout scene widgets
             this.gridEngine.autoLayout(groups.scene, { preserveOrder: true });
         }
 
@@ -933,7 +953,6 @@ export class DashboardManager {
                 widgets: groups.social
             });
 
-            // Auto-layout social widgets
             this.gridEngine.autoLayout(groups.social, { preserveOrder: true });
         }
 
@@ -947,7 +966,6 @@ export class DashboardManager {
                 widgets: groups.inventory
             });
 
-            // Auto-layout inventory widgets
             this.gridEngine.autoLayout(groups.inventory, { preserveOrder: true });
         }
 
@@ -961,7 +979,6 @@ export class DashboardManager {
                 widgets: groups.quests
             });
 
-            // Auto-layout quest widgets
             this.gridEngine.autoLayout(groups.quests, { preserveOrder: true });
         }
 
@@ -972,6 +989,17 @@ export class DashboardManager {
         if (this.dashboard.tabs.length > 0) {
             this.switchTab(this.dashboard.tabs[0].id);
         }
+
+        // After rendering, call onResize for all currently rendered widgets to update internal layouts
+        // This ensures widgets like User Attributes recalculate their grid columns
+        // Note: Only iterate over this.widgets (currently rendered), not all tabs (includes non-rendered widgets)
+        console.log(`[DashboardManager] Calling onResize for ${this.widgets.size} rendered widgets after auto-layout`);
+        this.widgets.forEach(widgetData => {
+            if (widgetData?.definition?.onResize && widgetData.element) {
+                console.log(`[DashboardManager] Calling onResize for ${widgetData.widget.type} (${widgetData.widget.w}x${widgetData.widget.h})`);
+                widgetData.definition.onResize(widgetData.element, widgetData.widget.w, widgetData.widget.h);
+            }
+        });
 
         // Save layout
         this.triggerAutoSave();
@@ -1569,9 +1597,28 @@ export class DashboardManager {
         // Update tab's widgets array with sorted order
         currentTab.widgets = sortedWidgets;
 
+        // Store current widget dimensions before auto-layout
+        const dimensionsBefore = new Map();
+        currentTab.widgets.forEach(widget => {
+            dimensionsBefore.set(widget.id, { w: widget.w, h: widget.h });
+        });
+
         // Auto-layout widgets on the current tab
         this.gridEngine.autoLayout(currentTab.widgets, {
             preserveOrder: options.preserveOrder !== false
+        });
+
+        // Call onResize handlers for widgets whose dimensions changed
+        // This allows widgets to update internal layouts (e.g., User Attributes grid columns)
+        currentTab.widgets.forEach(widget => {
+            const before = dimensionsBefore.get(widget.id);
+            if (before && (before.w !== widget.w || before.h !== widget.h)) {
+                const widgetData = this.widgets.get(widget.id);
+                if (widgetData?.definition?.onResize && widgetData.element) {
+                    console.log(`[DashboardManager] Calling onResize for ${widget.type} (${before.w}x${before.h} → ${widget.w}x${widget.h})`);
+                    widgetData.definition.onResize(widgetData.element, widget.w, widget.h);
+                }
+            }
         });
 
         // Re-render all widgets with new positions
@@ -1601,6 +1648,7 @@ export class DashboardManager {
      * @param {boolean} [options.resetSizes=true] - Reset widgets to default sizes before layout
      */
     autoLayoutWidgets(options = {}) {
+        console.log('[DashboardManager] ===== AUTO-LAYOUT WIDGETS CALLED =====');
         console.log('[DashboardManager] Auto-layout widgets requested');
 
         // Gather ALL widgets from ALL tabs (don't lose inventory, social, etc.)

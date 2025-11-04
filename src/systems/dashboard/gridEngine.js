@@ -9,7 +9,8 @@
  */
 
 // Performance: Disable console logging (console.error still active)
-const DEBUG = false;
+// Temporarily enabled for debugging auto-arrange onResize issue
+const DEBUG = true;
 const console = DEBUG ? window.console : {
     log: () => {},
     warn: () => {},
