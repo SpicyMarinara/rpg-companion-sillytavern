@@ -53,7 +53,7 @@ function renderMainQuestView(mainQuest) {
             <div class="rpg-quest-header">
                 <h3 class="rpg-quest-section-title">Main Quest</h3>
                 ${!hasQuest ? `<button class="rpg-add-quest-btn" data-action="add-quest" data-field="main" title="Add main quest">
-                    <i class="fa-solid fa-plus"></i> Add Quest
+                    <i class="fa-solid fa-plus"></i><span class="rpg-btn-label"> Add Quest</span>
                 </button>` : ''}
             </div>
             <div class="rpg-quest-content">
@@ -130,7 +130,7 @@ function renderOptionalQuestsView(optionalQuests) {
             <div class="rpg-quest-header">
                 <h3 class="rpg-quest-section-title">Optional Quests</h3>
                 <button class="rpg-add-quest-btn" data-action="add-quest" data-field="optional" title="Add optional quest">
-                    <i class="fa-solid fa-plus"></i> Add Quest
+                    <i class="fa-solid fa-plus"></i><span class="rpg-btn-label"> Add Quest</span>
                 </button>
             </div>
             <div class="rpg-quest-content">

@@ -7698,15 +7698,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0.5rem; /* Reduced from 0.75rem */
 }
 
-.rpg-inventory-compact .rpg-inventory-add-btn {
-    font-size: 0; /* Hide text, show icon only */
-    padding: 0.4rem;
-    min-width: 32px;
-    min-height: 32px;
+.rpg-inventory-compact .rpg-btn-label {
+    display: none;
 }
 
-.rpg-inventory-compact .rpg-inventory-add-btn i {
-    font-size: 1rem; /* Restore icon size */
+.rpg-inventory-compact .rpg-inventory-add-btn {
+    padding: 0;
+    width: 32px !important; /* Override min-width: fit-content */
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .rpg-inventory-compact .rpg-view-toggle-btn {
@@ -7999,15 +8003,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0.5rem; /* Reduced from default */
 }
 
-.rpg-quests-compact .rpg-add-quest-btn {
-    font-size: 0; /* Hide text, show icon only */
-    padding: 0.4rem;
-    min-width: 32px;
-    min-height: 32px;
+.rpg-quests-compact .rpg-btn-label {
+    display: none;
 }
 
-.rpg-quests-compact .rpg-add-quest-btn i {
-    font-size: 1rem; /* Restore icon size */
+.rpg-quests-compact .rpg-add-quest-btn {
+    padding: 0;
+    width: 32px !important; /* Override base button min-width */
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .rpg-quests-compact .rpg-quest-item {

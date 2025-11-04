@@ -199,7 +199,7 @@ export function registerInventoryWidget(registry, dependencies) {
                     <div class="rpg-inventory-header-actions">
                         ${renderViewToggle('onPerson', viewMode)}
                         <button class="rpg-inventory-add-btn" data-action="add-item" data-field="onPerson">
-                            <i class="fa-solid fa-plus"></i> Add Item
+                            <i class="fa-solid fa-plus"></i><span class="rpg-btn-label"> Add Item</span>
                         </button>
                     </div>
                 </div>
@@ -302,7 +302,7 @@ export function registerInventoryWidget(registry, dependencies) {
                     <div class="rpg-inventory-header-actions">
                         ${renderViewToggle('stored', viewMode)}
                         <button class="rpg-inventory-add-btn" data-action="add-location">
-                            <i class="fa-solid fa-plus"></i> Add Location
+                            <i class="fa-solid fa-plus"></i><span class="rpg-btn-label"> Add Location</span>
                         </button>
                     </div>
                 </div>
@@ -340,7 +340,7 @@ export function registerInventoryWidget(registry, dependencies) {
                     <div class="rpg-inventory-header-actions">
                         ${renderViewToggle('assets', viewMode)}
                         <button class="rpg-inventory-add-btn" data-action="add-item" data-field="assets">
-                            <i class="fa-solid fa-plus"></i> Add Asset
+                            <i class="fa-solid fa-plus"></i><span class="rpg-btn-label"> Add Asset</span>
                         </button>
                     </div>
                 </div>
