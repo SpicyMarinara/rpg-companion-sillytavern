@@ -362,6 +362,26 @@ export function registerSceneInfoWidget(registry, dependencies) {
          */
         onConfigChange(container, newConfig) {
             this.render(container, newConfig);
+        },
+
+        /**
+         * Handle widget resize
+         * @param {HTMLElement} container - Widget container
+         * @param {number} newW - New width in grid units
+         * @param {number} newH - New height in grid units
+         */
+        onResize(container, newW, newH) {
+            // Apply compact mode styling at narrow widths (mirrors mobile layout)
+            const grid = container.querySelector('.rpg-scene-info-grid');
+            if (grid) {
+                if (newW < 3) {
+                    // Narrow layout: use mobile-like compact sizing
+                    grid.classList.add('rpg-scene-info-compact');
+                } else {
+                    // Wide layout: use standard sizing
+                    grid.classList.remove('rpg-scene-info-compact');
+                }
+            }
         }
     });
 }

@@ -2779,6 +2779,38 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     overflow: visible;
 }
 
+/* Compact mode for narrow desktop widths - mirrors mobile sizing */
+.rpg-scene-info-compact .rpg-scene-info-grid {
+    gap: 0.3125rem !important;
+    padding: 0.3125rem !important;
+}
+
+.rpg-scene-info-compact .rpg-info-item {
+    padding: 0.3125rem !important;
+    gap: 0.3125rem !important;
+    border-radius: 0.3125rem !important;
+}
+
+.rpg-scene-info-compact .rpg-info-item .item-icon {
+    font-size: 1rem !important;
+}
+
+.rpg-scene-info-compact .rpg-info-item .item-value {
+    font-size: 0.8125rem !important;
+}
+
+.rpg-scene-info-compact .rpg-info-item .item-label {
+    font-size: 0.625rem !important;
+}
+
+.rpg-scene-info-compact .rpg-info-location .item-value {
+    font-size: 0.75rem !important;
+}
+
+.rpg-scene-info-compact .rpg-info-location .item-label {
+    font-size: 0.625rem !important;
+}
+
 /* Mobile responsive (max-width: 1000px) */
 @media (max-width: 1000px) {
     .rpg-widget .rpg-scene-info-grid {
