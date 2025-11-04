@@ -1221,6 +1221,17 @@ export class DashboardManager {
             });
         }
 
+        // Call onResize handlers for all rendered widgets to apply responsive styling
+        // This ensures compact classes are applied based on widget dimensions
+        console.log(`[DashboardManager] Calling onResize for ${this.widgets.size} widgets after tab switch`);
+        this.widgets.forEach(widgetData => {
+            if (widgetData?.definition?.onResize && widgetData.element) {
+                const widget = widgetData.widget;
+                console.log(`[DashboardManager] Calling onResize for ${widget.type} (${widget.w}x${widget.h})`);
+                widgetData.definition.onResize(widgetData.element, widget.w, widget.h);
+            }
+        });
+
         // Disable content editing once for all widgets if in edit mode
         // (More efficient than per-widget queries - 2 queries vs 2N queries)
         if (this.editManager && this.editManager.isEditMode) {

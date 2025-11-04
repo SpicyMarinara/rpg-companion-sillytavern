@@ -460,9 +460,11 @@ export function registerQuestsWidget(registry, dependencies) {
                 if (newW >= 3) {
                     // Wide layout: constrain title width
                     widget.classList.add('rpg-quests-wide');
+                    widget.classList.remove('rpg-quests-compact');
                 } else {
-                    // Narrow layout: allow title to flex
+                    // Narrow layout: compact mode with truncated headers
                     widget.classList.remove('rpg-quests-wide');
+                    widget.classList.add('rpg-quests-compact');
                 }
             }
         }

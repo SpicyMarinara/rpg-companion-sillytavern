@@ -7684,6 +7684,36 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     margin: 0;
 }
 
+/* Compact mode: truncate long header titles */
+.rpg-inventory-compact .rpg-inventory-header h4 {
+    font-size: 0.9rem;
+    max-width: 140px; /* Constrain to prevent overflow */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Compact mode: reduce header action button sizes */
+.rpg-inventory-compact .rpg-inventory-header-actions {
+    gap: 0.5rem; /* Reduced from 0.75rem */
+}
+
+.rpg-inventory-compact .rpg-inventory-add-btn {
+    font-size: 0; /* Hide text, show icon only */
+    padding: 0.4rem;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+.rpg-inventory-compact .rpg-inventory-add-btn i {
+    font-size: 1rem; /* Restore icon size */
+}
+
+.rpg-inventory-compact .rpg-view-toggle-btn {
+    padding: 0.4rem;
+    min-width: 32px;
+}
+
 /* ============================================
    QUESTS SYSTEM STYLING
    ============================================ */
@@ -7954,6 +7984,34 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-quests-wide .rpg-quest-header {
     gap: 1rem;
+}
+
+/* Quest widget compact mode (narrow widths, < 3 grid units) */
+.rpg-quests-compact .rpg-quest-section-title {
+    font-size: 0.95rem;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rpg-quests-compact .rpg-quest-header {
+    gap: 0.5rem; /* Reduced from default */
+}
+
+.rpg-quests-compact .rpg-add-quest-btn {
+    font-size: 0; /* Hide text, show icon only */
+    padding: 0.4rem;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+.rpg-quests-compact .rpg-add-quest-btn i {
+    font-size: 1rem; /* Restore icon size */
+}
+
+.rpg-quests-compact .rpg-quest-item {
+    padding: 0.5rem; /* Reduced padding */
 }
 
 /* Mobile Responsive Styles */
