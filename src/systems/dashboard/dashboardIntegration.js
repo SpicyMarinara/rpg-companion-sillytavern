@@ -487,6 +487,27 @@ function showAddWidgetDialog(manager) {
         }
         bodyModalsContainer.appendChild(modal);
         console.log('[RPG Companion] Moved Add Widget modal to document.body for proper viewport positioning');
+
+        // Apply theme-aware solid background since modal is now outside panel
+        const panel = document.querySelector('.rpg-panel');
+        const modalContent = modal.querySelector('.rpg-modal-content');
+        if (modalContent) {
+            if (panel && panel.dataset.theme) {
+                modalContent.dataset.theme = panel.dataset.theme;
+            } else if (panel) {
+                // For default theme: read computed colors from panel and apply as solid (1.0 opacity)
+                const computedStyle = window.getComputedStyle(panel);
+                const bgColor = computedStyle.getPropertyValue('--rpg-bg').trim();
+                const accentColor = computedStyle.getPropertyValue('--rpg-accent').trim();
+
+                // Convert rgba with 0.9 opacity to 1.0 opacity
+                const solidBg = bgColor.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgba($1, 1)');
+                const solidAccent = accentColor.replace(/rgba\(([^)]+),\s*[\d.]+\)/, 'rgba($1, 1)');
+
+                modalContent.style.background = `linear-gradient(135deg, ${solidAccent} 0%, ${solidBg} 100%)`;
+                modalContent.style.opacity = '1';
+            }
+        }
     }
 
     const widgetSelector = modal.querySelector('#rpg-widget-selector');
