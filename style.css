@@ -1935,56 +1935,48 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: 0.7rem;
 }
 
-/* User info widget - responsive layout */
+/* User info widget - avatar background with text overlay */
 .rpg-user-info-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.75rem;
     height: 100%;
     width: 100%;
     padding: 0.5rem;
+    position: relative;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 0.5rem;
+    overflow: hidden;
 }
 
-/* Vertical layout (1 column): centered avatar with text below */
-.rpg-user-info-container.rpg-layout-vertical {
-    flex-direction: column;
-    gap: 0.5rem;
+/* Darkened overlay for text readability */
+.rpg-user-info-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7));
+    z-index: 1;
 }
 
-/* Horizontal layout (2+ columns): avatar left, text right */
-.rpg-user-info-container.rpg-layout-horizontal {
-    flex-direction: row;
-    justify-content: flex-start;
-}
-
-/* User portrait/avatar */
-.rpg-widget .rpg-user-portrait {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    border: 2px solid var(--rpg-highlight);
-    box-shadow: 0 0 8px var(--rpg-highlight);
-    object-fit: cover;
-    transition: transform 0.3s ease;
-    flex-shrink: 0;
-}
-
-.rpg-widget .rpg-user-portrait:hover {
-    transform: scale(1.1) rotate(5deg);
-}
-
-/* Text container */
+/* Text container with backdrop */
 .rpg-user-info-text {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
-    align-items: flex-start;
-}
-
-.rpg-layout-vertical .rpg-user-info-text {
     align-items: center;
     text-align: center;
+    position: relative;
+    z-index: 2;
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    border-radius: 0.375rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* User name */
@@ -2039,23 +2031,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Compact mode for narrow widths (< 3 grid units) */
 .rpg-user-info-compact {
-    padding: 0.3rem !important;
-    gap: 0.4rem !important;
-}
-
-.rpg-user-info-compact.rpg-layout-vertical {
-    gap: 0.3rem !important;
-}
-
-.rpg-user-info-compact .rpg-user-portrait {
-    width: 2rem !important;
-    height: 2rem !important;
-    border-width: 1.5px !important;
-    box-shadow: 0 0 4px var(--rpg-highlight) !important;
+    padding: 0.25rem !important;
 }
 
 .rpg-user-info-compact .rpg-user-info-text {
     gap: 0.15rem !important;
+    padding: 0.35rem 0.5rem !important;
 }
 
 .rpg-user-info-compact .rpg-user-name {

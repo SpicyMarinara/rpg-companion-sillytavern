@@ -82,10 +82,13 @@ export function registerUserInfoWidget(registry, dependencies) {
                 ...config
             };
 
-            // Build HTML with flexible layout structure
+            // Build HTML with avatar as background and text overlay
+            const backgroundStyle = finalConfig.showAvatar ?
+                `background-image: url('${userPortrait}'); background-size: contain; background-position: center; background-repeat: no-repeat;` :
+                '';
+
             const html = `
-                <div class="rpg-user-info-container">
-                    ${finalConfig.showAvatar ? `<img src="${userPortrait}" alt="${userName}" class="rpg-user-portrait" onerror="this.style.opacity='0.5';this.onerror=null;" />` : ''}
+                <div class="rpg-user-info-container" style="${backgroundStyle}">
                     <div class="rpg-user-info-text">
                         ${finalConfig.showName ? `<div class="rpg-user-name">${userName}</div>` : ''}
                         ${finalConfig.showLevel ? `
@@ -150,39 +153,13 @@ export function registerUserInfoWidget(registry, dependencies) {
          */
         onResize(container, newW, newH) {
             const infoContainer = container.querySelector('.rpg-user-info-container');
-            const portrait = container.querySelector('.rpg-user-portrait');
             if (!infoContainer) return;
 
-            // Apply compact mode class at narrow widths
+            // Apply compact mode class at narrow widths for smaller text
             if (newW < 3) {
                 infoContainer.classList.add('rpg-user-info-compact');
             } else {
                 infoContainer.classList.remove('rpg-user-info-compact');
-            }
-
-            // Flexible hybrid layout based on width:
-            // - Ultra-narrow (< 1): Centered avatar with text below (rare)
-            // - 1+ columns: Side-by-side (avatar left, text right)
-            // Keep horizontal layout even at w:1 to minimize vertical space usage
-            if (newW < 1) {
-                // Ultra-compact vertical layout: centered avatar with text below
-                infoContainer.classList.add('rpg-layout-vertical');
-                infoContainer.classList.remove('rpg-layout-horizontal');
-                // Avatar size handled by compact class
-                if (portrait) {
-                    portrait.style.width = '';
-                    portrait.style.height = '';
-                }
-            } else {
-                // Horizontal layout: avatar left, text right
-                // This layout works at w:1 and uses less vertical space (~42px vs ~76px)
-                infoContainer.classList.add('rpg-layout-horizontal');
-                infoContainer.classList.remove('rpg-layout-vertical');
-                // Avatar size handled by compact class
-                if (portrait) {
-                    portrait.style.width = '';
-                    portrait.style.height = '';
-                }
             }
         }
     });
