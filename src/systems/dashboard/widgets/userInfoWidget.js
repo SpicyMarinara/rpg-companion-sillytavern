@@ -41,14 +41,14 @@ export function registerUserInfoWidget(registry, dependencies) {
         // Column-aware default size: start at 2x1 in desktop so mood doesn't block expansion
         defaultSize: (columns) => {
             if (columns <= 2) {
-                return { w: 1, h: 1 }; // Mobile: compact 1x1
+                return { w: 1, h: 1 }; // Mobile: 1x1, horizontal layout
             }
             return { w: 2, h: 1 }; // Desktop: 2x1 from the start
         },
         // Column-aware max size: same as defaultSize to prevent further expansion
         maxAutoSize: (columns) => {
             if (columns <= 2) {
-                return { w: 1, h: 1 }; // Mobile: stay compact to allow mood widget beside it
+                return { w: 1, h: 1 }; // Mobile: 1x1, horizontal layout
             }
             return { w: 2, h: 1 }; // Desktop: 2x1, mood sits in top-right
         },
@@ -161,10 +161,11 @@ export function registerUserInfoWidget(registry, dependencies) {
             }
 
             // Flexible hybrid layout based on width:
-            // - 1 column (1x1, 1x2): Centered avatar with text below
-            // - 2+ columns: Side-by-side (avatar left, text right)
-            if (newW < 2) {
-                // Compact vertical layout: centered avatar with text below
+            // - Ultra-narrow (< 1): Centered avatar with text below (rare)
+            // - 1+ columns: Side-by-side (avatar left, text right)
+            // Keep horizontal layout even at w:1 to minimize vertical space usage
+            if (newW < 1) {
+                // Ultra-compact vertical layout: centered avatar with text below
                 infoContainer.classList.add('rpg-layout-vertical');
                 infoContainer.classList.remove('rpg-layout-horizontal');
                 // Avatar size handled by compact class
@@ -174,6 +175,7 @@ export function registerUserInfoWidget(registry, dependencies) {
                 }
             } else {
                 // Horizontal layout: avatar left, text right
+                // This layout works at w:1 and uses less vertical space (~42px vs ~76px)
                 infoContainer.classList.add('rpg-layout-horizontal');
                 infoContainer.classList.remove('rpg-layout-vertical');
                 // Avatar size handled by compact class
