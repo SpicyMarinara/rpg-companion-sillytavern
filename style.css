@@ -2129,10 +2129,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     text-overflow: ellipsis;
 }
 
-/* Level container also at bottom, positioned next to name */
+/* Level container at top-right - flush with container edge */
 .rpg-user-info-compact .rpg-user-level-container {
     position: absolute;
-    bottom: 0;
+    top: 0;
     right: 0;
     padding: 0.2rem 0.3rem;
     border-radius: 0;
