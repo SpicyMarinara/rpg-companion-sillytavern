@@ -65,18 +65,18 @@ export function registerInventoryWidget(registry, dependencies) {
         description: 'Full inventory system with On Person, Stored, and Assets',
         category: 'inventory',
         minSize: { w: 2, h: 4 },
-        // Column-aware sizing: compact on mobile, full width on desktop
+        // Column-aware sizing: compact on mobile, spacious on desktop
         defaultSize: (columns) => {
             if (columns <= 2) {
                 return { w: 2, h: 5 }; // Mobile: 2×5 (full width, compact)
             }
-            return { w: 3, h: 7 }; // Desktop: 3×7 (full width, spacious for 1080p)
+            return { w: 2, h: 6 }; // Desktop: 2×6 (default)
         },
         maxAutoSize: (columns) => {
             if (columns <= 2) {
-                return { w: 2, h: 8 }; // Mobile: 2×8 max
+                return { w: 2, h: 8 }; // Mobile: 2×8 max (increased for expansion headroom)
             }
-            return { w: 3, h: 10 }; // Desktop: 3×10 max (can expand)
+            return { w: 3, h: 8 }; // Desktop: 3×8 max (can expand)
         },
         requiresSchema: false,
 

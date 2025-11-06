@@ -56,10 +56,6 @@ function separateEmojiFromText(str) {
 function stripBrackets(text) {
     if (!text) return text;
 
-    const originalLength = text.length;
-    debugLog('[RPG Parser] stripBrackets: Input length:', originalLength);
-    debugLog('[RPG Parser] stripBrackets: Contains "Skills:":', text.includes('Skills:'));
-
     // Remove leading and trailing whitespace first
     text = text.trim();
 
@@ -71,7 +67,6 @@ function stripBrackets(text) {
         (text.startsWith('(') && text.endsWith(')'))
     ) {
         text = text.substring(1, text.length - 1).trim();
-        debugLog('[RPG Parser] stripBrackets: Removed wrapping brackets, new length:', text.length);
     }
 
     // Remove placeholder text patterns like [Location], [Mood Emoji], [Name], etc.
@@ -107,103 +102,23 @@ function stripBrackets(text) {
     };
 
     // Replace placeholders with empty string, keep real content
-    let removedPlaceholders = [];
     text = text.replace(placeholderPattern, (match, content) => {
         if (isPlaceholder(match, content)) {
-            removedPlaceholders.push(match);
             return ''; // Remove placeholder
         }
         return match; // Keep real bracketed content
     });
-    if (removedPlaceholders.length > 0) {
-        debugLog('[RPG Parser] stripBrackets: Removed placeholders:', removedPlaceholders.join(', '));
-    }
 
     // Clean up any resulting empty labels (e.g., "Status: " with nothing after)
-    // BUT: Don't remove structural section headers that have content on following lines
-    const beforeCleanup = text.length;
-
-    // Known section headers that should NEVER be removed (structural markers)
-    const structuralHeaders = ['Skills', 'Status', 'Inventory', 'On Person', 'Stored', 'Assets', 'Main Quest', 'Main Quests', 'Optional Quest', 'Optional Quests'];
-
-    // Split into lines to intelligently remove only truly empty labels
-    const lines = text.split('\n');
-    const filteredLines = [];
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const trimmedLine = line.trim();
-
-        // Check if this is a label line (ends with colon, no other content)
-        const labelMatch = trimmedLine.match(/^([A-Za-z\s]+):\s*$/);
-
-        if (labelMatch) {
-            const labelName = labelMatch[1];
-
-            // Never remove structural section headers
-            if (structuralHeaders.includes(labelName)) {
-                debugLog('[RPG Parser] stripBrackets: Keeping structural header:', trimmedLine);
-                filteredLines.push(line);
-                continue;
-            }
-
-            // Check if there's ANY content in the next few lines (look ahead up to 3 lines)
-            let hasContentBelow = false;
-            for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
-                const futureLine = lines[j].trim();
-                if (futureLine === '') continue; // Skip empty lines
-
-                // If we find a line with content (not just another label), this label has content below
-                if (futureLine && !/^([A-Za-z\s]+):\s*$/.test(futureLine)) {
-                    hasContentBelow = true;
-                    break;
-                }
-            }
-
-            if (hasContentBelow) {
-                // This label has content below (even if through other labels), keep it
-                debugLog('[RPG Parser] stripBrackets: Keeping section header:', trimmedLine);
-                filteredLines.push(line);
-            } else {
-                // This is a truly empty label with no content anywhere below, remove it
-                debugLog('[RPG Parser] stripBrackets: Removing empty label:', trimmedLine);
-            }
-        } else {
-            // Not a label line, keep it
-            filteredLines.push(line);
-        }
-    }
-
-    text = filteredLines.join('\n');
-
-    if (text.length !== beforeCleanup) {
-        debugLog('[RPG Parser] stripBrackets: Removed empty labels, chars removed:', beforeCleanup - text.length);
-    }
-
+    text = text.replace(/^([A-Za-z\s]+):\s*$/gm, ''); // Remove lines that are just "Label: " with nothing
     text = text.replace(/^([A-Za-z\s]+):\s*,/gm, '$1:'); // Fix "Label: ," patterns
     text = text.replace(/:\s*\|/g, ':'); // Fix ": |" patterns
     text = text.replace(/\|\s*\|/g, '|'); // Fix "| |" patterns (double pipes from removed content)
     text = text.replace(/\|\s*$/gm, ''); // Remove trailing pipes at end of lines
 
     // Clean up multiple spaces and empty lines
-    const beforeSpaceCleanup = text.length;
     text = text.replace(/\s{2,}/g, ' '); // Multiple spaces to single space
     text = text.replace(/^\s*\n/gm, ''); // Remove empty lines
-    if (text.length !== beforeSpaceCleanup) {
-        debugLog('[RPG Parser] stripBrackets: Cleaned up spaces/newlines, chars removed:', beforeSpaceCleanup - text.length);
-    }
-
-    const finalLength = text.trim().length;
-    debugLog('[RPG Parser] stripBrackets: Output length:', finalLength);
-    debugLog('[RPG Parser] stripBrackets: Total chars removed:', originalLength - finalLength);
-    debugLog('[RPG Parser] stripBrackets: Contains "Skills:" after processing:', text.includes('Skills:'));
-
-    if (text.includes('Skills:')) {
-        const skillsIndex = text.indexOf('Skills:');
-        debugLog('[RPG Parser] stripBrackets: Text around Skills (index ' + skillsIndex + '):', text.substring(skillsIndex, skillsIndex + 200));
-    } else if (originalLength !== finalLength) {
-        debugLog('[RPG Parser] stripBrackets: WARNING - Skills section was removed! Last 200 chars:', text.substring(text.length - 200));
-    }
 
     return text.trim();
 }
@@ -216,164 +131,6 @@ function debugLog(message, data = null) {
     if (extensionSettings.debugMode) {
         addDebugLog(message, data);
     }
-}
-
-/**
- * Extract structured skills data from stats text
- * Parses format:
- * Skills:
- * CategoryName:
- * - SkillName (Lv X)
- * - SkillName (Lv X)
- * Uncategorized:
- * - SkillName (Lv X)
- *
- * @param {string} statsText - Stats section text containing skills
- * @returns {Object|null} Structured skills data or null if not found
- */
-function extractSkills(statsText) {
-    if (!statsText) {
-        debugLog('[RPG Parser] extractSkills: No stats text provided');
-        return null;
-    }
-
-    debugLog('[RPG Parser] extractSkills: Searching for Skills section in text length:', statsText.length);
-    debugLog('[RPG Parser] extractSkills: Text contains "Skills:":', statsText.includes('Skills:'));
-
-    // Find the Skills section
-    const skillsMatch = statsText.match(/Skills:([\s\S]*?)(?=\n\n|On Person:|Stored|Assets:|Main Quest|Optional Quest|$)/i);
-    if (!skillsMatch) {
-        debugLog('[RPG Parser] extractSkills: Main regex did not match');
-        debugLog('[RPG Parser] extractSkills: Checking if "On Person:" exists:', statsText.includes('On Person:'));
-        debugLog('[RPG Parser] extractSkills: Text around Skills:', statsText.substring(statsText.indexOf('Skills:'), statsText.indexOf('Skills:') + 200));
-
-        // Fallback: try simple format "Skills: skill1, skill2"
-        const simpleMatch = statsText.match(/Skills:\s*(.+)/i);
-        if (simpleMatch) {
-            const skillsText = simpleMatch[1].trim();
-            debugLog('[RPG Parser] extractSkills: Simple format matched:', skillsText);
-            if (skillsText && skillsText !== 'None') {
-                // Return as string for backward compatibility
-                return skillsText;
-            }
-        }
-        debugLog('[RPG Parser] extractSkills: No Skills section found');
-        return null;
-    }
-
-    debugLog('[RPG Parser] extractSkills: Main regex matched, captured length:', skillsMatch[1].length);
-
-    const skillsSection = skillsMatch[1];
-    const skillsData = {
-        version: 1,
-        categories: {},
-        uncategorized: []
-    };
-
-    // Split into lines and process
-    const lines = skillsSection.split('\n').map(line => line.trim()).filter(line => line);
-
-    debugLog('[RPG Parser] Skills section lines:', lines);
-
-    let currentCategory = null;
-
-    for (const line of lines) {
-        // Check if this is a category header (ends with colon, no dash)
-        if (line.endsWith(':') && !line.startsWith('-')) {
-            currentCategory = line.slice(0, -1).trim();
-            debugLog(`[RPG Parser] Found category header: "${currentCategory}"`);
-            if (currentCategory !== 'Uncategorized' && !skillsData.categories[currentCategory]) {
-                skillsData.categories[currentCategory] = [];
-                debugLog(`[RPG Parser] Created category array for: "${currentCategory}"`);
-            }
-            continue;
-        }
-
-        // Check if this is a skill line (starts with -, has level info)
-        // Try numeric format first: "- Skill Name (Lv 5)"
-        let skillMatch = line.match(/^-\s*(.+?)\s*\(Lv\s*(\d+)\)/i);
-        if (skillMatch) {
-            const skillName = skillMatch[1].trim();
-            const level = parseInt(skillMatch[2], 10) || 1;
-
-            const skill = {
-                name: skillName,
-                level: level,
-                xp: 0,
-                maxXP: 100
-            };
-
-            if (currentCategory === 'Uncategorized' || currentCategory === null) {
-                debugLog(`[RPG Parser] Adding "${skillName}" to uncategorized (currentCategory="${currentCategory}")`);
-                skillsData.uncategorized.push(skill);
-            } else if (currentCategory && skillsData.categories[currentCategory]) {
-                debugLog(`[RPG Parser] Adding "${skillName}" to category "${currentCategory}"`);
-                skillsData.categories[currentCategory].push(skill);
-            } else {
-                debugLog(`[RPG Parser] ERROR: Could not add "${skillName}" - currentCategory="${currentCategory}", categoryExists=${!!skillsData.categories[currentCategory]}`);
-                // Fallback to uncategorized if category doesn't exist
-                skillsData.uncategorized.push(skill);
-            }
-        } else {
-            // Fallback: Try text-based proficiency format: "- Skill Name (Proficient)"
-            const textMatch = line.match(/^-\s*(.+?)\s*\((.+?)\)/i);
-            if (textMatch) {
-                const skillName = textMatch[1].trim();
-                const proficiencyText = textMatch[2].trim().toLowerCase();
-
-                // Map text proficiency to numeric level
-                const proficiencyMap = {
-                    'initiated': 1,
-                    'novice': 1,
-                    'basic': 2,
-                    'beginner': 2,
-                    'intermediate': 4,
-                    'proficient': 5,
-                    'competent': 6,
-                    'advanced': 7,
-                    'expert': 8,
-                    'mastered': 9,
-                    'master': 9,
-                    'grandmaster': 10,
-                    'legendary': 10
-                };
-
-                const level = proficiencyMap[proficiencyText] || 5; // Default to 5 if unknown
-
-                const skill = {
-                    name: skillName,
-                    level: level,
-                    xp: 0,
-                    maxXP: 100
-                };
-
-                if (currentCategory === 'Uncategorized' || currentCategory === null) {
-                    debugLog(`[RPG Parser] Adding "${skillName}" to uncategorized (currentCategory="${currentCategory}")`);
-                    skillsData.uncategorized.push(skill);
-                } else if (currentCategory && skillsData.categories[currentCategory]) {
-                    debugLog(`[RPG Parser] Adding "${skillName}" to category "${currentCategory}"`);
-                    skillsData.categories[currentCategory].push(skill);
-                } else {
-                    debugLog(`[RPG Parser] ERROR: Could not add "${skillName}" - currentCategory="${currentCategory}", categoryExists=${!!skillsData.categories[currentCategory]}`);
-                    // Fallback to uncategorized if category doesn't exist
-                    skillsData.uncategorized.push(skill);
-                }
-            }
-        }
-    }
-
-    // Return null if no skills were found
-    if (Object.keys(skillsData.categories).length === 0 && skillsData.uncategorized.length === 0) {
-        return null;
-    }
-
-    debugLog('[RPG Parser] Final skills data:', {
-        categories: Object.keys(skillsData.categories),
-        categoryCounts: Object.entries(skillsData.categories).map(([cat, skills]) => `${cat}: ${skills.length}`),
-        uncategorizedCount: skillsData.uncategorized.length
-    });
-
-    return skillsData;
 }
 
 /**
@@ -413,13 +170,7 @@ export function parseResponse(responseText) {
         const content = match[1].trim();
 
         debugLog(`[RPG Parser] --- Code Block ${i + 1} ---`);
-        debugLog('[RPG Parser] Content length:', content.length);
         debugLog('[RPG Parser] First 300 chars:', content.substring(0, 300));
-        debugLog('[RPG Parser] Contains "Skills:":', content.includes('Skills:'));
-        if (content.includes('Skills:')) {
-            const skillsIndex = content.indexOf('Skills:');
-            debugLog('[RPG Parser] Text around Skills (index ' + skillsIndex + '):', content.substring(skillsIndex, skillsIndex + 200));
-        }
 
         // Check if this is a combined code block with multiple sections
         const hasMultipleSections = (
@@ -600,12 +351,10 @@ export function parseUserStats(statsText) {
         // Parse skills section if enabled
         const skillsConfig = trackerConfig?.userStats?.skillsSection;
         if (skillsConfig?.enabled) {
-            const skillsData = extractSkills(statsText);
-            if (skillsData) {
-                extensionSettings.userStats.skills = skillsData;
-                debugLog('[RPG Parser] Skills extracted:', skillsData);
-            } else {
-                debugLog('[RPG Parser] Skills extraction failed or none found');
+            const skillsMatch = statsText.match(/Skills:\s*(.+)/i);
+            if (skillsMatch) {
+                extensionSettings.userStats.skills = skillsMatch[1].trim();
+                debugLog('[RPG Parser] Skills extracted:', skillsMatch[1].trim());
             }
         }
 
