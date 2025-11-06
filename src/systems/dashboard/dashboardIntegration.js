@@ -27,6 +27,7 @@ import { registerSceneInfoWidget } from './widgets/sceneInfoWidget.js';
 import { registerPresentCharactersWidget } from './widgets/presentCharactersWidget.js';
 import { registerInventoryWidget } from './widgets/inventoryWidget.js';
 import { registerQuestsWidget } from './widgets/questsWidget.js';
+import { registerUserSkillsWidget } from './widgets/userSkillsWidget.js';
 
 // Global dashboard manager instance
 let dashboardManager = null;
@@ -253,6 +254,9 @@ function registerAllWidgets(registry, dependencies) {
 
     // Quest widget
     registerQuestsWidget(registry, dependencies);
+
+    // Skills widget
+    registerUserSkillsWidget(registry, dependencies);
 
     console.log(`[RPG Companion] Registered ${registry.getAll().length} widgets`);
 }

@@ -167,6 +167,29 @@ export function generateDefaultDashboard() {
                         }
                     }
                 ]
+            },
+            // Tab 5: Skills (Full tab for skills system)
+            {
+                id: 'tab-skills',
+                name: 'Skills',
+                icon: 'fa-solid fa-book',
+                order: 4,
+                widgets: [
+                    {
+                        id: 'widget-userskills',
+                        type: 'userSkills',
+                        x: 0,
+                        y: 0,
+                        w: 3,
+                        h: 7,
+                        config: {
+                            defaultSubTab: 'all',
+                            showXP: true,
+                            showCategories: true,
+                            maxLevel: 10
+                        }
+                    }
+                ]
             }
         ],
 
