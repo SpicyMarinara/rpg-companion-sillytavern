@@ -5265,21 +5265,30 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border-radius: 0.375em;
 }
 
-.rpg-stat-toggle {
+.rpg-stat-toggle,
+.rpg-attr-toggle {
     flex-shrink: 0;
 }
 
-.rpg-stat-name {
+.rpg-stat-name,
+.rpg-attr-name {
     flex: 1;
     padding: 0.375em 0.5em;
-    background: var(--rpg-bg);
-    border: 1px solid var(--rpg-border);
+    background: var(--SmartThemeBlurTintColor);
+    border: 2px solid var(--SmartThemeBorderColor);
     border-radius: 0.25em;
-    color: var(--rpg-text);
+    color: var(--SmartThemeBodyColor);
     font-size: 0.95em;
 }
 
-.rpg-stat-remove {
+.rpg-stat-name:focus,
+.rpg-attr-name:focus {
+    outline: none;
+    border-color: var(--rpg-highlight);
+}
+
+.rpg-stat-remove,
+.rpg-attr-remove {
     flex-shrink: 0;
     padding: 0.375em 0.625em;
     background: var(--rpg-highlight);
