@@ -529,7 +529,19 @@ export function registerRecentEventsWidget(registry, dependencies) {
         description: 'Recent events notebook',
         category: 'scene',
         minSize: { w: 2, h: 2 },
-        defaultSize: { w: 2, h: 2 },
+        // Column-aware sizing: full width at all sizes
+        defaultSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 2 }; // Mobile: 2 cols wide (full), 2 rows
+            }
+            return { w: 3, h: 2 }; // Desktop: 3 cols wide (full), 2 rows
+        },
+        maxAutoSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 3 };
+            }
+            return { w: 3, h: 3 };
+        },
         requiresSchema: false,
 
         /**
