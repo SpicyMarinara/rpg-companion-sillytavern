@@ -4380,7 +4380,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     position: relative;
     backdrop-filter: blur(15px);
-    max-height: 60vh;
+    max-height: 30vh;
     overflow-y: auto;
     overflow-x: hidden;
 }
