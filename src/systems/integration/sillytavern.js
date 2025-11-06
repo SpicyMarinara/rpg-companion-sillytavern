@@ -16,7 +16,8 @@ import {
     setLastActionWasSwipe,
     setIsPlotProgression,
     updateLastGeneratedData,
-    updateCommittedTrackerData
+    updateCommittedTrackerData,
+    FALLBACK_AVATAR_DATA_URI
 } from '../../core/state.js';
 import { saveChatData, loadChatData } from '../../core/persistence.js';
 
@@ -30,6 +31,9 @@ import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts, updateChatThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
+
+// Dashboard
+import { refreshDashboard } from '../dashboard/dashboardIntegration.js';
 
 // Utils
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
@@ -99,18 +103,26 @@ export async function onMessageReceived(data) {
             // console.log('[RPG Companion] Parsing together mode response:', responseText);
 
             const parsedData = parseResponse(responseText);
-            // console.log('[RPG Companion] Parsed data:', parsedData);
+            // console.log('[RPG Companion] Parsed data results:', {
+            //     hasUserStats: !!parsedData.userStats,
+            //     hasInfoBox: !!parsedData.infoBox,
+            //     hasCharacterThoughts: !!parsedData.characterThoughts
+            // });
 
-            // Update stored data
+            // Update stored data (both lastGeneratedData for old UI and extensionSettings for dashboard widgets)
             if (parsedData.userStats) {
                 lastGeneratedData.userStats = parsedData.userStats;
-                parseUserStats(parsedData.userStats);
+                parseUserStats(parsedData.userStats); // Updates extensionSettings.userStats
             }
             if (parsedData.infoBox) {
                 lastGeneratedData.infoBox = parsedData.infoBox;
+                extensionSettings.infoBoxData = parsedData.infoBox; // Update for dashboard widgets
+                console.log('[RPG Companion] Updated extensionSettings.infoBoxData:', extensionSettings.infoBoxData.substring(0, 100));
             }
             if (parsedData.characterThoughts) {
                 lastGeneratedData.characterThoughts = parsedData.characterThoughts;
+                extensionSettings.characterThoughts = parsedData.characterThoughts; // Update for dashboard widgets
+                console.log('[RPG Companion] Updated extensionSettings.characterThoughts:', extensionSettings.characterThoughts.substring(0, 100));
             }
 
             // Store RPG data for this specific swipe in the message's extra field
@@ -165,6 +177,9 @@ export async function onMessageReceived(data) {
             renderThoughts();
             renderInventory();
             renderQuests();
+
+            // Refresh dashboard widgets (v2 dashboard)
+            refreshDashboard();
 
             // Then update the DOM to reflect the cleaned message
             const lastMessageElement = $('#chat').children('.mes').last();
@@ -222,12 +237,23 @@ export function onCharacterChanged() {
     // already contains the committed state from when we last left this chat.
     // commitTrackerData() will be called naturally when new messages arrive.
 
+    // Populate extensionSettings for dashboard widgets from loaded chat data
+    if (lastGeneratedData.infoBox) {
+        extensionSettings.infoBoxData = lastGeneratedData.infoBox;
+    }
+    if (lastGeneratedData.characterThoughts) {
+        extensionSettings.characterThoughts = lastGeneratedData.characterThoughts;
+    }
+
     // Re-render with the loaded data
     renderUserStats();
     renderInfoBox();
     renderThoughts();
     renderInventory();
     renderQuests();
+
+    // Refresh dashboard widgets (v2 dashboard)
+    refreshDashboard();
 
     // Update chat thought overlays
     updateChatThoughts();
@@ -307,11 +333,12 @@ export function onMessageSwiped(messageIndex) {
 
 /**
  * Update the persona avatar image when user switches personas
+ * Updates ALL .rpg-user-portrait elements with proper fallback handling
  */
 export function updatePersonaAvatar() {
-    const portraitImg = document.querySelector('.rpg-user-portrait');
-    if (!portraitImg) {
-        // console.log('[RPG Companion] Portrait image element not found in DOM');
+    const portraitImgs = document.querySelectorAll('.rpg-user-portrait');
+    if (portraitImgs.length === 0) {
+        // console.log('[RPG Companion] No portrait image elements found in DOM');
         return;
     }
 
@@ -319,24 +346,27 @@ export function updatePersonaAvatar() {
     const context = getContext();
     const currentUserAvatar = context.user_avatar || user_avatar;
 
-    // console.log('[RPG Companion] Attempting to update persona avatar:', currentUserAvatar);
+    // console.log('[RPG Companion] Updating', portraitImgs.length, 'avatar(s) for:', currentUserAvatar);
 
-    // Try to get a valid thumbnail URL using our safe helper
-    if (currentUserAvatar) {
-        const thumbnailUrl = getSafeThumbnailUrl('persona', currentUserAvatar);
+    // Update each avatar instance
+    portraitImgs.forEach(portraitImg => {
+        // getSafeThumbnailUrl already calls getThumbnailUrl and handles errors
+        // It returns proper URLs like /thumbnail?type=persona&file=... or null
+        const thumbnailUrl = currentUserAvatar ? getSafeThumbnailUrl('persona', currentUserAvatar) : null;
+        const finalUrl = thumbnailUrl || FALLBACK_AVATAR_DATA_URI;
 
-        if (thumbnailUrl) {
-            // Only update the src if we got a valid URL
-            portraitImg.src = thumbnailUrl;
-            // console.log('[RPG Companion] Persona avatar updated successfully');
-        } else {
-            // Don't update the src if we couldn't get a valid URL
-            // This prevents 400 errors and keeps the existing image
-            // console.warn('[RPG Companion] Could not get valid thumbnail URL for persona avatar, keeping existing image');
-        }
-    } else {
-        // console.log('[RPG Companion] No user avatar configured, keeping existing image');
-    }
+        // Set the avatar URL
+        portraitImg.src = finalUrl;
+
+        // Add onerror handler to use fallback if load fails (404, etc.)
+        portraitImg.onerror = () => {
+            if (portraitImg.src !== FALLBACK_AVATAR_DATA_URI) {
+                // console.warn('[RPG Companion] Avatar failed to load, using fallback');
+                portraitImg.src = FALLBACK_AVATAR_DATA_URI;
+                portraitImg.onerror = null; // Prevent infinite loop
+            }
+        };
+    });
 }
 
 /**

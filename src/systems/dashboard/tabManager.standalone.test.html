@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tab Manager Test (Standalone)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #e94560;
+        }
+
+        .test-section {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .test-section h2 {
+            color: #4ecca3;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        /* Tab Navigation UI */
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            background: #16213e;
+            color: #eee;
+            border: 2px solid transparent;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            background: #1f2e4d;
+            border-color: #4ecca3;
+        }
+
+        .tab-button.active {
+            background: #e94560;
+            border-color: #e94560;
+            color: white;
+        }
+
+        .tab-button .close-btn {
+            margin-left: 8px;
+            padding: 2px 6px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .tab-button .close-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .add-tab-btn {
+            background: #4ecca3;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        .add-tab-btn:hover {
+            background: #5edc9f;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: #16213e;
+            border: 1px solid #4ecca3;
+            border-radius: 6px;
+            padding: 8px 0;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .context-menu.show {
+            display: block;
+        }
+
+        .context-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        .context-menu-item:hover {
+            background: #0f3460;
+        }
+
+        .context-menu-item.danger {
+            color: #e94560;
+        }
+
+        /* Test Controls */
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #d63651;
+        }
+
+        button.secondary {
+            background: #4ecca3;
+            color: #1a1a2e;
+        }
+
+        button.secondary:hover {
+            background: #5edc9f;
+        }
+
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 3px solid #4ecca3;
+            background: #0f3460;
+        }
+
+        .result.pass {
+            border-color: #4ecca3;
+        }
+
+        .result.fail {
+            border-color: #e94560;
+            background: #2a0f1b;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-box {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4ecca3;
+        }
+
+        pre {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .tab-content {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 200px;
+        }
+
+        .event-log {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: #16213e;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .event-item .event-type {
+            color: #4ecca3;
+            font-weight: bold;
+        }
+
+        .event-item .event-time {
+            color: #888;
+            font-size: 11px;
+        }
+
+        .keyboard-hint {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .keyboard-hint kbd {
+            background: #1a1a2e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #4ecca3;
+            color: #4ecca3;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗂️ Tab Manager Test Suite (Standalone)</h1>
+
+    <div class="test-section">
+        <h2>Live Tab Navigation</h2>
+        <div id="tab-nav" class="tab-nav"></div>
+        <div id="tab-content" class="tab-content">
+            <p>Select a tab above to view its widgets</p>
+        </div>
+        <div class="keyboard-hint">
+            <strong>Keyboard Shortcuts:</strong>
+            <kbd>Ctrl+1-9</kbd> Switch to tab 1-9 •
+            <kbd>Ctrl+Tab</kbd> Next tab •
+            <kbd>Ctrl+Shift+Tab</kbd> Previous tab •
+            <kbd>Right-click</kbd> tab for context menu
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Tab Operations</h2>
+        <button onclick="testCreateTab()">Create New Tab</button>
+        <button onclick="testRenameTab()">Rename Active Tab</button>
+        <button onclick="testChangeIcon()">Change Icon</button>
+        <button onclick="testDuplicateTab()">Duplicate Active Tab</button>
+        <button onclick="testDeleteTab()">Delete Active Tab</button>
+        <button onclick="testReorderTabs()">Reorder Tabs</button>
+        <div id="operation-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Navigation Tests</h2>
+        <button onclick="testSwitchToIndex(0)">Switch to Tab 1</button>
+        <button onclick="testSwitchToIndex(1)">Switch to Tab 2</button>
+        <button onclick="testNextTab()">Next Tab</button>
+        <button onclick="testPreviousTab()">Previous Tab</button>
+        <div id="navigation-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Event Log</h2>
+        <button onclick="clearEventLog()">Clear Log</button>
+        <div id="event-log" class="event-log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Tab Statistics</h2>
+        <div id="stats" class="stats"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Dashboard State (JSON)</h2>
+        <pre id="dashboard-json"></pre>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <button onclick="runAllTests()" class="secondary">🔄 Run All Tests</button>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu">
+        <div class="context-menu-item" onclick="contextRenameTab()">✏️ Rename</div>
+        <div class="context-menu-item" onclick="contextChangeIcon()">🎨 Change Icon</div>
+        <div class="context-menu-item" onclick="contextDuplicateTab()">📋 Duplicate</div>
+        <div class="context-menu-item danger" onclick="contextDeleteTab()">🗑️ Delete</div>
+    </div>
+
+    <script>
+        // TabManager class (bundled inline to avoid CORS)
+        class TabManager {
+            constructor(dashboard) {
+                if (!dashboard || !Array.isArray(dashboard.tabs)) {
+                    throw new Error('TabManager requires a valid dashboard with tabs array');
+                }
+
+                this.dashboard = dashboard;
+                this.activeTabId = dashboard.defaultTab || (dashboard.tabs[0]?.id || null);
+                this.changeListeners = new Set();
+            }
+
+            getTabs() {
+                return [...this.dashboard.tabs].sort((a, b) => a.order - b.order);
+            }
+
+            getActiveTab() {
+                return this.dashboard.tabs.find(t => t.id === this.activeTabId) || null;
+            }
+
+            setActiveTab(tabId) {
+                const tab = this.dashboard.tabs.find(t => t.id === tabId);
+                if (!tab) {
+                    console.error(`[TabManager] Tab not found: ${tabId}`);
+                    return false;
+                }
+
+                this.activeTabId = tabId;
+                this.dashboard.defaultTab = tabId;
+                this.notifyChange('activeTabChanged', { tabId });
+                console.log(`[TabManager] Active tab set to: ${tab.name}`);
+                return true;
+            }
+
+            createTab(config) {
+                if (!config.name || typeof config.name !== 'string') {
+                    throw new Error('Tab name is required');
+                }
+
+                const baseId = `tab-${config.name.toLowerCase().replace(/\s+/g, '-')}`;
+                let id = baseId;
+                let counter = 1;
+                while (this.dashboard.tabs.some(t => t.id === id)) {
+                    id = `${baseId}-${counter++}`;
+                }
+
+                const order = typeof config.order === 'number'
+                    ? config.order
+                    : Math.max(0, ...this.dashboard.tabs.map(t => t.order)) + 1;
+
+                const tab = {
+                    id,
+                    name: config.name,
+                    icon: config.icon || '📄',
+                    order,
+                    widgets: []
+                };
+
+                this.dashboard.tabs.push(tab);
+                this.notifyChange('tabCreated', { tab });
+                console.log(`[TabManager] Created tab: ${tab.name} (${id})`);
+                return tab;
+            }
+
+            renameTab(tabId, newName) {
+                if (!newName || typeof newName !== 'string') {
+                    throw new Error('New name is required');
+                }
+
+                const tab = this.dashboard.tabs.find(t => t.id === tabId);
+                if (!tab) {
+                    console.error(`[TabManager] Tab not found: ${tabId}`);
+                    return false;
+                }
+
+                const oldName = tab.name;
+                tab.name = newName;
+                this.notifyChange('tabRenamed', { tabId, oldName, newName });
+                console.log(`[TabManager] Renamed tab: ${oldName} → ${newName}`);
+                return true;
+            }
+
+            changeTabIcon(tabId, newIcon) {
+                const tab = this.dashboard.tabs.find(t => t.id === tabId);
+                if (!tab) {
+                    console.error(`[TabManager] Tab not found: ${tabId}`);
+                    return false;
+                }
+
+                const oldIcon = tab.icon;
+                tab.icon = newIcon;
+                this.notifyChange('tabIconChanged', { tabId, oldIcon, newIcon });
+                console.log(`[TabManager] Changed icon for ${tab.name}: ${oldIcon} → ${newIcon}`);
+                return true;
+            }
+
+            deleteTab(tabId, force = false) {
+                const tabIndex = this.dashboard.tabs.findIndex(t => t.id === tabId);
+                if (tabIndex === -1) {
+                    console.error(`[TabManager] Tab not found: ${tabId}`);
+                    return false;
+                }
+
+                if (this.dashboard.tabs.length === 1 && !force) {
+                    console.warn('[TabManager] Cannot delete last tab');
+                    return false;
+                }
+
+                const tab = this.dashboard.tabs[tabIndex];
+
+                if (this.activeTabId === tabId) {
+                    const nextTab = this.dashboard.tabs[tabIndex + 1]
+                        || this.dashboard.tabs[tabIndex - 1]
+                        || this.dashboard.tabs.find(t => t.id !== tabId);
+
+                    if (nextTab) {
+                        this.setActiveTab(nextTab.id);
+                    }
+                }
+
+                this.dashboard.tabs.splice(tabIndex, 1);
+                this.notifyChange('tabDeleted', { tabId, tab });
+                console.log(`[TabManager] Deleted tab: ${tab.name}`);
+                return true;
+            }
+
+            duplicateTab(tabId) {
+                const sourceTab = this.dashboard.tabs.find(t => t.id === tabId);
+                if (!sourceTab) {
+                    console.error(`[TabManager] Tab not found: ${tabId}`);
+                    return null;
+                }
+
+                const copyName = `${sourceTab.name} (Copy)`;
+                const newTab = this.createTab({
+                    name: copyName,
+                    icon: sourceTab.icon
+                });
+
+                newTab.widgets = sourceTab.widgets.map(widget => {
+                    const newWidget = { ...widget };
+
+                    const baseId = widget.id.replace(/-copy-\d+$/, '');
+                    let newId = `${baseId}-copy`;
+                    let counter = 1;
+                    while (this.dashboard.tabs.some(t =>
+                        t.widgets.some(w => w.id === newId)
+                    )) {
+                        newId = `${baseId}-copy-${counter++}`;
+                    }
+                    newWidget.id = newId;
+                    newWidget.config = JSON.parse(JSON.stringify(widget.config || {}));
+
+                    return newWidget;
+                });
+
+                this.notifyChange('tabDuplicated', { sourceTabId: tabId, newTab });
+                console.log(`[TabManager] Duplicated tab: ${sourceTab.name} → ${copyName}`);
+                return newTab;
+            }
+
+            reorderTabs(tabIds) {
+                if (!Array.isArray(tabIds)) {
+                    throw new Error('tabIds must be an array');
+                }
+
+                if (tabIds.length !== this.dashboard.tabs.length) {
+                    console.error('[TabManager] Invalid tab count for reordering');
+                    return false;
+                }
+
+                for (const id of tabIds) {
+                    if (!this.dashboard.tabs.some(t => t.id === id)) {
+                        console.error(`[TabManager] Unknown tab ID: ${id}`);
+                        return false;
+                    }
+                }
+
+                tabIds.forEach((id, index) => {
+                    const tab = this.dashboard.tabs.find(t => t.id === id);
+                    if (tab) {
+                        tab.order = index;
+                    }
+                });
+
+                this.notifyChange('tabsReordered', { tabIds });
+                console.log('[TabManager] Tabs reordered:', tabIds);
+                return true;
+            }
+
+            getTab(tabId) {
+                return this.dashboard.tabs.find(t => t.id === tabId) || null;
+            }
+
+            getTabCount() {
+                return this.dashboard.tabs.length;
+            }
+
+            hasTab(tabId) {
+                return this.dashboard.tabs.some(t => t.id === tabId);
+            }
+
+            getTabIndex(tabId) {
+                const sorted = this.getTabs();
+                return sorted.findIndex(t => t.id === tabId);
+            }
+
+            switchToTabByIndex(index) {
+                const sorted = this.getTabs();
+                if (index < 0 || index >= sorted.length) {
+                    return false;
+                }
+
+                return this.setActiveTab(sorted[index].id);
+            }
+
+            switchToNextTab() {
+                const sorted = this.getTabs();
+                const currentIndex = sorted.findIndex(t => t.id === this.activeTabId);
+                const nextIndex = (currentIndex + 1) % sorted.length;
+                return this.setActiveTab(sorted[nextIndex].id);
+            }
+
+            switchToPreviousTab() {
+                const sorted = this.getTabs();
+                const currentIndex = sorted.findIndex(t => t.id === this.activeTabId);
+                const prevIndex = (currentIndex - 1 + sorted.length) % sorted.length;
+                return this.setActiveTab(sorted[prevIndex].id);
+            }
+
+            onChange(callback) {
+                this.changeListeners.add(callback);
+            }
+
+            offChange(callback) {
+                this.changeListeners.delete(callback);
+            }
+
+            notifyChange(event, data) {
+                this.changeListeners.forEach(callback => {
+                    try {
+                        callback(event, data);
+                    } catch (error) {
+                        console.error('[TabManager] Error in change listener:', error);
+                    }
+                });
+            }
+
+            getStats() {
+                return {
+                    totalTabs: this.dashboard.tabs.length,
+                    activeTab: this.activeTabId,
+                    totalWidgets: this.dashboard.tabs.reduce((sum, t) => sum + t.widgets.length, 0),
+                    tabsWithWidgets: this.dashboard.tabs.filter(t => t.widgets.length > 0).length,
+                    emptyTabs: this.dashboard.tabs.filter(t => t.widgets.length === 0).length,
+                    averageWidgetsPerTab: (
+                        this.dashboard.tabs.reduce((sum, t) => sum + t.widgets.length, 0) /
+                        this.dashboard.tabs.length
+                    ).toFixed(1)
+                };
+            }
+        }
+
+        // Test application code
+        let tabManager = null;
+        let dashboard = null;
+        let contextMenuTabId = null;
+
+        function pass(message) {
+            return `<div class="result pass">✓ ${message}</div>`;
+        }
+
+        function fail(message) {
+            return `<div class="result fail">✗ ${message}</div>`;
+        }
+
+        function logEvent(type, data) {
+            const log = document.getElementById('event-log');
+            const time = new Date().toLocaleTimeString();
+            const eventItem = document.createElement('div');
+            eventItem.className = 'event-item';
+            eventItem.innerHTML = `
+                <span class="event-time">${time}</span>
+                <span class="event-type">${type}</span>
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `;
+            log.insertBefore(eventItem, log.firstChild);
+        }
+
+        window.clearEventLog = function() {
+            document.getElementById('event-log').innerHTML = '';
+        };
+
+        function initDashboard() {
+            dashboard = {
+                version: 2,
+                gridConfig: { columns: 12, rowHeight: 80, gap: 12 },
+                tabs: [
+                    {
+                        id: 'tab-status',
+                        name: 'Status',
+                        icon: '📊',
+                        order: 0,
+                        widgets: [
+                            { id: 'widget-1', type: 'userStats', x: 0, y: 0, w: 6, h: 3, config: {} },
+                            { id: 'widget-2', type: 'infoBox', x: 6, y: 0, w: 6, h: 2, config: {} }
+                        ]
+                    },
+                    {
+                        id: 'tab-inventory',
+                        name: 'Inventory',
+                        icon: '🎒',
+                        order: 1,
+                        widgets: [
+                            { id: 'widget-3', type: 'inventory', x: 0, y: 0, w: 12, h: 6, config: {} }
+                        ]
+                    }
+                ],
+                defaultTab: 'tab-status'
+            };
+
+            tabManager = new TabManager(dashboard);
+
+            tabManager.onChange((event, data) => {
+                logEvent(event, data);
+                renderTabs();
+                updateStats();
+                updateDashboardJson();
+            });
+
+            renderTabs();
+            updateStats();
+            updateDashboardJson();
+        }
+
+        function renderTabs() {
+            const nav = document.getElementById('tab-nav');
+            nav.innerHTML = '';
+
+            const tabs = tabManager.getTabs();
+            tabs.forEach(tab => {
+                const btn = document.createElement('button');
+                btn.className = 'tab-button';
+                if (tab.id === tabManager.activeTabId) {
+                    btn.classList.add('active');
+                }
+
+                btn.innerHTML = `
+                    <span>${tab.icon}</span>
+                    <span>${tab.name}</span>
+                    <span class="close-btn" onclick="event.stopPropagation(); quickDeleteTab('${tab.id}')">×</span>
+                `;
+
+                btn.onclick = (e) => {
+                    if (!e.target.classList.contains('close-btn')) {
+                        tabManager.setActiveTab(tab.id);
+                        renderTabContent();
+                    }
+                };
+
+                btn.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    showContextMenu(e.clientX, e.clientY, tab.id);
+                };
+
+                nav.appendChild(btn);
+            });
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'tab-button add-tab-btn';
+            addBtn.innerHTML = '<span>+</span><span>New Tab</span>';
+            addBtn.onclick = () => testCreateTab();
+            nav.appendChild(addBtn);
+
+            renderTabContent();
+        }
+
+        function renderTabContent() {
+            const content = document.getElementById('tab-content');
+            const activeTab = tabManager.getActiveTab();
+
+            if (!activeTab) {
+                content.innerHTML = '<p>No active tab</p>';
+                return;
+            }
+
+            content.innerHTML = `
+                <h3>${activeTab.icon} ${activeTab.name}</h3>
+                <p><strong>Tab ID:</strong> ${activeTab.id}</p>
+                <p><strong>Widgets:</strong> ${activeTab.widgets.length}</p>
+                <ul>
+                    ${activeTab.widgets.map(w => `<li>${w.id} (${w.type})</li>`).join('')}
+                </ul>
+            `;
+        }
+
+        function updateStats() {
+            const stats = tabManager.getStats();
+            const container = document.getElementById('stats');
+
+            container.innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-label">Total Tabs</div>
+                    <div class="stat-value">${stats.totalTabs}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Active Tab</div>
+                    <div class="stat-value">${stats.activeTab}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Widgets</div>
+                    <div class="stat-value">${stats.totalWidgets}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Tabs with Widgets</div>
+                    <div class="stat-value">${stats.tabsWithWidgets}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Empty Tabs</div>
+                    <div class="stat-value">${stats.emptyTabs}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Avg Widgets/Tab</div>
+                    <div class="stat-value">${stats.averageWidgetsPerTab}</div>
+                </div>
+            `;
+        }
+
+        function updateDashboardJson() {
+            document.getElementById('dashboard-json').textContent =
+                JSON.stringify(dashboard, null, 2);
+        }
+
+        function showContextMenu(x, y, tabId) {
+            contextMenuTabId = tabId;
+            const menu = document.getElementById('context-menu');
+            menu.classList.add('show');
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+        }
+
+        function hideContextMenu() {
+            document.getElementById('context-menu').classList.remove('show');
+        }
+
+        document.addEventListener('click', hideContextMenu);
+
+        window.contextRenameTab = function() {
+            hideContextMenu();
+            testRenameTab(contextMenuTabId);
+        };
+
+        window.contextChangeIcon = function() {
+            hideContextMenu();
+            testChangeIcon(contextMenuTabId);
+        };
+
+        window.contextDuplicateTab = function() {
+            hideContextMenu();
+            testDuplicateTab(contextMenuTabId);
+        };
+
+        window.contextDeleteTab = function() {
+            hideContextMenu();
+            testDeleteTab(contextMenuTabId);
+        };
+
+        window.quickDeleteTab = function(tabId) {
+            tabManager.deleteTab(tabId);
+        };
+
+        window.testCreateTab = function() {
+            const container = document.getElementById('operation-results');
+            container.innerHTML = '';
+
+            const names = ['Analytics', 'Combat', 'Journal', 'Map', 'Quests'];
+            const icons = ['📈', '⚔️', '📔', '🗺️', '📜'];
+            const randomIndex = Math.floor(Math.random() * names.length);
+
+            try {
+                const tab = tabManager.createTab({
+                    name: names[randomIndex],
+                    icon: icons[randomIndex]
+                });
+                container.innerHTML += pass(`Created tab: ${tab.icon} ${tab.name}`);
+            } catch (error) {
+                container.innerHTML += fail(`Error: ${error.message}`);
+            }
+        };
+
+        window.testRenameTab = function(tabId = null) {
+            const container = document.getElementById('operation-results');
+            container.innerHTML = '';
+
+            const targetId = tabId || tabManager.activeTabId;
+            const tab = tabManager.getTab(targetId);
+            if (!tab) {
+                container.innerHTML += fail('No active tab');
+                return;
+            }
+
+            const newName = prompt(`Rename "${tab.name}" to:`, tab.name + ' (Renamed)');
+            if (newName) {
+                try {
+                    tabManager.renameTab(targetId, newName);
+                    container.innerHTML += pass(`Renamed to: ${newName}`);
+                } catch (error) {
+                    container.innerHTML += fail(`Error: ${error.message}`);
+                }
+            }
+        };
+
+        window.testChangeIcon = function(tabId = null) {
+            const container = document.getElementById('operation-results');
+            container.innerHTML = '';
+
+            const targetId = tabId || tabManager.activeTabId;
+            const tab = tabManager.getTab(targetId);
+            if (!tab) {
+                container.innerHTML += fail('No active tab');
+                return;
+            }
+
+            const icons = ['🎮', '🎨', '🎭', '🎪', '🎯', '🎲', '🎵', '🎬'];
+            const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+
+            try {
+                tabManager.changeTabIcon(targetId, randomIcon);
+                container.innerHTML += pass(`Changed icon to: ${randomIcon}`);
+            } catch (error) {
+                container.innerHTML += fail(`Error: ${error.message}`);
+            }
+        };
+
+        window.testDuplicateTab = function(tabId = null) {
+            const container = document.getElementById('operation-results');
+            container.innerHTML = '';
+
+            const targetId = tabId || tabManager.activeTabId;
+
+            try {
+                const newTab = tabManager.duplicateTab(targetId);
+                if (newTab) {
+                    container.innerHTML += pass(`Duplicated: ${newTab.name} (${newTab.widgets.length} widgets copied)`);
+                } else {
+                    container.innerHTML += fail('Duplication failed');
+                }
+            } catch (error) {
+                container.innerHTML += fail(`Error: ${error.message}`);
+            }
+        };
+
+        window.testDeleteTab = function(tabId = null) {
+            const container = document.getElementById('operation-results');
+            container.innerHTML = '';
+
+            const targetId = tabId || tabManager.activeTabId;
+            const tab = tabManager.getTab(targetId);
+            if (!tab) {
+                container.innerHTML += fail('No active tab');
+                return;
+            }
+
+            if (confirm(`Delete tab "${tab.name}"?`)) {
+                try {
+                    const success = tabManager.deleteTab(targetId);
+                    if (success) {
+                        container.innerHTML += pass(`Deleted: ${tab.name}`);
+                    } else {
+                        container.innerHTML += fail('Cannot delete last tab');
+                    }
+                } catch (error) {
+                    container.innerHTML += fail(`Error: ${error.message}`);
+                }
+            }
+        };
+
+        window.testReorderTabs = function() {
+            const container = document.getElementById('operation-results');
+            container.innerHTML = '';
+
+            const tabs = tabManager.getTabs();
+            const reversed = [...tabs].reverse().map(t => t.id);
+
+            try {
+                tabManager.reorderTabs(reversed);
+                container.innerHTML += pass('Tabs reversed');
+            } catch (error) {
+                container.innerHTML += fail(`Error: ${error.message}`);
+            }
+        };
+
+        window.testSwitchToIndex = function(index) {
+            const container = document.getElementById('navigation-results');
+            container.innerHTML = '';
+
+            const success = tabManager.switchToTabByIndex(index);
+            if (success) {
+                const tab = tabManager.getActiveTab();
+                container.innerHTML += pass(`Switched to tab ${index + 1}: ${tab.name}`);
+            } else {
+                container.innerHTML += fail(`Tab ${index + 1} does not exist`);
+            }
+        };
+
+        window.testNextTab = function() {
+            const container = document.getElementById('navigation-results');
+            container.innerHTML = '';
+
+            tabManager.switchToNextTab();
+            const tab = tabManager.getActiveTab();
+            container.innerHTML += pass(`Next tab: ${tab.icon} ${tab.name}`);
+        };
+
+        window.testPreviousTab = function() {
+            const container = document.getElementById('navigation-results');
+            container.innerHTML = '';
+
+            tabManager.switchToPreviousTab();
+            const tab = tabManager.getActiveTab();
+            container.innerHTML += pass(`Previous tab: ${tab.icon} ${tab.name}`);
+        };
+
+        window.runAllTests = function() {
+            setTimeout(() => testCreateTab(), 100);
+            setTimeout(() => testRenameTab(), 300);
+            setTimeout(() => testChangeIcon(), 500);
+            setTimeout(() => testDuplicateTab(), 700);
+            setTimeout(() => testNextTab(), 900);
+            setTimeout(() => testPreviousTab(), 1100);
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
+                e.preventDefault();
+                const index = parseInt(e.key) - 1;
+                tabManager.switchToTabByIndex(index);
+            }
+
+            if (e.ctrlKey && e.key === 'Tab' && !e.shiftKey) {
+                e.preventDefault();
+                tabManager.switchToNextTab();
+            }
+
+            if (e.ctrlKey && e.shiftKey && e.key === 'Tab') {
+                e.preventDefault();
+                tabManager.switchToPreviousTab();
+            }
+        });
+
+        initDashboard();
+    </script>
+</body>
+</html>

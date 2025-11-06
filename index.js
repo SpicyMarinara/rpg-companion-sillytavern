@@ -129,6 +129,14 @@ import {
     clearExtensionPrompts
 } from './src/systems/integration/sillytavern.js';
 
+// Dashboard v2 System
+import {
+    initializeDashboard,
+    createDefaultLayout,
+    refreshDashboard,
+    getDashboardManager
+} from './src/systems/dashboard/dashboardIntegration.js';
+
 // Old state variable declarations removed - now imported from core modules
 // (extensionSettings, lastGeneratedData, committedTrackerData, etc. are now in src/core/state.js)
 
@@ -428,12 +436,82 @@ async function initUI() {
     // Setup collapse/expand toggle button
     setupCollapseToggle();
 
-    // Render initial data if available
-    renderUserStats();
-    renderInfoBox();
-    renderThoughts();
-    renderInventory();
-    renderQuests();
+    // Initialize Dashboard v2 System
+    try {
+        console.log('[RPG Companion] Initializing Dashboard v2...');
+
+        // Prepare dependencies for widgets
+        const dashboardDependencies = {
+            // Data accessors
+            getContext: () => getContext(),
+            getExtensionSettings: () => extensionSettings,
+            getUserAvatar: () => user_avatar,
+            getCharacters: () => characters,
+            getCurrentCharId: () => this_chid,
+            getGroupMembers: () => getGroupMembers(),
+            getFallbackAvatar: () => FALLBACK_AVATAR_DATA_URI,
+            getAvatarUrl: (type, avatar) => getThumbnailUrl(type, avatar),
+            getCharacterThoughts: () => extensionSettings.characterThoughts || '',
+            getInfoBoxData: () => extensionSettings.infoBoxData || 'Info Box\n---\n',
+
+            // Data setters
+            setCharacterThoughts: (value) => {
+                extensionSettings.characterThoughts = value;
+                saveSettings();
+            },
+            setInfoBoxData: (value) => {
+                extensionSettings.infoBoxData = value;
+                saveSettings();
+            },
+
+            // Event callbacks
+            onDataChange: (dataType, field, value, extra) => {
+                console.log(`[RPG Companion] Dashboard data changed: ${dataType}.${field}`, value);
+                saveSettings();
+                saveChatData();
+                updateMessageSwipeData();
+            },
+
+            onStatsChange: (category, field, value) => {
+                console.log(`[RPG Companion] Stats changed: ${category}.${field}`, value);
+                saveSettings();
+                saveChatData();
+                updateMessageSwipeData();
+            },
+
+            onDashboardChange: (data) => {
+                console.log('[RPG Companion] Dashboard layout changed');
+                saveSettings();
+            }
+        };
+
+        // Initialize dashboard
+        console.log('[RPG Companion] Current dashboard settings:', extensionSettings.dashboard);
+        const manager = await initializeDashboard(dashboardDependencies);
+
+        if (manager) {
+            console.log('[RPG Companion] Dashboard v2 initialized successfully');
+            console.log('[RPG Companion] Manager instance:', manager);
+
+            // Dashboard manager already loaded its layout in init() via loadLayout()
+            // No need to load again here - that would overwrite the migrated values
+            console.log('[RPG Companion] Dashboard initialized and layout loaded via layoutPersistence');
+        } else {
+            console.warn('[RPG Companion] Dashboard initialization returned null, falling back to legacy rendering');
+            throw new Error('Dashboard initialization failed');
+        }
+    } catch (error) {
+        console.error('[RPG Companion] Dashboard v2 initialization failed, using legacy rendering:', error);
+
+        // Fallback to legacy rendering
+        renderUserStats();
+        renderInfoBox();
+        renderThoughts();
+        renderInventory();
+        renderQuests();
+    }
+
+    // Setup remaining UI components
     updateDiceDisplay();
     setupDiceRoller();
     setupClassicStatsButtons();

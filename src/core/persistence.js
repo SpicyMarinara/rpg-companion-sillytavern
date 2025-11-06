@@ -17,6 +17,7 @@ import {
 } from './state.js';
 import { migrateInventory } from '../utils/migration.js';
 import { validateStoredInventory, cleanItemString } from '../utils/security.js';
+import { generateDefaultDashboard, migrateV1ToV2Dashboard, validateDashboardConfig } from '../systems/dashboard/defaultLayout.js';
 
 const extensionName = 'third-party/rpg-companion-sillytavern';
 
@@ -90,6 +91,20 @@ export function loadSettings() {
                 console.log(`[RPG Companion] Inventory migrated from ${migrationResult.source} to v2 format`);
                 extensionSettings.userStats.inventory = migrationResult.inventory;
                 saveSettings(); // Persist migrated inventory
+            }
+        }
+
+        // Migrate to v2.0 dashboard if not present
+        if (!extensionSettings.dashboard || !extensionSettings.dashboard.tabs || extensionSettings.dashboard.tabs.length === 0) {
+            console.log('[RPG Companion] Dashboard v2.0 not found, migrating from v1.x');
+            extensionSettings.dashboard = migrateV1ToV2Dashboard(extensionSettings);
+            saveSettings(); // Persist migrated dashboard
+        } else {
+            // Validate existing dashboard config
+            if (!validateDashboardConfig(extensionSettings.dashboard)) {
+                console.warn('[RPG Companion] Dashboard config invalid, regenerating default');
+                extensionSettings.dashboard = generateDefaultDashboard();
+                saveSettings();
             }
         }
 
