@@ -299,6 +299,10 @@ async function initUI() {
     $('#rpg-toggle-always-show-bubble').on('change', function() {
         extensionSettings.alwaysShowThoughtBubble = $(this).prop('checked');
         saveSettings();
+        // Force immediate save to ensure setting is persisted before any other code runs
+        const context = getContext();
+        const extension_settings = context.extension_settings || context.extensionSettings;
+        extension_settings[extensionName] = extensionSettings;
         // Re-render thoughts to apply the setting
         updateChatThoughts();
     });
