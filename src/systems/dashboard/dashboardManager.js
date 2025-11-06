@@ -1630,6 +1630,146 @@ export class DashboardManager {
     }
 
     /**
+     * Try to apply default layout positions to current tab
+     *
+     * Checks if the current tab's widgets match the default layout and applies
+     * the default positions if they do. This ensures "Sort Current Page" produces
+     * the same layout as "Reset Layout" for default widgets.
+     *
+     * @param {Object} tab - Tab to apply default layout to
+     * @param {Object} options - Layout options
+     * @returns {boolean} True if default layout was applied, false otherwise
+     */
+    tryApplyDefaultLayoutToTab(tab, options = {}) {
+        if (!this.defaultLayout || !this.defaultLayout.tabs) {
+            console.log('[DashboardManager] No default layout available');
+            return false;
+        }
+
+        // Find matching default tab by ID
+        const defaultTab = this.defaultLayout.tabs.find(t => t.id === tab.id);
+        if (!defaultTab) {
+            console.log(`[DashboardManager] No default layout for tab "${tab.name}" (${tab.id})`);
+            return false;
+        }
+
+        // Check if widgets match (same types, possibly different IDs)
+        const currentTypes = tab.widgets.map(w => w.type).sort();
+        const defaultTypes = defaultTab.widgets.map(w => w.type).sort();
+
+        if (currentTypes.length !== defaultTypes.length ||
+            !currentTypes.every((type, i) => type === defaultTypes[i])) {
+            console.log('[DashboardManager] Tab widgets do not match default layout (custom widgets present)');
+            return false;
+        }
+
+        console.log('[DashboardManager] Applying default layout positions to current tab');
+
+        // Reset widget sizes to defaults (unless explicitly disabled)
+        if (options.resetSizes !== false) {
+            this.resetWidgetSizesToDefault(tab.widgets);
+        }
+
+        // Apply default positions to each widget
+        tab.widgets.forEach(widget => {
+            const defaultWidget = defaultTab.widgets.find(w => w.type === widget.type);
+            if (defaultWidget) {
+                widget.x = defaultWidget.x;
+                widget.y = defaultWidget.y;
+                // Size is already set by resetWidgetSizesToDefault
+                console.log(`[DashboardManager] Set ${widget.type} to default position (${widget.x}, ${widget.y})`);
+            }
+        });
+
+        return true;
+    }
+
+    /**
+     * Try to apply default layout to all tabs
+     *
+     * Checks if the current dashboard widgets match the default layout and applies
+     * the default positions if they do. This ensures "Auto Arrange" produces
+     * the same layout as "Reset Layout" for default widgets.
+     *
+     * @param {Object} options - Layout options
+     * @returns {boolean} True if default layout was applied, false otherwise
+     */
+    tryApplyDefaultLayout(options = {}) {
+        if (!this.defaultLayout || !this.defaultLayout.tabs) {
+            console.log('[DashboardManager] No default layout available');
+            return false;
+        }
+
+        // Check if tabs match default layout
+        if (this.dashboard.tabs.length !== this.defaultLayout.tabs.length) {
+            console.log('[DashboardManager] Tab count does not match default layout');
+            return false;
+        }
+
+        // Check if all tabs and widgets match
+        for (let i = 0; i < this.dashboard.tabs.length; i++) {
+            const tab = this.dashboard.tabs[i];
+            const defaultTab = this.defaultLayout.tabs.find(t => t.id === tab.id);
+
+            if (!defaultTab) {
+                console.log(`[DashboardManager] No default tab found for "${tab.name}" (${tab.id})`);
+                return false;
+            }
+
+            const currentTypes = tab.widgets.map(w => w.type).sort();
+            const defaultTypes = defaultTab.widgets.map(w => w.type).sort();
+
+            if (currentTypes.length !== defaultTypes.length ||
+                !currentTypes.every((type, j) => type === defaultTypes[j])) {
+                console.log(`[DashboardManager] Tab "${tab.name}" widgets do not match default layout`);
+                return false;
+            }
+        }
+
+        console.log('[DashboardManager] Applying default layout positions to all tabs');
+
+        // Gather all widgets from all tabs
+        const allWidgets = [];
+        this.dashboard.tabs.forEach(tab => {
+            if (tab.widgets && tab.widgets.length > 0) {
+                allWidgets.push(...tab.widgets);
+            }
+        });
+
+        // Reset widget sizes to defaults (unless explicitly disabled)
+        if (options.resetSizes !== false) {
+            this.resetWidgetSizesToDefault(allWidgets);
+        }
+
+        // Apply default positions to each tab
+        this.dashboard.tabs.forEach(tab => {
+            const defaultTab = this.defaultLayout.tabs.find(t => t.id === tab.id);
+            if (defaultTab) {
+                tab.widgets.forEach(widget => {
+                    const defaultWidget = defaultTab.widgets.find(w => w.type === widget.type);
+                    if (defaultWidget) {
+                        widget.x = defaultWidget.x;
+                        widget.y = defaultWidget.y;
+                        console.log(`[DashboardManager] Set ${widget.type} to default position (${widget.x}, ${widget.y})`);
+                    }
+                });
+            }
+        });
+
+        // Re-render tabs and switch to first tab
+        this.renderTabs();
+        if (this.dashboard.tabs.length > 0) {
+            this.switchTab(this.dashboard.tabs[0].id);
+        }
+
+        // Save layout
+        this.triggerAutoSave();
+
+        console.log('[DashboardManager] Default layout applied successfully');
+        return true;
+    }
+
+    /**
      * Auto-layout widgets on current tab only
      * Sorts and arranges widgets on the current tab to maximize space usage
      *
@@ -1654,40 +1794,48 @@ export class DashboardManager {
 
         console.log(`[DashboardManager] Laying out ${currentTab.widgets.length} widgets on tab "${currentTab.name}"`);
 
-        // Reset widget sizes to defaults (unless explicitly disabled)
-        if (options.resetSizes !== false) {
-            this.resetWidgetSizesToDefault(currentTab.widgets);
-        }
+        // Check if we can use default layout positions
+        const useDefaultLayout = this.tryApplyDefaultLayoutToTab(currentTab, options);
 
-        // Sort widgets by category for better organization
-        const sortedWidgets = this.sortWidgetsByCategory(currentTab.widgets);
+        if (!useDefaultLayout) {
+            // Fallback to traditional auto-layout
+            console.log('[DashboardManager] Using gridEngine.autoLayout (custom widgets or no default layout)');
 
-        // Update tab's widgets array with sorted order
-        currentTab.widgets = sortedWidgets;
-
-        // Store current widget dimensions before auto-layout
-        const dimensionsBefore = new Map();
-        currentTab.widgets.forEach(widget => {
-            dimensionsBefore.set(widget.id, { w: widget.w, h: widget.h });
-        });
-
-        // Auto-layout widgets on the current tab
-        this.gridEngine.autoLayout(currentTab.widgets, {
-            preserveOrder: options.preserveOrder !== false
-        });
-
-        // Call onResize handlers for widgets whose dimensions changed
-        // This allows widgets to update internal layouts (e.g., User Attributes grid columns)
-        currentTab.widgets.forEach(widget => {
-            const before = dimensionsBefore.get(widget.id);
-            if (before && (before.w !== widget.w || before.h !== widget.h)) {
-                const widgetData = this.widgets.get(widget.id);
-                if (widgetData?.definition?.onResize && widgetData.element) {
-                    console.log(`[DashboardManager] Calling onResize for ${widget.type} (${before.w}x${before.h} → ${widget.w}x${widget.h})`);
-                    widgetData.definition.onResize(widgetData.element, widget.w, widget.h);
-                }
+            // Reset widget sizes to defaults (unless explicitly disabled)
+            if (options.resetSizes !== false) {
+                this.resetWidgetSizesToDefault(currentTab.widgets);
             }
-        });
+
+            // Sort widgets by category for better organization
+            const sortedWidgets = this.sortWidgetsByCategory(currentTab.widgets);
+
+            // Update tab's widgets array with sorted order
+            currentTab.widgets = sortedWidgets;
+
+            // Store current widget dimensions before auto-layout
+            const dimensionsBefore = new Map();
+            currentTab.widgets.forEach(widget => {
+                dimensionsBefore.set(widget.id, { w: widget.w, h: widget.h });
+            });
+
+            // Auto-layout widgets on the current tab
+            this.gridEngine.autoLayout(currentTab.widgets, {
+                preserveOrder: options.preserveOrder !== false
+            });
+
+            // Call onResize handlers for widgets whose dimensions changed
+            // This allows widgets to update internal layouts (e.g., User Attributes grid columns)
+            currentTab.widgets.forEach(widget => {
+                const before = dimensionsBefore.get(widget.id);
+                if (before && (before.w !== widget.w || before.h !== widget.h)) {
+                    const widgetData = this.widgets.get(widget.id);
+                    if (widgetData?.definition?.onResize && widgetData.element) {
+                        console.log(`[DashboardManager] Calling onResize for ${widget.type} (${before.w}x${before.h} → ${widget.w}x${widget.h})`);
+                        widgetData.definition.onResize(widgetData.element, widget.w, widget.h);
+                    }
+                }
+            });
+        }
 
         // Re-render all widgets with new positions
         this.clearGrid();
@@ -1719,42 +1867,50 @@ export class DashboardManager {
         console.log('[DashboardManager] ===== AUTO-LAYOUT WIDGETS CALLED =====');
         console.log('[DashboardManager] Auto-layout widgets requested');
 
-        // Gather ALL widgets from ALL tabs (don't lose inventory, social, etc.)
-        const allWidgets = [];
-        this.dashboard.tabs.forEach(tab => {
-            if (tab.widgets && tab.widgets.length > 0) {
-                console.log(`[DashboardManager] Gathering ${tab.widgets.length} widgets from tab "${tab.name}"`);
-                allWidgets.push(...tab.widgets);
+        // Check if we can use default layout
+        const useDefaultLayout = this.tryApplyDefaultLayout(options);
+
+        if (!useDefaultLayout) {
+            // Fallback to traditional auto-layout
+            console.log('[DashboardManager] Using traditional auto-layout (custom widgets or no default layout)');
+
+            // Gather ALL widgets from ALL tabs (don't lose inventory, social, etc.)
+            const allWidgets = [];
+            this.dashboard.tabs.forEach(tab => {
+                if (tab.widgets && tab.widgets.length > 0) {
+                    console.log(`[DashboardManager] Gathering ${tab.widgets.length} widgets from tab "${tab.name}"`);
+                    allWidgets.push(...tab.widgets);
+                }
+            });
+
+            if (allWidgets.length === 0) {
+                console.warn('[DashboardManager] No widgets to auto-layout');
+                return;
             }
-        });
 
-        if (allWidgets.length === 0) {
-            console.warn('[DashboardManager] No widgets to auto-layout');
-            return;
+            console.log(`[DashboardManager] Total widgets to layout: ${allWidgets.length}`);
+
+            // Reset widget sizes to defaults (unless explicitly disabled)
+            if (options.resetSizes !== false) {
+                this.resetWidgetSizesToDefault(allWidgets);
+            }
+
+            // Smart category-aware sorting BEFORE auto-layout
+            const widgetsToLayout = this.sortWidgetsByCategory(allWidgets);
+
+            // Calculate estimated height to determine if multi-tab distribution is needed
+            const estimatedHeight = this.estimateLayoutHeight(widgetsToLayout);
+            const heightThreshold = 80; // rem - reasonable max height for single tab
+
+            console.log('[DashboardManager] Estimated height:', estimatedHeight + 'rem', 'Threshold:', heightThreshold + 'rem');
+
+            // Always use multi-tab distribution when we have many widgets
+            // This preserves all widgets (inventory, social, etc.)
+            console.log('[DashboardManager] Using multi-tab distribution to preserve all widgets');
+            this.distributeWidgetsByCategory(widgetsToLayout);
+
+            // distributeWidgetsByCategory handles rendering and tab switching
         }
-
-        console.log(`[DashboardManager] Total widgets to layout: ${allWidgets.length}`);
-
-        // Reset widget sizes to defaults (unless explicitly disabled)
-        if (options.resetSizes !== false) {
-            this.resetWidgetSizesToDefault(allWidgets);
-        }
-
-        // Smart category-aware sorting BEFORE auto-layout
-        const widgetsToLayout = this.sortWidgetsByCategory(allWidgets);
-
-        // Calculate estimated height to determine if multi-tab distribution is needed
-        const estimatedHeight = this.estimateLayoutHeight(widgetsToLayout);
-        const heightThreshold = 80; // rem - reasonable max height for single tab
-
-        console.log('[DashboardManager] Estimated height:', estimatedHeight + 'rem', 'Threshold:', heightThreshold + 'rem');
-
-        // Always use multi-tab distribution when we have many widgets
-        // This preserves all widgets (inventory, social, etc.)
-        console.log('[DashboardManager] Using multi-tab distribution to preserve all widgets');
-        this.distributeWidgetsByCategory(widgetsToLayout);
-
-        // distributeWidgetsByCategory handles rendering and tab switching
     }
 
     /**
