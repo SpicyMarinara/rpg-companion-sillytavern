@@ -174,14 +174,18 @@ function extractSkills(statsText) {
     // Split into lines and process
     const lines = skillsSection.split('\n').map(line => line.trim()).filter(line => line);
 
+    debugLog('[RPG Parser] Skills section lines:', lines);
+
     let currentCategory = null;
 
     for (const line of lines) {
         // Check if this is a category header (ends with colon, no dash)
         if (line.endsWith(':') && !line.startsWith('-')) {
             currentCategory = line.slice(0, -1).trim();
+            debugLog(`[RPG Parser] Found category header: "${currentCategory}"`);
             if (currentCategory !== 'Uncategorized' && !skillsData.categories[currentCategory]) {
                 skillsData.categories[currentCategory] = [];
+                debugLog(`[RPG Parser] Created category array for: "${currentCategory}"`);
             }
             continue;
         }
@@ -201,9 +205,15 @@ function extractSkills(statsText) {
             };
 
             if (currentCategory === 'Uncategorized' || currentCategory === null) {
+                debugLog(`[RPG Parser] Adding "${skillName}" to uncategorized (currentCategory="${currentCategory}")`);
                 skillsData.uncategorized.push(skill);
             } else if (currentCategory && skillsData.categories[currentCategory]) {
+                debugLog(`[RPG Parser] Adding "${skillName}" to category "${currentCategory}"`);
                 skillsData.categories[currentCategory].push(skill);
+            } else {
+                debugLog(`[RPG Parser] ERROR: Could not add "${skillName}" - currentCategory="${currentCategory}", categoryExists=${!!skillsData.categories[currentCategory]}`);
+                // Fallback to uncategorized if category doesn't exist
+                skillsData.uncategorized.push(skill);
             }
         } else {
             // Fallback: Try text-based proficiency format: "- Skill Name (Proficient)"
@@ -239,9 +249,15 @@ function extractSkills(statsText) {
                 };
 
                 if (currentCategory === 'Uncategorized' || currentCategory === null) {
+                    debugLog(`[RPG Parser] Adding "${skillName}" to uncategorized (currentCategory="${currentCategory}")`);
                     skillsData.uncategorized.push(skill);
                 } else if (currentCategory && skillsData.categories[currentCategory]) {
+                    debugLog(`[RPG Parser] Adding "${skillName}" to category "${currentCategory}"`);
                     skillsData.categories[currentCategory].push(skill);
+                } else {
+                    debugLog(`[RPG Parser] ERROR: Could not add "${skillName}" - currentCategory="${currentCategory}", categoryExists=${!!skillsData.categories[currentCategory]}`);
+                    // Fallback to uncategorized if category doesn't exist
+                    skillsData.uncategorized.push(skill);
                 }
             }
         }
@@ -251,6 +267,12 @@ function extractSkills(statsText) {
     if (Object.keys(skillsData.categories).length === 0 && skillsData.uncategorized.length === 0) {
         return null;
     }
+
+    debugLog('[RPG Parser] Final skills data:', {
+        categories: Object.keys(skillsData.categories),
+        categoryCounts: Object.entries(skillsData.categories).map(([cat, skills]) => `${cat}: ${skills.length}`),
+        uncategorizedCount: skillsData.uncategorized.length
+    });
 
     return skillsData;
 }
