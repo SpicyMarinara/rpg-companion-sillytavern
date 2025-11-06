@@ -56,6 +56,10 @@ function separateEmojiFromText(str) {
 function stripBrackets(text) {
     if (!text) return text;
 
+    const originalLength = text.length;
+    debugLog('[RPG Parser] stripBrackets: Input length:', originalLength);
+    debugLog('[RPG Parser] stripBrackets: Contains "Skills:":', text.includes('Skills:'));
+
     // Remove leading and trailing whitespace first
     text = text.trim();
 
@@ -67,6 +71,7 @@ function stripBrackets(text) {
         (text.startsWith('(') && text.endsWith(')'))
     ) {
         text = text.substring(1, text.length - 1).trim();
+        debugLog('[RPG Parser] stripBrackets: Removed wrapping brackets, new length:', text.length);
     }
 
     // Remove placeholder text patterns like [Location], [Mood Emoji], [Name], etc.
@@ -102,23 +107,103 @@ function stripBrackets(text) {
     };
 
     // Replace placeholders with empty string, keep real content
+    let removedPlaceholders = [];
     text = text.replace(placeholderPattern, (match, content) => {
         if (isPlaceholder(match, content)) {
+            removedPlaceholders.push(match);
             return ''; // Remove placeholder
         }
         return match; // Keep real bracketed content
     });
+    if (removedPlaceholders.length > 0) {
+        debugLog('[RPG Parser] stripBrackets: Removed placeholders:', removedPlaceholders.join(', '));
+    }
 
     // Clean up any resulting empty labels (e.g., "Status: " with nothing after)
-    text = text.replace(/^([A-Za-z\s]+):\s*$/gm, ''); // Remove lines that are just "Label: " with nothing
+    // BUT: Don't remove structural section headers that have content on following lines
+    const beforeCleanup = text.length;
+
+    // Known section headers that should NEVER be removed (structural markers)
+    const structuralHeaders = ['Skills', 'Status', 'Inventory', 'On Person', 'Stored', 'Assets', 'Main Quest', 'Main Quests', 'Optional Quest', 'Optional Quests'];
+
+    // Split into lines to intelligently remove only truly empty labels
+    const lines = text.split('\n');
+    const filteredLines = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmedLine = line.trim();
+
+        // Check if this is a label line (ends with colon, no other content)
+        const labelMatch = trimmedLine.match(/^([A-Za-z\s]+):\s*$/);
+
+        if (labelMatch) {
+            const labelName = labelMatch[1];
+
+            // Never remove structural section headers
+            if (structuralHeaders.includes(labelName)) {
+                debugLog('[RPG Parser] stripBrackets: Keeping structural header:', trimmedLine);
+                filteredLines.push(line);
+                continue;
+            }
+
+            // Check if there's ANY content in the next few lines (look ahead up to 3 lines)
+            let hasContentBelow = false;
+            for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+                const futureLine = lines[j].trim();
+                if (futureLine === '') continue; // Skip empty lines
+
+                // If we find a line with content (not just another label), this label has content below
+                if (futureLine && !/^([A-Za-z\s]+):\s*$/.test(futureLine)) {
+                    hasContentBelow = true;
+                    break;
+                }
+            }
+
+            if (hasContentBelow) {
+                // This label has content below (even if through other labels), keep it
+                debugLog('[RPG Parser] stripBrackets: Keeping section header:', trimmedLine);
+                filteredLines.push(line);
+            } else {
+                // This is a truly empty label with no content anywhere below, remove it
+                debugLog('[RPG Parser] stripBrackets: Removing empty label:', trimmedLine);
+            }
+        } else {
+            // Not a label line, keep it
+            filteredLines.push(line);
+        }
+    }
+
+    text = filteredLines.join('\n');
+
+    if (text.length !== beforeCleanup) {
+        debugLog('[RPG Parser] stripBrackets: Removed empty labels, chars removed:', beforeCleanup - text.length);
+    }
+
     text = text.replace(/^([A-Za-z\s]+):\s*,/gm, '$1:'); // Fix "Label: ," patterns
     text = text.replace(/:\s*\|/g, ':'); // Fix ": |" patterns
     text = text.replace(/\|\s*\|/g, '|'); // Fix "| |" patterns (double pipes from removed content)
     text = text.replace(/\|\s*$/gm, ''); // Remove trailing pipes at end of lines
 
     // Clean up multiple spaces and empty lines
+    const beforeSpaceCleanup = text.length;
     text = text.replace(/\s{2,}/g, ' '); // Multiple spaces to single space
     text = text.replace(/^\s*\n/gm, ''); // Remove empty lines
+    if (text.length !== beforeSpaceCleanup) {
+        debugLog('[RPG Parser] stripBrackets: Cleaned up spaces/newlines, chars removed:', beforeSpaceCleanup - text.length);
+    }
+
+    const finalLength = text.trim().length;
+    debugLog('[RPG Parser] stripBrackets: Output length:', finalLength);
+    debugLog('[RPG Parser] stripBrackets: Total chars removed:', originalLength - finalLength);
+    debugLog('[RPG Parser] stripBrackets: Contains "Skills:" after processing:', text.includes('Skills:'));
+
+    if (text.includes('Skills:')) {
+        const skillsIndex = text.indexOf('Skills:');
+        debugLog('[RPG Parser] stripBrackets: Text around Skills (index ' + skillsIndex + '):', text.substring(skillsIndex, skillsIndex + 200));
+    } else if (originalLength !== finalLength) {
+        debugLog('[RPG Parser] stripBrackets: WARNING - Skills section was removed! Last 200 chars:', text.substring(text.length - 200));
+    }
 
     return text.trim();
 }

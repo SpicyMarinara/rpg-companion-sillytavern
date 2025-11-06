@@ -5260,8 +5260,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: center;
     gap: 0.5em;
     padding: 0.5em;
-    background: var(--rpg-accent);
-    border: 1px solid var(--rpg-border);
+    background: var(--SmartThemeBlurTintColor);
+    border: 2px solid var(--SmartThemeBorderColor);
     border-radius: 0.375em;
 }
 
@@ -8110,6 +8110,26 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-category-actions {
     display: flex;
     gap: 0.5rem;
+}
+
+.rpg-category-action {
+    padding: 0.35rem 0.6rem;
+    background: var(--SmartThemeBlurTintColor);
+    border: 2px solid var(--SmartThemeBorderColor);
+    border-radius: 0.25rem;
+    color: var(--SmartThemeFastUISliderColColor);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rpg-category-action:hover {
+    background: var(--SmartThemeBlurTintColor);
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-highlight);
 }
 
 .rpg-category-content {
