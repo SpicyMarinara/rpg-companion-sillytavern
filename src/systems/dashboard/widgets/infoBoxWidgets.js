@@ -550,7 +550,40 @@ export function registerRecentEventsWidget(registry, dependencies) {
          * @param {Object} config - Widget configuration
          */
         render(container, config = {}) {
-            const { getInfoBoxData } = dependencies;
+            const { getInfoBoxData, getExtensionSettings } = dependencies;
+
+            // Check if Recent Events is enabled in tracker config
+            const settings = getExtensionSettings();
+            const trackerConfig = settings.trackerConfig;
+            const isEnabled = trackerConfig?.infoBox?.widgets?.recentEvents?.enabled !== false;
+
+            // If disabled, show helpful message
+            if (!isEnabled) {
+                const html = `
+                    <div class="rpg-dashboard-widget">
+                        <div class="rpg-events-widget rpg-widget-disabled">
+                            <div class="rpg-notebook-header">
+                                <div class="rpg-notebook-ring"></div>
+                                <div class="rpg-notebook-ring"></div>
+                                <div class="rpg-notebook-ring"></div>
+                            </div>
+                            <div class="rpg-notebook-title">Recent Events</div>
+                            <div class="rpg-widget-disabled-message">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <p>Recent Events tracking is currently disabled.</p>
+                                <button class="rpg-widget-enable-btn" data-widget-type="recentEvents">
+                                    <i class="fa-solid fa-toggle-on"></i>
+                                    Enable in Tracker Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = html;
+                attachDisabledStateHandlers(container);
+                return;
+            }
+
             const data = parseInfoBoxData(getInfoBoxData());
 
             // Merge default config with user config
@@ -766,4 +799,32 @@ function updateRecentEvent(eventIndex, value, dependencies) {
     }
 
     console.log(`[Recent Events Widget] Updated event ${eventIndex}: "${value}"`);
+}
+
+/**
+ * Attach handlers for disabled widget state
+ * Opens Tracker Settings when "Enable" button is clicked
+ * @private
+ */
+function attachDisabledStateHandlers(container) {
+    const enableBtn = container.querySelector('.rpg-widget-enable-btn');
+    if (enableBtn) {
+        enableBtn.addEventListener('click', () => {
+            // Open Tracker Settings modal
+            const trackerSettingsBtn = document.querySelector('#rpg-open-tracker-editor');
+            if (trackerSettingsBtn) {
+                trackerSettingsBtn.click();
+
+                // After modal opens, switch to Info Box tab
+                setTimeout(() => {
+                    const infoBoxTab = document.querySelector('.rpg-editor-tab[data-tab="infoBox"]');
+                    if (infoBoxTab) {
+                        infoBoxTab.click();
+                    }
+                }, 100);
+            } else {
+                console.warn('[Recent Events Widget] Tracker Settings button not found');
+            }
+        });
+    }
 }
