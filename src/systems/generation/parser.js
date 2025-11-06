@@ -147,22 +147,36 @@ function debugLog(message, data = null) {
  * @returns {Object|null} Structured skills data or null if not found
  */
 function extractSkills(statsText) {
-    if (!statsText) return null;
+    if (!statsText) {
+        debugLog('[RPG Parser] extractSkills: No stats text provided');
+        return null;
+    }
+
+    debugLog('[RPG Parser] extractSkills: Searching for Skills section in text length:', statsText.length);
+    debugLog('[RPG Parser] extractSkills: Text contains "Skills:":', statsText.includes('Skills:'));
 
     // Find the Skills section
     const skillsMatch = statsText.match(/Skills:([\s\S]*?)(?=\n\n|On Person:|Stored|Assets:|Main Quest|Optional Quest|$)/i);
     if (!skillsMatch) {
+        debugLog('[RPG Parser] extractSkills: Main regex did not match');
+        debugLog('[RPG Parser] extractSkills: Checking if "On Person:" exists:', statsText.includes('On Person:'));
+        debugLog('[RPG Parser] extractSkills: Text around Skills:', statsText.substring(statsText.indexOf('Skills:'), statsText.indexOf('Skills:') + 200));
+
         // Fallback: try simple format "Skills: skill1, skill2"
         const simpleMatch = statsText.match(/Skills:\s*(.+)/i);
         if (simpleMatch) {
             const skillsText = simpleMatch[1].trim();
+            debugLog('[RPG Parser] extractSkills: Simple format matched:', skillsText);
             if (skillsText && skillsText !== 'None') {
                 // Return as string for backward compatibility
                 return skillsText;
             }
         }
+        debugLog('[RPG Parser] extractSkills: No Skills section found');
         return null;
     }
+
+    debugLog('[RPG Parser] extractSkills: Main regex matched, captured length:', skillsMatch[1].length);
 
     const skillsSection = skillsMatch[1];
     const skillsData = {
