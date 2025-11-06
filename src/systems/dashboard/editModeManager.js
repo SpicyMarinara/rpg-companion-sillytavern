@@ -336,15 +336,6 @@ export class EditModeManager {
         controls.style.opacity = '0';
         controls.style.transition = 'opacity 0.2s';
 
-        // Settings button
-        const settingsBtn = this.createControlButton('⚙', 'Settings');
-        settingsBtn.onclick = (e) => {
-            e.stopPropagation();
-            if (this.onWidgetSettings) {
-                this.onWidgetSettings(widgetId);
-            }
-        };
-
         // Delete button
         const deleteBtn = this.createControlButton('×', 'Delete');
         deleteBtn.onclick = (e) => {
@@ -353,7 +344,6 @@ export class EditModeManager {
         };
         deleteBtn.style.background = '#e94560';
 
-        controls.appendChild(settingsBtn);
         controls.appendChild(deleteBtn);
 
         // Store reference to widget element for positioning
