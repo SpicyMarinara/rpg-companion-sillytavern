@@ -185,18 +185,8 @@ export class DashboardManager {
         });
 
         // Initialize Tab Manager with dashboard data structure
-        // Create default tab if no tabs exist
-        if (this.dashboard.tabs.length === 0) {
-            this.dashboard.tabs.push({
-                id: 'main',
-                name: 'Main',
-                icon: 'fa-solid fa-house',
-                order: 0,
-                widgets: []
-            });
-            this.dashboard.defaultTab = 'main';
-        }
-
+        // Note: Tabs will be populated by loadLayout() which runs after init()
+        // Default layout is set via setDefaultLayout() before init() is called
         this.tabManager = new TabManager(this.dashboard);
 
         // Set current tab to active tab from TabManager
@@ -1511,6 +1501,22 @@ export class DashboardManager {
             if (this.defaultLayout) {
                 this.applyDashboardConfig(this.defaultLayout);
             }
+        }
+
+        // Safety check: If still no tabs after loading, create emergency fallback
+        // This should never happen if setDefaultLayout() was called properly
+        if (this.dashboard.tabs.length === 0) {
+            console.warn('[DashboardManager] No tabs loaded, creating emergency fallback');
+            this.dashboard.tabs.push({
+                id: 'tab-status',
+                name: 'Status',
+                icon: 'fa-solid fa-user',
+                order: 0,
+                widgets: []
+            });
+            this.dashboard.defaultTab = 'tab-status';
+            // Update TabManager's active tab
+            this.tabManager.setActiveTab('tab-status');
         }
     }
 
