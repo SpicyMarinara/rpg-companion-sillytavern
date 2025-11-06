@@ -38,19 +38,19 @@ export function registerUserInfoWidget(registry, dependencies) {
         description: 'User avatar, name, and level display',
         category: 'user',
         minSize: { w: 1, h: 1 },
-        // Column-aware default size: start at 2x1 in desktop so mood doesn't block expansion
+        // Column-aware default size: vertical 1x2 with mood below
         defaultSize: (columns) => {
             if (columns <= 2) {
-                return { w: 1, h: 1 }; // Mobile: 1x1, horizontal layout
+                return { w: 1, h: 1 }; // Mobile: 1x1, compact
             }
-            return { w: 2, h: 1 }; // Desktop: 2x1 from the start
+            return { w: 1, h: 2 }; // Desktop: 1x2 vertical, mood sits below
         },
-        // Column-aware max size: same as defaultSize to prevent further expansion
+        // Column-aware max size: same as defaultSize to prevent expansion
         maxAutoSize: (columns) => {
             if (columns <= 2) {
-                return { w: 1, h: 1 }; // Mobile: 1x1, horizontal layout
+                return { w: 1, h: 1 }; // Mobile: 1x1, compact
             }
-            return { w: 2, h: 1 }; // Desktop: 2x1, mood sits in top-right
+            return { w: 1, h: 2 }; // Desktop: 1x2 vertical, mood below at y:2
         },
         requiresSchema: false,
 
@@ -89,15 +89,22 @@ export function registerUserInfoWidget(registry, dependencies) {
 
             const html = `
                 <div class="rpg-user-info-container" style="${backgroundStyle}">
-                    <div class="rpg-user-info-text">
-                        ${finalConfig.showName ? `<div class="rpg-user-name">${userName}</div>` : ''}
-                        ${finalConfig.showLevel ? `
+                    ${finalConfig.showAvatar ? `<img class="rpg-user-avatar-img" src="${userPortrait}" alt="User Avatar">` : ''}
+
+                    ${finalConfig.showName ? `
+                        <div class="rpg-user-name-container">
+                            <div class="rpg-user-name">${userName}</div>
+                        </div>
+                    ` : ''}
+
+                    ${finalConfig.showLevel ? `
+                        <div class="rpg-user-level-container">
                             <div class="rpg-user-level">
                                 <span class="rpg-level-label">LVL</span>
                                 <span class="rpg-level-value rpg-editable" contenteditable="true" data-field="level" title="Click to edit level">${settings.level}</span>
                             </div>
-                        ` : ''}
-                    </div>
+                        </div>
+                    ` : ''}
                 </div>
             `;
 
@@ -155,11 +162,15 @@ export function registerUserInfoWidget(registry, dependencies) {
             const infoContainer = container.querySelector('.rpg-user-info-container');
             if (!infoContainer) return;
 
-            // Apply compact mode class at narrow widths for smaller text
-            if (newW < 3) {
-                infoContainer.classList.add('rpg-user-info-compact');
-            } else {
+            // Apply layout classes based on widget width
+            if (newW >= 2) {
+                // Wide layout (2x1+): Horizontal split with name left, level right
+                infoContainer.classList.add('rpg-user-info-wide');
                 infoContainer.classList.remove('rpg-user-info-compact');
+            } else {
+                // Compact layout (1x1): Round avatar with flush text overlays
+                infoContainer.classList.add('rpg-user-info-compact');
+                infoContainer.classList.remove('rpg-user-info-wide');
             }
         }
     });

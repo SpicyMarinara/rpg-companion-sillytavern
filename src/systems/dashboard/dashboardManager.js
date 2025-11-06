@@ -1562,7 +1562,8 @@ export class DashboardManager {
         // Skip initial switch in applyDashboardConfig since we'll switch after layout calculations
         this.applyDashboardConfig(this.defaultLayout, { skipInitialSwitch: true });
 
-        // Reset all widgets to default sizes
+        // Apply column-aware widget sizes from widget definitions
+        // This makes widgets scale properly based on screen width (2-4 columns)
         const allWidgets = [];
         this.dashboard.tabs.forEach(tab => {
             if (tab.widgets && tab.widgets.length > 0) {
@@ -1571,13 +1572,10 @@ export class DashboardManager {
         });
         this.resetWidgetSizesToDefault(allWidgets);
 
-        // Auto-layout each tab to prevent overlap (default positions may have changed)
-        this.dashboard.tabs.forEach(tab => {
-            if (tab.widgets && tab.widgets.length > 0) {
-                console.log(`[DashboardManager] Auto-laying out tab "${tab.name}" (${tab.widgets.length} widgets)`);
-                this.gridEngine.autoLayout(tab.widgets, { preserveOrder: true });
-            }
-        });
+        // Don't call autoLayout - preserve positions from defaultLayout.js
+        // Widget definitions now have column-aware sizes (defaultSize returns correct size for column count)
+        // ResizeObserver will handle column changes and trigger autoLayout when screen resizes
+        console.log('[DashboardManager] Using column-aware sizes from widget definitions, preserving positions from defaultLayout.js');
 
         // Force re-render tabs
         this.renderTabs();
