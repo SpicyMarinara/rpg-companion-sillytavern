@@ -215,8 +215,8 @@ export function renderThoughts() {
         }
     }
 
-    // Relationship status to emoji mapping (for backward compatibility with old "relationship" field)
-    const relationshipEmojis = {
+    // Get relationship emojis from config (with fallback defaults)
+    const relationshipEmojis = config?.relationshipEmojis || {
         'Enemy': '⚔️',
         'Neutral': '⚖️',
         'Friend': '⭐',
@@ -498,6 +498,10 @@ export function updateCharacterField(characterName, field, value) {
         let statsLineExists = false;
         let statsLineIndex = -1;
 
+        // Get the configured thoughts field name
+        const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
+        const isThoughtsField = field.toLowerCase() === 'thoughts' || field === thoughtsFieldName;
+
         // First pass: check if Stats line exists and update other fields
         for (let i = characterStartIndex; i < characterEndIndex; i++) {
             const line = lines[i].trim();
@@ -529,6 +533,11 @@ export function updateCharacterField(characterName, field, value) {
                 const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
                 const relationshipValue = emojiToRelationship[value] || value;
                 lines[i] = `Relationship: ${relationshipValue}`;
+            }
+            else if (isThoughtsField && line.startsWith(thoughtsFieldName + ':')) {
+                // Update thoughts field
+                lines[i] = `${thoughtsFieldName}: ${value}`;
+                console.log('[RPG Companion] Updated thoughts:', lines[i]);
             }
         }
 

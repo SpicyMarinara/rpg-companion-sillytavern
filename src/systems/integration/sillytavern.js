@@ -217,8 +217,10 @@ export function onCharacterChanged() {
     // Load chat-specific data when switching chats
     loadChatData();
 
-    // Commit tracker data from the last assistant message to initialize for this chat
-    commitTrackerData();
+    // Don't call commitTrackerData() here - it would overwrite the loaded committedTrackerData
+    // with data from the last message, which may be null/empty. The loaded committedTrackerData
+    // already contains the committed state from when we last left this chat.
+    // commitTrackerData() will be called naturally when new messages arrive.
 
     // Re-render with the loaded data
     renderUserStats();
