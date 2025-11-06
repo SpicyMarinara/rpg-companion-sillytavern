@@ -187,7 +187,8 @@ function extractSkills(statsText) {
         }
 
         // Check if this is a skill line (starts with -, has level info)
-        const skillMatch = line.match(/^-\s*(.+?)\s*\(Lv\s*(\d+)\)/i);
+        // Try numeric format first: "- Skill Name (Lv 5)"
+        let skillMatch = line.match(/^-\s*(.+?)\s*\(Lv\s*(\d+)\)/i);
         if (skillMatch) {
             const skillName = skillMatch[1].trim();
             const level = parseInt(skillMatch[2], 10) || 1;
@@ -203,6 +204,45 @@ function extractSkills(statsText) {
                 skillsData.uncategorized.push(skill);
             } else if (currentCategory && skillsData.categories[currentCategory]) {
                 skillsData.categories[currentCategory].push(skill);
+            }
+        } else {
+            // Fallback: Try text-based proficiency format: "- Skill Name (Proficient)"
+            const textMatch = line.match(/^-\s*(.+?)\s*\((.+?)\)/i);
+            if (textMatch) {
+                const skillName = textMatch[1].trim();
+                const proficiencyText = textMatch[2].trim().toLowerCase();
+
+                // Map text proficiency to numeric level
+                const proficiencyMap = {
+                    'initiated': 1,
+                    'novice': 1,
+                    'basic': 2,
+                    'beginner': 2,
+                    'intermediate': 4,
+                    'proficient': 5,
+                    'competent': 6,
+                    'advanced': 7,
+                    'expert': 8,
+                    'mastered': 9,
+                    'master': 9,
+                    'grandmaster': 10,
+                    'legendary': 10
+                };
+
+                const level = proficiencyMap[proficiencyText] || 5; // Default to 5 if unknown
+
+                const skill = {
+                    name: skillName,
+                    level: level,
+                    xp: 0,
+                    maxXP: 100
+                };
+
+                if (currentCategory === 'Uncategorized' || currentCategory === null) {
+                    skillsData.uncategorized.push(skill);
+                } else if (currentCategory && skillsData.categories[currentCategory]) {
+                    skillsData.categories[currentCategory].push(skill);
+                }
             }
         }
     }

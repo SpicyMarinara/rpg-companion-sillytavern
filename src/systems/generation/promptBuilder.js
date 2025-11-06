@@ -219,7 +219,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += `- [Another Skill] (Lv [1-100])\n`;
                 instructions += `Uncategorized:\n`;
                 instructions += `- [Uncategorized Skill] (Lv [1-100])\n`;
-                instructions += `(Organize skills by logical categories like Combat, Magic, Social, Crafting, etc. Include level as integer 1-100. Skills without a clear category go in Uncategorized.)\n`;
+                instructions += `(Organize skills by logical categories like Combat, Magic, Social, Crafting, etc. IMPORTANT: Use numeric levels only - write "Lv 5" not "Proficient", "Lv 7" not "Advanced". Use integers 1-100 where 1=novice, 5=intermediate, 10=expert. Skills without a clear category go in Uncategorized.)\n`;
             }
 
             // Add inventory format based on feature flag
