@@ -328,7 +328,13 @@ export function parseResponse(responseText) {
         const content = match[1].trim();
 
         debugLog(`[RPG Parser] --- Code Block ${i + 1} ---`);
+        debugLog('[RPG Parser] Content length:', content.length);
         debugLog('[RPG Parser] First 300 chars:', content.substring(0, 300));
+        debugLog('[RPG Parser] Contains "Skills:":', content.includes('Skills:'));
+        if (content.includes('Skills:')) {
+            const skillsIndex = content.indexOf('Skills:');
+            debugLog('[RPG Parser] Text around Skills (index ' + skillsIndex + '):', content.substring(skillsIndex, skillsIndex + 200));
+        }
 
         // Check if this is a combined code block with multiple sections
         const hasMultipleSections = (
