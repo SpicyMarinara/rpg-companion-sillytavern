@@ -108,19 +108,10 @@ function applyTrackerConfig() {
     tempConfig = null; // Clear temp config
     saveSettings();
 
-    // Re-render all trackers with new config (v1 system - backward compat)
+    // Re-render all trackers with new config
     renderUserStats();
     renderInfoBox();
     renderThoughts();
-
-    // Notify dashboard system of config changes (v2 system - reactive integration)
-    document.dispatchEvent(new CustomEvent('rpg:trackerConfigChanged', {
-        detail: {
-            config: extensionSettings.trackerConfig,
-            source: 'trackerEditor'
-        }
-    }));
-    console.log('[RPG Companion] Tracker config changed event dispatched');
 }
 
 /**
