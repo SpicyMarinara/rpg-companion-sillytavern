@@ -1475,48 +1475,29 @@ export class DashboardManager {
 
     /**
      * Load saved layout
+     *
+     * For first-run users (no saved layout), calls resetLayout() for comprehensive
+     * initialization. This ensures consistent behavior between first-run and manual
+     * reset, using a single code path for default layout setup.
      */
     async loadLayout() {
         try {
             const saved = await this.persistence.loadLayout();
             if (saved) {
+                console.log('[DashboardManager] Loading saved layout');
                 this.applyDashboardConfig(saved);
-            } else if (this.defaultLayout) {
-                console.log('[DashboardManager] No saved layout, using default with auto-layout');
-                this.applyDashboardConfig(this.defaultLayout);
-
-                // Auto-layout each tab to prevent overlap (default positions may not fit screen)
-                this.dashboard.tabs.forEach(tab => {
-                    if (tab.widgets && tab.widgets.length > 0) {
-                        console.log(`[DashboardManager] Auto-laying out default tab "${tab.name}" (${tab.widgets.length} widgets)`);
-                        this.gridEngine.autoLayout(tab.widgets, { preserveOrder: true });
-                    }
-                });
-
-                // Save the auto-laid-out default as the initial saved layout
-                await this.saveLayout(true);
+            } else {
+                // First run - use resetLayout() for comprehensive initialization
+                // This provides: fresh layout generation, state reset, validation,
+                // column-aware sizing, and proper UI rendering
+                console.log('[DashboardManager] No saved layout found, calling resetLayout() for first-run initialization');
+                await this.resetLayout();
             }
         } catch (error) {
             console.error('[DashboardManager] Failed to load layout:', error);
-            if (this.defaultLayout) {
-                this.applyDashboardConfig(this.defaultLayout);
-            }
-        }
-
-        // Safety check: If still no tabs after loading, create emergency fallback
-        // This should never happen if setDefaultLayout() was called properly
-        if (this.dashboard.tabs.length === 0) {
-            console.warn('[DashboardManager] No tabs loaded, creating emergency fallback');
-            this.dashboard.tabs.push({
-                id: 'tab-status',
-                name: 'Status',
-                icon: 'fa-solid fa-user',
-                order: 0,
-                widgets: []
-            });
-            this.dashboard.defaultTab = 'tab-status';
-            // Update TabManager's active tab
-            this.tabManager.setActiveTab('tab-status');
+            // Fallback: use resetLayout() for clean state recovery
+            console.log('[DashboardManager] Recovering with resetLayout()');
+            await this.resetLayout();
         }
     }
 
