@@ -134,6 +134,88 @@ function debugLog(message, data = null) {
 }
 
 /**
+ * Extract structured skills data from stats text
+ * Parses format:
+ * Skills:
+ * CategoryName:
+ * - SkillName (Lv X)
+ * - SkillName (Lv X)
+ * Uncategorized:
+ * - SkillName (Lv X)
+ *
+ * @param {string} statsText - Stats section text containing skills
+ * @returns {Object|null} Structured skills data or null if not found
+ */
+function extractSkills(statsText) {
+    if (!statsText) return null;
+
+    // Find the Skills section
+    const skillsMatch = statsText.match(/Skills:([\s\S]*?)(?=\n\n|On Person:|Stored|Assets:|Main Quest|Optional Quest|$)/i);
+    if (!skillsMatch) {
+        // Fallback: try simple format "Skills: skill1, skill2"
+        const simpleMatch = statsText.match(/Skills:\s*(.+)/i);
+        if (simpleMatch) {
+            const skillsText = simpleMatch[1].trim();
+            if (skillsText && skillsText !== 'None') {
+                // Return as string for backward compatibility
+                return skillsText;
+            }
+        }
+        return null;
+    }
+
+    const skillsSection = skillsMatch[1];
+    const skillsData = {
+        version: 1,
+        categories: {},
+        uncategorized: []
+    };
+
+    // Split into lines and process
+    const lines = skillsSection.split('\n').map(line => line.trim()).filter(line => line);
+
+    let currentCategory = null;
+
+    for (const line of lines) {
+        // Check if this is a category header (ends with colon, no dash)
+        if (line.endsWith(':') && !line.startsWith('-')) {
+            currentCategory = line.slice(0, -1).trim();
+            if (currentCategory !== 'Uncategorized' && !skillsData.categories[currentCategory]) {
+                skillsData.categories[currentCategory] = [];
+            }
+            continue;
+        }
+
+        // Check if this is a skill line (starts with -, has level info)
+        const skillMatch = line.match(/^-\s*(.+?)\s*\(Lv\s*(\d+)\)/i);
+        if (skillMatch) {
+            const skillName = skillMatch[1].trim();
+            const level = parseInt(skillMatch[2], 10) || 1;
+
+            const skill = {
+                name: skillName,
+                level: level,
+                xp: 0,
+                maxXP: 100
+            };
+
+            if (currentCategory === 'Uncategorized' || currentCategory === null) {
+                skillsData.uncategorized.push(skill);
+            } else if (currentCategory && skillsData.categories[currentCategory]) {
+                skillsData.categories[currentCategory].push(skill);
+            }
+        }
+    }
+
+    // Return null if no skills were found
+    if (Object.keys(skillsData.categories).length === 0 && skillsData.uncategorized.length === 0) {
+        return null;
+    }
+
+    return skillsData;
+}
+
+/**
  * Parses the model response to extract the different data sections.
  * Extracts tracker data from markdown code blocks in the AI response.
  * Handles both separate code blocks and combined code blocks gracefully.
@@ -351,10 +433,12 @@ export function parseUserStats(statsText) {
         // Parse skills section if enabled
         const skillsConfig = trackerConfig?.userStats?.skillsSection;
         if (skillsConfig?.enabled) {
-            const skillsMatch = statsText.match(/Skills:\s*(.+)/i);
-            if (skillsMatch) {
-                extensionSettings.userStats.skills = skillsMatch[1].trim();
-                debugLog('[RPG Parser] Skills extracted:', skillsMatch[1].trim());
+            const skillsData = extractSkills(statsText);
+            if (skillsData) {
+                extensionSettings.userStats.skills = skillsData;
+                debugLog('[RPG Parser] Skills extracted:', skillsData);
+            } else {
+                debugLog('[RPG Parser] Skills extraction failed or none found');
             }
         }
 

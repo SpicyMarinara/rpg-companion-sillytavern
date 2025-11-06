@@ -11,6 +11,53 @@ import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../co
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
 
 /**
+ * Builds a formatted skills summary for AI context injection.
+ * Converts structured skills data to multi-line plaintext format organized by category.
+ *
+ * @param {Object|string} skills - Current skills (structured or legacy string)
+ * @returns {string} Formatted skills summary for prompt injection
+ * @example
+ * // Structured input: { version: 1, categories: { Combat: [{name: 'Swordsmanship', level: 5}] }, uncategorized: [] }
+ * // Returns: "Skills:\nCombat:\n- Swordsmanship (Lv 5)"
+ */
+export function buildSkillsSummary(skills) {
+    // Handle legacy string format
+    if (typeof skills === 'string') {
+        return `Skills: ${skills}`;
+    }
+
+    // Handle structured format
+    if (skills && typeof skills === 'object' && skills.version) {
+        let summary = 'Skills:';
+        const categories = skills.categories || {};
+        const uncategorized = skills.uncategorized || [];
+
+        // Add categorized skills
+        for (const [categoryName, skillsList] of Object.entries(categories)) {
+            if (skillsList && skillsList.length > 0) {
+                summary += `\n${categoryName}:`;
+                for (const skill of skillsList) {
+                    summary += `\n- ${skill.name} (Lv ${skill.level})`;
+                }
+            }
+        }
+
+        // Add uncategorized skills
+        if (uncategorized.length > 0) {
+            summary += '\nUncategorized:';
+            for (const skill of uncategorized) {
+                summary += `\n- ${skill.name} (Lv ${skill.level})`;
+            }
+        }
+
+        return summary;
+    }
+
+    // Empty or invalid
+    return 'Skills: None';
+}
+
+/**
  * Builds a formatted inventory summary for AI context injection.
  * Converts v2 inventory structure to multi-line plaintext format.
  *
@@ -166,9 +213,13 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
             // Add skills section if enabled
             if (userStatsConfig?.skillsSection?.enabled) {
-                const skillFields = userStatsConfig.skillsSection.customFields || [];
-                const skillFieldsText = skillFields.map(f => `[${f}]`).join(', ');
-                instructions += `Skills: [${skillFieldsText || 'Skill1, Skill2, etc.'}]\n`;
+                instructions += `Skills:\n`;
+                instructions += `[Category Name]:\n`;
+                instructions += `- [Skill Name] (Lv [1-100])\n`;
+                instructions += `- [Another Skill] (Lv [1-100])\n`;
+                instructions += `Uncategorized:\n`;
+                instructions += `- [Uncategorized Skill] (Lv [1-100])\n`;
+                instructions += `(Organize skills by logical categories like Combat, Magic, Social, Crafting, etc. Include level as integer 1-100. Skills without a clear category go in Uncategorized.)\n`;
             }
 
             // Add inventory format based on feature flag
