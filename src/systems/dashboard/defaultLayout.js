@@ -39,45 +39,46 @@ export function generateDefaultDashboard() {
                 icon: 'fa-solid fa-user',
                 order: 0,
                 widgets: [
-                    // Row 0: User Info (left) + User Mood (top right in 3-col)
+                    // Row 0-1: User Info (left column, vertical)
                     {
                         id: 'widget-userinfo',
                         type: 'userInfo',
                         x: 0,
                         y: 0,
-                        w: 2,
-                        h: 1,
-                        config: {}
-                    },
-                    {
-                        id: 'widget-usermood',
-                        type: 'userMood',
-                        x: 2,
-                        y: 0,
                         w: 1,
-                        h: 1,
+                        h: 2,
                         config: {}
                     },
-                    // Row 1-2: User Stats (health/energy bars)
+                    // Row 0-2: User Stats (right side, tall, 2 cols wide)
                     {
                         id: 'widget-userstats',
                         type: 'userStats',
-                        x: 0,
-                        y: 1,
+                        x: 1,
+                        y: 0,
                         w: 2,
-                        h: 2,
+                        h: 3,
                         config: {
                             statBarGradient: true
                         }
                     },
-                    // Row 3-4: User Attributes
+                    // Row 2: User Mood (below user info, left column)
+                    {
+                        id: 'widget-usermood',
+                        type: 'userMood',
+                        x: 0,
+                        y: 2,
+                        w: 1,
+                        h: 1,
+                        config: {}
+                    },
+                    // Row 3-6: User Attributes (full width below everything, 3 cols wide)
                     {
                         id: 'widget-userattributes',
                         type: 'userAttributes',
                         x: 0,
                         y: 3,
-                        w: 2,
-                        h: 2,
+                        w: 3,
+                        h: 4,
                         config: {}
                     }
                 ]
@@ -89,36 +90,36 @@ export function generateDefaultDashboard() {
                 icon: 'fa-solid fa-map',
                 order: 1,
                 widgets: [
-                    // Row 0-1: Scene Info (combined: calendar, weather, temp, clock, location)
+                    // Row 0-2: Scene Info (combined: calendar, weather, temp, clock, location)
                     {
                         id: 'widget-sceneinfo',
                         type: 'sceneInfo',
                         x: 0,
                         y: 0,
-                        w: 2,
-                        h: 2,
+                        w: 3,
+                        h: 3,
                         config: {}
                     },
-                    // Row 2-3: Recent Events (notebook style, full width)
+                    // Row 3-4: Recent Events (notebook style, full width)
                     {
                         id: 'widget-recentevents',
                         type: 'recentEvents',
                         x: 0,
-                        y: 2,
-                        w: 2,
+                        y: 3,
+                        w: 3,
                         h: 2,
                         config: {
                             maxEvents: 3
                         }
                     },
-                    // Row 4-7: Present Characters (full width, will expand with auto-layout)
+                    // Row 5-6: Present Characters (full width, fits 1080p screen)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
-                        y: 4,
-                        w: 2,
-                        h: 4,
+                        y: 5,
+                        w: 3,
+                        h: 2,
                         config: {
                             cardLayout: 'grid',
                             showThoughtBubbles: true
@@ -163,6 +164,29 @@ export function generateDefaultDashboard() {
                         h: 5,
                         config: {
                             defaultSubTab: 'main'
+                        }
+                    }
+                ]
+            },
+            // Tab 5: Skills (Full tab for skills system)
+            {
+                id: 'tab-skills',
+                name: 'Skills',
+                icon: 'fa-solid fa-book',
+                order: 4,
+                widgets: [
+                    {
+                        id: 'widget-userskills',
+                        type: 'userSkills',
+                        x: 0,
+                        y: 0,
+                        w: 3,
+                        h: 7,
+                        config: {
+                            defaultSubTab: 'all',
+                            showXP: true,
+                            showCategories: true,
+                            maxLevel: 10
                         }
                     }
                 ]

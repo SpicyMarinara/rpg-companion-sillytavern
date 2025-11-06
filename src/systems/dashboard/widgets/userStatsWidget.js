@@ -33,13 +33,19 @@ export function registerUserStatsWidget(registry, dependencies) {
         description: 'Health, energy, satiety bars',
         category: 'user',
         minSize: { w: 1, h: 2 },
-        defaultSize: { w: 2, h: 2 },
-        // Column-aware max size: full width in 3-4 col for horizontal spread
+        // Column-aware sizing: narrow and tall at 2 cols, wider at 3+ cols
+        defaultSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 1, h: 3 }; // Mobile: 1 col wide, 3 rows tall
+            }
+            return { w: 2, h: 3 }; // Desktop: 2 cols wide, 3 rows tall
+        },
+        // Column-aware max size: same as default to prevent expansion
         maxAutoSize: (columns) => {
             if (columns <= 2) {
-                return { w: 2, h: 2 }; // Mobile: use full 2-col width
+                return { w: 1, h: 3 }; // Mobile: 1x3
             }
-            return { w: 3, h: 3 }; // Desktop: span 3 columns horizontally
+            return { w: 2, h: 3 }; // Desktop: 2x3
         },
         requiresSchema: false,
 

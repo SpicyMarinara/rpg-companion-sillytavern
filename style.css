@@ -1938,7 +1938,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* User info widget - avatar background with text overlay */
 .rpg-user-info-container {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
     height: 100%;
     width: 100%;
@@ -1963,20 +1963,71 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     z-index: 1;
 }
 
-/* Text container with backdrop */
-.rpg-user-info-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    align-items: center;
-    text-align: center;
+/* Round avatar image (used in 1x1 compact mode, hidden by default) */
+.rpg-user-avatar-img {
+    display: none;
+    position: absolute;
+    width: 75%;
+    height: 75%;
+    object-fit: cover;
+    border-radius: 50%;
+    z-index: 0;
+}
+
+/* Name and level containers - base styles */
+.rpg-user-name-container,
+.rpg-user-level-container {
     position: relative;
     z-index: 2;
-    padding: 0.5rem 0.75rem;
-    background: rgba(0, 0, 0, 0.5);
+    padding: 0.3rem 0.6rem;
+    background: rgba(0, 0, 0, 0.15);
     backdrop-filter: blur(4px);
     border-radius: 0.375rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* WIDE LAYOUT (2x1+): Horizontal split over avatar background */
+.rpg-user-info-wide .rpg-user-avatar-img {
+    display: none;
+}
+
+.rpg-user-info-wide .rpg-user-info-container::before {
+    display: block;
+}
+
+.rpg-user-info-wide .rpg-user-name-container {
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    max-width: 45%;
+    padding: 0.2rem 0.4rem;
+}
+
+.rpg-user-info-wide .rpg-user-level-container {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    max-width: 35%;
+    padding: 0.2rem 0.4rem;
+}
+
+/* Smaller text for wide layout to prevent overlap */
+.rpg-user-info-wide .rpg-user-name {
+    font-size: 0.7rem;
+}
+
+.rpg-user-info-wide .rpg-level-label {
+    font-size: 0.6rem;
+}
+
+.rpg-user-info-wide .rpg-level-value {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.3rem;
 }
 
 /* User name */
@@ -2029,27 +2080,89 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: var(--rpg-bg);
 }
 
-/* Compact mode for narrow widths (< 3 grid units) */
+/* COMPACT LAYOUT (1x1): Round avatar with bottom nameplate */
 .rpg-user-info-compact {
-    padding: 0.25rem !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
 }
 
-.rpg-user-info-compact .rpg-user-info-text {
-    gap: 0.15rem !important;
-    padding: 0.35rem 0.5rem !important;
+/* Hide background image and overlay in 1x1 mode */
+.rpg-user-info-compact {
+    background-image: none !important;
+}
+
+.rpg-user-info-compact::before {
+    display: none;
+}
+
+/* Show round avatar image - proper circle */
+.rpg-user-info-compact .rpg-user-avatar-img {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 50%;
+}
+
+/* Name container at bottom - flush, no top/bottom padding on widget */
+.rpg-user-info-compact .rpg-user-name-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.2rem 0.3rem;
+    border-radius: 0;
 }
 
 .rpg-user-info-compact .rpg-user-name {
-    font-size: 0.75rem !important;
+    font-size: 0.65rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Level container at top-right - flush with container edge */
+.rpg-user-info-compact .rpg-user-level-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0.2rem 0.3rem;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    backdrop-filter: none;
+}
+
+.rpg-user-info-compact .rpg-user-level {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
 }
 
 .rpg-user-info-compact .rpg-level-label {
-    font-size: 0.65rem !important;
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: var(--rpg-text);
+    opacity: 0.7;
 }
 
 .rpg-user-info-compact .rpg-level-value {
-    font-size: 0.75rem !important;
-    padding: 0.1rem 0.3rem !important;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--rpg-highlight);
+    padding: 0.1rem 0.3rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0.25rem;
+    min-width: 1.2rem;
+    text-align: center;
 }
 
 /* Stat bars - rem for text, vh for bar height */
@@ -2661,6 +2774,72 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: rgba(255, 255, 255, 0.1);
     outline: 1px solid var(--rpg-highlight);
     opacity: 1;
+}
+
+/* Widget Disabled State */
+.rpg-widget-disabled {
+    position: relative;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.rpg-widget-disabled-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    padding: 1rem;
+    pointer-events: all;
+    z-index: 10;
+    width: 80%;
+}
+
+.rpg-widget-disabled-message i.fa-circle-info {
+    font-size: 2rem;
+    color: var(--rpg-highlight);
+    margin-bottom: 0.5rem;
+    display: block;
+    opacity: 0.8;
+}
+
+.rpg-widget-disabled-message p {
+    color: var(--rpg-text);
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+.rpg-widget-enable-btn {
+    background: var(--rpg-accent);
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.rpg-widget-enable-btn:hover {
+    background: var(--rpg-highlight);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.rpg-widget-enable-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.rpg-widget-enable-btn i {
+    font-size: 1rem;
 }
 
 /* ============================================================================
@@ -4257,6 +4436,82 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     color: var(--rpg-highlight);
 }
 
+/* Apply theme colors to skills subtabs */
+.rpg-panel[data-theme="sci-fi"] .rpg-skills-subtabs,
+.rpg-panel[data-theme="fantasy"] .rpg-skills-subtabs,
+.rpg-panel[data-theme="cyberpunk"] .rpg-skills-subtabs {
+    border-bottom-color: var(--rpg-border);
+}
+
+.rpg-panel[data-theme="sci-fi"] .rpg-skills-subtab,
+.rpg-panel[data-theme="fantasy"] .rpg-skills-subtab,
+.rpg-panel[data-theme="cyberpunk"] .rpg-skills-subtab {
+    border-color: var(--rpg-border);
+    color: var(--rpg-text);
+}
+
+.rpg-panel[data-theme="sci-fi"] .rpg-skills-subtab:hover,
+.rpg-panel[data-theme="fantasy"] .rpg-skills-subtab:hover,
+.rpg-panel[data-theme="cyberpunk"] .rpg-skills-subtab:hover {
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-highlight);
+}
+
+.rpg-panel[data-theme="sci-fi"] .rpg-skills-subtab.active,
+.rpg-panel[data-theme="fantasy"] .rpg-skills-subtab.active,
+.rpg-panel[data-theme="cyberpunk"] .rpg-skills-subtab.active {
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-highlight);
+}
+
+/* Apply theme colors to skill cards */
+.rpg-panel[data-theme="sci-fi"] .rpg-skill-card,
+.rpg-panel[data-theme="fantasy"] .rpg-skill-card,
+.rpg-panel[data-theme="cyberpunk"] .rpg-skill-card {
+    border-color: var(--rpg-border);
+}
+
+.rpg-panel[data-theme="sci-fi"] .rpg-skill-card:hover,
+.rpg-panel[data-theme="fantasy"] .rpg-skill-card:hover,
+.rpg-panel[data-theme="cyberpunk"] .rpg-skill-card:hover {
+    border-color: var(--rpg-highlight);
+}
+
+/* Apply theme colors to category headers */
+.rpg-panel[data-theme="sci-fi"] .rpg-category-header,
+.rpg-panel[data-theme="fantasy"] .rpg-category-header,
+.rpg-panel[data-theme="cyberpunk"] .rpg-category-header {
+    background: var(--rpg-highlight);
+    border-color: var(--rpg-border);
+}
+
+.rpg-panel[data-theme="sci-fi"] .rpg-category-name,
+.rpg-panel[data-theme="fantasy"] .rpg-category-name,
+.rpg-panel[data-theme="cyberpunk"] .rpg-category-name {
+    color: var(--rpg-text);
+}
+
+/* Apply theme colors to XP bars */
+.rpg-panel[data-theme="sci-fi"] .rpg-xp-bar,
+.rpg-panel[data-theme="fantasy"] .rpg-xp-bar,
+.rpg-panel[data-theme="cyberpunk"] .rpg-xp-bar {
+    border-color: var(--rpg-border);
+}
+
+.rpg-panel[data-theme="sci-fi"] .rpg-xp-fill,
+.rpg-panel[data-theme="fantasy"] .rpg-xp-fill,
+.rpg-panel[data-theme="cyberpunk"] .rpg-xp-fill {
+    background: linear-gradient(90deg, var(--rpg-highlight), var(--rpg-accent));
+}
+
+/* Apply theme colors to skills add button */
+.rpg-panel[data-theme="sci-fi"] .rpg-skills-add-btn,
+.rpg-panel[data-theme="fantasy"] .rpg-skills-add-btn,
+.rpg-panel[data-theme="cyberpunk"] .rpg-skills-add-btn {
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-highlight);
+}
+
 /* Apply theme colors to storage locations */
 .rpg-panel[data-theme="sci-fi"] .rpg-storage-location,
 .rpg-panel[data-theme="fantasy"] .rpg-storage-location,
@@ -5005,25 +5260,35 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: center;
     gap: 0.5em;
     padding: 0.5em;
-    background: var(--rpg-accent);
-    border: 1px solid var(--rpg-border);
+    background: var(--SmartThemeBlurTintColor);
+    border: 2px solid var(--SmartThemeBorderColor);
     border-radius: 0.375em;
 }
 
-.rpg-stat-toggle {
+.rpg-stat-toggle,
+.rpg-attr-toggle {
     flex-shrink: 0;
 }
 
-.rpg-stat-name {
+.rpg-stat-name,
+.rpg-attr-name {
     flex: 1;
     padding: 0.375em 0.5em;
-    background: var(--rpg-bg);
-    border: 1px solid var(--rpg-border);
+    background: var(--SmartThemeBlurTintColor);
+    border: 2px solid var(--SmartThemeBorderColor);
     border-radius: 0.25em;
-    color: var(--rpg-text);
+    color: var(--SmartThemeBodyColor);
     font-size: 0.95em;
 }
 
+.rpg-stat-name:focus,
+.rpg-attr-name:focus {
+    outline: none;
+    border-color: var(--rpg-highlight);
+}
+
+.rpg-stat-remove,
+.rpg-attr-remove {
 .rpg-stat-remove,
 .rpg-attr-remove,
 .rpg-remove-relationship {
@@ -7612,6 +7877,648 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: var(--SmartThemeBlurTintColor);
     border-color: var(--rpg-highlight);
     color: var(--rpg-highlight);
+}
+
+/* ============================================
+   SKILLS WIDGET STYLES
+   ============================================ */
+
+/* Skills Widget - Flex container for proper scrolling */
+.rpg-skills-widget {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Skills Views - Scrollable content area */
+.rpg-skills-views {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Skills Sub-tabs Navigation */
+.rpg-skills-subtabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--SmartThemeBorderColor);
+    padding-bottom: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: var(--SmartThemeBorderColor) transparent;
+}
+
+.rpg-skills-subtabs::-webkit-scrollbar {
+    height: 6px;
+}
+
+.rpg-skills-subtabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rpg-skills-subtabs::-webkit-scrollbar-thumb {
+    background: var(--SmartThemeBorderColor);
+    border-radius: 3px;
+}
+
+.rpg-skills-subtabs::-webkit-scrollbar-thumb:hover {
+    background: var(--rpg-accent);
+}
+
+.rpg-skills-subtab {
+    flex: 1;
+    min-width: fit-content;
+    white-space: nowrap;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 2px solid var(--SmartThemeBorderColor);
+    border-radius: 0.25rem;
+    color: var(--SmartThemeBodyColor);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rpg-skills-subtab i {
+    font-size: 1rem;
+}
+
+.rpg-skills-subtab:hover {
+    background: rgba(var(--rpg-highlight-rgb, 233, 69, 96), 0.1);
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-highlight);
+}
+
+.rpg-skills-subtab.active {
+    background: transparent;
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-highlight);
+    font-weight: 600;
+}
+
+/* Skills Sections */
+.rpg-skills-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.rpg-skills-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+    gap: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: var(--SmartThemeBorderColor) transparent;
+}
+
+.rpg-skills-header::-webkit-scrollbar {
+    height: 6px;
+}
+
+.rpg-skills-header::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rpg-skills-header::-webkit-scrollbar-thumb {
+    background: var(--SmartThemeBorderColor);
+    border-radius: 3px;
+}
+
+.rpg-skills-header::-webkit-scrollbar-thumb:hover {
+    background: var(--rpg-accent);
+}
+
+.rpg-skills-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--SmartThemeBodyColor);
+    white-space: nowrap;
+    min-width: fit-content;
+}
+
+.rpg-skills-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Skills Add Button */
+.rpg-skills-add-btn {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 0.25rem;
+    background: transparent;
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-highlight);
+    white-space: nowrap;
+    min-width: fit-content;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.rpg-skills-add-btn:hover {
+    background: rgba(var(--rpg-highlight-rgb, 233, 69, 96), 0.1);
+    border-color: var(--rpg-highlight);
+}
+
+/* Skills Empty State */
+.rpg-skills-empty {
+    padding: 2rem;
+    text-align: center;
+    color: var(--SmartThemeFastUISliderColColor);
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+/* Skills Filter */
+.rpg-skills-filter {
+    margin-bottom: 0.75rem;
+}
+
+.rpg-filter-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 0.25rem;
+    color: var(--SmartThemeBodyColor);
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.rpg-filter-input:focus {
+    outline: none;
+    border-color: var(--ac-style-color-matchedText);
+    box-shadow: 0 0 0 2px rgba(var(--ac-style-color-matchedText-rgb, 66, 135, 245), 0.2);
+}
+
+.rpg-filter-input::placeholder {
+    color: var(--SmartThemeFastUISliderColColor);
+    font-style: italic;
+}
+
+/* Category Headers (Collapsible) */
+.rpg-category-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--SmartThemeQuoteColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 0.25rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+.rpg-category-toggle {
+    background: none;
+    border: none;
+    color: var(--SmartThemeBodyColor);
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.rpg-category-toggle:hover {
+    color: var(--ac-style-color-matchedText);
+}
+
+.rpg-category-toggle i {
+    transition: transform 0.2s ease;
+}
+
+.rpg-category-header.collapsed .rpg-category-toggle i {
+    transform: rotate(-90deg);
+}
+
+.rpg-category-name {
+    flex: 1;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #000000;
+}
+
+.rpg-category-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.rpg-category-action {
+    padding: 0.35rem 0.6rem;
+    background: var(--SmartThemeBlurTintColor);
+    border: 2px solid var(--SmartThemeBorderColor);
+    border-radius: 0.25rem;
+    color: var(--SmartThemeFastUISliderColColor);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rpg-category-action:hover {
+    background: var(--SmartThemeBlurTintColor);
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-highlight);
+}
+
+.rpg-category-content {
+    margin-top: 0.75rem;
+}
+
+.rpg-category-header.collapsed + .rpg-category-content {
+    display: none;
+}
+
+/* Skill Cards - List and Grid Views */
+.rpg-skills-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 2rem;
+    padding: 0.5rem 0;
+}
+
+.rpg-skill-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: 2px solid var(--rpg-highlight);
+    border-radius: 0.25rem;
+    color: var(--SmartThemeBodyColor);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.rpg-skill-card:hover {
+    border-color: var(--rpg-highlight);
+    background: rgba(var(--rpg-highlight-rgb, 233, 69, 96), 0.1);
+}
+
+.rpg-skill-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.rpg-skill-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.rpg-skill-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: text;
+}
+
+.rpg-skill-name.rpg-editable {
+    border-bottom: 1px dashed var(--SmartThemeBorderColor);
+    transition: all 0.2s ease;
+}
+
+.rpg-skill-name.rpg-editable:hover {
+    border-bottom-color: var(--ac-style-color-matchedText);
+}
+
+.rpg-skill-name.rpg-editable:focus {
+    outline: none;
+    border-bottom-color: var(--ac-style-color-matchedText);
+    background: var(--SmartThemeQuoteColor);
+}
+
+.rpg-skill-level {
+    font-size: 0.85rem;
+    color: var(--rpg-highlight);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.rpg-skill-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.rpg-skill-action {
+    padding: 0.3rem 0.6rem;
+    background: transparent;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 0.25rem;
+    color: var(--SmartThemeBodyColor);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.rpg-skill-action:hover {
+    background: var(--ac-style-color-matchedText);
+    border-color: var(--ac-style-color-matchedText);
+    color: white;
+}
+
+.rpg-skill-action.rpg-level-up-btn {
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-highlight);
+}
+
+.rpg-skill-action.rpg-level-up-btn:hover {
+    background: var(--rpg-highlight);
+    color: white;
+}
+
+.rpg-skill-action.rpg-level-down-btn {
+    border-color: var(--rpg-accent);
+    color: var(--rpg-accent);
+}
+
+.rpg-skill-action.rpg-level-down-btn:hover {
+    background: var(--rpg-accent);
+    color: white;
+}
+
+.rpg-skill-action.rpg-delete-btn {
+    color: var(--SmartThemeFastUISliderColColor);
+}
+
+.rpg-skill-action.rpg-delete-btn:hover {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+/* XP Progress Bar */
+.rpg-xp-bar {
+    position: relative;
+    width: 100%;
+    height: 1.25rem;
+    background: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.rpg-xp-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(90deg,
+        var(--rpg-highlight),
+        rgba(var(--rpg-highlight-rgb, 233, 69, 96), 0.7));
+    transition: width 0.3s ease;
+    border-radius: 0.25rem 0 0 0.25rem;
+}
+
+.rpg-xp-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--SmartThemeBodyColor);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Grid View for Skills */
+.rpg-skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+}
+
+.rpg-skills-grid .rpg-skill-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem 0.75rem;
+    min-height: 100px;
+}
+
+.rpg-skills-grid .rpg-skill-info {
+    align-items: center;
+    text-align: center;
+}
+
+.rpg-skills-grid .rpg-skill-header-row {
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.rpg-skills-grid .rpg-skill-name {
+    text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 100%;
+}
+
+.rpg-skills-grid .rpg-skill-actions {
+    flex-direction: column;
+    width: 100%;
+}
+
+.rpg-skills-grid .rpg-skill-action {
+    width: 100%;
+}
+
+/* Quick View - Compact List */
+.rpg-skills-quick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.5rem 0;
+}
+
+.rpg-skills-quick-list .rpg-skill-card {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+}
+
+.rpg-skills-quick-list .rpg-skill-info {
+    gap: 0;
+}
+
+.rpg-skills-quick-list .rpg-xp-bar {
+    display: none;
+}
+
+.rpg-skills-quick-list .rpg-skill-action {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Inline Forms for Skills and Categories */
+.rpg-add-skill-form,
+.rpg-add-category-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--SmartThemeQuoteColor);
+    border: 1px solid var(--ac-style-color-matchedText);
+    border-radius: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Header Actions (View Toggle + Add Button) */
+.rpg-skills-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+    min-width: fit-content;
+}
+
+/* Sort and Filter Controls */
+.rpg-skills-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.rpg-sort-dropdown {
+    padding: 0.4rem 0.75rem;
+    background: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 0.25rem;
+    color: var(--SmartThemeBodyColor);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rpg-sort-dropdown:hover {
+    border-color: var(--ac-style-color-matchedText);
+}
+
+.rpg-sort-dropdown:focus {
+    outline: none;
+    border-color: var(--ac-style-color-matchedText);
+    box-shadow: 0 0 0 2px rgba(var(--ac-style-color-matchedText-rgb, 66, 135, 245), 0.2);
+}
+
+/* Responsive Classes - Wide Layout */
+.rpg-skills-wide .rpg-skills-header h4 {
+    font-size: 1.2rem;
+}
+
+.rpg-skills-wide .rpg-skill-card {
+    padding: 1rem 1.25rem;
+}
+
+/* Responsive Classes - Compact Layout */
+.rpg-skills-compact .rpg-skills-header h4 {
+    font-size: 1rem;
+}
+
+.rpg-skills-compact .rpg-skill-card {
+    padding: 0.5rem 0.75rem;
+    gap: 0.75rem;
+}
+
+.rpg-skills-compact .rpg-skills-add-btn {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+}
+
+.rpg-skills-compact .rpg-skill-action {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+.rpg-skills-compact .rpg-xp-bar {
+    height: 1rem;
+}
+
+.rpg-skills-compact .rpg-xp-text {
+    font-size: 0.7rem;
+}
+
+/* Mobile Responsiveness for Skills */
+@media (max-width: 768px) {
+    .rpg-skills-subtabs {
+        gap: 0.35rem;
+    }
+
+    .rpg-skills-subtab {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .rpg-skills-subtab .rpg-subtab-label {
+        display: none;
+    }
+
+    .rpg-skills-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .rpg-skills-header {
+        flex-wrap: wrap;
+    }
+
+    .rpg-skills-header h4 {
+        font-size: 1rem;
+    }
+
+    .rpg-skill-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .rpg-skill-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .rpg-skill-action {
+        flex: 1;
+        min-width: fit-content;
+    }
 }
 
 /* ============================================

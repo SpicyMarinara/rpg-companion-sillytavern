@@ -35,8 +35,20 @@ export function registerUserAttributesWidget(registry, dependencies) {
         description: 'Customizable RPG attributes with +/- buttons (STR, DEX, etc.)',
         category: 'user',
         minSize: { w: 2, h: 2 },
-        defaultSize: { w: 2, h: 2 },
-        maxAutoSize: { w: 3, h: 5 }, // Max size for auto-arrange expansion
+        // Column-aware sizing: full width at each column count
+        defaultSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 4 }; // Mobile: 2 cols wide (full), 4 rows tall
+            }
+            return { w: 3, h: 4 }; // Desktop: 3 cols wide (full), 4 rows tall
+        },
+        // Column-aware max size: same as default
+        maxAutoSize: (columns) => {
+            if (columns <= 2) {
+                return { w: 2, h: 4 };
+            }
+            return { w: 3, h: 4 };
+        },
         requiresSchema: false,
 
         /**
