@@ -5289,6 +5289,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-stat-remove,
 .rpg-attr-remove {
+.rpg-stat-remove,
+.rpg-attr-remove,
+.rpg-remove-relationship {
     flex-shrink: 0;
     padding: 0.375em 0.625em;
     background: var(--rpg-highlight);
@@ -5299,7 +5302,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transition: opacity 0.2s;
 }
 
-.rpg-stat-remove:hover {
+.rpg-stat-remove:hover,
+.rpg-attr-remove:hover,
+.rpg-remove-relationship:hover {
     opacity: 0.8;
 }
 
