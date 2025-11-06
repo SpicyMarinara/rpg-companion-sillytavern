@@ -27,7 +27,6 @@ import { registerSceneInfoWidget } from './widgets/sceneInfoWidget.js';
 import { registerPresentCharactersWidget } from './widgets/presentCharactersWidget.js';
 import { registerInventoryWidget } from './widgets/inventoryWidget.js';
 import { registerQuestsWidget } from './widgets/questsWidget.js';
-import { registerUserSkillsWidget } from './widgets/userSkillsWidget.js';
 
 // Global dashboard manager instance
 let dashboardManager = null;
@@ -255,9 +254,6 @@ function registerAllWidgets(registry, dependencies) {
     // Quest widget
     registerQuestsWidget(registry, dependencies);
 
-    // Skills widget
-    registerUserSkillsWidget(registry, dependencies);
-
     console.log(`[RPG Companion] Registered ${registry.getAll().length} widgets`);
 }
 
@@ -339,16 +335,24 @@ function setupDashboardEventListeners(dependencies) {
             if (dashboardManager && dashboardManager.editManager) {
                 console.log('[RPG Companion] Lock button clicked');
                 dashboardManager.editManager.toggleLock();
-                // Refresh header overflow menu to reflect lock button state change
-                if (headerOverflowManager) {
-                    setTimeout(() => headerOverflowManager.refresh(), 50);
-                }
             }
         });
     }
 
-    // Tracker Settings button now uses ID 'rpg-open-tracker-editor'
-    // Event handler is in trackerEditor.js using jQuery delegation
+    // Tracker Settings button (open tracker editor modal)
+    const trackerSettingsBtn = document.querySelector('#rpg-dashboard-tracker-settings');
+    if (trackerSettingsBtn) {
+        trackerSettingsBtn.addEventListener('click', () => {
+            console.log('[RPG Companion] Tracker Settings button clicked');
+            // Trigger the tracker editor button from main UI
+            const trackerEditorBtn = document.getElementById('rpg-open-tracker-editor');
+            if (trackerEditorBtn) {
+                trackerEditorBtn.click();
+            } else {
+                console.warn('[RPG Companion] Tracker editor button not found');
+            }
+        });
+    }
 
     // Done button (exit edit mode)
     const doneBtn = document.querySelector('#rpg-dashboard-done-edit');

@@ -395,18 +395,18 @@ export function registerQuestsWidget(registry, dependencies) {
         description: 'Quest tracking with main and optional quests',
         category: 'quests',
         minSize: { w: 2, h: 4 },
-        // Column-aware sizing: compact on mobile, full width on desktop
+        // Column-aware sizing: compact on mobile, spacious on desktop
         defaultSize: (columns) => {
             if (columns <= 2) {
-                return { w: 2, h: 5 }; // Mobile: 2×5 (full width, compact)
+                return { w: 2, h: 4 }; // Mobile: 2×4 (full width, compact)
             }
-            return { w: 3, h: 7 }; // Desktop: 3×7 (full width, spacious for 1080p)
+            return { w: 2, h: 5 }; // Desktop: 2×5 (default)
         },
         maxAutoSize: (columns) => {
             if (columns <= 2) {
-                return { w: 2, h: 8 }; // Mobile: 2×8 max
+                return { w: 2, h: 7 }; // Mobile: 2×7 max (increased for expansion headroom)
             }
-            return { w: 3, h: 10 }; // Desktop: 3×10 max (can expand)
+            return { w: 3, h: 7 }; // Desktop: 3×7 max (can expand)
         },
         requiresSchema: false,
 
