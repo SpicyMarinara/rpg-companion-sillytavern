@@ -40,14 +40,17 @@ export function registerUserInfoWidget(registry, dependencies) {
         minSize: { w: 1, h: 1 },
         // Column-aware default size: vertical 1x2 with mood below
         defaultSize: (columns) => {
-            if (columns <= 2) {
-                return { w: 1, h: 1 }; // Mobile: 1x1, compact
+            // Mobile detection: screen width ≤ 1000px uses compact 1x1
+            const isMobile = window.innerWidth <= 1000;
+            if (isMobile) {
+                return { w: 1, h: 1 }; // Mobile: 1x1, compact (round avatar)
             }
-            return { w: 1, h: 2 }; // Desktop: 1x2 vertical, mood sits below
+            return { w: 1, h: 2 }; // Desktop (all widths): 1x2 vertical, mood sits below
         },
         // Column-aware max size: same as defaultSize to prevent expansion
         maxAutoSize: (columns) => {
-            if (columns <= 2) {
+            const isMobile = window.innerWidth <= 1000;
+            if (isMobile) {
                 return { w: 1, h: 1 }; // Mobile: 1x1, compact
             }
             return { w: 1, h: 2 }; // Desktop: 1x2 vertical, mood below at y:2

@@ -283,12 +283,12 @@ export function registerPresentCharactersWidget(registry, dependencies) {
             }
             return { w: 3, h: 2 }; // Desktop: 3 cols wide (full), 2 rows tall (fits 1080p)
         },
-        // Column-aware max size: can expand vertically if needed
+        // Column-aware max size: same as default to prevent expansion
         maxAutoSize: (columns) => {
             if (columns <= 2) {
-                return { w: 2, h: 5 };
+                return { w: 2, h: 4 }; // Mobile: stay at 4 rows
             }
-            return { w: 3, h: 3 }; // Desktop: can expand to 3 rows if needed
+            return { w: 3, h: 2 }; // Desktop: stay at 2 rows (fits 1080p without scrolling)
         },
         requiresSchema: false,
 
