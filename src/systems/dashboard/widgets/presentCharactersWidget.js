@@ -276,19 +276,19 @@ export function registerPresentCharactersWidget(registry, dependencies) {
         description: 'Character cards with avatars, traits, and relationships',
         category: 'scene',
         minSize: { w: 2, h: 2 },
-        // Column-aware sizing: taller for better card display
+        // Column-aware sizing: narrow and tall on mobile, wide and short on desktop
         defaultSize: (columns) => {
             if (columns <= 2) {
                 return { w: 2, h: 4 }; // Mobile: 2 cols wide (full), 4 rows tall
             }
-            return { w: 2, h: 4 }; // Desktop: 2 cols wide, 4 rows tall
+            return { w: 3, h: 2 }; // Desktop: 3 cols wide (full), 2 rows tall (fits 1080p)
         },
-        // Column-aware max size: can expand on very wide screens
+        // Column-aware max size: can expand vertically if needed
         maxAutoSize: (columns) => {
             if (columns <= 2) {
                 return { w: 2, h: 5 };
             }
-            return { w: 3, h: 5 }; // Can expand to 3 cols wide on 4-col displays
+            return { w: 3, h: 3 }; // Desktop: can expand to 3 rows if needed
         },
         requiresSchema: false,
 

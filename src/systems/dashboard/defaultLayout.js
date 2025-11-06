@@ -112,14 +112,14 @@ export function generateDefaultDashboard() {
                             maxEvents: 3
                         }
                     },
-                    // Row 5-8: Present Characters (full width, tall for cards)
+                    // Row 5-6: Present Characters (full width, fits 1080p screen)
                     {
                         id: 'widget-presentchars',
                         type: 'presentCharacters',
                         x: 0,
                         y: 5,
                         w: 3,
-                        h: 4,
+                        h: 2,
                         config: {
                             cardLayout: 'grid',
                             showThoughtBubbles: true
