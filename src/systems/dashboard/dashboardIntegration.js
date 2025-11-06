@@ -335,6 +335,10 @@ function setupDashboardEventListeners(dependencies) {
             if (dashboardManager && dashboardManager.editManager) {
                 console.log('[RPG Companion] Lock button clicked');
                 dashboardManager.editManager.toggleLock();
+                // Refresh header overflow menu to reflect lock button state change
+                if (headerOverflowManager) {
+                    setTimeout(() => headerOverflowManager.refresh(), 50);
+                }
             }
         });
     }
