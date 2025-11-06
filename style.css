@@ -6858,6 +6858,52 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     /* ========================================
+       MOBILE CHARACTER STATUS CARDS (DASHBOARD)
+       ======================================== */
+
+    /* Larger, more readable character names in dashboard */
+    .rpg-char-name {
+        font-size: clamp(12px, 3.1vw, 16px) !important;
+    }
+
+    /* Larger, more readable character traits in dashboard */
+    .rpg-char-traits {
+        font-size: clamp(11px, 2.8vw, 14px) !important;
+    }
+
+    /* Larger character emoji in dashboard */
+    .rpg-char-emoji {
+        font-size: clamp(18px, 4.6vw, 24px) !important;
+    }
+
+    /* ========================================
+       MOBILE RECENT EVENTS - REDUCE HEIGHT
+       ======================================== */
+
+    /* Make Recent Events section take less vertical space on mobile */
+    .rpg-dashboard-row-3 {
+        flex: 0 0 auto !important;
+        max-height: 150px !important; /* Limit height on mobile */
+    }
+
+    /* Make the events widget scrollable if content exceeds height */
+    .rpg-events-widget {
+        max-height: 150px !important;
+        overflow-y: auto !important;
+    }
+
+    /* Compact the notebook lines container */
+    .rpg-notebook-lines {
+        padding: 0.25em 0.5em !important;
+        gap: 0.1em !important;
+    }
+
+    /* Reduce spacing in notebook lines */
+    .rpg-notebook-line {
+        gap: 0.25em !important;
+    }
+
+    /* ========================================
        MOBILE SETTINGS POPUP
        ======================================== */
 
