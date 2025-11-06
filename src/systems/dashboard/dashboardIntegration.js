@@ -347,20 +347,8 @@ function setupDashboardEventListeners(dependencies) {
         });
     }
 
-    // Tracker Settings button (open tracker editor modal)
-    const trackerSettingsBtn = document.querySelector('#rpg-dashboard-tracker-settings');
-    if (trackerSettingsBtn) {
-        trackerSettingsBtn.addEventListener('click', () => {
-            console.log('[RPG Companion] Tracker Settings button clicked');
-            // Trigger the tracker editor button from main UI
-            const trackerEditorBtn = document.getElementById('rpg-open-tracker-editor');
-            if (trackerEditorBtn) {
-                trackerEditorBtn.click();
-            } else {
-                console.warn('[RPG Companion] Tracker editor button not found');
-            }
-        });
-    }
+    // Tracker Settings button now uses ID 'rpg-open-tracker-editor'
+    // Event handler is in trackerEditor.js using jQuery delegation
 
     // Done button (exit edit mode)
     const doneBtn = document.querySelector('#rpg-dashboard-done-edit');
