@@ -32,6 +32,7 @@ export const defaultSettings = {
     showCharacterThoughts: true,
     showInventory: true, // Show inventory section (v2 system)
     showThoughtsInChat: true, // Show thoughts overlay in chat
+    alwaysShowThoughtBubble: false, // Auto-expand thought bubble without clicking icon
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     enablePlotButtons: true, // Show plot progression buttons above chat input
     panelPosition: 'right', // 'left', 'right', or 'top'

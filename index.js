@@ -304,6 +304,13 @@ async function initUI() {
         updateChatThoughts();
     });
 
+    $('#rpg-toggle-always-show-bubble').on('change', function() {
+        extensionSettings.alwaysShowThoughtBubble = $(this).prop('checked');
+        saveSettings();
+        // Re-render thoughts to apply the setting
+        updateChatThoughts();
+    });
+
     $('#rpg-toggle-html-prompt').on('change', function() {
         extensionSettings.enableHtmlPrompt = $(this).prop('checked');
         // console.log('[RPG Companion] Toggle enableHtmlPrompt changed to:', extensionSettings.enableHtmlPrompt);
@@ -405,6 +412,7 @@ async function initUI() {
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
+    $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);

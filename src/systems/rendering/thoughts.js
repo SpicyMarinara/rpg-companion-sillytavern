@@ -978,9 +978,16 @@ export function createThoughtPanel($message, thoughtsArray) {
         right: 'auto' // Clear any right positioning
     });
 
-    // Initially hide the panel and show the icon
-    $thoughtPanel.hide();
-    $thoughtIcon.show();
+    // Check if always show bubble is enabled
+    if (extensionSettings.alwaysShowThoughtBubble) {
+        // Always show panel, hide icon
+        $thoughtPanel.show();
+        $thoughtIcon.hide();
+    } else {
+        // Initially hide the panel and show the icon
+        $thoughtPanel.hide();
+        $thoughtIcon.show();
+    }
 
     // console.log('[RPG Companion] Thought panel created at:', { top, left });
 
