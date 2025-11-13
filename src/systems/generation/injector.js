@@ -13,6 +13,7 @@ import {
     lastActionWasSwipe,
     setLastActionWasSwipe
 } from '../../core/state.js';
+import { evaluateSuppression } from './suppression.js';
 import { parseUserStats } from './parser.js';
 import {
     generateTrackerExample,
@@ -44,7 +45,28 @@ export function onGenerationStarted(type, data) {
         return;
     }
 
-    const chat = getContext().chat;
+    const context = getContext();
+    const chat = context.chat;
+    // Detect if a guided generation is active (GuidedGenerations and similar extensions
+    // inject an ephemeral 'instruct' injection into chatMetadata.script_injects).
+    // If present, we should avoid injecting RPG tracker instructions that ask
+    // the model to include stats/etc. This prevents conflicts when guided prompts
+    // are used (e.g., GuidedGenerations Extension).
+    // Evaluate suppression using the shared helper
+    const suppression = evaluateSuppression(extensionSettings, context, data);
+    const { shouldSuppress, skipMode, isGuidedGeneration, isImpersonationGeneration, hasQuietPrompt, instructContent, quietPromptRaw, matchedPattern } = suppression;
+
+    if (shouldSuppress) {
+        // Debugging: indicate active suppression and which source triggered it
+        console.debug(`[RPG Companion] Suppression active (mode=${skipMode}). isGuided=${isGuidedGeneration}, isImpersonation=${isImpersonationGeneration}, hasQuietPrompt=${hasQuietPrompt} - skipping RPG tracker injections for this generation.`);
+
+        // Also clear any existing RPG Companion prompts so they do not leak into this generation
+        // (e.g., previously set extension prompts should not be used alongside a guided prompt)
+        setExtensionPrompt('rpg-companion-inject', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
+    }
     const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
 
     // For SEPARATE mode only: Check if we need to commit extension data
@@ -145,7 +167,7 @@ export function onGenerationStarted(type, data) {
         }
 
         // If we have previous tracker data and found an assistant message, inject it as an assistant message
-        if (example && lastAssistantDepth > 0) {
+        if (!shouldSuppress && example && lastAssistantDepth > 0) {
             setExtensionPrompt('rpg-companion-example', example, extension_prompt_types.IN_CHAT, lastAssistantDepth, false, extension_prompt_roles.ASSISTANT);
             // console.log('[RPG Companion] Injected tracker example as assistant message at depth:', lastAssistantDepth);
         } else {
@@ -153,11 +175,15 @@ export function onGenerationStarted(type, data) {
         }
 
         // Inject the instructions as a user message at depth 0 (right before generation)
-        setExtensionPrompt('rpg-companion-inject', instructions, extension_prompt_types.IN_CHAT, 0, false, extension_prompt_roles.USER);
+        // If this is a guided generation (user explicitly injected 'instruct'), skip adding
+        // our tracker instructions to avoid clobbering the guided prompt.
+        if (!shouldSuppress) {
+            setExtensionPrompt('rpg-companion-inject', instructions, extension_prompt_types.IN_CHAT, 0, false, extension_prompt_roles.USER);
+        }
         // console.log('[RPG Companion] Injected RPG tracking instructions at depth 0 (right before generation)');
 
         // Inject HTML prompt separately at depth 0 if enabled (prevents duplication on swipes)
-        if (extensionSettings.enableHtmlPrompt) {
+        if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
             const htmlPrompt = `\nIf appropriate, include inline HTML, CSS, and JS elements for creative, visual storytelling throughout your response:
 - Use them liberally to depict any in-world content that can be visualized (screens, posters, books, signs, letters, logos, crests, seals, medallions, labels, etc.), with creative license for animations, 3D effects, pop-ups, dropdowns, websites, and so on.
 - Style them thematically to match the theme (e.g., sleek for sci-fi, rustic for fantasy), ensuring text is visible.
@@ -186,7 +212,10 @@ Ensure these details naturally reflect and influence the narrative. Character be
 `;
 
             // Inject context at depth 1 (before last user message) as SYSTEM
-            setExtensionPrompt('rpg-companion-context', wrappedContext, extension_prompt_types.IN_CHAT, 1, false);
+            // Skip when a guided generation injection is present to avoid conflicting instructions
+            if (!shouldSuppress) {
+                setExtensionPrompt('rpg-companion-context', wrappedContext, extension_prompt_types.IN_CHAT, 1, false);
+            }
             // console.log('[RPG Companion] Injected contextual summary for separate mode:', contextSummary);
         } else {
             // Clear if no data yet
@@ -194,7 +223,7 @@ Ensure these details naturally reflect and influence the narrative. Character be
         }
 
         // Inject HTML prompt separately at depth 0 if enabled (same as together mode pattern)
-        if (extensionSettings.enableHtmlPrompt) {
+        if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
             const htmlPrompt = `\nIf appropriate, include inline HTML, CSS, and JS elements for creative, visual storytelling throughout your response:
 - Use them liberally to depict any in-world content that can be visualized (screens, posters, books, signs, letters, logos, crests, seals, medallions, labels, etc.), with creative license for animations, 3D effects, pop-ups, dropdowns, websites, and so on.
 - Style them thematically to match the theme (e.g., sleek for sci-fi, rustic for fantasy), ensuring text is visible.
