@@ -28,6 +28,14 @@ function debugLog(message, data = null) {
 }
 
 /**
+ * Escapes HTML attribute values to prevent quotes from breaking HTML
+ */
+function escapeHtmlAttr(str) {
+    if (!str) return '';
+    return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/**
  * Interpolates color based on percentage value between low and high colors
  * @param {number} percentage - Value from 0-100
  * @param {string} lowColor - Hex color for low values (e.g., '#ff0000')
@@ -78,10 +86,12 @@ function namesMatch(cardName, aiName) {
     // 1. Exact match (fast path)
     if (cardName.toLowerCase() === aiName.toLowerCase()) return true;
 
-    // 2. Strip parentheses and match
-    const stripParens = (s) => s.replace(/\s*\([^)]*\)/g, '').trim();
-    const cardCore = stripParens(cardName).toLowerCase();
-    const aiCore = stripParens(aiName).toLowerCase();
+    // 2. Strip parentheses and quotes from both names and match
+    // This allows "Dottore (Prime)" to match "Dottore" card for avatar lookup
+    // and "Marianna "Mari"" to match "Marianna" or "Mari" cards
+    const stripParensAndQuotes = (s) => s.replace(/\s*\([^)]*\)/g, '').replace(/["']/g, '').trim();
+    const cardCore = stripParensAndQuotes(cardName).toLowerCase();
+    const aiCore = stripParensAndQuotes(aiName).toLowerCase();
     if (cardCore === aiCore) return true;
 
     // 3. Check if card name appears as complete word in AI name
@@ -249,17 +259,19 @@ export function renderThoughts() {
             defaultName = characters[this_chid].name || 'Character';
         }
 
+        const escapedDefaultName = escapeHtmlAttr(defaultName);
+
         html += '<div class="rpg-thoughts-content">';
         html += `
-            <div class="rpg-character-card" data-character-name="${defaultName}">
+            <div class="rpg-character-card" data-character-name="${escapedDefaultName}">
                 <div class="rpg-character-avatar">
-                    <img src="${defaultPortrait}" alt="${defaultName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                    <div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="relationship" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">⚖️</div>
+                    <img src="${defaultPortrait}" alt="${escapedDefaultName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
+                    <div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="relationship" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">⚖️</div>
                 </div>
                 <div class="rpg-character-info">
                     <div class="rpg-character-header">
-                        <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="emoji" title="Click to edit emoji">😊</span>
-                        <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="name" title="Click to edit name">${defaultName}</span>
+                        <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="emoji" title="Click to edit emoji">😊</span>
+                        <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="name" title="Click to edit name">${defaultName}</span>
                     </div>
         `;
 
@@ -267,7 +279,7 @@ export function renderThoughts() {
         for (const field of enabledFields) {
             const fieldId = field.name.toLowerCase().replace(/\s+/g, '-');
             html += `
-                    <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="${field.name}" title="Click to edit ${field.name}"></div>
+                    <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="${escapeHtmlAttr(field.name)}" title="Click to edit ${field.name}"></div>
             `;
         }
 
@@ -361,17 +373,20 @@ export function renderThoughts() {
 
                 debugLog(`[RPG Thoughts] Building HTML card for ${char.name}...`);
 
+                // Escape character name for use in HTML attributes
+                const escapedName = escapeHtmlAttr(char.name);
+
                 html += `
-                    <div class="rpg-character-card" data-character-name="${char.name}">
+                    <div class="rpg-character-card" data-character-name="${escapedName}">
                         <div class="rpg-character-avatar">
-                            <img src="${characterPortrait}" alt="${char.name}" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                            ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
+                            <img src="${characterPortrait}" alt="${escapedName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
+                            ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
                         </div>
                         <div class="rpg-character-content">
                             <div class="rpg-character-info">
                                 <div class="rpg-character-header">
-                                    <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${char.name}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
-                                    <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="name" title="Click to edit name">${char.name}</span>
+                                    <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
+                                    <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="name" title="Click to edit name">${char.name}</span>
                                 </div>
                 `;
 
@@ -380,7 +395,7 @@ export function renderThoughts() {
                     const fieldValue = char[field.name] || '';
                     const fieldId = field.name.toLowerCase().replace(/\s+/g, '-');
                     html += `
-                                <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="Click to edit ${field.name}">${fieldValue}</div>
+                                <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${escapeHtmlAttr(field.name)}" title="Click to edit ${field.name}">${fieldValue}</div>
                     `;
                 }
 
@@ -396,7 +411,7 @@ export function renderThoughts() {
                         const statColor = getStatColor(statValue, extensionSettings.statBarColorLow, extensionSettings.statBarColorHigh);
                         html += `
                                 <div class="rpg-character-stat">
-                                    <span class="rpg-stat-name">${stat.name}: </span><span class="rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${stat.name}" style="color: ${statColor}" title="Click to edit ${stat.name}">${statValue}%</span>
+                                    <span class="rpg-stat-name">${stat.name}: </span><span class="rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${escapeHtmlAttr(stat.name)}" style="color: ${statColor}" title="Click to edit ${stat.name}">${statValue}%</span>
                                 </div>
                         `;
                     }
@@ -817,12 +832,13 @@ export function createThoughtPanel($message, thoughtsArray) {
     // Build thought bubbles HTML
     let thoughtsHtml = '';
     thoughtsArray.forEach((thought, index) => {
+        const escapedThoughtName = escapeHtmlAttr(thought.name);
         thoughtsHtml += `
             <div class="rpg-thought-item">
                 <div class="rpg-thought-emoji-box">
                     ${thought.emoji}
                 </div>
-                <div class="rpg-thought-content rpg-editable" contenteditable="true" data-character="${thought.name}" data-field="thoughts" title="Click to edit thoughts">
+                <div class="rpg-thought-content rpg-editable" contenteditable="true" data-character="${escapedThoughtName}" data-field="thoughts" title="Click to edit thoughts">
                     ${thought.thought}
                 </div>
             </div>

@@ -256,7 +256,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
             // Relationship line (only if relationships are enabled)
             if (relationshipPlaceholders) {
-                instructions += `Relationship: [${relationshipPlaceholders}]\n`;
+                instructions += `Relationship: [(choose one: ${relationshipPlaceholders})]\n`;
             }
 
             // Stats line (if enabled)
