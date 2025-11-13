@@ -204,6 +204,10 @@ export function loadChatData() {
                     stored: {},
                     assets: "None"
                 }
+            },
+            quests: {
+                main: "None",
+                optional: []
             }
         });
         setLastGeneratedData({
