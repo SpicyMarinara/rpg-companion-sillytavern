@@ -332,6 +332,9 @@ export function setupMobileToggle() {
         if (!wasMobile && isMobile) {
             console.log('[RPG Mobile] Transitioning desktop -> mobile');
 
+            // Show mobile toggle button
+            $mobileToggle.show();
+
             // Remove desktop tabs first
             removeDesktopTabs();
 
@@ -381,6 +384,9 @@ export function setupMobileToggle() {
                 $mobileToggle.removeClass('active');
                 $('.rpg-mobile-overlay').remove();
 
+                // Hide mobile toggle button on desktop
+                $mobileToggle.hide();
+
                 // Restore desktop positioning class
                 const position = extensionSettings.panelPosition || 'right';
                 $panel.addClass('rpg-position-' + position);
@@ -427,6 +433,11 @@ export function setupMobileToggle() {
         setupMobileTabs();
         // Set initial icon for mobile
         updateCollapseToggleIcon();
+        // Show mobile toggle on mobile viewport
+        $mobileToggle.show();
+    } else {
+        // Hide mobile toggle on desktop viewport
+        $mobileToggle.hide();
     }
 }
 

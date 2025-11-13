@@ -204,9 +204,16 @@ export function updatePanelVisibility() {
     if (extensionSettings.enabled) {
         $panelContainer.show();
         togglePlotButtons(); // Update plot button visibility
+        $('#rpg-mobile-toggle').show(); // Show mobile FAB toggle
+        $('#rpg-collapse-toggle').show(); // Show collapse toggle
+        // Debug toggle visibility is controlled by debugMode setting in debug.js
     } else {
         $panelContainer.hide();
         $('#rpg-plot-buttons').hide(); // Hide plot buttons when disabled
+        $('#rpg-mobile-toggle').hide(); // Hide mobile FAB toggle
+        $('#rpg-collapse-toggle').hide(); // Hide collapse toggle
+        $('#rpg-debug-toggle').hide(); // Hide debug toggle button when extension disabled
+        $('#rpg-debug-panel').remove(); // Remove debug panel when extension disabled
     }
 }
 
