@@ -34,6 +34,13 @@ export const defaultSettings = {
     showThoughtsInChat: true, // Show thoughts overlay in chat
     alwaysShowThoughtBubble: false, // Auto-expand thought bubble without clicking icon
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
+    // Controls when the extension skips injecting tracker instructions/examples/HTML
+    // into generations that appear to be user-injected instructions. Valid values:
+    //  - 'none'          -> never skip (legacy behavior: always inject)
+    //  - 'guided'        -> skip for any guided / instruct or quiet_prompt generation
+    //  - 'impersonation' -> skip only for impersonation-style guided generations
+    // This setting helps compatibility with other extensions like GuidedGenerations.
+    skipInjectionsForGuided: 'none',
     enablePlotButtons: true, // Show plot progression buttons above chat input
     panelPosition: 'right', // 'left', 'right', or 'top'
     theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom
