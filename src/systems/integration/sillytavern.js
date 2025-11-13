@@ -4,7 +4,7 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { chat, user_avatar, setExtensionPrompt, extension_prompt_types } from '../../../../../../../script.js';
+import { chat, user_avatar, setExtensionPrompt, extension_prompt_types, updateMessageBlock } from '../../../../../../../script.js';
 
 // Core modules
 import {
@@ -167,13 +167,9 @@ export async function onMessageReceived(data) {
             renderQuests();
 
             // Then update the DOM to reflect the cleaned message
-            const lastMessageElement = $('#chat').children('.mes').last();
-            if (lastMessageElement.length) {
-                const messageText = lastMessageElement.find('.mes_text');
-                if (messageText.length) {
-                    messageText.html(substituteParams(cleanedMessage.trim()));
-                }
-            }
+            // Using updateMessageBlock to perform macro substitutions + regex formatting
+            const messageId = chat.length - 1;
+            updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
 
             // console.log('[RPG Companion] Cleaned message, removed tracker code blocks from DOM');
 
@@ -255,9 +251,9 @@ export function onMessageSwiped(messageIndex) {
     // Only set flag to true if this swipe will trigger a NEW generation
     // Check if the swipe already exists (has content in the swipes array)
     const isExistingSwipe = message.swipes &&
-                           message.swipes[currentSwipeId] !== undefined &&
-                           message.swipes[currentSwipeId] !== null &&
-                           message.swipes[currentSwipeId].length > 0;
+        message.swipes[currentSwipeId] !== undefined &&
+        message.swipes[currentSwipeId] !== null &&
+        message.swipes[currentSwipeId].length > 0;
 
     if (!isExistingSwipe) {
         // This is a NEW swipe that will trigger generation
