@@ -313,6 +313,11 @@ async function initUI() {
         saveSettings();
     });
 
+    $('#rpg-skip-guided-mode').on('change', function() {
+        extensionSettings.skipInjectionsForGuided = String($(this).val());
+        saveSettings();
+    });
+
     $('#rpg-toggle-plot-buttons').on('change', function() {
         extensionSettings.enablePlotButtons = $(this).prop('checked');
         // console.log('[RPG Companion] Toggle enablePlotButtons changed to:', extensionSettings.enablePlotButtons);
@@ -420,6 +425,7 @@ async function initUI() {
     $('#rpg-custom-text').val(extensionSettings.customColors.text);
     $('#rpg-custom-highlight').val(extensionSettings.customColors.highlight);
     $('#rpg-generation-mode').val(extensionSettings.generationMode);
+    $('#rpg-skip-guided-mode').val(extensionSettings.skipInjectionsForGuided);
 
     updatePanelVisibility();
     updateSectionVisibility();
