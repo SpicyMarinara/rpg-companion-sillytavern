@@ -74,6 +74,7 @@ export let extensionSettings = {
             ],
             // RPG Attributes (customizable D&D-style attributes)
             showRPGAttributes: true,
+            alwaysSendAttributes: false, // If true, always send attributes; if false, only send with dice rolls
             rpgAttributes: [
                 { id: 'str', name: 'STR', enabled: true },
                 { id: 'dex', name: 'DEX', enabled: true },
@@ -91,7 +92,8 @@ export let extensionSettings = {
             // Optional skills field
             skillsSection: {
                 enabled: false,
-                label: 'Skills' // User-editable
+                label: 'Skills', // User-editable
+                customFields: [] // Array of skill names
             }
         },
         infoBox: {

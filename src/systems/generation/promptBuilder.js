@@ -283,12 +283,21 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             instructions += `After updating the trackers, continue directly from where the last message in the chat history left off. Ensure the trackers you provide naturally reflect and influence the narrative. Character behavior, dialogue, and story events should acknowledge these conditions when relevant, such as fatigue affecting the protagonist's performance, low hygiene influencing their social interactions, environmental factors shaping the scene, a character's emotional state coloring their responses, and so on. Remember, all bracketed placeholders (e.g., [Location], [Mood Emoji]) MUST be replaced with actual content without the square brackets.\n\n`;
         }
 
-        // Include attributes and dice roll only if there was a dice roll
-        if (extensionSettings.lastDiceRoll) {
-            const roll = extensionSettings.lastDiceRoll;
+        // Include attributes based on settings
+        const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
+        const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
+
+        if (shouldSendAttributes) {
             const attributesString = buildAttributesString();
             instructions += `${userName}'s attributes: ${attributesString}\n`;
-            instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
+
+            // Add dice roll context if there was one
+            if (extensionSettings.lastDiceRoll) {
+                const roll = extensionSettings.lastDiceRoll;
+                instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
+            } else {
+                instructions += `\n`;
+            }
         }
     }
 

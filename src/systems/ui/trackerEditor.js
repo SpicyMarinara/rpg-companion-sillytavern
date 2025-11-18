@@ -143,7 +143,8 @@ function resetToDefaults() {
             },
             skillsSection: {
                 enabled: false,
-                label: 'Skills'
+                label: 'Skills',
+                customFields: []
             }
         },
         infoBox: {
@@ -230,6 +231,14 @@ function renderUserStatsTab() {
     html += '<label for="rpg-show-rpg-attrs">Enable RPG Attributes Section</label>';
     html += '</div>';
 
+    // Always send attributes toggle
+    const alwaysSendAttributes = config.alwaysSendAttributes !== undefined ? config.alwaysSendAttributes : false;
+    html += '<div class="rpg-editor-toggle-row">';
+    html += `<input type="checkbox" id="rpg-always-send-attrs" ${alwaysSendAttributes ? 'checked' : ''}>`;
+    html += '<label for="rpg-always-send-attrs">Always Include Attributes in Prompt</label>';
+    html += '</div>';
+    html += '<small class="rpg-editor-note">If disabled, attributes are only sent when a dice roll is active.</small>';
+
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
 
     // Ensure rpgAttributes exists in the actual config (not just local fallback)
@@ -285,6 +294,10 @@ function renderUserStatsTab() {
 
     html += '<label>Skills Label:</label>';
     html += `<input type="text" id="rpg-skills-label" value="${config.skillsSection.label}" class="rpg-text-input" placeholder="Skills">`;
+
+    html += '<label>Skills List (comma-separated):</label>';
+    const skillFields = config.skillsSection.customFields || [];
+    html += `<input type="text" id="rpg-skills-fields" value="${skillFields.join(', ')}" class="rpg-text-input" placeholder="e.g., Stealth, Persuasion, Combat">`;
 
     html += '</div>';
 
@@ -380,6 +393,11 @@ function setupUserStatsListeners() {
         extensionSettings.trackerConfig.userStats.showRPGAttributes = $(this).is(':checked');
     });
 
+    // Always send attributes toggle
+    $('#rpg-always-send-attrs').off('change').on('change', function() {
+        extensionSettings.trackerConfig.userStats.alwaysSendAttributes = $(this).is(':checked');
+    });
+
     // Status section toggles
     $('#rpg-status-enabled').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.statusSection.enabled = $(this).is(':checked');
@@ -401,6 +419,11 @@ function setupUserStatsListeners() {
 
     $('#rpg-skills-label').off('blur').on('blur', function() {
         extensionSettings.trackerConfig.userStats.skillsSection.label = $(this).val();
+    });
+
+    $('#rpg-skills-fields').off('blur').on('blur', function() {
+        const fields = $(this).val().split(',').map(f => f.trim()).filter(f => f);
+        extensionSettings.trackerConfig.userStats.skillsSection.customFields = fields;
     });
 }
 

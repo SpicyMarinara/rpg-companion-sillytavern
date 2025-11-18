@@ -151,7 +151,23 @@ export function renderThoughts() {
     let lineNumber = 0;
     let currentCharacter = null;
 
-    for (const line of lines) {
+    // Pre-process: normalize the format to handle cases where "- char" appears mid-line
+    // This handles: "Thoughts: ... - char 2" by splitting it into separate lines
+    const normalizedLines = [];
+    for (let line of lines) {
+        // Check if line contains "- [name]" pattern after some content (not at start)
+        // Match pattern like "some text - CharName" where there's content before the dash
+        const midLineCharMatch = line.match(/^(.+?)\s+-\s+([A-Z][a-zA-Z\s]+)$/);
+        if (midLineCharMatch && !line.trim().startsWith('- ')) {
+            // Split: first part stays as one line, "- Name" becomes new line
+            normalizedLines.push(midLineCharMatch[1].trim());
+            normalizedLines.push('- ' + midLineCharMatch[2].trim());
+        } else {
+            normalizedLines.push(line);
+        }
+    }
+
+    for (const line of normalizedLines) {
         lineNumber++;
 
         // Skip empty lines, headers, dividers, and code fences
