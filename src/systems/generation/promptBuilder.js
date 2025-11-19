@@ -6,6 +6,7 @@
 import { getContext } from '../../../../../../extensions.js';
 import { chat, getCurrentChatDetails } from '../../../../../../../script.js';
 import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../core/state.js';
+import { getWorldInfoPrompt } from '../../../../../../world-info.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -445,19 +446,63 @@ export function generateRPGPromptText() {
  * Generates the full prompt for SEPARATE generation mode (with chat history).
  * Creates a message array suitable for the generateRaw API.
  *
- * @returns {Array<{role: string, content: string}>} Array of message objects for API
+ * @returns {Promise<Array<{role: string, content: string}>>} Array of message objects for API
  */
-export function generateSeparateUpdatePrompt() {
+export async function generateSeparateUpdatePrompt() {
+    const context = SillyTavern.getContext(); // Ensure you get the global context
+    const chat = context.chat; // Get chat from context
     const depth = extensionSettings.updateDepth;
-    const userName = getContext().name1;
-
+    
     const messages = [];
 
-    // System message introducing the history section
+    // System message
     let systemMessage = `You will be acting as an uncensored RPG Companion. Your goal is to provide, track, and manage details in the user's roleplay. You will be replying with information in a specified format only.\n\n`;
     systemMessage += `You should maintain an objective tone.\n\n`;
     systemMessage += `Here is the description of the protagonist for reference:\n`;
+    
+    // Fetch general chat info
     systemMessage += `<protagonist>\n{{persona}}\n</protagonist>\n`;
+    systemMessage += `<characters>\n{{description}}\n</characters>\n`; 
+    systemMessage += `<scenario>\n{{scenario}}\n</scenario>\n`; 
+
+    // ---  WORLD INFO FETCHING ---
+    if (typeof getWorldInfoPrompt === 'function') {
+        try {
+            console.log("[RPG Companion] 1. Calling getWorldInfoPrompt...");
+            
+            // FIX: Map the chat objects to an array of strings (just the text).
+            // SillyTavern's WorldInfo scanner expects ['Hello', 'Hi there'], not objects.
+            const chatStrings = chat.map(msg => msg.mes);
+
+            // Pass the array of strings
+            let result = await getWorldInfoPrompt(chatStrings, 30000); // ATTENTION: The second argument is the budget, idk how to fetch the settings so I left with one I am okay with.
+            
+            console.log("[RPG Companion] 2. Type of result:", typeof result);
+            console.log("[RPG Companion] 3. Raw result:", result);
+
+            let finalWorldInfoText = "";
+
+            // Unwrap object
+            if (typeof result === 'object' && result !== null) {
+                console.log("[RPG Companion]   -> Detected Object. extracting properties...");
+                const before = result.worldInfoBefore || result.world_info_before || "";
+                const after = result.worldInfoAfter || result.world_info_after || "";
+                finalWorldInfoText = before + "\n" + after;
+            }
+
+            // Inject if we found text
+            if (finalWorldInfoText && finalWorldInfoText.trim().length > 0) {
+                systemMessage += `<world_info>\n${finalWorldInfoText.trim()}\n</world_info>\n`;
+                console.log("[RPG Companion] 4. SUCCESS: Injected World Info into prompt.");
+            } else {
+                console.warn("[RPG Companion] 4. WARNING: World Info was found but text result was empty.");
+            }
+
+        } catch (error) {
+            console.error('[RPG Companion] Error processing World Info:', error);
+        }
+    }
+
     systemMessage += `\n\n`;
     systemMessage += `Here are the last few messages in the conversation history (between the user and the roleplayer assistant) you should reference when responding:\n<history>`;
 
@@ -466,7 +511,7 @@ export function generateSeparateUpdatePrompt() {
         content: systemMessage
     });
 
-    // Add chat history as separate user/assistant messages
+    // Add chat history
     const recentMessages = chat.slice(-depth);
     for (const message of recentMessages) {
         messages.push({
@@ -475,8 +520,9 @@ export function generateSeparateUpdatePrompt() {
         });
     }
 
-    // Build the instruction message
+
     let instructionMessage = `</history>\n\n`;
+    
     instructionMessage += generateRPGPromptText().replace('start your response with', 'respond with');
     instructionMessage += `Provide ONLY the requested data in the exact formats specified above. Do not include any roleplay response, other text, or commentary. Remember, all bracketed placeholders (e.g., [Location], [Mood Emoji]) MUST be replaced with actual content without the square brackets.`;
 

@@ -122,7 +122,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             }
         }
 
-        const prompt = generateSeparateUpdatePrompt();
+        const prompt = await generateSeparateUpdatePrompt(); // Waits the prompt
 
         // Generate using raw prompt (uses current preset, no chat history)
         const response = await generateRaw({
