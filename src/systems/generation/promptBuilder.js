@@ -122,9 +122,10 @@ export function generateTrackerExample() {
  *
  * @param {boolean} includeHtmlPrompt - Whether to include the HTML prompt (true for main generation, false for separate tracker generation)
  * @param {boolean} includeContinuation - Whether to include "After updating the trackers, continue..." instruction
+ * @param {boolean} includeAttributes - Whether to include RPG attributes (false for separate tracker generation)
  * @returns {string} Formatted instruction text for the AI
  */
-export function generateTrackerInstructions(includeHtmlPrompt = true, includeContinuation = true) {
+export function generateTrackerInstructions(includeHtmlPrompt = true, includeContinuation = true, includeAttributes = true) {
     const userName = getContext().name1;
     const classicStats = extensionSettings.classicStats;
     const trackerConfig = extensionSettings.trackerConfig;
@@ -283,20 +284,22 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             instructions += `After updating the trackers, continue directly from where the last message in the chat history left off. Ensure the trackers you provide naturally reflect and influence the narrative. Character behavior, dialogue, and story events should acknowledge these conditions when relevant, such as fatigue affecting the protagonist's performance, low hygiene influencing their social interactions, environmental factors shaping the scene, a character's emotional state coloring their responses, and so on. Remember, all bracketed placeholders (e.g., [Location], [Mood Emoji]) MUST be replaced with actual content without the square brackets.\n\n`;
         }
 
-        // Include attributes based on settings
-        const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-        const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
+        // Include attributes based on settings (only if includeAttributes is true)
+        if (includeAttributes) {
+            const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
+            const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
 
-        if (shouldSendAttributes) {
-            const attributesString = buildAttributesString();
-            instructions += `${userName}'s attributes: ${attributesString}\n`;
+            if (shouldSendAttributes) {
+                const attributesString = buildAttributesString();
+                instructions += `${userName}'s attributes: ${attributesString}\n`;
 
-            // Add dice roll context if there was one
-            if (extensionSettings.lastDiceRoll) {
-                const roll = extensionSettings.lastDiceRoll;
-                instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
-            } else {
-                instructions += `\n`;
+                // Add dice roll context if there was one
+                if (extensionSettings.lastDiceRoll) {
+                    const roll = extensionSettings.lastDiceRoll;
+                    instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
+                } else {
+                    instructions += `\n`;
+                }
             }
         }
     }
@@ -440,8 +443,8 @@ export function generateRPGPromptText() {
 
     promptText += `</previous>\n`;
 
-    // Don't include HTML prompt or continuation instruction for separate tracker generation
-    promptText += generateTrackerInstructions(false, false);
+    // Don't include HTML prompt, continuation instruction, or attributes for separate tracker generation
+    promptText += generateTrackerInstructions(false, false, false);
 
     return promptText;
 }
