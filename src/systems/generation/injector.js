@@ -110,16 +110,46 @@ export function onGenerationStarted(type, data) {
     }
 
     // For TOGETHER mode: Check if we need to commit extension data
-    // Same logic as separate mode - commit on new messages, keep existing data on swipes
+    // Only commit when user sends a new message (not on swipes)
     if (extensionSettings.generationMode === 'together') {
         if (!lastActionWasSwipe) {
-            // User sent a new message - commit lastGeneratedData before generation
-            // console.log('[RPG Companion] 📝 TOGETHER MODE COMMIT: New message - committing lastGeneratedData');
-            committedTrackerData.userStats = lastGeneratedData.userStats;
-            committedTrackerData.infoBox = lastGeneratedData.infoBox;
-            committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+            // User sent a new message - commit data from the last assistant message they replied to
+            // This ensures swipes use consistent data from before the first swipe
+            console.log('[RPG Companion] 📝 TOGETHER MODE COMMIT: New message - committing from last assistant message');
+
+            // Find the last assistant message (before the user's new message)
+            const chat = getContext().chat;
+            let foundAssistantMessage = false;
+
+            for (let i = chat.length - 1; i >= 0; i--) {
+                const message = chat[i];
+                if (!message.is_user) {
+                    // Found last assistant message - commit its stored tracker data
+                    if (message.extra && message.extra.rpg_companion_swipes) {
+                        const swipeId = message.swipe_id || 0;
+                        const swipeData = message.extra.rpg_companion_swipes[swipeId];
+
+                        if (swipeData) {
+                            committedTrackerData.userStats = swipeData.userStats || null;
+                            committedTrackerData.infoBox = swipeData.infoBox || null;
+                            committedTrackerData.characterThoughts = swipeData.characterThoughts || null;
+                            foundAssistantMessage = true;
+                            console.log('[RPG Companion] ✓ Committed tracker data from message swipe', swipeId);
+                        }
+                    }
+                    break;
+                }
+            }
+
+            // Fallback: if no stored data found, use lastGeneratedData (for first message)
+            if (!foundAssistantMessage) {
+                committedTrackerData.userStats = lastGeneratedData.userStats;
+                committedTrackerData.infoBox = lastGeneratedData.infoBox;
+                committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+                console.log('[RPG Companion] ⚠ No stored message data found, using lastGeneratedData as fallback');
+            }
         } else {
-            // console.log('[RPG Companion] 🔄 TOGETHER MODE SWIPE: Using existing committedTrackerData (no commit)');
+            console.log('[RPG Companion] 🔄 TOGETHER MODE SWIPE: Using existing committedTrackerData (no commit)');
         }
     }
 
@@ -184,12 +214,7 @@ export function onGenerationStarted(type, data) {
 
         // Inject HTML prompt separately at depth 0 if enabled (prevents duplication on swipes)
         if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
-            const htmlPrompt = `\nIf appropriate, include inline HTML, CSS, and JS elements for creative, visual storytelling throughout your response:
-- Use them liberally to depict any in-world content that can be visualized (screens, posters, books, signs, letters, logos, crests, seals, medallions, labels, etc.), with creative license for animations, 3D effects, pop-ups, dropdowns, websites, and so on.
-- Style them thematically to match the theme (e.g., sleek for sci-fi, rustic for fantasy), ensuring text is visible.
-- Embed all resources directly (e.g., inline SVGs) so nothing relies on external fonts or libraries.
-- Place elements naturally in the narrative where characters would see or use them, with no limits on format or application.
-- These HTML/CSS/JS elements must be rendered directly without enclosing them in code fences.`;
+            const htmlPrompt = `\nIf appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
 
             setExtensionPrompt('rpg-companion-html', htmlPrompt, extension_prompt_types.IN_CHAT, 0, false);
             // console.log('[RPG Companion] Injected HTML prompt at depth 0 for together mode');
@@ -202,14 +227,12 @@ export function onGenerationStarted(type, data) {
         const contextSummary = generateContextualSummary();
 
         if (contextSummary) {
-            const wrappedContext = `Here is context information about the current scene, and what follows is the last message in the chat history:
+            const wrappedContext = `\nHere is context information about the current scene, and what follows is the last message in the chat history:
 <context>
 ${contextSummary}
 
 Ensure these details naturally reflect and influence the narrative. Character behavior, dialogue, and story events should acknowledge these conditions when relevant, such as fatigue affecting performance, low hygiene influencing social interactions, environmental factors shaping the scene, or a character's emotional state coloring their responses.
-</context>
-
-`;
+</context>\n\n`;
 
             // Inject context at depth 1 (before last user message) as SYSTEM
             // Skip when a guided generation injection is present to avoid conflicting instructions
@@ -224,12 +247,7 @@ Ensure these details naturally reflect and influence the narrative. Character be
 
         // Inject HTML prompt separately at depth 0 if enabled (same as together mode pattern)
         if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
-            const htmlPrompt = `\nIf appropriate, include inline HTML, CSS, and JS elements for creative, visual storytelling throughout your response:
-- Use them liberally to depict any in-world content that can be visualized (screens, posters, books, signs, letters, logos, crests, seals, medallions, labels, etc.), with creative license for animations, 3D effects, pop-ups, dropdowns, websites, and so on.
-- Style them thematically to match the theme (e.g., sleek for sci-fi, rustic for fantasy), ensuring text is visible.
-- Embed all resources directly (e.g., inline SVGs) so nothing relies on external fonts or libraries.
-- Place elements naturally in the narrative where characters would see or use them, with no limits on format or application.
-- These HTML/CSS/JS elements must be rendered directly without enclosing them in code fences.`;
+            const htmlPrompt = `\nIf appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
 
             setExtensionPrompt('rpg-companion-html', htmlPrompt, extension_prompt_types.IN_CHAT, 0, false);
             // console.log('[RPG Companion] Injected HTML prompt at depth 0 for separate mode');

@@ -310,12 +310,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             instructions += `\n`;
         }
 
-        instructions += `If appropriate, include inline HTML, CSS, and JS elements for creative, visual storytelling throughout your response:
-- Use them liberally to depict any in-world content that can be visualized (screens, posters, books, signs, letters, logos, crests, seals, medallions, labels, etc.), with creative license for animations, 3D effects, pop-ups, dropdowns, websites, and so on.
-- Style them thematically to match the theme (e.g., sleek for sci-fi, rustic for fantasy), ensuring text is visible.
-- Embed all resources directly (e.g., inline SVGs) so nothing relies on external fonts or libraries.
-- Place elements naturally in the narrative where characters would see or use them, with no limits on format or application.
-- These HTML/CSS/JS elements must be rendered directly without enclosing them in code fences.`;
+        instructions += `If appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
     }
 
     return instructions;
@@ -331,6 +326,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 export function generateContextualSummary() {
     // Use COMMITTED data for generation context, not displayed data
     const userName = getContext().name1;
+    const trackerConfig = extensionSettings.trackerConfig;
     let summary = '';
 
     // Helper function to clean tracker data (remove code fences and separator lines)
@@ -371,12 +367,21 @@ export function generateContextualSummary() {
         }
     }
 
-    // Include attributes and dice roll only if there was a dice roll
-    if (extensionSettings.lastDiceRoll) {
-        const roll = extensionSettings.lastDiceRoll;
+    // Include attributes based on settings
+    const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
+    const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
+
+    if (shouldSendAttributes) {
         const attributesString = buildAttributesString();
         summary += `${userName}'s attributes: ${attributesString}\n`;
-        summary += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
+
+        // Add dice roll context if there was one
+        if (extensionSettings.lastDiceRoll) {
+            const roll = extensionSettings.lastDiceRoll;
+            summary += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
+        } else {
+            summary += `\n`;
+        }
     }
 
     return summary.trim();
