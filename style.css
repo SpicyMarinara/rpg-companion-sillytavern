@@ -1112,12 +1112,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* Scrollable content wrapper inside info section */
 .rpg-info-content {
     display: grid;
-    grid-template-rows: 1.2fr 0.8fr auto;
+    grid-template-rows: 80px 60px minmax(min-content, auto);
     gap: 0.25em;
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 .rpg-info-content::-webkit-scrollbar {
@@ -1815,11 +1814,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
     width: 100%; /* Ensure cards take full width */
-    max-height: clamp(120px, 18vh, 200px);
+    max-height: clamp(200px, 18vh, 250px);
     box-sizing: border-box; /* Include padding and border in width calculation */
     flex-shrink: 0; /* Prevent cards from shrinking */
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;
     scrollbar-width: thin;
     scrollbar-color: var(--rpg-border) transparent;
 }
@@ -1983,7 +1981,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-character-stat .rpg-stat-name {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw) !important;
+    font-size: clamp(9px, 0.6vw, 0.7vw) !important;
     font-weight: 600 !important;
     white-space: nowrap !important;
 }
@@ -4813,6 +4811,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         border-bottom: 2px solid var(--SmartThemeBorderColor);
         margin: 0;
         padding: 0;
+        overflow-x: auto;
     }
 
     .rpg-mobile-tab {
@@ -4871,16 +4870,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     /* Info tab contains Info Box and Characters with 50/50 split */
     .rpg-mobile-tab-content[data-tab-content="info"].active {
-        flex-direction: column;
+        display: grid;
+        grid-template-rows: minmax(min-content, auto) minmax(min-content, 1fr);
         gap: 0;
         height: 100%;
         min-height: 0;
+        overflow-y: auto;
     }
 
     /* Info Box takes 50% of vertical space */
     .rpg-mobile-tab-content[data-tab-content="info"] > #rpg-info-box,
     .rpg-mobile-tab-content[data-tab-content="info"] > .rpg-info-section {
-        flex: 1 1 100% !important;
         min-height: 0;
         overflow-y: auto;
         padding-bottom: 16px;
@@ -4892,7 +4892,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Characters section takes 50% of vertical space */
     .rpg-mobile-tab-content[data-tab-content="info"] > #rpg-thoughts,
     .rpg-mobile-tab-content[data-tab-content="info"] > .rpg-thoughts-section {
-        flex: 1 1 50% !important;
         min-height: 0;
         overflow-y: auto;
         padding-bottom: 16px;
@@ -5340,7 +5339,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Make the events widget scrollable if content exceeds height */
     .rpg-events-widget {
         max-height: 100px !important;
-        overflow-y: auto !important;
     }
 
     /* Compact the notebook lines container */
