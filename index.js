@@ -117,6 +117,7 @@ import { setupClassicStatsButtons } from './src/systems/features/classicStats.js
 import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/systems/features/htmlCleaning.js';
 import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
 import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
+import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
 
 // Integration modules
 import {
@@ -333,6 +334,18 @@ async function initUI() {
         saveSettings();
     });
 
+    $('#rpg-custom-html-prompt').on('input', function() {
+        extensionSettings.customHtmlPrompt = $(this).val().trim();
+        saveSettings();
+    });
+
+    $('#rpg-restore-default-html-prompt').on('click', function() {
+        extensionSettings.customHtmlPrompt = '';
+        $('#rpg-custom-html-prompt').val('');
+        saveSettings();
+        toastr.success('HTML prompt restored to default');
+    });
+
     $('#rpg-skip-guided-mode').on('change', function() {
         extensionSettings.skipInjectionsForGuided = String($(this).val());
         saveSettings();
@@ -435,7 +448,11 @@ async function initUI() {
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
-    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
+
+    // Set default HTML prompt as actual text if no custom prompt exists
+    $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
+
+    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);

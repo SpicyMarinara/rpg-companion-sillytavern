@@ -419,11 +419,13 @@ function setupUserStatsListeners() {
 
     $('#rpg-skills-label').off('blur').on('blur', function() {
         extensionSettings.trackerConfig.userStats.skillsSection.label = $(this).val();
+        saveSettings();
     });
 
     $('#rpg-skills-fields').off('blur').on('blur', function() {
         const fields = $(this).val().split(',').map(f => f.trim()).filter(f => f);
         extensionSettings.trackerConfig.userStats.skillsSection.customFields = fields;
+        saveSettings();
     });
 }
 

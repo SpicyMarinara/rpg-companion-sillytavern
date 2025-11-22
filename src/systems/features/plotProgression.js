@@ -5,6 +5,7 @@
 
 import { togglePlotButtons } from '../ui/layout.js';
 import { extensionSettings, setIsPlotProgression } from '../../core/state.js';
+import { DEFAULT_HTML_PROMPT } from '../generation/promptBuilder.js';
 import { Generate } from '../../../../../../../script.js';
 
 /**
@@ -94,7 +95,9 @@ export async function sendPlotProgression(type) {
 
         // Add HTML prompt if enabled
         if (extensionSettings.enableHtmlPrompt) {
-            prompt += '\n\n' + `If appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
+            // Use custom HTML prompt if set, otherwise use default
+            const htmlPromptText = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+            prompt += '\n\n' + htmlPromptText;
         }
 
         // Set flag to indicate we're doing plot progression

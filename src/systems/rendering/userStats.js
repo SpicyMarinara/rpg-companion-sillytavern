@@ -293,6 +293,23 @@ export function renderUserStats() {
         updateMessageSwipeData();
     });
 
+    // Add event listener for skills editing
+    $('.rpg-skills-value.rpg-editable').on('blur', function() {
+        const value = $(this).text().trim();
+        extensionSettings.userStats.skills = value || 'None';
+
+        // Rebuild userStats text
+        const statsText = buildUserStatsText();
+
+        // Update BOTH lastGeneratedData AND committedTrackerData
+        lastGeneratedData.userStats = statsText;
+        committedTrackerData.userStats = statsText;
+
+        saveSettings();
+        saveChatData();
+        updateMessageSwipeData();
+    });
+
     // Add event listeners for stat name editing
     $('.rpg-editable-stat-name').on('blur', function() {
         const field = $(this).data('field');

@@ -21,6 +21,7 @@ export let extensionSettings = {
     showInventory: true, // Show inventory section (v2 system)
     showThoughtsInChat: true, // Show thoughts overlay in chat
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
+    customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
     enablePlotButtons: true, // Show plot progression buttons above chat input
     panelPosition: 'right', // 'left', 'right', or 'top'

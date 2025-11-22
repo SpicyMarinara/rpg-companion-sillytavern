@@ -18,7 +18,8 @@ import { parseUserStats } from './parser.js';
 import {
     generateTrackerExample,
     generateTrackerInstructions,
-    generateContextualSummary
+    generateContextualSummary,
+    DEFAULT_HTML_PROMPT
 } from './promptBuilder.js';
 
 /**
@@ -214,7 +215,9 @@ export function onGenerationStarted(type, data) {
 
         // Inject HTML prompt separately at depth 0 if enabled (prevents duplication on swipes)
         if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
-            const htmlPrompt = `\nIf appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
+            // Use custom HTML prompt if set, otherwise use default
+            const htmlPromptText = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+            const htmlPrompt = `\n${htmlPromptText}`;
 
             setExtensionPrompt('rpg-companion-html', htmlPrompt, extension_prompt_types.IN_CHAT, 0, false);
             // console.log('[RPG Companion] Injected HTML prompt at depth 0 for together mode');
@@ -247,7 +250,9 @@ Ensure these details naturally reflect and influence the narrative. Character be
 
         // Inject HTML prompt separately at depth 0 if enabled (same as together mode pattern)
         if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
-            const htmlPrompt = `\nIf appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
+            // Use custom HTML prompt if set, otherwise use default
+            const htmlPromptText = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+            const htmlPrompt = `\n${htmlPromptText}`;
 
             setExtensionPrompt('rpg-companion-html', htmlPrompt, extension_prompt_types.IN_CHAT, 0, false);
             // console.log('[RPG Companion] Injected HTML prompt at depth 0 for separate mode');

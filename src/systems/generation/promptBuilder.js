@@ -11,6 +11,11 @@ import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../co
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
 
 /**
+ * Default HTML prompt text
+ */
+export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
+
+/**
  * Builds a formatted inventory summary for AI context injection.
  * Converts v2 inventory structure to multi-line plaintext format.
  *
@@ -313,7 +318,9 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             instructions += `\n`;
         }
 
-        instructions += `If appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
+        // Use custom HTML prompt if set, otherwise use default
+        const htmlPrompt = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+        instructions += htmlPrompt;
     }
 
     return instructions;
@@ -422,6 +429,13 @@ export function generateRPGPromptText() {
                 promptText += `Optional Quests: ${optionalQuests || 'None'}\n`;
             }
             promptText += `\n`;
+        }
+
+        // Add current skills to the previous data context
+        const skillsSection = extensionSettings.trackerConfig?.userStats?.skillsSection;
+        if (skillsSection?.enabled && skillsSection.customFields && skillsSection.customFields.length > 0) {
+            const skillsList = skillsSection.customFields.join(', ');
+            promptText += `Skills: ${skillsList}\n\n`;
         }
     }
 
