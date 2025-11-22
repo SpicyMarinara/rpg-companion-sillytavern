@@ -1111,8 +1111,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Scrollable content wrapper inside info section */
 .rpg-info-content {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: 1.2fr 0.8fr auto;
     gap: 0.25em;
     flex: 1;
     min-height: 0;
@@ -4880,7 +4880,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Info Box takes 50% of vertical space */
     .rpg-mobile-tab-content[data-tab-content="info"] > #rpg-info-box,
     .rpg-mobile-tab-content[data-tab-content="info"] > .rpg-info-section {
-        flex: 1 1 50% !important;
+        flex: 1 1 100% !important;
         min-height: 0;
         overflow-y: auto;
         padding-bottom: 16px;
@@ -4915,14 +4915,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     /* Rows scale proportionally to fill Info Box */
     .rpg-dashboard-row-1 {
-        flex: 1.2 !important;  /* Slightly more space for 4 widgets */
         height: auto !important;  /* Remove desktop height constraint */
         display: flex !important;
         gap: 0.25em;
     }
 
     .rpg-dashboard-row-2 {
-        flex: 0.8 !important;  /* Less space for 1 widget */
         display: flex !important;
     }
 
@@ -4970,6 +4968,16 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     /* Recent Events widget - mobile text sizing */
+    .rpg-notebook-header {
+        gap: clamp(26px, 6vw, 30px);
+        padding: clamp(5px, 1.5vw, 7px) 0;
+    }
+
+    .rpg-notebook-ring {
+        width: clamp(8px, 1.25vw, 10px);
+        height: clamp(8px, 1.25vw, 10px);
+    }
+
     .rpg-notebook-title {
         font-size: clamp(9px, 2.2vw, 11px) !important;
     }
@@ -5326,13 +5334,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     /* Make Recent Events section take less vertical space on mobile */
     .rpg-dashboard-row-3 {
-        flex: 0 0 auto !important;
-        max-height: 150px !important; /* Limit height on mobile */
+        max-height: 100px !important; /* Limit height on mobile */
     }
 
     /* Make the events widget scrollable if content exceeds height */
     .rpg-events-widget {
-        max-height: 150px !important;
+        max-height: 100px !important;
         overflow-y: auto !important;
     }
 
@@ -5340,6 +5347,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     .rpg-notebook-lines {
         padding: 0.25em 0.5em !important;
         gap: 0.1em !important;
+        min-height: 0;
     }
 
     /* Reduce spacing in notebook lines */
@@ -5444,7 +5452,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* More padding for editable fields */
     .rpg-editable {
         padding: 0.5em;
-        min-height: 2.75rem;
+        min-height: 1.25rem;
     }
 
     /* Larger close buttons */
@@ -6581,5 +6589,3 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         font-size: clamp(14px, 3vw, 18px) !important;
     }
 }
-
-
