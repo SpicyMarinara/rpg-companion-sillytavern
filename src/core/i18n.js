@@ -1,0 +1,66 @@
+//- No-op in case this is running outside of SillyTavern
+const { extension_settings } = typeof self.SillyTavern !== 'undefined' ? self.SillyTavern.getContext() : { extension_settings: {} };
+
+class Internationalization {
+    constructor() {
+        this.currentLanguage = 'en';
+        this.translations = {};
+    }
+
+    async init() {
+        const savedLanguage = localStorage.getItem('rpgCompanionLanguage') || 'en';
+        this.currentLanguage = savedLanguage;
+
+        await this.loadTranslations(this.currentLanguage);
+        this.applyTranslations(document.body);
+
+        const langSelect = document.getElementById('rpg-companion-language-select');
+        if (langSelect) {
+            langSelect.value = this.currentLanguage;
+        }
+    }
+
+    async loadTranslations(lang) {
+        const fetchUrl = `/scripts/extensions/third-party/rpg-companion-sillytavern/src/i18n/${lang}.json`;
+        try {
+            const response = await fetch(fetchUrl);
+            if (!response.ok) {
+                console.error(`[RPG-Companion-i18n] Failed to load translation file for ${lang}. Status: ${response.status}`);
+                if (lang !== 'en') {
+                    return this.loadTranslations('en');
+                }
+                return;
+            }
+            this.translations = await response.json();
+        } catch (error) {
+            console.error('[RPG-Companion-i18n] CRITICAL error loading translation file:', error);
+        }
+    }
+
+    applyTranslations(rootElement) {
+        if (!rootElement) {
+            return;
+        }
+        const elements = rootElement.querySelectorAll('[data-i18n-key]');
+        elements.forEach(element => {
+            const key = element.dataset.i18nKey;
+            const translation = this.getTranslation(key);
+            if (translation) {
+                element.textContent = translation;
+            }
+        });
+    }
+
+    getTranslation(key) {
+        return this.translations[key] || null;
+    }
+
+    async setLanguage(lang) {
+        this.currentLanguage = lang;
+        localStorage.setItem('rpgCompanionLanguage', lang);
+        await this.loadTranslations(lang);
+        this.applyTranslations(document.body);
+    }
+}
+
+export const i18n = new Internationalization();
