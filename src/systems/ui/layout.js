@@ -11,6 +11,7 @@ import {
     $thoughtsContainer,
     $inventoryContainer
 } from '../../core/state.js';
+import { i18n } from '../../core/i18n.js';
 
 /**
  * Toggles the visibility of plot buttons based on settings.
@@ -92,6 +93,7 @@ export function updateCollapseToggleIcon() {
  */
 export function setupCollapseToggle() {
     const $collapseToggle = $('#rpg-collapse-toggle');
+    $collapseToggle.attr('title', i18n.getTranslation('template.mainPanel.collapseExpand'));
     const $panel = $('#rpg-companion-panel');
     const $icon = $collapseToggle.find('i');
 

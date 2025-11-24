@@ -9,6 +9,7 @@ import {
     setPendingDiceRoll
 } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
+import { i18n } from '../../core/i18n.js';
 
 /**
  * Rolls the dice and displays result.
@@ -85,10 +86,13 @@ export async function executeRollCommand(command) {
  */
 export function updateDiceDisplay() {
     const lastRoll = extensionSettings.lastDiceRoll;
+    const label = i18n.getTranslation('template.mainPanel.lastRoll') || 'Last Roll: ';
+    const noneValue = i18n.getTranslation('global.none') || 'None';
+
     if (lastRoll) {
-        $('#rpg-last-roll-text').text(`Last Roll (${lastRoll.formula}): ${lastRoll.total}`);
+        $('#rpg-last-roll-text').text(`${label}(${lastRoll.formula}): ${lastRoll.total}`);
     } else {
-        $('#rpg-last-roll-text').text('Last Roll: None');
+        $('#rpg-last-roll-text').text(label + noneValue);
     }
 }
 

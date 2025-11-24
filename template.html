@@ -10,7 +10,7 @@
         <div class="rpg-panel-header">
             <h3>
                 <i class="fa-solid fa-dice-d20"></i>
-                RPG Companion
+                <span data-i18n-key="template.mainPanel.title">RPG Companion</span>
             </h3>
         </div>
 
@@ -18,8 +18,8 @@
             <!-- Dice Roll Display -->
             <div id="rpg-dice-display" class="rpg-dice-display">
                 <i class="fa-solid fa-dice"></i>
-                <span id="rpg-last-roll-text">Last Roll: None</span>
-                <button id="rpg-clear-dice" class="rpg-clear-dice-btn" title="Clear last roll">×</button>
+                <span id="rpg-last-roll-text"></span>
+                <button id="rpg-clear-dice" class="rpg-clear-dice-btn">×</button>
             </div>
 
             <!-- Unified Game Content Box -->
@@ -64,22 +64,22 @@
                 <label class="rpg-toggle-label">
                     <input type="checkbox" id="rpg-toggle-html-prompt">
                     <i class="fa-solid fa-code"></i>
-                    <span>Enable Immersive HTML</span>
+                    <span data-i18n-key="template.mainPanel.enableImmersiveHtml">Enable Immersive HTML</span>
                 </label>
             </div>
 
             <!-- Manual Update Button -->
             <button id="rpg-manual-update" class="rpg-btn-primary rpg-manual-update-btn">
-                <i class="fa-solid fa-sync"></i> Refresh RPG Info
+                <i class="fa-solid fa-sync"></i> <span data-i18n-key="template.mainPanel.refreshRpgInfo">Refresh RPG Info</span>
             </button>
 
             <!-- Settings and Edit Trackers Buttons Row -->
             <div class="rpg-settings-buttons-row">
                 <button id="rpg-open-tracker-editor" class="rpg-btn-settings rpg-btn-half">
-                    <i class="fa-solid fa-sliders"></i> Edit Trackers
+                    <i class="fa-solid fa-sliders"></i> <span data-i18n-key="template.mainPanel.editTrackersButton">Edit Trackers</span>
                 </button>
                 <button id="rpg-open-settings" class="rpg-btn-settings rpg-btn-half">
-                    <i class="fa-solid fa-gear"></i> Settings
+                    <i class="fa-solid fa-gear"></i> <span data-i18n-key="template.mainPanel.settingsButton">Settings</span>
                 </button>
             </div>
         </div>

@@ -23,6 +23,7 @@ import {
     updateDiceDisplay as updateDiceDisplayCore,
     addDiceQuickReply as addDiceQuickReplyCore
 } from '../features/dice.js';
+import { i18n } from '../../core/i18n.js';
 
 /**
  * Modern DiceModal ES6 Class
@@ -318,6 +319,7 @@ export function setupDiceRoller() {
         e.stopPropagation(); // Prevent opening the dice popup
         clearDiceRollCore();
     });
+    $('#rpg-clear-dice').attr('title', i18n.getTranslation('template.mainPanel.clearLastRoll'));
 
     return diceModal;
 }
