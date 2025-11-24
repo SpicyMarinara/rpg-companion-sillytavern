@@ -3,6 +3,8 @@
  * Handles desktop-specific UI functionality: tab navigation
  */
 
+import { i18n } from '../../core/i18n.js';
+
 /**
  * Sets up desktop tab navigation for organizing content.
  * Only runs on desktop viewports (>1000px).
@@ -34,15 +36,15 @@ export function setupDesktopTabs() {
         <div class="rpg-tabs-nav">
             <button class="rpg-tab-btn active" data-tab="status">
                 <i class="fa-solid fa-chart-simple"></i>
-                <span>Status</span>
+                <span data-i18n-key="desktop.tab.status">Status</span>
             </button>
             <button class="rpg-tab-btn" data-tab="inventory">
                 <i class="fa-solid fa-box"></i>
-                <span>Inventory</span>
+                <span data-i18n-key="desktop.tab.inventory">Inventory</span>
             </button>
             <button class="rpg-tab-btn" data-tab="quests">
                 <i class="fa-solid fa-scroll"></i>
-                <span>Quests</span>
+                <span data-i18n-key="desktop.tab.quests">Quests</span>
             </button>
         </div>
     `);
@@ -86,6 +88,7 @@ export function setupDesktopTabs() {
 
     // Replace content box with tabs container
     $contentBox.html('').append($tabsContainer);
+    i18n.applyTranslations($tabsContainer[0]);
 
     // Handle tab switching
     $tabNav.find('.rpg-tab-btn').on('click', function() {

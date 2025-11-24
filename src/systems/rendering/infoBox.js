@@ -11,6 +11,7 @@ import {
     $infoBoxContainer
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
+import { i18n } from '../../core/i18n.js';
 
 /**
  * Helper to separate emoji from text in a string
@@ -72,8 +73,8 @@ export function renderInfoBox() {
         const placeholderHtml = `
             <div class="rpg-dashboard rpg-dashboard-row-1">
                 <div class="rpg-dashboard-widget rpg-placeholder-widget">
-                    <div class="rpg-placeholder-text">No data yet</div>
-                    <div class="rpg-placeholder-hint">Generate a new response in the roleplay or switch to "Separate Generation" in Settings to access and click the "Refresh RPG Info" button</div>
+                    <div class="rpg-placeholder-text" data-i18n-key="infobox.noData.title">${i18n.getTranslation('infobox.noData.title')}</div>
+                    <div class="rpg-placeholder-hint" data-i18n-key="infobox.noData.instruction">${i18n.getTranslation('infobox.noData.instruction')}</div>
                 </div>
             </div>
         `;
@@ -447,7 +448,7 @@ export function renderInfoBox() {
                         <div class="rpg-notebook-ring"></div>
                         <div class="rpg-notebook-ring"></div>
                     </div>
-                    <div class="rpg-notebook-title">Recent Events</div>
+                    <div class="rpg-notebook-title" data-i18n-key="infobox.recentEvents.title">${i18n.getTranslation('infobox.recentEvents.title')}</div>
                     <div class="rpg-notebook-lines">
         `;
 
@@ -466,7 +467,7 @@ export function renderInfoBox() {
             html += `
                         <div class="rpg-notebook-line rpg-event-add">
                             <span class="rpg-bullet">+</span>
-                            <span class="rpg-event-text rpg-editable rpg-event-placeholder" contenteditable="true" data-field="event${i + 1}" title="Click to add event">Add event...</span>
+                            <span class="rpg-event-text rpg-editable rpg-event-placeholder" contenteditable="true" data-field="event${i + 1}" title="Click to add event" data-i18n-key="infobox.recentEvents.addEventPlaceholder">${i18n.getTranslation('infobox.recentEvents.addEventPlaceholder')}</span>
                         </div>
             `;
         }
