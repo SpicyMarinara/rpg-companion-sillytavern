@@ -375,7 +375,7 @@
         <header class="rpg-settings-popup-header">
             <h3 id="rpg-editor-title">
                 <i class="fa-solid fa-sliders" aria-hidden="true"></i>
-                <span>Edit Trackers</span>
+                <span data-i18n-key="template.trackerEditorModal.title">Edit Trackers</span>
             </h3>
             <button id="rpg-close-tracker-editor" class="rpg-popup-close" type="button" aria-label="Close tracker editor">&times;</button>
         </header>
@@ -383,13 +383,13 @@
         <!-- Tabs -->
         <div class="rpg-editor-tabs">
             <button class="rpg-editor-tab active" data-tab="userStats">
-                <i class="fa-solid fa-heart-pulse"></i> User Stats
+                <i class="fa-solid fa-heart-pulse"></i> <span data-i18n-key="template.trackerEditorModal.tabs.userStats">User Stats</span>
             </button>
             <button class="rpg-editor-tab" data-tab="infoBox">
-                <i class="fa-solid fa-info-circle"></i> Info Box
+                <i class="fa-solid fa-info-circle"></i> <span data-i18n-key="template.trackerEditorModal.tabs.infoBox">Info Box</span>
             </button>
             <button class="rpg-editor-tab" data-tab="presentCharacters">
-                <i class="fa-solid fa-users"></i> Present Characters
+                <i class="fa-solid fa-users"></i> <span data-i18n-key="template.trackerEditorModal.tabs.presentCharacters">Present Characters</span>
             </button>
         </div>
 
@@ -402,12 +402,12 @@
 
         <footer class="rpg-settings-popup-footer">
             <button id="rpg-editor-reset" class="rpg-btn-secondary" type="button">
-                <i class="fa-solid fa-rotate-left"></i> Reset to Defaults
+                <i class="fa-solid fa-rotate-left"></i> <span data-i18n-key="template.trackerEditorModal.buttons.reset">Reset to Defaults</span>
             </button>
             <div class="rpg-footer-right">
-                <button id="rpg-editor-cancel" class="rpg-btn-secondary" type="button">Cancel</button>
+                <button id="rpg-editor-cancel" class="rpg-btn-secondary" type="button" data-i18n-key="template.trackerEditorModal.buttons.cancel">Cancel</button>
                 <button id="rpg-editor-save" class="rpg-btn-primary" type="button">
-                    <i class="fa-solid fa-save"></i> Save & Apply
+                    <i class="fa-solid fa-save"></i> <span data-i18n-key="template.trackerEditorModal.buttons.save">Save & Apply</span>
                 </button>
             </div>
         </footer>
