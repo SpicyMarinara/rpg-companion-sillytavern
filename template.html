@@ -98,178 +98,178 @@
         </header>
         <div class="rpg-settings-popup-body">
             <div class="rpg-settings-group">
-                <h4><i class="fa-solid fa-palette" aria-hidden="true"></i> Theme</h4>
+                <h4 data-i18n-key="template.settingsModal.themeTitle"><i class="fa-solid fa-palette" aria-hidden="true"></i> Theme</h4>
                 <div class="rpg-setting-row">
-                    <label for="rpg-theme-select">Visual Theme:</label>
+                    <label for="rpg-theme-select" data-i18n-key="template.settingsModal.themeLabel">Visual Theme:</label>
                     <select id="rpg-theme-select" class="rpg-select">
-                        <option value="default">Default</option>
-                        <option value="sci-fi">Sci-Fi (Synthwave)</option>
-                        <option value="fantasy">Fantasy (Rustic Parchment)</option>
-                        <option value="cyberpunk">Cyberpunk (Neon Grid)</option>
-                        <option value="custom">Custom</option>
+                        <option value="default" data-i18n-key="template.settingsModal.themeOptions.default">Default</option>
+                        <option value="sci-fi" data-i18n-key="template.settingsModal.themeOptions.sciFi">Sci-Fi (Synthwave)</option>
+                        <option value="fantasy" data-i18n-key="template.settingsModal.themeOptions.fantasy">Fantasy (Rustic Parchment)</option>
+                        <option value="cyberpunk" data-i18n-key="template.settingsModal.themeOptions.cyberpunk">Cyberpunk (Neon Grid)</option>
+                        <option value="custom" data-i18n-key="template.settingsModal.themeOptions.custom">Custom</option>
                     </select>
                 </div>
 
                 <!-- Custom Theme Colors (Hidden by default) -->
                 <div id="rpg-custom-colors" class="rpg-custom-colors" style="display: none;">
                     <div class="rpg-setting-row">
-                        <label for="rpg-custom-bg">Background:</label>
+                        <label for="rpg-custom-bg" data-i18n-key="template.settingsModal.themeOptions.custom.background">Background:</label>
                         <input type="color" id="rpg-custom-bg" value="#1a1a2e" />
                     </div>
                     <div class="rpg-setting-row">
-                        <label for="rpg-custom-accent">Accent:</label>
+                        <label for="rpg-custom-accent" data-i18n-key="template.settingsModal.themeOptions.custom.accent">Accent:</label>
                         <input type="color" id="rpg-custom-accent" value="#16213e" />
                     </div>
                     <div class="rpg-setting-row">
-                        <label for="rpg-custom-text">Text:</label>
+                        <label for="rpg-custom-text" data-i18n-key="template.settingsModal.themeOptions.custom.text">Text:</label>
                         <input type="color" id="rpg-custom-text" value="#eaeaea" />
                     </div>
                     <div class="rpg-setting-row">
-                        <label for="rpg-custom-highlight">Highlight:</label>
+                        <label for="rpg-custom-highlight" data-i18n-key="template.settingsModal.themeOptions.custom.highlight">Highlight:</label>
                         <input type="color" id="rpg-custom-highlight" value="#e94560" />
                     </div>
                 </div>
 
                 <div class="rpg-setting-row">
-                    <label for="rpg-stat-bar-color-low">Stat Bar Color (Low):</label>
+                    <label for="rpg-stat-bar-color-low" data-i18n-key="template.settingsModal.theme.statBarLow">Stat Bar Color (Low):</label>
                     <input type="color" id="rpg-stat-bar-color-low" value="#cc3333" />
-                    <small>Color when stats are at 0%</small>
+                    <small data-i18n-key="template.settingsModal.theme.statBarLowNote">Color when stats are at 0%</small>
                 </div>
 
                 <div class="rpg-setting-row">
-                    <label for="rpg-stat-bar-color-high">Stat Bar Color (High):</label>
+                    <label for="rpg-stat-bar-color-high" data-i18n-key="template.settingsModal.theme.statBarHigh">Stat Bar Color (High):</label>
                     <input type="color" id="rpg-stat-bar-color-high" value="#33cc66" />
-                    <small>Color when stats are at 100%</small>
+                    <small data-i18n-key="template.settingsModal.theme.statBarHighNote">Color when stats are at 100%</small>
                 </div>
             </div>
 
             <div class="rpg-settings-group">
-                <h4><i class="fa-solid fa-toggle-on" aria-hidden="true"></i> Display Options</h4>
-                <small class="notes" style="display: block; margin-bottom: 10px;">
+                <h4 data-i18n-key="template.settingsModal.displayTitle"><i class="fa-solid fa-toggle-on" aria-hidden="true"></i> Display Options</h4>
+                <small class="notes" style="display: block; margin-bottom: 10px;" data-i18n-key="template.settingsModal.displayNote">
                     <i class="fa-solid fa-info-circle" aria-hidden="true"></i> Use the Extensions tab to enable/disable the RPG Companion extension.
                 </small>
 
                 <div class="rpg-setting-row">
-                    <label for="rpg-position-select">Panel Position:</label>
+                    <label for="rpg-position-select" data-i18n-key="template.settingsModal.display.panelPosition">Panel Position:</label>
                     <select id="rpg-position-select" class="rpg-select">
-                        <option value="right">Right Sidebar</option>
-                        <option value="left">Left Sidebar</option>
+                        <option value="right" data-i18n-key="template.settingsModal.display.panelPositionOptions.right">Right Sidebar</option>
+                        <option value="left" data-i18n-key="template.settingsModal.display.panelPositionOptions.left">Left Sidebar</option>
                     </select>
                 </div>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-auto-update" />
-                    <span>Auto-update after messages</span>
+                    <span data-i18n-key="template.settingsModal.display.toggleAutoUpdate">Auto-update after messages</span>
                 </label>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-user-stats" />
-                    <span>Show User Stats</span>
+                    <span data-i18n-key="template.settingsModal.display.showUserStats">Show User Stats</span>
                 </label>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-info-box" />
-                    <span>Show Info Box</span>
+                    <span data-i18n-key="template.settingsModal.display.showInfoBox">Show Info Box</span>
                 </label>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-thoughts" />
-                    <span>Show Present Characters</span>
+                    <span data-i18n-key="template.settingsModal.display.showPresentCharacters">Show Present Characters</span>
                 </label>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-inventory" />
-                    <span>Show Inventory</span>
+                    <span data-i18n-key="template.settingsModal.display.showInventory">Show Inventory</span>
                 </label>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-thoughts-in-chat" />
-                    <span>Show Thoughts in Chat</span>
+                    <span data-i18n-key="template.settingsModal.display.showThoughtsInChat">Show Thoughts in Chat</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.showThoughtsInChatNote">
                     Display character thoughts as overlay bubbles next to their messages
                 </small>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-always-show-bubble" />
-                    <span>Always Show Thought Bubble</span>
+                    <span data-i18n-key="template.settingsModal.display.alwaysShowThoughtBubble">Always Show Thought Bubble</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.alwaysShowThoughtBubbleNote">
                     Auto-expand thought bubble without clicking the icon first
                 </small>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-animations" />
-                    <span>Enable Animations</span>
+                    <span data-i18n-key="template.settingsModal.display.enableAnimations">Enable Animations</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.enableAnimationsNote">
                     Smooth transitions for stats, content updates, and dice rolls
                 </small>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-plot-buttons" />
-                    <span>Show Plot Progression Buttons</span>
+                    <span data-i18n-key="template.settingsModal.display.showPlotProgressionButtons">Show Plot Progression Buttons</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.showPlotProgressionButtonsNote">
                     Display buttons above chat input for plot progression prompts
                 </small>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-debug-mode" />
-                    <span>Enable Debug Mode</span>
+                    <span data-i18n-key="template.settingsModal.display.enableDebugMode">Enable Debug Mode</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.enableDebugModeNote">
                     Shows parser logs in a mobile-friendly UI panel. Useful for troubleshooting. Look for the red bug button.
                 </small>
             </div>
 
             <div class="rpg-settings-group">
-                <h4><i class="fa-solid fa-sliders" aria-hidden="true"></i> Advanced</h4>
+                <h4 data-i18n-key="template.settingsModal.advancedTitle"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Advanced</h4>
 
                 <div class="rpg-setting-row">
-                    <label for="rpg-generation-mode">Generation Mode:</label>
+                    <label for="rpg-generation-mode" data-i18n-key="template.settingsModal.advanced.generationMode">Generation Mode:</label>
                     <select id="rpg-generation-mode" class="rpg-select">
-                        <option value="together">Together with Main Generation</option>
-                        <option value="separate">Separate Generation</option>
+                        <option value="together" data-i18n-key="template.settingsModal.advanced.generationModeOptions.together">Together with Main Generation</option>
+                        <option value="separate" data-i18n-key="template.settingsModal.advanced.generationModeOptions.separate">Separate Generation</option>
                     </select>
-                    <small>Together: Adds RPG tracking to main roleplay. Separate: Generates RPG data separately (manual or auto).</small>
+                    <small data-i18n-key="template.settingsModal.advanced.generationModeNote">Together: Adds RPG tracking to main roleplay. Separate: Generates RPG data separately (manual or auto).</small>
                 </div>
 
                 <div class="rpg-setting-row">
-                    <label for="rpg-update-depth">Context Messages:</label>
+                    <label for="rpg-update-depth" data-i18n-key="template.settingsModal.advanced.contextMessages">Context Messages:</label>
                     <input type="number" id="rpg-update-depth" min="1" max="20" value="4" class="rpg-input" />
-                    <small>Number of recent messages to include (Separate mode only)</small>
+                    <small data-i18n-key="template.settingsModal.advanced.contextMessagesNote">Number of recent messages to include (Separate mode only)</small>
                 </div>
 
                 <div class="rpg-setting-row">
-                    <label for="rpg-memory-messages">Memory Batch Size:</label>
+                    <label for="rpg-memory-messages" data-i18n-key="template.settingsModal.advanced.memoryBatchSize">Memory Batch Size:</label>
                     <input type="number" id="rpg-memory-messages" min="4" max="50" value="16" class="rpg-input" />
-                    <small>Number of messages to process per batch in Memory Recollection</small>
+                    <small data-i18n-key="template.settingsModal.advanced.memoryBatchSizeNote">Number of messages to process per batch in Memory Recollection</small>
                 </div>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-use-separate-preset" />
-                    <span>Use model connected to RPG Companion Trackers preset</span>
+                    <span data-i18n-key="template.settingsModal.advanced.useSeparatePreset">Use model connected to RPG Companion Trackers preset</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.useSeparatePresetNote">
                     Separate mode only. When enabled, tracker generation will use the model from the "RPG Companion Trackers" preset instead of your main API model. The preset will be switched automatically during generation and restored afterward. Select the desired model in that preset and make sure the "Bind presets to API connections" toggle is on (next to the import/export preset buttons).
                 </small>
 
                 <div class="rpg-setting-row">
-                    <label for="rpg-skip-guided-mode">Skip Injections during Guided Generations:</label>
+                    <label for="rpg-skip-guided-mode" data-i18n-key="template.settingsModal.advanced.skipInjections">Skip Injections during Guided Generations:</label>
                     <select id="rpg-skip-guided-mode" class="rpg-select">
-                        <option value="none">Never skip</option>
-                        <option value="impersonation">Only on impersonation requests</option>
-                        <option value="guided">Always for guided or quiet prompts</option>
+                        <option value="none" data-i18n-key="template.settingsModal.advanced.skipInjectionsOptions.none">Never skip</option>
+                        <option value="impersonation" data-i18n-key="template.settingsModal.advanced.skipInjectionsOptions.impersonation">Only on impersonation requests</option>
+                        <option value="guided" data-i18n-key="template.settingsModal.advanced.skipInjectionsOptions.guided">Always for guided or quiet prompts</option>
                     </select>
                 </div>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.skipInjectionsNote">
                     When set, the extension will not inject tracker prompts, examples, or HTML instructions according to the selected mode when a guided generation (via `instruct` or `quiet_prompt`) is detected. Useful when using GuidedGenerations or similar extensions.
                 </small>
 
                 <!-- Custom HTML Prompt Editor -->
                 <div class="rpg-setting-row" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rpg-border);">
-                    <label for="rpg-custom-html-prompt" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <label for="rpg-custom-html-prompt" style="display: block; margin-bottom: 8px; font-weight: 600;" data-i18n-key="template.settingsModal.advanced.customHtmlPromptTitle">
                         <i class="fa-solid fa-code" aria-hidden="true"></i> Custom HTML Prompt:
                     </label>
 
@@ -281,10 +281,10 @@
                               placeholder=""></textarea>
                     <div style="margin-top: 8px; display: flex; gap: 8px;">
                         <button id="rpg-restore-default-html-prompt" class="menu_button" style="flex: 1;">
-                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Restore Default
+                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> <span data-i18n-key="template.settingsModal.advanced.restoreDefaultHtmlPrompt">Restore Default</span>
                         </button>
                     </div>
-                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;">
+                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.customHtmlPromptNote">
                         Customize the HTML prompt injected when "Enable Immersive HTML" is enabled. The default prompt is shown above - you can edit it directly or replace it entirely. Click "Restore Default" to reset. This affects all generation modes (together, separate, and plot progression).
                     </small>
                 </div>
@@ -292,16 +292,16 @@
                 <!-- Clear Cache Button -->
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rpg-border);">
                     <button id="rpg-clear-cache" class="rpg-btn-clear-cache">
-                        <i class="fa-solid fa-trash" aria-hidden="true"></i> Clear Extension Cache
+                        <i class="fa-solid fa-trash" aria-hidden="true"></i> <span data-i18n-key="template.settingsModal.advanced.clearCache">Clear Extension Cache</span>
                     </button>
                 </div>
 
                 <!-- Reset FAB Positions Button -->
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rpg-border);">
                     <button id="rpg-reset-fab-positions" class="rpg-btn-reset-fab">
-                        <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Reset Button Positions
+                        <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> <span data-i18n-key="template.settingsModal.advanced.resetFabPositions">Reset Button Positions</span>
                     </button>
-                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;">
+                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.resetFabPositionsNote">
                         Resets all floating action buttons (toggle, refresh, debug) to default top-left positions. Useful if buttons are off-screen.
                     </small>
                 </div>

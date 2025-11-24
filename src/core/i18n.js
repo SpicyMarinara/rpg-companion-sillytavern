@@ -41,12 +41,34 @@ class Internationalization {
         if (!rootElement) {
             return;
         }
-        const elements = rootElement.querySelectorAll('[data-i18n-key]');
-        elements.forEach(element => {
+
+        // 1. Translate textContent
+        const textElements = rootElement.querySelectorAll('[data-i18n-key]');
+        textElements.forEach(element => {
             const key = element.dataset.i18nKey;
             const translation = this.getTranslation(key);
             if (translation) {
                 element.textContent = translation;
+            }
+        });
+
+        // 2. Translate title attribute
+        const titleElements = rootElement.querySelectorAll('[data-i18n-title]');
+        titleElements.forEach(element => {
+            const key = element.dataset.i18nTitle;
+            const translation = this.getTranslation(key);
+            if (translation) {
+                element.setAttribute('title', translation);
+            }
+        });
+
+        // 3. Translate aria-label attribute
+        const ariaLabelElements = rootElement.querySelectorAll('[data-i18n-aria-label]');
+        ariaLabelElements.forEach(element => {
+            const key = element.dataset.i18nAriaLabel;
+            const translation = this.getTranslation(key);
+            if (translation) {
+                element.setAttribute('aria-label', translation);
             }
         });
     }
