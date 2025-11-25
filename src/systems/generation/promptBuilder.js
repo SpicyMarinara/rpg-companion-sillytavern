@@ -5,7 +5,7 @@
 
 import { getContext } from '../../../../../../extensions.js';
 import { chat, getCurrentChatDetails, characters, this_chid } from '../../../../../../../script.js';
-import { selected_group, getGroupMembers } from '../../../../../../group-chats.js';
+import { selected_group, getGroupMembers, getGroupChat } from '../../../../../../group-chats.js';
 import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../core/state.js';
 
 // Type imports
@@ -20,19 +20,31 @@ export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, an
  * Gets character card information for current chat (handles both single and group chats)
  * @returns {string} Formatted character information
  */
-function getCharacterCardsInfo() {
+async function getCharacterCardsInfo() {
     let characterInfo = '';
 
     // Check if in group chat
     if (selected_group) {
+        const group = await getGroupChat(selected_group);
         const groupMembers = getGroupMembers(selected_group);
+
         if (groupMembers && groupMembers.length > 0) {
             characterInfo += 'Characters in this roleplay:\n\n';
 
-            groupMembers.forEach((member, index) => {
+            // Filter out disabled (muted) members
+            const disabledMembers = group?.disabled_members || [];
+            let characterIndex = 0;
+
+            groupMembers.forEach((member) => {
                 if (!member || !member.name) return;
 
-                characterInfo += `<character${index + 1}="${member.name}">\n`;
+                // Skip muted characters
+                if (member.avatar && disabledMembers.includes(member.avatar)) {
+                    return;
+                }
+
+                characterIndex++;
+                characterInfo += `<character${characterIndex}="${member.name}">\n`;
 
                 if (member.description) {
                     characterInfo += `${member.description}\n`;
@@ -42,7 +54,7 @@ function getCharacterCardsInfo() {
                     characterInfo += `${member.personality}\n`;
                 }
 
-                characterInfo += `</character${index + 1}>\n\n`;
+                characterInfo += `</character${characterIndex}>\n\n`;
             });
         }
     } else if (this_chid !== undefined && characters && characters[this_chid]) {
@@ -520,7 +532,7 @@ export function generateRPGPromptText() {
  *
  * @returns {Array<{role: string, content: string}>} Array of message objects for API
  */
-export function generateSeparateUpdatePrompt() {
+export async function generateSeparateUpdatePrompt() {
     const depth = extensionSettings.updateDepth;
     const userName = getContext().name1;
 
@@ -531,7 +543,7 @@ export function generateSeparateUpdatePrompt() {
     systemMessage += `You should maintain an objective tone.\n\n`;
 
     // Add character card information
-    const characterInfo = getCharacterCardsInfo();
+    const characterInfo = await getCharacterCardsInfo();
     if (characterInfo) {
         systemMessage += characterInfo + '\n\n';
     }

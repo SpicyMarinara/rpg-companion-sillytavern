@@ -1520,6 +1520,28 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     padding: 0.25em 0.75em 0.5em 0.75em;
     position: relative;
     z-index: 1;
+    overflow-y: auto;
+    max-height: 100%;
+    flex: 1;
+    min-height: 0;
+}
+
+.rpg-notebook-lines::-webkit-scrollbar {
+    width: 0.188rem;
+}
+
+.rpg-notebook-lines::-webkit-scrollbar-track {
+    background: var(--rpg-bg);
+    border-radius: 2px;
+}
+
+.rpg-notebook-lines::-webkit-scrollbar-thumb {
+    background: var(--rpg-highlight);
+    border-radius: 2px;
+}
+
+.rpg-notebook-lines::-webkit-scrollbar-thumb:hover {
+    background: var(--rpg-text);
 }
 
 .rpg-notebook-line {
