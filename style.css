@@ -1111,13 +1111,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Scrollable content wrapper inside info section */
 .rpg-info-content {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: 80px 60px minmax(min-content, auto);
     gap: 0.25em;
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 .rpg-info-content::-webkit-scrollbar {
@@ -1521,6 +1520,28 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     padding: 0.25em 0.75em 0.5em 0.75em;
     position: relative;
     z-index: 1;
+    overflow-y: auto;
+    max-height: 100%;
+    flex: 1;
+    min-height: 0;
+}
+
+.rpg-notebook-lines::-webkit-scrollbar {
+    width: 0.188rem;
+}
+
+.rpg-notebook-lines::-webkit-scrollbar-track {
+    background: var(--rpg-bg);
+    border-radius: 2px;
+}
+
+.rpg-notebook-lines::-webkit-scrollbar-thumb {
+    background: var(--rpg-highlight);
+    border-radius: 2px;
+}
+
+.rpg-notebook-lines::-webkit-scrollbar-thumb:hover {
+    background: var(--rpg-text);
 }
 
 .rpg-notebook-line {
@@ -1815,11 +1836,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
     width: 100%; /* Ensure cards take full width */
-    max-height: clamp(120px, 18vh, 200px);
+    max-height: clamp(200px, 18vh, 250px);
     box-sizing: border-box; /* Include padding and border in width calculation */
     flex-shrink: 0; /* Prevent cards from shrinking */
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;
     scrollbar-width: thin;
     scrollbar-color: var(--rpg-border) transparent;
 }
@@ -1983,7 +2003,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-character-stat .rpg-stat-name {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw) !important;
+    font-size: clamp(9px, 0.6vw, 0.7vw) !important;
     font-weight: 600 !important;
     white-space: nowrap !important;
 }
@@ -4813,6 +4833,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         border-bottom: 2px solid var(--SmartThemeBorderColor);
         margin: 0;
         padding: 0;
+        overflow-x: auto;
     }
 
     .rpg-mobile-tab {
@@ -4871,16 +4892,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     /* Info tab contains Info Box and Characters with 50/50 split */
     .rpg-mobile-tab-content[data-tab-content="info"].active {
-        flex-direction: column;
+        display: grid;
+        grid-template-rows: minmax(min-content, auto) minmax(min-content, 1fr);
         gap: 0;
         height: 100%;
         min-height: 0;
+        overflow-y: auto;
     }
 
     /* Info Box takes 50% of vertical space */
     .rpg-mobile-tab-content[data-tab-content="info"] > #rpg-info-box,
     .rpg-mobile-tab-content[data-tab-content="info"] > .rpg-info-section {
-        flex: 1 1 50% !important;
         min-height: 0;
         overflow-y: auto;
         padding-bottom: 16px;
@@ -4892,7 +4914,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Characters section takes 50% of vertical space */
     .rpg-mobile-tab-content[data-tab-content="info"] > #rpg-thoughts,
     .rpg-mobile-tab-content[data-tab-content="info"] > .rpg-thoughts-section {
-        flex: 1 1 50% !important;
         min-height: 0;
         overflow-y: auto;
         padding-bottom: 16px;
@@ -4915,14 +4936,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     /* Rows scale proportionally to fill Info Box */
     .rpg-dashboard-row-1 {
-        flex: 1.2 !important;  /* Slightly more space for 4 widgets */
         height: auto !important;  /* Remove desktop height constraint */
         display: flex !important;
         gap: 0.25em;
     }
 
     .rpg-dashboard-row-2 {
-        flex: 0.8 !important;  /* Less space for 1 widget */
         display: flex !important;
     }
 
@@ -4970,6 +4989,16 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     /* Recent Events widget - mobile text sizing */
+    .rpg-notebook-header {
+        gap: clamp(26px, 6vw, 30px);
+        padding: clamp(5px, 1.5vw, 7px) 0;
+    }
+
+    .rpg-notebook-ring {
+        width: clamp(8px, 1.25vw, 10px);
+        height: clamp(8px, 1.25vw, 10px);
+    }
+
     .rpg-notebook-title {
         font-size: clamp(9px, 2.2vw, 11px) !important;
     }
@@ -5211,6 +5240,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         transform: scale(0.95);
     }
 
+    .rpg-skills-section {
+        font-size: clamp(11px, 2.8vw, 14px);
+        line-height: 1.3;
+    }
+
     /* ========================================
        MOBILE THOUGHT ICON POSITIONING
        ======================================== */
@@ -5326,20 +5360,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     /* Make Recent Events section take less vertical space on mobile */
     .rpg-dashboard-row-3 {
-        flex: 0 0 auto !important;
-        max-height: 150px !important; /* Limit height on mobile */
+        max-height: 100px !important; /* Limit height on mobile */
     }
 
     /* Make the events widget scrollable if content exceeds height */
     .rpg-events-widget {
-        max-height: 150px !important;
-        overflow-y: auto !important;
+        max-height: 100px !important;
     }
 
     /* Compact the notebook lines container */
     .rpg-notebook-lines {
         padding: 0.25em 0.5em !important;
         gap: 0.1em !important;
+        min-height: 0;
     }
 
     /* Reduce spacing in notebook lines */
@@ -5419,6 +5452,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     .rpg-classic-stats {
         grid-column: 1 !important;
         grid-row: 4 !important;
+        min-height: 140px;
     }
 
     /* Make attributes grid single column too for readability */
@@ -5444,7 +5478,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* More padding for editable fields */
     .rpg-editable {
         padding: 0.5em;
-        min-height: 2.75rem;
+        min-height: 1.25rem;
     }
 
     /* Larger close buttons */
@@ -6581,5 +6615,3 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         font-size: clamp(14px, 3vw, 18px) !important;
     }
 }
-
-

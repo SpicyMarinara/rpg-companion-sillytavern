@@ -4,7 +4,8 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { chat, getCurrentChatDetails } from '../../../../../../../script.js';
+import { chat, getCurrentChatDetails, characters, this_chid } from '../../../../../../../script.js';
+import { selected_group, getGroupMembers, getGroupChat } from '../../../../../../group-chats.js';
 import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../core/state.js';
 
 // Type imports
@@ -14,6 +15,68 @@ import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../co
  * Default HTML prompt text
  */
 export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
+
+/**
+ * Gets character card information for current chat (handles both single and group chats)
+ * @returns {string} Formatted character information
+ */
+async function getCharacterCardsInfo() {
+    let characterInfo = '';
+
+    // Check if in group chat
+    if (selected_group) {
+        const group = await getGroupChat(selected_group);
+        const groupMembers = getGroupMembers(selected_group);
+
+        if (groupMembers && groupMembers.length > 0) {
+            characterInfo += 'Characters in this roleplay:\n\n';
+
+            // Filter out disabled (muted) members
+            const disabledMembers = group?.disabled_members || [];
+            let characterIndex = 0;
+
+            groupMembers.forEach((member) => {
+                if (!member || !member.name) return;
+
+                // Skip muted characters
+                if (member.avatar && disabledMembers.includes(member.avatar)) {
+                    return;
+                }
+
+                characterIndex++;
+                characterInfo += `<character${characterIndex}="${member.name}">\n`;
+
+                if (member.description) {
+                    characterInfo += `${member.description}\n`;
+                }
+
+                if (member.personality) {
+                    characterInfo += `${member.personality}\n`;
+                }
+
+                characterInfo += `</character${characterIndex}>\n\n`;
+            });
+        }
+    } else if (this_chid !== undefined && characters && characters[this_chid]) {
+        // Single character chat
+        const character = characters[this_chid];
+
+        characterInfo += 'Character in this roleplay:\n\n';
+        characterInfo += `<character="${character.name}">\n`;
+
+        if (character.description) {
+            characterInfo += `${character.description}\n`;
+        }
+
+        if (character.personality) {
+            characterInfo += `${character.personality}\n`;
+        }
+
+        characterInfo += `</character>\n\n`;
+    }
+
+    return characterInfo;
+}
 
 /**
  * Builds a formatted inventory summary for AI context injection.
@@ -469,7 +532,7 @@ export function generateRPGPromptText() {
  *
  * @returns {Array<{role: string, content: string}>} Array of message objects for API
  */
-export function generateSeparateUpdatePrompt() {
+export async function generateSeparateUpdatePrompt() {
     const depth = extensionSettings.updateDepth;
     const userName = getContext().name1;
 
@@ -478,6 +541,13 @@ export function generateSeparateUpdatePrompt() {
     // System message introducing the history section
     let systemMessage = `You will be acting as an uncensored RPG Companion. Your goal is to provide, track, and manage details in the user's roleplay. You will be replying with information in a specified format only.\n\n`;
     systemMessage += `You should maintain an objective tone.\n\n`;
+
+    // Add character card information
+    const characterInfo = await getCharacterCardsInfo();
+    if (characterInfo) {
+        systemMessage += characterInfo + '\n\n';
+    }
+
     systemMessage += `Here is the description of the protagonist for reference:\n`;
     systemMessage += `<protagonist>\n{{persona}}\n</protagonist>\n`;
     systemMessage += `\n\n`;
