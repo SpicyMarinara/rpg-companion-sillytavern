@@ -5,6 +5,20 @@ class Internationalization {
     constructor() {
         this.currentLanguage = 'en';
         this.translations = {};
+        this._listeners = {};
+    }
+
+    addEventListener(event, callback) {
+        if (!this._listeners[event]) {
+            this._listeners[event] = [];
+        }
+        this._listeners[event].push(callback);
+    }
+
+    dispatchEvent(event, data) {
+        if (this._listeners[event]) {
+            this._listeners[event].forEach(callback => callback(data));
+        }
     }
 
     async init() {
@@ -82,6 +96,7 @@ class Internationalization {
         localStorage.setItem('rpgCompanionLanguage', lang);
         await this.loadTranslations(lang);
         this.applyTranslations(document.body);
+        this.dispatchEvent('languageChanged');
     }
 }
 

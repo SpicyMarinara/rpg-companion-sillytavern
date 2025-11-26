@@ -36,15 +36,15 @@ export function setupDesktopTabs() {
         <div class="rpg-tabs-nav">
             <button class="rpg-tab-btn active" data-tab="status">
                 <i class="fa-solid fa-chart-simple"></i>
-                <span data-i18n-key="desktop.tab.status">Status</span>
+                <span data-i18n-key="global.status">Status</span>
             </button>
             <button class="rpg-tab-btn" data-tab="inventory">
                 <i class="fa-solid fa-box"></i>
-                <span data-i18n-key="desktop.tab.inventory">Inventory</span>
+                <span data-i18n-key="global.inventory">Inventory</span>
             </button>
             <button class="rpg-tab-btn" data-tab="quests">
                 <i class="fa-solid fa-scroll"></i>
-                <span data-i18n-key="desktop.tab.quests">Quests</span>
+                <span data-i18n-key="global.quests">Quests</span>
             </button>
         </div>
     `);

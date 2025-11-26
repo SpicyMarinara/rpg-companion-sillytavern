@@ -115,3 +115,6 @@ export function addDiceQuickReply() {
         // For now, the dice display in the sidebar serves as the button
     }
 }
+
+// Add event listener to update display on language change
+i18n.addEventListener('languageChanged', updateDiceDisplay);
