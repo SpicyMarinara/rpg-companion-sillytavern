@@ -110,6 +110,7 @@
     "template.mainPanel.clearLastRoll": "清除上次擲骰",
     "template.mainPanel.enableImmersiveHtml": "啟用沉浸式 HTML",
     "template.mainPanel.refreshRpgInfo": "刷新資訊",
+    "template.mainPanel.updating": "更新中...",
     "template.mainPanel.editTrackersButton": "追蹤器編輯",
     "template.mainPanel.settingsButton": "設定",
     "global.none": "None",

@@ -105,7 +105,8 @@ import {
     setupMobileTabs,
     removeMobileTabs,
     setupMobileKeyboardHandling,
-    setupContentEditableScrolling
+    setupContentEditableScrolling,
+    updateMobileTabLabels
 } from './src/systems/ui/mobile.js';
 import {
     setupDesktopTabs,
@@ -152,6 +153,24 @@ import {
 // Mobile UI functions removed - now imported from src/systems/ui/mobile.js
 // (setupMobileToggle, constrainFabToViewport, setupMobileTabs, removeMobileTabs,
 //  setupMobileKeyboardHandling, setupContentEditableScrolling)
+
+/**
+ * Updates UI elements that are dynamically generated and not covered by data-i18n-key.
+ */
+function updateDynamicLabels() {
+    // Update "Refresh RPG Info" button, but only if it's not disabled
+    const refreshBtn = document.getElementById('rpg-manual-update');
+    if (refreshBtn && !refreshBtn.disabled) {
+        const refreshText = i18n.getTranslation('template.mainPanel.refreshRpgInfo') || 'Refresh RPG Info';
+        refreshBtn.innerHTML = `<i class="fa-solid fa-sync"></i> ${refreshText}`;
+    }
+
+    // Update "Last Roll" label
+    updateDiceDisplay();
+
+    // Update mobile tab labels
+    updateMobileTabLabels();
+}
 
 /**
  * Adds the extension settings to the Extensions tab.
@@ -595,6 +614,9 @@ jQuery(async () => {
 
         // Initialize i18n early for the settings panel
         await i18n.init();
+
+        // Set up a central listener for language changes to update dynamic UI parts
+        i18n.addEventListener('languageChanged', updateDynamicLabels);
 
         // Add extension settings to Extensions tab
         try {

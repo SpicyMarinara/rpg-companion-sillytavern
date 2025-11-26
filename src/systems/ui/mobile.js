@@ -10,49 +10,46 @@ import { setupDesktopTabs, removeDesktopTabs } from './desktop.js';
 import { i18n } from '../../core/i18n.js';
 
 /**
+ * Updates the text labels of the mobile navigation tabs based on the current language.
+ */
+export function updateMobileTabLabels() {
+    const $tabs = $('.rpg-mobile-tabs .rpg-mobile-tab');
+    if ($tabs.length === 0) return;
+
+    $tabs.each(function() {
+        const $tab = $(this);
+        const tabName = $tab.data('tab');
+        let translationKey = '';
+
+        switch (tabName) {
+            case 'stats':
+                translationKey = 'global.status';
+                break;
+            case 'info':
+                translationKey = 'global.info';
+                break;
+            case 'inventory':
+                translationKey = 'global.inventory';
+                break;
+            case 'quests':
+                translationKey = 'global.quests';
+                break;
+        }
+
+        if (translationKey) {
+            const translation = i18n.getTranslation(translationKey);
+            if (translation) {
+                $tab.find('span').text(translation);
+            }
+        }
+    });
+}
+
+/**
  * Sets up the mobile toggle button (FAB) with drag functionality.
  * Handles touch/mouse events for positioning and panel toggling.
  */
 export function setupMobileToggle() {
-    /**
-     * Updates the text labels of the mobile navigation tabs based on the current language.
-     */
-    function updateMobileTabLabels() {
-        const $tabs = $('.rpg-mobile-tabs .rpg-mobile-tab');
-        if ($tabs.length === 0) return;
-
-        $tabs.each(function() {
-            const $tab = $(this);
-            const tabName = $tab.data('tab');
-            let translationKey = '';
-
-            switch (tabName) {
-                case 'stats':
-                    translationKey = 'global.status';
-                    break;
-                case 'info':
-                    translationKey = 'global.info';
-                    break;
-                case 'inventory':
-                    translationKey = 'global.inventory';
-                    break;
-                case 'quests':
-                    translationKey = 'global.quests';
-                    break;
-            }
-
-            if (translationKey) {
-                const translation = i18n.getTranslation(translationKey);
-                if (translation) {
-                    $tab.find('span').text(translation);
-                }
-            }
-        });
-    }
-
-    // Listen for language changes to update tab labels dynamically
-    i18n.addEventListener('languageChanged', updateMobileTabLabels);
-
     const $mobileToggle = $('#rpg-mobile-toggle');
     const $panel = $('#rpg-companion-panel');
     const $overlay = $('<div class="rpg-mobile-overlay"></div>');

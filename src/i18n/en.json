@@ -110,6 +110,7 @@
     "template.mainPanel.clearLastRoll": "Clear last roll",
     "template.mainPanel.enableImmersiveHtml": "Enable Immersive HTML",
     "template.mainPanel.refreshRpgInfo": "Refresh RPG Info",
+    "template.mainPanel.updating": "Updating...",
     "template.mainPanel.editTrackersButton": "Edit Trackers",
     "template.mainPanel.settingsButton": "Settings",
     "global.none": "None",
