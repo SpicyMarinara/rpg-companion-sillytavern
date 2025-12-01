@@ -241,15 +241,17 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += `Skills: [${skillFieldsText || 'Skill1, Skill2, etc.'}]\n`;
             }
 
-            // Add inventory format based on feature flag
-            if (FEATURE_FLAGS.useNewInventory) {
-                instructions += 'On Person: [Items currently carried/worn, or "None"]\n';
-                instructions += 'Stored - [Location Name]: [Items stored at this location]\n';
-                instructions += '(Add multiple "Stored - [Location]:" lines as needed for different storage locations)\n';
-                instructions += 'Assets: [Vehicles, property, major possessions, or "None"]\n';
-            } else {
-                // Legacy v1 format
-                instructions += 'Inventory: [Clothing/Armor, Inventory Items (list of important items, or "None")]\\n';
+            // Add inventory format based on feature flag - only if showInventory is enabled
+            if (extensionSettings.showInventory) {
+                if (FEATURE_FLAGS.useNewInventory) {
+                    instructions += 'On Person: [Items currently carried/worn, or "None"]\n';
+                    instructions += 'Stored - [Location Name]: [Items stored at this location]\n';
+                    instructions += '(Add multiple "Stored - [Location]:" lines as needed for different storage locations)\n';
+                    instructions += 'Assets: [Vehicles, property, major possessions, or "None"]\n';
+                } else {
+                    // Legacy v1 format
+                    instructions += 'Inventory: [Clothing/Armor, Inventory Items (list of important items, or "None")]\\n';
+                }
             }
 
             // Add quests section

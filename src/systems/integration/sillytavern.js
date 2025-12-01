@@ -73,6 +73,7 @@ export function commitTrackerData() {
 /**
  * Event handler for when the user sends a message.
  * Sets the flag to indicate this is NOT a swipe.
+ * In separate mode with auto-update disabled, commits the displayed tracker data.
  */
 export function onMessageSent() {
     if (!extensionSettings.enabled) return;
@@ -80,6 +81,21 @@ export function onMessageSent() {
     // User sent a new message - NOT a swipe
     setLastActionWasSwipe(false);
     // console.log('[RPG Companion] 🟢 EVENT: onMessageSent - lastActionWasSwipe =', lastActionWasSwipe);
+
+    // In separate mode with auto-update disabled, commit displayed tracker when user sends a message
+    if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
+        // Commit whatever is currently displayed in lastGeneratedData
+        if (lastGeneratedData.userStats || lastGeneratedData.infoBox || lastGeneratedData.characterThoughts) {
+            committedTrackerData.userStats = lastGeneratedData.userStats;
+            committedTrackerData.infoBox = lastGeneratedData.infoBox;
+            committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+
+            // Save to chat metadata
+            saveChatData();
+
+            // console.log('[RPG Companion] 💾 Committed displayed tracker on user message (auto-update disabled)');
+        }
+    }
 }
 
 /**

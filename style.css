@@ -1116,7 +1116,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0.25em;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .rpg-info-content::-webkit-scrollbar {
@@ -1449,7 +1450,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     min-height: 0;
-    overflow: visible;
+    overflow: hidden;
     position: relative;
 }
 
@@ -1521,9 +1522,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     position: relative;
     z-index: 1;
     overflow-y: auto;
-    max-height: 100%;
-    flex: 1;
-    min-height: 0;
+    flex: 1 1 auto;
 }
 
 .rpg-notebook-lines::-webkit-scrollbar {
@@ -1906,13 +1905,36 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     flex-direction: column;
     gap: 0;
+    overflow: hidden;
 }
 
 .rpg-character-info {
     display: flex;
     flex-direction: column;
     gap: clamp(3px, 0.5vh, 5px);
-    overflow: hidden; /* Prevent content from overflowing */
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rpg-border) transparent;
+}
+
+.rpg-character-info::-webkit-scrollbar {
+    width: 4px;
+}
+
+.rpg-character-info::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rpg-character-info::-webkit-scrollbar-thumb {
+    background: var(--rpg-border);
+    border-radius: 2px;
+}
+
+.rpg-character-info::-webkit-scrollbar-thumb:hover {
+    background: var(--rpg-highlight);
 }
 
 /* Character header with emoji and name */
