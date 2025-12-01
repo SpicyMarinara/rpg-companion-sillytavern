@@ -2,7 +2,7 @@
  * Tracker Editor Module
  * Provides UI for customizing tracker configurations
  */
-
+import { i18n } from '../../core/i18n.js';
 import { extensionSettings } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
@@ -205,7 +205,7 @@ function renderUserStatsTab() {
     let html = '<div class="rpg-editor-section">';
 
     // Custom Stats section
-    html += '<h4><i class="fa-solid fa-heart-pulse"></i> Custom Stats</h4>';
+    html += `<h4><i class="fa-solid fa-heart-pulse"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.customStatsTitle')}</h4>`;
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-stats-list">';
 
     config.customStats.forEach((stat, index) => {
@@ -219,25 +219,25 @@ function renderUserStatsTab() {
     });
 
     html += '</div>';
-    html += '<button class="rpg-btn-secondary" id="rpg-add-stat"><i class="fa-solid fa-plus"></i> Add Custom Stat</button>';
+    html += `<button class="rpg-btn-secondary" id="rpg-add-stat"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.addCustomStatButton')}</button>`;
 
     // RPG Attributes section
-    html += '<h4><i class="fa-solid fa-dice-d20"></i> RPG Attributes</h4>';
+    html += `<h4><i class="fa-solid fa-dice-d20"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.rpgAttributesTitle')}</h4>`;
 
     // Enable/disable toggle for entire RPG Attributes section
     const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-show-rpg-attrs" ${showRPGAttributes ? 'checked' : ''}>`;
-    html += '<label for="rpg-show-rpg-attrs">Enable RPG Attributes Section</label>';
+    html += `<label for="rpg-show-rpg-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableRpgAttributes')}</label>`;
     html += '</div>';
 
     // Always send attributes toggle
     const alwaysSendAttributes = config.alwaysSendAttributes !== undefined ? config.alwaysSendAttributes : false;
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-always-send-attrs" ${alwaysSendAttributes ? 'checked' : ''}>`;
-    html += '<label for="rpg-always-send-attrs">Always Include Attributes in Prompt</label>';
+    html += `<label for="rpg-always-send-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributes')}</label>`;
     html += '</div>';
-    html += '<small class="rpg-editor-note">If disabled, attributes are only sent when a dice roll is active.</small>';
+    html += `<small class="rpg-editor-note">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributesNote')}</small>`;
 
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
 
@@ -268,34 +268,34 @@ function renderUserStatsTab() {
     });
 
     html += '</div>';
-    html += '<button class="rpg-btn-secondary" id="rpg-add-attr"><i class="fa-solid fa-plus"></i> Add Attribute</button>';
+    html += `<button class="rpg-btn-secondary" id="rpg-add-attr"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.addAttributeButton')}</button>`;
 
     // Status Section
-    html += '<h4><i class="fa-solid fa-face-smile"></i> Status Section</h4>';
+    html += `<h4><i class="fa-solid fa-face-smile"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.statusSectionTitle')}</h4>`;
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-status-enabled" ${config.statusSection.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-status-enabled">Enable Status Section</label>';
+    html += `<label for="rpg-status-enabled">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableStatusSection')}</label>`;
     html += '</div>';
 
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-mood-emoji" ${config.statusSection.showMoodEmoji ? 'checked' : ''}>`;
-    html += '<label for="rpg-mood-emoji">Show Mood Emoji</label>';
+    html += `<label for="rpg-mood-emoji">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.showMoodEmoji')}</label>`;
     html += '</div>';
 
-    html += '<label>Status Fields (comma-separated):</label>';
+    html += `<label>${i18n.getTranslation('template.trackerEditorModal.userStatsTab.statusFieldsLabel')}</label>`;
     html += `<input type="text" id="rpg-status-fields" value="${config.statusSection.customFields.join(', ')}" class="rpg-text-input" placeholder="e.g., Conditions, Appearance">`;
 
     // Skills Section
-    html += '<h4><i class="fa-solid fa-star"></i> Skills Section</h4>';
+    html += `<h4><i class="fa-solid fa-star"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsSectionTitle')}</h4>`;
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-skills-enabled" ${config.skillsSection.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-skills-enabled">Enable Skills Section</label>';
+    html += `<label for="rpg-skills-enabled">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableSkillsSection')}</label>`;
     html += '</div>';
 
-    html += '<label>Skills Label:</label>';
+    html += `<label>${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsLabelLabel')}</label>`;
     html += `<input type="text" id="rpg-skills-label" value="${config.skillsSection.label}" class="rpg-text-input" placeholder="Skills">`;
 
-    html += '<label>Skills List (comma-separated):</label>';
+    html += `<label>${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsListLabel')}</label>`;
     const skillFields = config.skillsSection.customFields || [];
     html += `<input type="text" id="rpg-skills-fields" value="${skillFields.join(', ')}" class="rpg-text-input" placeholder="e.g., Stealth, Persuasion, Combat">`;
 
@@ -436,12 +436,12 @@ function renderInfoBoxTab() {
     const config = extensionSettings.trackerConfig.infoBox;
     let html = '<div class="rpg-editor-section">';
 
-    html += '<h4><i class="fa-solid fa-info-circle"></i> Widgets</h4>';
+    html += `<h4><i class="fa-solid fa-info-circle"></i> ${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.widgetsTitle')}</h4>`;
 
     // Date widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-date" ${config.widgets.date.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-widget-date">Date</label>';
+    html += `<label for="rpg-widget-date">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.dateWidget')}</label>`;
     html += '<select id="rpg-date-format" class="rpg-select-mini">';
     html += `<option value="Weekday, Month, Year" ${config.widgets.date.format === 'Weekday, Month, Year' ? 'selected' : ''}>Weekday, Month, Year</option>`;
     html += `<option value="dd/mm/yyyy" ${config.widgets.date.format === 'dd/mm/yyyy' ? 'selected' : ''}>dd/mm/yyyy</option>`;
@@ -453,13 +453,13 @@ function renderInfoBoxTab() {
     // Weather widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-weather" ${config.widgets.weather.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-widget-weather">Weather</label>';
+    html += `<label for="rpg-widget-weather">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.weatherWidget')}</label>`;
     html += '</div>';
 
     // Temperature widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-temperature" ${config.widgets.temperature.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-widget-temperature">Temperature</label>';
+    html += `<label for="rpg-widget-temperature">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.temperatureWidget')}</label>`;
     html += '<div class="rpg-radio-group">';
     html += `<label><input type="radio" name="temp-unit" value="C" ${config.widgets.temperature.unit === 'C' ? 'checked' : ''}> °C</label>`;
     html += `<label><input type="radio" name="temp-unit" value="F" ${config.widgets.temperature.unit === 'F' ? 'checked' : ''}> °F</label>`;
@@ -469,19 +469,19 @@ function renderInfoBoxTab() {
     // Time widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-time" ${config.widgets.time.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-widget-time">Time</label>';
+    html += `<label for="rpg-widget-time">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.timeWidget')}</label>`;
     html += '</div>';
 
     // Location widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-location" ${config.widgets.location.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-widget-location">Location</label>';
+    html += `<label for="rpg-widget-location">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.locationWidget')}</label>`;
     html += '</div>';
 
     // Recent Events widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-events" ${config.widgets.recentEvents.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-widget-events">Recent Events</label>';
+    html += `<label for="rpg-widget-events">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.recentEventsWidget')}</label>`;
     html += '</div>';
 
     html += '</div>';
@@ -537,8 +537,8 @@ function renderPresentCharactersTab() {
     let html = '<div class="rpg-editor-section">';
 
     // Relationship Fields Section
-    html += '<h4><i class="fa-solid fa-heart"></i> Relationship Status Fields</h4>';
-    html += '<p class="rpg-editor-hint">Define relationship types with corresponding emojis shown on character portraits</p>';
+    html += `<h4><i class="fa-solid fa-heart"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.relationshipStatusTitle')}</h4>`;
+    html += `<p class="rpg-editor-hint">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.relationshipStatusHint')}</p>`;
 
     html += '<div class="rpg-relationship-mapping-list" id="rpg-relationship-mapping-list">';
     // Show existing relationships as field → emoji pairs
@@ -561,11 +561,11 @@ function renderPresentCharactersTab() {
         `;
     }
     html += '</div>';
-    html += '<button class="rpg-btn-secondary" id="rpg-add-relationship"><i class="fa-solid fa-plus"></i> New Relationship</button>';
+    html += `<button class="rpg-btn-secondary" id="rpg-add-relationship"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.newRelationshipButton')}</button>`;
 
     // Custom Fields Section
-    html += '<h4><i class="fa-solid fa-list"></i> Appearance/Demeanor Fields</h4>';
-    html += '<p class="rpg-editor-hint">Fields shown below character name, separated by |</p>';
+    html += `<h4><i class="fa-solid fa-list"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.appearanceDemeanorTitle')}</h4>`;
+    html += `<p class="rpg-editor-hint">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.appearanceDemeanorHint')}</p>`;
 
     html += '<div class="rpg-editor-fields-list" id="rpg-editor-fields-list">';
 
@@ -585,34 +585,34 @@ function renderPresentCharactersTab() {
     });
 
     html += '</div>';
-    html += '<button class="rpg-btn-secondary" id="rpg-add-field"><i class="fa-solid fa-plus"></i> Add Custom Field</button>';
+    html += `<button class="rpg-btn-secondary" id="rpg-add-field"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.addCustomFieldButton')}</button>`;
 
     // Thoughts Section
-    html += '<h4><i class="fa-solid fa-comment-dots"></i> Thoughts Configuration</h4>';
+    html += `<h4><i class="fa-solid fa-comment-dots"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.thoughtsConfigTitle')}</h4>`;
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-thoughts-enabled" ${config.thoughts?.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-thoughts-enabled">Enable Character Thoughts</label>';
+    html += `<label for="rpg-thoughts-enabled">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.enableCharacterThoughts')}</label>`;
     html += '</div>';
 
     html += '<div class="rpg-thoughts-config">';
     html += '<div class="rpg-editor-input-group">';
-    html += '<label>Thoughts Label:</label>';
+    html += `<label>${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.thoughtsLabelLabel')}</label>`;
     html += `<input type="text" id="rpg-thoughts-name" value="${config.thoughts?.name || 'Thoughts'}" placeholder="e.g., Thoughts, Inner Voice, Feelings">`;
     html += '</div>';
     html += '<div class="rpg-editor-input-group">';
-    html += '<label>AI Instruction:</label>';
+    html += `<label>${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.aiInstructionLabel')}</label>`;
     html += `<input type="text" id="rpg-thoughts-description" value="${config.thoughts?.description || 'Internal monologue (in first person POV, up to three sentences long)'}" placeholder="Description of what to generate">`;
     html += '</div>';
     html += '</div>';
 
     // Character Stats
-    html += '<h4><i class="fa-solid fa-chart-bar"></i> Character Stats</h4>';
+    html += `<h4><i class="fa-solid fa-chart-bar"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.characterStatsTitle')}</h4>`;
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-char-stats-enabled" ${config.characterStats?.enabled ? 'checked' : ''}>`;
-    html += '<label for="rpg-char-stats-enabled">Track Character Stats</label>';
+    html += `<label for="rpg-char-stats-enabled">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.trackCharacterStats')}</label>`;
     html += '</div>';
 
-    html += '<p class="rpg-editor-hint">Create stats to track for each character (displayed as colored bars)</p>';
+    html += `<p class="rpg-editor-hint">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.characterStatsHint')}</p>`;
     html += '<div class="rpg-editor-fields-list" id="rpg-char-stats-list">';
 
     const charStats = config.characterStats?.customStats || [];
@@ -627,7 +627,7 @@ function renderPresentCharactersTab() {
     });
 
     html += '</div>';
-    html += '<button class="rpg-btn-secondary" id="rpg-add-char-stat"><i class="fa-solid fa-plus"></i> Add Character Stat</button>';
+    html += `<button class="rpg-btn-secondary" id="rpg-add-char-stat"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.addCharacterStatButton')}</button>`;
 
     html += '</div>';
 

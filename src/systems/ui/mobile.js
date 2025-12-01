@@ -7,6 +7,43 @@ import { extensionSettings } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 import { closeMobilePanelWithAnimation, updateCollapseToggleIcon } from './layout.js';
 import { setupDesktopTabs, removeDesktopTabs } from './desktop.js';
+import { i18n } from '../../core/i18n.js';
+
+/**
+ * Updates the text labels of the mobile navigation tabs based on the current language.
+ */
+export function updateMobileTabLabels() {
+    const $tabs = $('.rpg-mobile-tabs .rpg-mobile-tab');
+    if ($tabs.length === 0) return;
+
+    $tabs.each(function() {
+        const $tab = $(this);
+        const tabName = $tab.data('tab');
+        let translationKey = '';
+
+        switch (tabName) {
+            case 'stats':
+                translationKey = 'global.status';
+                break;
+            case 'info':
+                translationKey = 'global.info';
+                break;
+            case 'inventory':
+                translationKey = 'global.inventory';
+                break;
+            case 'quests':
+                translationKey = 'global.quests';
+                break;
+        }
+
+        if (translationKey) {
+            const translation = i18n.getTranslation(translationKey);
+            if (translation) {
+                $tab.find('span').text(translation);
+            }
+        }
+    });
+}
 
 /**
  * Sets up the mobile toggle button (FAB) with drag functionality.
@@ -547,19 +584,19 @@ export function setupMobileTabs() {
 
     // Tab 1: Stats (User Stats only)
     if (hasStats) {
-        tabs.push('<button class="rpg-mobile-tab active" data-tab="stats"><i class="fa-solid fa-chart-bar"></i><span>Stats</span></button>');
+        tabs.push('<button class="rpg-mobile-tab active" data-tab="stats"><i class="fa-solid fa-chart-bar"></i><span>' + i18n.getTranslation('global.status') + '</span></button>');
     }
     // Tab 2: Info (Info Box + Character Thoughts)
     if (hasInfo) {
-        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="info"><i class="fa-solid fa-book"></i><span>Info</span></button>');
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="info"><i class="fa-solid fa-book"></i><span>' + i18n.getTranslation('global.info') + '</span></button>');
     }
     // Tab 3: Inventory
     if (hasInventory) {
-        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="inventory"><i class="fa-solid fa-box"></i><span>Inventory</span></button>');
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="inventory"><i class="fa-solid fa-box"></i><span>' + i18n.getTranslation('global.inventory') + '</span></button>');
     }
     // Tab 4: Quests
     if (hasQuests) {
-        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="quests"><i class="fa-solid fa-scroll"></i><span>Quests</span></button>');
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="quests"><i class="fa-solid fa-scroll"></i><span>' + i18n.getTranslation('global.quests') + '</span></button>');
     }
 
     const $tabNav = $('<div class="rpg-mobile-tabs">' + tabs.join('') + '</div>');

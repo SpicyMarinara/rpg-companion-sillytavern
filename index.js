@@ -5,6 +5,7 @@ import { power_user } from '../../../power-user.js';
 
 // Core modules
 import { extensionName, extensionFolderPath } from './src/core/config.js';
+import { i18n } from './src/core/i18n.js';
 import {
     extensionSettings,
     lastGeneratedData,
@@ -104,7 +105,8 @@ import {
     setupMobileTabs,
     removeMobileTabs,
     setupMobileKeyboardHandling,
-    setupContentEditableScrolling
+    setupContentEditableScrolling,
+    updateMobileTabLabels
 } from './src/systems/ui/mobile.js';
 import {
     setupDesktopTabs,
@@ -153,34 +155,29 @@ import {
 //  setupMobileKeyboardHandling, setupContentEditableScrolling)
 
 /**
+ * Updates UI elements that are dynamically generated and not covered by data-i18n-key.
+ */
+function updateDynamicLabels() {
+    // Update "Refresh RPG Info" button, but only if it's not disabled
+    const refreshBtn = document.getElementById('rpg-manual-update');
+    if (refreshBtn && !refreshBtn.disabled) {
+        const refreshText = i18n.getTranslation('template.mainPanel.refreshRpgInfo') || 'Refresh RPG Info';
+        refreshBtn.innerHTML = `<i class="fa-solid fa-sync"></i> ${refreshText}`;
+    }
+
+    // Update "Last Roll" label
+    updateDiceDisplay();
+
+    // Update mobile tab labels
+    updateMobileTabLabels();
+}
+
+/**
  * Adds the extension settings to the Extensions tab.
  */
-function addExtensionSettings() {
-    const settingsHtml = `
-        <div class="inline-drawer">
-            <div class="inline-drawer-toggle inline-drawer-header">
-                <b><i class="fa-solid fa-dice-d20"></i> RPG Companion</b>
-                <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
-            </div>
-            <div class="inline-drawer-content">
-                <label class="checkbox_label" for="rpg-extension-enabled">
-                    <input type="checkbox" id="rpg-extension-enabled" />
-                    <span>Enable RPG Companion</span>
-                </label>
-                <small class="notes">Toggle to enable/disable the RPG Companion extension. Configure additional settings within the panel itself.</small>
-
-                <div style="margin-top: 10px; display: flex; gap: 10px;">
-                    <a href="https://discord.com/invite/KdAkTg94ME" target="_blank" class="menu_button" style="flex: 1; text-align: center; text-decoration: none;">
-                        <i class="fa-brands fa-discord"></i> Discord
-                    </a>
-                    <a href="https://ko-fi.com/marinara_spaghetti" target="_blank" class="menu_button" style="flex: 1; text-align: center; text-decoration: none;">
-                        <i class="fa-solid fa-heart"></i> Support Creator
-                    </a>
-                </div>
-            </div>
-        </div>
-    `;
-
+async function addExtensionSettings() {
+    // Load the HTML template for the settings
+    const settingsHtml = await renderExtensionTemplateAsync(extensionName, 'settings');
     $('#extensions_settings2').append(settingsHtml);
 
     // Set up the enable/disable toggle
@@ -210,12 +207,27 @@ function addExtensionSettings() {
         // Update Memory Recollection button visibility
         updateMemoryRecollectionButton();
     });
+
+    // Set up language selector
+    const langSelect = $('#rpg-companion-language-select');
+    if (langSelect.length) {
+        langSelect.val(i18n.currentLanguage);
+        langSelect.on('change', async function() {
+            const selectedLanguage = $(this).val();
+            await i18n.setLanguage(selectedLanguage);
+            // We need to re-apply translations to the settings panel specifically
+            i18n.applyTranslations(document.getElementById('extensions_settings2'));
+        });
+    }
 }
 
 /**
  * Initializes the UI for the extension.
  */
 async function initUI() {
+    // Initialize i18n
+    await i18n.init();
+
     // Only initialize UI if extension is enabled
     if (!extensionSettings.enabled) {
         console.log('[RPG Companion] Extension disabled - skipping UI initialization');
@@ -248,6 +260,9 @@ async function initUI() {
     setThoughtsContainer($('#rpg-thoughts'));
     setInventoryContainer($('#rpg-inventory'));
     setQuestsContainer($('#rpg-quests'));
+
+    // Re-apply translations to the entire body to catch all new elements from the template
+    i18n.applyTranslations(document.body);
 
     // Set up event listeners (enable/disable is handled in Extensions tab)
     $('#rpg-toggle-auto-update').on('change', function() {
@@ -597,9 +612,15 @@ jQuery(async () => {
             console.error('[RPG Companion] Settings load failed, continuing with defaults:', error);
         }
 
+        // Initialize i18n early for the settings panel
+        await i18n.init();
+
+        // Set up a central listener for language changes to update dynamic UI parts
+        i18n.addEventListener('languageChanged', updateDynamicLabels);
+
         // Add extension settings to Extensions tab
         try {
-            addExtensionSettings();
+            await addExtensionSettings();
         } catch (error) {
             console.error('[RPG Companion] Failed to add extension settings tab:', error);
             // Don't throw - extension can still work without settings tab

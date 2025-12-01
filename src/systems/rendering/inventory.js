@@ -7,6 +7,7 @@ import { extensionSettings, $inventoryContainer } from '../../core/state.js';
 import { getInventoryRenderOptions, restoreFormStates } from '../interaction/inventoryActions.js';
 import { updateInventoryItem } from '../interaction/inventoryEdit.js';
 import { parseItems } from '../../utils/itemParser.js';
+import { i18n } from '../../core/i18n.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -30,14 +31,14 @@ export function getLocationId(locationName) {
 export function renderInventorySubTabs(activeTab = 'onPerson') {
     return `
         <div class="rpg-inventory-subtabs">
-            <button class="rpg-inventory-subtab ${activeTab === 'onPerson' ? 'active' : ''}" data-tab="onPerson">
-                On Person
+            <button class="rpg-inventory-subtab ${activeTab === 'onPerson' ? 'active' : ''}" data-tab="onPerson" data-i18n-key="inventory.section.onPerson">
+                ${i18n.getTranslation('inventory.section.onPerson')}
             </button>
-            <button class="rpg-inventory-subtab ${activeTab === 'stored' ? 'active' : ''}" data-tab="stored">
-                Stored
+            <button class="rpg-inventory-subtab ${activeTab === 'stored' ? 'active' : ''}" data-tab="stored" data-i18n-key="inventory.section.stored">
+                ${i18n.getTranslation('inventory.section.stored')}
             </button>
-            <button class="rpg-inventory-subtab ${activeTab === 'assets' ? 'active' : ''}" data-tab="assets">
-                Assets
+            <button class="rpg-inventory-subtab ${activeTab === 'assets' ? 'active' : ''}" data-tab="assets" data-i18n-key="inventory.section.assets">
+                ${i18n.getTranslation('inventory.section.assets')}
             </button>
         </div>
     `;
@@ -54,7 +55,7 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
 
     let itemsHtml = '';
     if (items.length === 0) {
-        itemsHtml = '<div class="rpg-inventory-empty">No items carried</div>';
+        itemsHtml = `<div class="rpg-inventory-empty" data-i18n-key="inventory.onPerson.empty">${i18n.getTranslation('inventory.onPerson.empty')}</div>`;
     } else {
         if (viewMode === 'grid') {
             // Grid view: card-style items
@@ -84,30 +85,30 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
     return `
         <div class="rpg-inventory-section" data-section="onPerson">
             <div class="rpg-inventory-header">
-                <h4>Items Currently Carried</h4>
+                <h4 data-i18n-key="inventory.onPerson.title">${i18n.getTranslation('inventory.onPerson.title')}</h4>
                 <div class="rpg-inventory-header-actions">
                     <div class="rpg-view-toggle">
-                        <button class="rpg-view-btn ${viewMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="onPerson" data-view="list" title="List view">
+                        <button class="rpg-view-btn ${viewMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="onPerson" data-view="list" title="${i18n.getTranslation('global.listView')}">
                             <i class="fa-solid fa-list"></i>
                         </button>
-                        <button class="rpg-view-btn ${viewMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="onPerson" data-view="grid" title="Grid view">
+                        <button class="rpg-view-btn ${viewMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="onPerson" data-view="grid" title="${i18n.getTranslation('global.gridView')}">
                             <i class="fa-solid fa-th"></i>
                         </button>
                     </div>
                     <button class="rpg-inventory-add-btn" data-action="add-item" data-field="onPerson" title="Add new item">
-                        <i class="fa-solid fa-plus"></i> Add Item
+                        <i class="fa-solid fa-plus"></i> <span data-i18n-key="inventory.onPerson.addItemButton">${i18n.getTranslation('inventory.onPerson.addItemButton')}</span>
                     </button>
                 </div>
             </div>
             <div class="rpg-inventory-content">
                 <div class="rpg-inline-form" id="rpg-add-item-form-onPerson" style="display: none;">
-                    <input type="text" class="rpg-inline-input" id="rpg-new-item-onPerson" placeholder="Enter item name..." />
+                    <input type="text" class="rpg-inline-input" id="rpg-new-item-onPerson" placeholder="${i18n.getTranslation('inventory.onPerson.addItemPlaceholder')}" data-i18n-placeholder-key="inventory.onPerson.addItemPlaceholder" />
                     <div class="rpg-inline-buttons">
                         <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-item" data-field="onPerson">
-                            <i class="fa-solid fa-times"></i> Cancel
+                            <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
                         </button>
                         <button class="rpg-inline-btn rpg-inline-save" data-action="save-add-item" data-field="onPerson">
-                            <i class="fa-solid fa-check"></i> Add
+                            <i class="fa-solid fa-check"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
                         </button>
                     </div>
                 </div>
@@ -132,30 +133,30 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
     let html = `
         <div class="rpg-inventory-section" data-section="stored">
             <div class="rpg-inventory-header">
-                <h4>Storage Locations</h4>
+                <h4 data-i18n-key="inventory.stored.title">${i18n.getTranslation('inventory.stored.title')}</h4>
                 <div class="rpg-inventory-header-actions">
                     <div class="rpg-view-toggle">
-                        <button class="rpg-view-btn ${viewMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="stored" data-view="list" title="List view">
+                        <button class="rpg-view-btn ${viewMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="stored" data-view="list" title="${i18n.getTranslation('global.listView')}">
                             <i class="fa-solid fa-list"></i>
                         </button>
-                        <button class="rpg-view-btn ${viewMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="stored" data-view="grid" title="Grid view">
+                        <button class="rpg-view-btn ${viewMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="stored" data-view="grid" title="${i18n.getTranslation('global.gridView')}">
                             <i class="fa-solid fa-th"></i>
                         </button>
                     </div>
                     <button class="rpg-inventory-add-btn" data-action="add-location" title="Add new storage location">
-                        <i class="fa-solid fa-plus"></i> Add Location
+                        <i class="fa-solid fa-plus"></i> <span data-i18n-key="inventory.stored.addLocationButton">${i18n.getTranslation('inventory.stored.addLocationButton')}</span>
                     </button>
                 </div>
             </div>
             <div class="rpg-inventory-content">
                 <div class="rpg-inline-form" id="rpg-add-location-form" style="display: none;">
-                    <input type="text" class="rpg-inline-input" id="rpg-new-location-name" placeholder="Enter location name..." />
+                    <input type="text" class="rpg-inline-input" id="rpg-new-location-name" placeholder="${i18n.getTranslation('inventory.stored.addLocationPlaceholder')}" data-i18n-placeholder-key="inventory.stored.addLocationPlaceholder" />
                     <div class="rpg-inline-buttons">
                         <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-location">
-                            <i class="fa-solid fa-times"></i> Cancel
+                            <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
                         </button>
                         <button class="rpg-inline-btn rpg-inline-save" data-action="save-add-location">
-                            <i class="fa-solid fa-check"></i> Save
+                            <i class="fa-solid fa-check"></i> <span data-i18n-key="inventory.stored.saveButton">${i18n.getTranslation('inventory.stored.saveButton')}</span>
                         </button>
                     </div>
                 </div>
@@ -163,8 +164,8 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
 
     if (locations.length === 0) {
         html += `
-                <div class="rpg-inventory-empty">
-                    No storage locations yet. Click "Add Location" to create one.
+                <div class="rpg-inventory-empty" data-i18n-key="inventory.stored.empty">
+                    ${i18n.getTranslation('inventory.stored.empty')}
                 </div>
         `;
     } else {
@@ -176,7 +177,7 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
 
             let itemsHtml = '';
             if (items.length === 0) {
-                itemsHtml = '<div class="rpg-inventory-empty">No items stored here</div>';
+                itemsHtml = `<div class="rpg-inventory-empty" data-i18n-key="inventory.stored.noItems">${i18n.getTranslation('inventory.stored.noItems')}</div>`;
             } else {
                 if (viewMode === 'grid') {
                     // Grid view: card-style items
@@ -218,13 +219,13 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
                     </div>
                     <div class="rpg-storage-content" ${isCollapsed ? 'style="display:none;"' : ''}>
                         <div class="rpg-inline-form" id="rpg-add-item-form-stored-${locationId}" style="display: none;">
-                            <input type="text" class="rpg-inline-input rpg-location-item-input" data-location="${escapeHtml(location)}" placeholder="Enter item name..." />
+                            <input type="text" class="rpg-inline-input rpg-location-item-input" data-location="${escapeHtml(location)}" placeholder="${i18n.getTranslation('inventory.stored.addItemToLocationPlaceholder')}" data-i18n-placeholder-key="inventory.stored.addItemToLocationPlaceholder" />
                             <div class="rpg-inline-buttons">
                                 <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-item" data-field="stored" data-location="${escapeHtml(location)}">
-                                    <i class="fa-solid fa-times"></i> Cancel
+                                    <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
                                 </button>
                                 <button class="rpg-inline-btn rpg-inline-save" data-action="save-add-item" data-field="stored" data-location="${escapeHtml(location)}">
-                                    <i class="fa-solid fa-check"></i> Add
+                                    <i class="fa-solid fa-check"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
                                 </button>
                             </div>
                         </div>
@@ -233,18 +234,18 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
                         </div>
                         <div class="rpg-storage-add-item-container">
                             <button class="rpg-inventory-add-btn" data-action="add-item" data-field="stored" data-location="${escapeHtml(location)}" title="Add item to this location">
-                                <i class="fa-solid fa-plus"></i> Add Item
+                                <i class="fa-solid fa-plus"></i> <span data-i18n-key="inventory.stored.addItemButton">${i18n.getTranslation('inventory.stored.addItemButton')}</span>
                             </button>
                         </div>
                     </div>
                     <div class="rpg-inline-confirmation" id="rpg-remove-confirm-${locationId}" style="display: none;">
-                        <p>Remove "${escapeHtml(location)}"? This will delete all items stored there.</p>
+                        <p>${i18n.getTranslation('inventory.stored.confirmRemoveLocationMessage', { location: escapeHtml(location) })}</p>
                         <div class="rpg-inline-buttons">
                             <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-remove-location" data-location="${escapeHtml(location)}">
-                                <i class="fa-solid fa-times"></i> Cancel
+                                <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
                             </button>
                             <button class="rpg-inline-btn rpg-inline-confirm" data-action="confirm-remove-location" data-location="${escapeHtml(location)}">
-                                <i class="fa-solid fa-check"></i> Confirm
+                                <i class="fa-solid fa-check"></i> <span data-i18n-key="inventory.stored.confirmRemoveLocationConfirmButton">${i18n.getTranslation('inventory.stored.confirmRemoveLocationConfirmButton')}</span>
                             </button>
                         </div>
                     </div>
@@ -272,7 +273,7 @@ export function renderAssetsView(assets, viewMode = 'list') {
 
     let itemsHtml = '';
     if (items.length === 0) {
-        itemsHtml = '<div class="rpg-inventory-empty">No assets owned</div>';
+        itemsHtml = `<div class="rpg-inventory-empty" data-i18n-key="inventory.assets.empty">${i18n.getTranslation('inventory.assets.empty')}</div>`;
     } else {
         if (viewMode === 'grid') {
             // Grid view: card-style items
@@ -289,7 +290,7 @@ export function renderAssetsView(assets, viewMode = 'list') {
             itemsHtml = items.map((item, index) => `
                 <div class="rpg-item-row" data-field="assets" data-index="${index}">
                     <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
-                    <button class="rpg-item-remove" data-action="remove-item" data-field="assets" data-index="${index}" title="Remove asset">
+                    <button class="rpg-item-remove" data-action="remove-item" data-field="assets" data-index="${index}" title="${i18n.getTranslation('inventory.assets.removeAssetTitle')}">
                         <i class="fa-solid fa-times"></i>
                     </button>
                 </div>
@@ -302,30 +303,30 @@ export function renderAssetsView(assets, viewMode = 'list') {
     return `
         <div class="rpg-inventory-section" data-section="assets">
             <div class="rpg-inventory-header">
-                <h4>Vehicles, Property & Major Possessions</h4>
+                <h4 data-i18n-key="inventory.assets.title">${i18n.getTranslation('inventory.assets.title')}</h4>
                 <div class="rpg-inventory-header-actions">
                     <div class="rpg-view-toggle">
-                        <button class="rpg-view-btn ${viewMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="assets" data-view="list" title="List view">
+                        <button class="rpg-view-btn ${viewMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="assets" data-view="list" title="${i18n.getTranslation('global.listView')}">
                             <i class="fa-solid fa-list"></i>
                         </button>
-                        <button class="rpg-view-btn ${viewMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="assets" data-view="grid" title="Grid view">
+                        <button class="rpg-view-btn ${viewMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="assets" data-view="grid" title="${i18n.getTranslation('global.gridView')}">
                             <i class="fa-solid fa-th"></i>
                         </button>
                     </div>
                     <button class="rpg-inventory-add-btn" data-action="add-item" data-field="assets" title="Add new asset">
-                        <i class="fa-solid fa-plus"></i> Add Asset
+                        <i class="fa-solid fa-plus"></i> <span data-i18n-key="inventory.assets.addAssetButton">${i18n.getTranslation('inventory.assets.addAssetButton')}</span>
                     </button>
                 </div>
             </div>
             <div class="rpg-inventory-content">
                 <div class="rpg-inline-form" id="rpg-add-item-form-assets" style="display: none;">
-                    <input type="text" class="rpg-inline-input" id="rpg-new-item-assets" placeholder="Enter asset name..." />
+                    <input type="text" class="rpg-inline-input" id="rpg-new-item-assets" placeholder="${i18n.getTranslation('inventory.assets.addAssetPlaceholder')}" data-i18n-placeholder-key="inventory.assets.addAssetPlaceholder" />
                     <div class="rpg-inline-buttons">
                         <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-item" data-field="assets">
-                            <i class="fa-solid fa-times"></i> Cancel
+                            <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
                         </button>
                         <button class="rpg-inline-btn rpg-inline-save" data-action="save-add-item" data-field="assets">
-                            <i class="fa-solid fa-check"></i> Add
+                            <i class="fa-solid fa-check"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
                         </button>
                     </div>
                 </div>
@@ -334,8 +335,7 @@ export function renderAssetsView(assets, viewMode = 'list') {
                 </div>
                 <div class="rpg-inventory-hint">
                     <i class="fa-solid fa-info-circle"></i>
-                    Assets include vehicles (cars, motorcycles), property (homes, apartments),
-                    and major equipment (workshop tools, special items).
+                    <span data-i18n-key="inventory.assets.description">${i18n.getTranslation('inventory.assets.description')}</span>
                 </div>
             </div>
         </div>
