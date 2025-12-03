@@ -34,10 +34,11 @@ export function setupDesktopTabs() {
     }
 
     // Create tab navigation - conditionally show skills, inventory and quests tabs based on settings
+    const skillsLabel = extensionSettings.trackerConfig?.userStats?.skillsSection?.label || 'Skills';
     const skillsTabHtml = extensionSettings.showSkills ? `
             <button class="rpg-tab-btn" data-tab="skills">
                 <i class="fa-solid fa-star"></i>
-                <span data-i18n-key="global.skills">Skills</span>
+                <span>${skillsLabel}</span>
             </button>` : '';
 
     const inventoryTabHtml = extensionSettings.showInventory ? `

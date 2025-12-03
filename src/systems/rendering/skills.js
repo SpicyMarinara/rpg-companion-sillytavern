@@ -36,7 +36,11 @@ function serializeItems(items) {
  * @returns {string[]} Array of skill category names
  */
 export function getSkillCategories() {
-    return extensionSettings.trackerConfig?.userStats?.skillsSection?.customFields || [];
+    const categories = extensionSettings.trackerConfig?.userStats?.skillsSection?.customFields || [];
+    // Handle both old format (string array) and new format (object array)
+    return categories
+        .filter(cat => typeof cat === 'string' || cat.enabled !== false)
+        .map(cat => typeof cat === 'string' ? cat : cat.name);
 }
 
 /**
@@ -311,30 +315,93 @@ export function unlinkAbility(skillName, abilityName) {
 
 /**
  * Gets all skill abilities linked to a specific inventory item
+ * Checks both manual skillAbilityLinks and structured skillsV2 with grantedBy
  * @param {string} itemName - The inventory item name
  * @returns {Array<{skillName: string, abilityName: string}>} Array of linked abilities
  */
 export function getAbilitiesLinkedToItem(itemName) {
-    if (!extensionSettings.skillAbilityLinks || !itemName) return [];
+    if (!itemName) return [];
     const linked = [];
     const normalizedItemName = itemName.toLowerCase().trim();
-    for (const [key, linkedItem] of Object.entries(extensionSettings.skillAbilityLinks)) {
-        // Case-insensitive comparison
-        if (linkedItem && linkedItem.toLowerCase().trim() === normalizedItemName) {
-            const [skillName, abilityName] = key.split('::');
-            linked.push({ skillName, abilityName });
+    
+    // Check manual skillAbilityLinks
+    if (extensionSettings.skillAbilityLinks) {
+        for (const [key, linkedItem] of Object.entries(extensionSettings.skillAbilityLinks)) {
+            // Case-insensitive comparison
+            if (linkedItem && linkedItem.toLowerCase().trim() === normalizedItemName) {
+                const [skillName, abilityName] = key.split('::');
+                linked.push({ skillName, abilityName });
+            }
         }
     }
+    
+    // Check structured skillsV2 for abilities with grantedBy matching this item
+    const skillsV2 = extensionSettings.skillsV2;
+    if (skillsV2 && typeof skillsV2 === 'object') {
+        for (const [skillName, abilities] of Object.entries(skillsV2)) {
+            if (!Array.isArray(abilities)) continue;
+            for (const ability of abilities) {
+                if (!ability || typeof ability !== 'object') continue;
+                const grantedBy = (ability.grantedBy || '').toLowerCase().trim();
+                if (grantedBy === normalizedItemName) {
+                    // Avoid duplicates
+                    const exists = linked.some(l => l.skillName === skillName && l.abilityName === ability.name);
+                    if (!exists) {
+                        linked.push({ skillName, abilityName: ability.name });
+                    }
+                }
+            }
+        }
+    }
+    
     return linked;
 }
 
 /**
  * Checks if an inventory item has any linked skills
+ * Checks both manual skillAbilityLinks and structured grantsSkill property
  * @param {string} itemName - The inventory item name
  * @returns {boolean} True if item has linked skills
  */
 export function itemHasLinkedSkills(itemName) {
-    return getAbilitiesLinkedToItem(itemName).length > 0;
+    // Check manual links first
+    if (getAbilitiesLinkedToItem(itemName).length > 0) {
+        return true;
+    }
+    
+    // Check structured inventory for grantsSkill property
+    const inv = extensionSettings.inventoryV3;
+    if (!inv || !itemName) return false;
+    
+    const normalizedName = itemName.toLowerCase().trim();
+    
+    // Helper to check if an item array contains the item with grantsSkill
+    const checkItems = (items) => {
+        if (!Array.isArray(items)) return false;
+        return items.some(item => {
+            if (!item || typeof item !== 'object') return false;
+            const name = (item.name || '').toLowerCase().trim();
+            return name === normalizedName && item.grantsSkill;
+        });
+    };
+    
+    // Check onPerson
+    if (checkItems(inv.onPerson)) return true;
+    
+    // Check simplified
+    if (checkItems(inv.simplified)) return true;
+    
+    // Check assets
+    if (checkItems(inv.assets)) return true;
+    
+    // Check stored locations
+    if (inv.stored && typeof inv.stored === 'object') {
+        for (const items of Object.values(inv.stored)) {
+            if (checkItems(items)) return true;
+        }
+    }
+    
+    return false;
 }
 
 /**

@@ -44,8 +44,6 @@ import { registerAllEvents } from './src/core/events.js';
 
 // Generation & Parsing modules
 import {
-    generateTrackerExample,
-    generateTrackerInstructions,
     generateContextualSummary,
     generateRPGPromptText,
     generateSeparateUpdatePrompt
@@ -121,7 +119,7 @@ import { setupClassicStatsButtons } from './src/systems/features/classicStats.js
 import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/systems/features/htmlCleaning.js';
 import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
 import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
-import { DEFAULT_HTML_PROMPT, DEFAULT_TRACKER_PROMPT } from './src/systems/generation/promptBuilder.js';
+import { DEFAULT_HTML_PROMPT, DEFAULT_JSON_TRACKER_PROMPT } from './src/systems/generation/promptBuilder.js';
 
 // Integration modules
 import {
@@ -406,7 +404,7 @@ async function initUI() {
 
     $('#rpg-restore-default-html-prompt').on('click', function() {
         extensionSettings.customHtmlPrompt = '';
-        $('#rpg-custom-html-prompt').val('');
+        $('#rpg-custom-html-prompt').val(DEFAULT_HTML_PROMPT);
         saveSettings();
         toastr.success('HTML prompt restored to default');
     });
@@ -419,7 +417,7 @@ async function initUI() {
 
     $('#rpg-restore-default-tracker-prompt').on('click', function() {
         extensionSettings.customTrackerPrompt = '';
-        $('#rpg-custom-tracker-prompt').val('');
+        $('#rpg-custom-tracker-prompt').val(DEFAULT_JSON_TRACKER_PROMPT);
         saveSettings();
         toastr.success('Tracker prompt restored to default');
     });
@@ -536,7 +534,7 @@ async function initUI() {
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
 
     // Set default tracker prompt as actual text if no custom prompt exists
-    $('#rpg-custom-tracker-prompt').val(extensionSettings.customTrackerPrompt || DEFAULT_TRACKER_PROMPT);
+    $('#rpg-custom-tracker-prompt').val(extensionSettings.customTrackerPrompt || DEFAULT_JSON_TRACKER_PROMPT);
 
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);

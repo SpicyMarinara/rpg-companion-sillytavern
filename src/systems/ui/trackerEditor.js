@@ -130,12 +130,12 @@ function resetToDefaults() {
             ],
             showRPGAttributes: true,
             rpgAttributes: [
-                { id: 'str', name: 'STR', enabled: true },
-                { id: 'dex', name: 'DEX', enabled: true },
-                { id: 'con', name: 'CON', enabled: true },
-                { id: 'int', name: 'INT', enabled: true },
-                { id: 'wis', name: 'WIS', enabled: true },
-                { id: 'cha', name: 'CHA', enabled: true }
+                { id: 'str', name: 'STR', description: '', enabled: true },
+                { id: 'dex', name: 'DEX', description: '', enabled: true },
+                { id: 'con', name: 'CON', description: '', enabled: true },
+                { id: 'int', name: 'INT', description: '', enabled: true },
+                { id: 'wis', name: 'WIS', description: '', enabled: true },
+                { id: 'cha', name: 'CHA', description: '', enabled: true }
             ],
             statusSection: {
                 enabled: true,
@@ -210,10 +210,12 @@ function renderUserStatsTab() {
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-stats-list">';
 
     config.customStats.forEach((stat, index) => {
+        const statDesc = stat.description || '';
         html += `
-            <div class="rpg-editor-stat-item" data-index="${index}">
+            <div class="rpg-editor-stat-item rpg-editor-item-with-desc" data-index="${index}">
                 <input type="checkbox" ${stat.enabled ? 'checked' : ''} class="rpg-stat-toggle" data-index="${index}">
                 <input type="text" value="${stat.name}" class="rpg-stat-name" data-index="${index}" placeholder="Stat Name">
+                <input type="text" value="${statDesc}" class="rpg-stat-desc" data-index="${index}" placeholder="Description for AI">
                 <button class="rpg-stat-remove" data-index="${index}" title="Remove stat"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
@@ -245,12 +247,12 @@ function renderUserStatsTab() {
     // Ensure rpgAttributes exists in the actual config (not just local fallback)
     if (!config.rpgAttributes || config.rpgAttributes.length === 0) {
         config.rpgAttributes = [
-            { id: 'str', name: 'STR', enabled: true },
-            { id: 'dex', name: 'DEX', enabled: true },
-            { id: 'con', name: 'CON', enabled: true },
-            { id: 'int', name: 'INT', enabled: true },
-            { id: 'wis', name: 'WIS', enabled: true },
-            { id: 'cha', name: 'CHA', enabled: true }
+            { id: 'str', name: 'STR', description: '', enabled: true },
+            { id: 'dex', name: 'DEX', description: '', enabled: true },
+            { id: 'con', name: 'CON', description: '', enabled: true },
+            { id: 'int', name: 'INT', description: '', enabled: true },
+            { id: 'wis', name: 'WIS', description: '', enabled: true },
+            { id: 'cha', name: 'CHA', description: '', enabled: true }
         ];
         // Save the defaults back to the actual config
         extensionSettings.trackerConfig.userStats.rpgAttributes = config.rpgAttributes;
@@ -259,10 +261,12 @@ function renderUserStatsTab() {
     const rpgAttributes = config.rpgAttributes;
 
     rpgAttributes.forEach((attr, index) => {
+        const attrDesc = attr.description || '';
         html += `
-            <div class="rpg-editor-stat-item" data-index="${index}">
+            <div class="rpg-editor-stat-item rpg-editor-item-with-desc" data-index="${index}">
                 <input type="checkbox" ${attr.enabled ? 'checked' : ''} class="rpg-attr-toggle" data-index="${index}">
                 <input type="text" value="${attr.name}" class="rpg-attr-name" data-index="${index}" placeholder="Attribute Name">
+                <input type="text" value="${attrDesc}" class="rpg-attr-desc" data-index="${index}" placeholder="Description for AI">
                 <button class="rpg-attr-remove" data-index="${index}" title="Remove attribute"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
@@ -308,8 +312,28 @@ function renderUserStatsTab() {
     html += `<input type="text" id="rpg-skills-label" value="${config.skillsSection.label}" class="rpg-text-input" placeholder="Skills">`;
 
     html += `<label>${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsListLabel')}</label>`;
+    html += '<div class="rpg-editor-stats-list" id="rpg-editor-skills-list">';
+    
+    // Handle both old format (string array) and new format (object array)
     const skillFields = config.skillsSection.customFields || [];
-    html += `<input type="text" id="rpg-skills-fields" value="${skillFields.join(', ')}" class="rpg-text-input" placeholder="e.g., Stealth, Persuasion, Combat">`;
+    skillFields.forEach((skill, index) => {
+        // Support both old format (string) and new format (object)
+        const skillName = typeof skill === 'string' ? skill : (skill.name || '');
+        const skillDesc = typeof skill === 'string' ? '' : (skill.description || '');
+        const skillEnabled = typeof skill === 'string' ? true : (skill.enabled !== false);
+        
+        html += `
+            <div class="rpg-editor-stat-item rpg-editor-skill-item" data-index="${index}">
+                <input type="checkbox" ${skillEnabled ? 'checked' : ''} class="rpg-skill-toggle" data-index="${index}">
+                <input type="text" value="${skillName}" class="rpg-skill-name" data-index="${index}" placeholder="Skill Category Name">
+                <input type="text" value="${skillDesc}" class="rpg-skill-desc" data-index="${index}" placeholder="Description for AI">
+                <button class="rpg-skill-remove" data-index="${index}" title="Remove skill category"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    html += `<button class="rpg-btn-secondary" id="rpg-add-skill"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.addSkillButton') || 'Add Skill Category'}</button>`;
 
     html += '</div>';
 
@@ -327,6 +351,7 @@ function setupUserStatsListeners() {
         extensionSettings.trackerConfig.userStats.customStats.push({
             id: newId,
             name: 'New Stat',
+            description: '',
             enabled: true
         });
         // Initialize value if doesn't exist
@@ -355,23 +380,30 @@ function setupUserStatsListeners() {
         extensionSettings.trackerConfig.userStats.customStats[index].name = $(this).val();
     });
 
+    // Update stat description
+    $('.rpg-stat-desc').off('blur').on('blur', function() {
+        const index = $(this).data('index');
+        extensionSettings.trackerConfig.userStats.customStats[index].description = $(this).val();
+    });
+
     // Add attribute
     $('#rpg-add-attr').off('click').on('click', function() {
         // Ensure rpgAttributes array exists with defaults if needed
         if (!extensionSettings.trackerConfig.userStats.rpgAttributes || extensionSettings.trackerConfig.userStats.rpgAttributes.length === 0) {
             extensionSettings.trackerConfig.userStats.rpgAttributes = [
-                { id: 'str', name: 'STR', enabled: true },
-                { id: 'dex', name: 'DEX', enabled: true },
-                { id: 'con', name: 'CON', enabled: true },
-                { id: 'int', name: 'INT', enabled: true },
-                { id: 'wis', name: 'WIS', enabled: true },
-                { id: 'cha', name: 'CHA', enabled: true }
+                { id: 'str', name: 'STR', description: '', enabled: true },
+                { id: 'dex', name: 'DEX', description: '', enabled: true },
+                { id: 'con', name: 'CON', description: '', enabled: true },
+                { id: 'int', name: 'INT', description: '', enabled: true },
+                { id: 'wis', name: 'WIS', description: '', enabled: true },
+                { id: 'cha', name: 'CHA', description: '', enabled: true }
             ];
         }
         const newId = 'attr_' + Date.now();
         extensionSettings.trackerConfig.userStats.rpgAttributes.push({
             id: newId,
             name: 'NEW',
+            description: '',
             enabled: true
         });
         // Initialize value in classicStats if doesn't exist
@@ -398,6 +430,12 @@ function setupUserStatsListeners() {
     $('.rpg-attr-name').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.rpgAttributes[index].name = $(this).val();
+    });
+
+    // Update attribute description
+    $('.rpg-attr-desc').off('blur').on('blur', function() {
+        const index = $(this).data('index');
+        extensionSettings.trackerConfig.userStats.rpgAttributes[index].description = $(this).val();
     });
 
     // Enable/disable RPG Attributes section toggle
@@ -434,18 +472,80 @@ function setupUserStatsListeners() {
     });
 
     $('#rpg-skills-label').off('blur').on('blur', function() {
-        extensionSettings.trackerConfig.userStats.skillsSection.label = $(this).val();
+        const newLabel = $(this).val();
+        extensionSettings.trackerConfig.userStats.skillsSection.label = newLabel;
         saveSettings();
         renderUserStats();
+        renderSkills();
+        // Update the skills tab button text if it exists
+        $('.rpg-tab-btn[data-tab="skills"] span').text(newLabel);
     });
 
-    $('#rpg-skills-fields').off('blur').on('blur', function() {
-        const fields = $(this).val().split(',').map(f => f.trim()).filter(f => f);
-        extensionSettings.trackerConfig.userStats.skillsSection.customFields = fields;
+    // Add skill category
+    $('#rpg-add-skill').off('click').on('click', function() {
+        if (!extensionSettings.trackerConfig.userStats.skillsSection.customFields) {
+            extensionSettings.trackerConfig.userStats.skillsSection.customFields = [];
+        }
+        extensionSettings.trackerConfig.userStats.skillsSection.customFields.push({
+            id: 'skill_' + Date.now(),
+            name: 'New Skill',
+            description: '',
+            enabled: true
+        });
+        renderUserStatsTab();
         saveSettings();
-        // Re-render skills section when skills list changes
         renderSkills();
     });
+
+    // Remove skill category
+    $('.rpg-skill-remove').off('click').on('click', function() {
+        const index = $(this).data('index');
+        extensionSettings.trackerConfig.userStats.skillsSection.customFields.splice(index, 1);
+        renderUserStatsTab();
+        saveSettings();
+        renderSkills();
+    });
+
+    // Toggle skill category
+    $('.rpg-skill-toggle').off('change').on('change', function() {
+        const index = $(this).data('index');
+        ensureSkillIsObject(index);
+        extensionSettings.trackerConfig.userStats.skillsSection.customFields[index].enabled = $(this).is(':checked');
+        saveSettings();
+        renderSkills();
+    });
+
+    // Rename skill category
+    $('.rpg-skill-name').off('blur').on('blur', function() {
+        const index = $(this).data('index');
+        ensureSkillIsObject(index);
+        extensionSettings.trackerConfig.userStats.skillsSection.customFields[index].name = $(this).val();
+        saveSettings();
+        renderSkills();
+    });
+
+    // Update skill description
+    $('.rpg-skill-desc').off('blur').on('blur', function() {
+        const index = $(this).data('index');
+        ensureSkillIsObject(index);
+        extensionSettings.trackerConfig.userStats.skillsSection.customFields[index].description = $(this).val();
+        saveSettings();
+    });
+}
+
+/**
+ * Helper to convert old string-format skill to object format
+ */
+function ensureSkillIsObject(index) {
+    const skill = extensionSettings.trackerConfig.userStats.skillsSection.customFields[index];
+    if (typeof skill === 'string') {
+        extensionSettings.trackerConfig.userStats.skillsSection.customFields[index] = {
+            id: 'skill_' + Date.now(),
+            name: skill,
+            description: '',
+            enabled: true
+        };
+    }
 }
 
 /**
@@ -663,7 +763,15 @@ function setupPresentCharactersListeners() {
         if (!extensionSettings.trackerConfig.presentCharacters.relationshipEmojis) {
             extensionSettings.trackerConfig.presentCharacters.relationshipEmojis = {};
         }
-        extensionSettings.trackerConfig.presentCharacters.relationshipEmojis['New Relationship'] = '😊';
+        
+        // Generate unique name to avoid overwriting existing "New Relationship" entries
+        let newName = 'New Relationship';
+        let counter = 1;
+        while (extensionSettings.trackerConfig.presentCharacters.relationshipEmojis[newName]) {
+            newName = `New Relationship ${counter}`;
+            counter++;
+        }
+        extensionSettings.trackerConfig.presentCharacters.relationshipEmojis[newName] = '😊';
 
         // Sync relationshipFields
         extensionSettings.trackerConfig.presentCharacters.relationshipFields =

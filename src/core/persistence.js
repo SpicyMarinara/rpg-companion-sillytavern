@@ -99,6 +99,11 @@ export function loadSettings() {
             migrateToTrackerConfig();
             saveSettings(); // Persist migration
         }
+        
+        // Migrate to new stats/skills format with descriptions
+        if (migrateStatsAndSkillsFormat()) {
+            saveSettings(); // Persist migration
+        }
     } catch (error) {
         console.error('[RPG Companion] Error loading settings:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);
@@ -194,7 +199,7 @@ export function updateMessageSwipeData() {
  */
 export function loadChatData() {
     if (!chat_metadata || !chat_metadata.rpg_companion) {
-        // Reset to defaults if no data exists
+        // Reset to defaults if no data exists (new chat)
         updateExtensionSettings({
             userStats: {
                 health: 100,
@@ -214,6 +219,22 @@ export function loadChatData() {
             },
             quests: {
                 main: "None",
+                optional: []
+            },
+            // Reset structured data fields
+            inventoryV3: {
+                onPerson: [],
+                stored: {},
+                assets: [],
+                simplified: []
+            },
+            skillsV2: {},
+            skillsData: {},
+            skillAbilityLinks: {},
+            charactersData: [],
+            infoBoxData: null,
+            questsV2: {
+                main: null,
                 optional: []
             }
         });
@@ -414,12 +435,12 @@ function migrateToTrackerConfig() {
                 customStats: [],
                 showRPGAttributes: true,
                 rpgAttributes: [
-                    { id: 'str', name: 'STR', enabled: true },
-                    { id: 'dex', name: 'DEX', enabled: true },
-                    { id: 'con', name: 'CON', enabled: true },
-                    { id: 'int', name: 'INT', enabled: true },
-                    { id: 'wis', name: 'WIS', enabled: true },
-                    { id: 'cha', name: 'CHA', enabled: true }
+                    { id: 'str', name: 'STR', description: '', enabled: true },
+                    { id: 'dex', name: 'DEX', description: '', enabled: true },
+                    { id: 'con', name: 'CON', description: '', enabled: true },
+                    { id: 'int', name: 'INT', description: '', enabled: true },
+                    { id: 'wis', name: 'WIS', description: '', enabled: true },
+                    { id: 'cha', name: 'CHA', description: '', enabled: true }
                 ],
                 statusSection: {
                     enabled: true,
@@ -482,12 +503,12 @@ function migrateToTrackerConfig() {
     if (extensionSettings.trackerConfig.userStats.showRPGAttributes !== undefined) {
         const shouldShow = extensionSettings.trackerConfig.userStats.showRPGAttributes;
         extensionSettings.trackerConfig.userStats.rpgAttributes = [
-            { id: 'str', name: 'STR', enabled: shouldShow },
-            { id: 'dex', name: 'DEX', enabled: shouldShow },
-            { id: 'con', name: 'CON', enabled: shouldShow },
-            { id: 'int', name: 'INT', enabled: shouldShow },
-            { id: 'wis', name: 'WIS', enabled: shouldShow },
-            { id: 'cha', name: 'CHA', enabled: shouldShow }
+            { id: 'str', name: 'STR', description: '', enabled: shouldShow },
+            { id: 'dex', name: 'DEX', description: '', enabled: shouldShow },
+            { id: 'con', name: 'CON', description: '', enabled: shouldShow },
+            { id: 'int', name: 'INT', description: '', enabled: shouldShow },
+            { id: 'wis', name: 'WIS', description: '', enabled: shouldShow },
+            { id: 'cha', name: 'CHA', description: '', enabled: shouldShow }
         ];
         delete extensionSettings.trackerConfig.userStats.showRPGAttributes;
         console.log('[RPG Companion] Migrated showRPGAttributes to rpgAttributes array');
@@ -496,12 +517,12 @@ function migrateToTrackerConfig() {
     // Ensure rpgAttributes exists even if no migration was needed
     if (!extensionSettings.trackerConfig.userStats.rpgAttributes) {
         extensionSettings.trackerConfig.userStats.rpgAttributes = [
-            { id: 'str', name: 'STR', enabled: true },
-            { id: 'dex', name: 'DEX', enabled: true },
-            { id: 'con', name: 'CON', enabled: true },
-            { id: 'int', name: 'INT', enabled: true },
-            { id: 'wis', name: 'WIS', enabled: true },
-            { id: 'cha', name: 'CHA', enabled: true }
+            { id: 'str', name: 'STR', description: '', enabled: true },
+            { id: 'dex', name: 'DEX', description: '', enabled: true },
+            { id: 'con', name: 'CON', description: '', enabled: true },
+            { id: 'int', name: 'INT', description: '', enabled: true },
+            { id: 'wis', name: 'WIS', description: '', enabled: true },
+            { id: 'cha', name: 'CHA', description: '', enabled: true }
         ];
     }
 
@@ -583,4 +604,85 @@ function migrateToTrackerConfig() {
             };
         }
     }
+}
+
+/**
+ * Migrates stats and skills to new format with description fields.
+ * - customStats: adds description field
+ * - rpgAttributes: adds description field  
+ * - skillsSection.customFields: converts from string array to object array
+ * @returns {boolean} true if any migration was performed
+ */
+function migrateStatsAndSkillsFormat() {
+    let migrated = false;
+    
+    if (!extensionSettings.trackerConfig?.userStats) {
+        return false;
+    }
+    
+    const userStats = extensionSettings.trackerConfig.userStats;
+    
+    // Migrate customStats - add description if missing
+    if (userStats.customStats) {
+        for (const stat of userStats.customStats) {
+            if (stat && typeof stat === 'object' && stat.description === undefined) {
+                stat.description = '';
+                migrated = true;
+            }
+        }
+    }
+    
+    // Migrate rpgAttributes - add description if missing
+    if (userStats.rpgAttributes) {
+        for (const attr of userStats.rpgAttributes) {
+            if (attr && typeof attr === 'object' && attr.description === undefined) {
+                attr.description = '';
+                migrated = true;
+            }
+        }
+    }
+    
+    // Migrate skillsSection.customFields - convert string array to object array
+    if (userStats.skillsSection?.customFields) {
+        const oldFields = userStats.skillsSection.customFields;
+        const hasOldFormat = oldFields.some(f => typeof f === 'string');
+        
+        if (hasOldFormat) {
+            console.log('[RPG Companion] Migrating skill categories to new format');
+            userStats.skillsSection.customFields = oldFields.map((field, index) => {
+                if (typeof field === 'string') {
+                    return {
+                        id: 'skill_' + Date.now() + '_' + index,
+                        name: field,
+                        description: '',
+                        enabled: true
+                    };
+                }
+                // Already an object, ensure it has all fields
+                return {
+                    id: field.id || 'skill_' + Date.now() + '_' + index,
+                    name: field.name || 'Skill',
+                    description: field.description || '',
+                    enabled: field.enabled !== false
+                };
+            });
+            migrated = true;
+        }
+    }
+    
+    // Migrate character stats - add description if missing
+    if (extensionSettings.trackerConfig?.presentCharacters?.characterStats?.customStats) {
+        for (const stat of extensionSettings.trackerConfig.presentCharacters.characterStats.customStats) {
+            if (stat && typeof stat === 'object' && stat.description === undefined) {
+                stat.description = '';
+                migrated = true;
+            }
+        }
+    }
+    
+    if (migrated) {
+        console.log('[RPG Companion] Stats/skills format migration complete');
+    }
+    
+    return migrated;
 }

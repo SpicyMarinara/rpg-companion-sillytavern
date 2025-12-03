@@ -75,152 +75,6 @@ function hasStructuredInfoBoxData(data) {
 }
 
 /**
- * Renders the info box using structured JSON data
- * @param {Object} data - Structured infoBox data
- */
-function renderStructuredInfoBox(data) {
-    const config = extensionSettings.trackerConfig?.infoBox;
-    const widgets = config?.widgets || {};
-    
-    // Build widgets HTML
-    let widgetsHtml = '';
-    let widgetCount = 0;
-    
-    // Date widget - skip null values
-    if (widgets.date?.enabled && isValidValue(data.date)) {
-        widgetCount++;
-        widgetsHtml += `
-            <div class="rpg-dashboard-widget rpg-calendar-widget">
-                <i class="fa-solid fa-calendar"></i>
-                <div class="rpg-widget-content">
-                    <span class="rpg-widget-label" data-i18n-key="infobox.date">${i18n.getTranslation('infobox.date')}</span>
-                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="date">${data.date}</span>
-                </div>
-            </div>`;
-    }
-    
-    // Weather widget - skip null values
-    if (widgets.weather?.enabled && isValidValue(data.weather)) {
-        widgetCount++;
-        const { emoji, text } = separateEmojiFromText(data.weather);
-        widgetsHtml += `
-            <div class="rpg-dashboard-widget rpg-weather-widget">
-                <span class="rpg-weather-emoji rpg-editable" contenteditable="true" data-field="weatherEmoji">${emoji || '🌤️'}</span>
-                <div class="rpg-widget-content">
-                    <span class="rpg-widget-label" data-i18n-key="infobox.weather">${i18n.getTranslation('infobox.weather')}</span>
-                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="weather">${text}</span>
-                </div>
-            </div>`;
-    }
-    
-    // Temperature widget - skip null values
-    if (widgets.temperature?.enabled && isValidValue(data.temperature)) {
-        widgetCount++;
-        widgetsHtml += `
-            <div class="rpg-dashboard-widget rpg-temperature-widget">
-                <i class="fa-solid fa-temperature-half"></i>
-                <div class="rpg-widget-content">
-                    <span class="rpg-widget-label" data-i18n-key="infobox.temperature">${i18n.getTranslation('infobox.temperature')}</span>
-                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="temperature">${data.temperature}</span>
-                </div>
-            </div>`;
-    }
-    
-    // Time widget - skip null values
-    if (widgets.time?.enabled && isValidValue(data.time)) {
-        widgetCount++;
-        widgetsHtml += `
-            <div class="rpg-dashboard-widget rpg-time-widget">
-                <i class="fa-solid fa-clock"></i>
-                <div class="rpg-widget-content">
-                    <span class="rpg-widget-label" data-i18n-key="infobox.time">${i18n.getTranslation('infobox.time')}</span>
-                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="time">${data.time}</span>
-                </div>
-            </div>`;
-    }
-    
-    // Location widget - skip null values
-    if (widgets.location?.enabled && isValidValue(data.location)) {
-        widgetCount++;
-        widgetsHtml += `
-            <div class="rpg-dashboard-widget rpg-location-widget">
-                <i class="fa-solid fa-map-marker-alt"></i>
-                <div class="rpg-widget-content">
-                    <span class="rpg-widget-label" data-i18n-key="infobox.location">${i18n.getTranslation('infobox.location')}</span>
-                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="location">${data.location}</span>
-                </div>
-            </div>`;
-    }
-    
-    // Recent events widget - handle both string and array formats
-    const recentEvents = Array.isArray(data.recentEvents) 
-        ? data.recentEvents 
-        : (data.recentEvents ? [data.recentEvents] : []);
-    if (widgets.recentEvents?.enabled && recentEvents.length > 0) {
-        widgetCount++;
-        const eventsHtml = recentEvents.map((event, i) => 
-            `<li class="rpg-event-item rpg-editable" contenteditable="true" data-field="recentEvents" data-index="${i}">${event}</li>`
-        ).join('');
-        widgetsHtml += `
-            <div class="rpg-dashboard-widget rpg-events-widget rpg-widget-wide">
-                <i class="fa-solid fa-scroll"></i>
-                <div class="rpg-widget-content">
-                    <span class="rpg-widget-label" data-i18n-key="infobox.recentEvents">${i18n.getTranslation('infobox.recentEvents')}</span>
-                    <ul class="rpg-events-list">${eventsHtml}</ul>
-                </div>
-            </div>`;
-    }
-    
-    // Determine layout class based on widget count
-    const layoutClass = widgetCount <= 2 ? 'rpg-dashboard-row-1' : 
-                       widgetCount <= 4 ? 'rpg-dashboard-row-2' : 'rpg-dashboard-row-3';
-    
-    const html = `<div class="rpg-dashboard ${layoutClass}">${widgetsHtml}</div>`;
-    
-    $infoBoxContainer.html(html);
-    
-    // Remove updating animation
-    if (extensionSettings.enableAnimations) {
-        setTimeout(() => $infoBoxContainer.removeClass('rpg-content-updating'), 300);
-    }
-    
-    // Setup event listeners for editable fields
-    setupStructuredInfoBoxEventListeners();
-}
-
-/**
- * Setup event listeners for structured info box editing
- */
-function setupStructuredInfoBoxEventListeners() {
-    $infoBoxContainer.off('blur', '.rpg-editable').on('blur', '.rpg-editable', function() {
-        const $this = $(this);
-        const field = $this.data('field');
-        const index = $this.data('index');
-        const newValue = $this.text().trim();
-        
-        if (!extensionSettings.infoBoxData) {
-            extensionSettings.infoBoxData = {};
-        }
-        
-        if (field === 'recentEvents' && index !== undefined) {
-            if (!extensionSettings.infoBoxData.recentEvents) {
-                extensionSettings.infoBoxData.recentEvents = [];
-            }
-            extensionSettings.infoBoxData.recentEvents[index] = newValue;
-        } else if (field === 'weatherEmoji') {
-            // Combine emoji with existing weather text
-            const currentWeather = extensionSettings.infoBoxData.weather || '';
-            const { text } = separateEmojiFromText(currentWeather);
-            extensionSettings.infoBoxData.weather = newValue + ' ' + text;
-        } else {
-            extensionSettings.infoBoxData[field] = newValue;
-        }
-        
-        saveChatData();
-    });
-}
-
-/**
  * Renders the info box as a visual dashboard with calendar, weather, temperature, clock, and map widgets.
  * Includes event listeners for editable fields.
  */
@@ -651,9 +505,21 @@ export function renderInfoBox() {
 
     // Row 3: Recent Events widget (notebook style) - show if enabled
     if (config?.widgets?.recentEvents?.enabled) {
-        // Parse Recent Events from infoBox string
+        // Get Recent Events from structured data (JSON) or text format
         let recentEvents = [];
-        if (committedTrackerData.infoBox) {
+        
+        // First check structured infoBoxData (from JSON parsing)
+        if (extensionSettings.infoBoxData?.recentEvents) {
+            const events = extensionSettings.infoBoxData.recentEvents;
+            if (Array.isArray(events)) {
+                recentEvents = events.filter(e => e && e !== 'null');
+            } else if (typeof events === 'string' && events !== 'null') {
+                recentEvents = [events];
+            }
+        }
+        
+        // Fallback to text format from committedTrackerData
+        if (recentEvents.length === 0 && committedTrackerData.infoBox) {
             const recentEventsLine = committedTrackerData.infoBox.split('\n').find(line => line.startsWith('Recent Events:'));
             if (recentEventsLine) {
                 const eventsString = recentEventsLine.replace('Recent Events:', '').trim();

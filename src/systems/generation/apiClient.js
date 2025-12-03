@@ -22,6 +22,7 @@ import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
+import { renderSkills } from '../rendering/skills.js';
 import { i18n } from '../../core/i18n.js';
 
 // Store the original preset name to restore after tracker generation
@@ -145,7 +146,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 renderThoughts();
                 renderInventory();
                 renderQuests();
-                if (typeof renderSkills === 'function') renderSkills();
+                renderSkills();
                 saveChatData();
             } else {
                 // JSON parsing failed - try legacy text-based parsing as fallback

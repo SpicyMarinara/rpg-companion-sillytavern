@@ -4,7 +4,7 @@
  * Supports both legacy text format and new JSON format
  */
 
-import { extensionSettings, FEATURE_FLAGS, addDebugLog } from '../../core/state.js';
+import { extensionSettings, FEATURE_FLAGS, addDebugLog, lastGeneratedData } from '../../core/state.js';
 import { saveSettings, saveChatData } from '../../core/persistence.js';
 import { extractInventory } from './inventoryParser.js';
 import { validateTrackerData, mergeTrackerData } from '../../types/trackerData.js';
@@ -224,9 +224,22 @@ export function parseJSONTrackerData(jsonData) {
             debugLog('[RPG Parser] Mood:', jsonData.status.mood);
         }
         if (jsonData.status.fields) {
-            // Store custom status fields
-            extensionSettings.userStats.conditions = Object.values(jsonData.status.fields).join(', ') || 'None';
-            debugLog('[RPG Parser] Status fields:', jsonData.status.fields);
+            // Filter to only include configured status fields
+            const configuredFields = extensionSettings.trackerConfig?.userStats?.statusSection?.customFields || [];
+            const filteredValues = [];
+            
+            for (const [key, value] of Object.entries(jsonData.status.fields)) {
+                // Only include if this field is in the configured list (case-insensitive)
+                const isConfigured = configuredFields.some(f => 
+                    f.toLowerCase() === key.toLowerCase()
+                );
+                if (isConfigured && value && value !== 'None' && value !== 'null') {
+                    filteredValues.push(value);
+                }
+            }
+            
+            extensionSettings.userStats.conditions = filteredValues.length > 0 ? filteredValues.join(', ') : 'None';
+            debugLog('[RPG Parser] Status fields (filtered):', filteredValues);
         }
     }
     
@@ -249,12 +262,65 @@ export function parseJSONTrackerData(jsonData) {
         infoBox.recentEvents = infoBox.recentEvents.filter(e => e && e !== 'null');
         extensionSettings.infoBoxData = infoBox;
         debugLog('[RPG Parser] InfoBox:', Object.keys(infoBox));
+        
+        // Generate text format for lastGeneratedData.infoBox (needed for other UI parts)
+        const textLines = [];
+        if (infoBox.date) textLines.push(`Date: ${infoBox.date}`);
+        if (infoBox.time) textLines.push(`Time: ${infoBox.time}`);
+        if (infoBox.weather) textLines.push(`Weather: ${infoBox.weather}`);
+        if (infoBox.temperature) textLines.push(`Temperature: ${infoBox.temperature}`);
+        if (infoBox.location) textLines.push(`Location: ${infoBox.location}`);
+        if (infoBox.recentEvents && infoBox.recentEvents.length > 0) {
+            textLines.push(`Recent Events: ${infoBox.recentEvents.join(', ')}`);
+        }
+        if (textLines.length > 0) {
+            lastGeneratedData.infoBox = textLines.join('\n');
+            debugLog('[RPG Parser] Generated text format for infoBox');
+        }
     }
     
-    // Parse characters - store for UI rendering
+    // Parse characters - store for UI rendering AND generate text format for thought bubbles
     if (jsonData.characters && Array.isArray(jsonData.characters)) {
         extensionSettings.charactersData = jsonData.characters;
         debugLog('[RPG Parser] Characters:', jsonData.characters.length);
+        
+        // Generate text format for lastGeneratedData.characterThoughts (needed for thought bubbles)
+        const config = extensionSettings.trackerConfig?.presentCharacters;
+        const thoughtsFieldName = config?.thoughts?.name || 'Thoughts';
+        const lines = [];
+        for (const char of jsonData.characters) {
+            // Character name line
+            lines.push(`- ${char.name || 'Unknown'}`);
+            
+            // Details line with emoji and fields
+            const details = [char.emoji || '😶'];
+            const charFields = char.fields || {};
+            for (const [key, value] of Object.entries(charFields)) {
+                if (value) details.push(`${key}: ${value}`);
+            }
+            lines.push(`Details: ${details.join(' | ')}`);
+            
+            // Relationship line
+            if (char.relationship) {
+                lines.push(`Relationship: ${char.relationship}`);
+            }
+            
+            // Stats line
+            const charStats = char.stats || {};
+            if (Object.keys(charStats).length > 0) {
+                const statsStr = Object.entries(charStats).map(([k, v]) => `${k}: ${v}%`).join(' | ');
+                lines.push(`Stats: ${statsStr}`);
+            }
+            
+            // Thoughts line
+            if (char.thoughts) {
+                lines.push(`${thoughtsFieldName}: ${char.thoughts}`);
+            }
+        }
+        if (lines.length > 0) {
+            lastGeneratedData.characterThoughts = lines.join('\n');
+            debugLog('[RPG Parser] Generated text format for characterThoughts');
+        }
     }
     
     // Parse inventory (structured format)
@@ -300,13 +366,33 @@ export function parseJSONTrackerData(jsonData) {
         
         const previousItemNames = getItemNamesFromInventory(extensionSettings.inventoryV3);
         
+        // Get items - prefer 'items' for simplified mode, 'onPerson' for categorized
+        // Also handle case where LLM uses either field
+        const itemsArray = normalizeArray(jsonData.inventory.items);
+        const onPersonArray = normalizeArray(jsonData.inventory.onPerson);
+        
+        // For simplified mode: prefer 'items', fallback to 'onPerson'
+        // For categorized mode: prefer 'onPerson', fallback to 'items'
+        const simplifiedItems = itemsArray.length > 0 ? itemsArray : onPersonArray;
+        const onPersonItems = onPersonArray.length > 0 ? onPersonArray : itemsArray;
+        
         extensionSettings.inventoryV3 = {
-            onPerson: normalizeArray(jsonData.inventory.onPerson || jsonData.inventory.items),
+            onPerson: onPersonItems,
             stored: jsonData.inventory.stored && typeof jsonData.inventory.stored === 'object' 
                 ? jsonData.inventory.stored : {},
-            assets: normalizeArray(jsonData.inventory.assets)
+            assets: normalizeArray(jsonData.inventory.assets),
+            // For simplified mode - use whichever array has items
+            simplified: extensionSettings.useSimplifiedInventory ? simplifiedItems : (extensionSettings.inventoryV3?.simplified || [])
         };
-        debugLog('[RPG Parser] Inventory parsed - onPerson:', extensionSettings.inventoryV3.onPerson.length);
+        debugLog('[RPG Parser] Inventory parsed - onPerson:', extensionSettings.inventoryV3.onPerson.length, 
+            'simplified:', extensionSettings.inventoryV3.simplified?.length || 0);
+        // Log first item to verify descriptions are preserved
+        if (extensionSettings.inventoryV3.onPerson[0]) {
+            debugLog('[RPG Parser] First onPerson item:', JSON.stringify(extensionSettings.inventoryV3.onPerson[0]));
+        }
+        if (extensionSettings.inventoryV3.simplified?.[0]) {
+            debugLog('[RPG Parser] First simplified item:', JSON.stringify(extensionSettings.inventoryV3.simplified[0]));
+        }
         
         // Detect removed items and handle skill links
         const newItemNames = getItemNamesFromInventory(extensionSettings.inventoryV3);
@@ -321,7 +407,7 @@ export function parseJSONTrackerData(jsonData) {
         // Also update legacy inventory for backwards compatibility
         const itemsToString = (items) => {
             if (!items || items.length === 0) return 'None';
-            return items.map(i => i.name).join(', ');
+            return items.map(i => typeof i === 'string' ? i : i.name).join(', ');
         };
         extensionSettings.userStats.inventory = {
             version: 2,
@@ -329,7 +415,9 @@ export function parseJSONTrackerData(jsonData) {
             stored: Object.fromEntries(
                 Object.entries(extensionSettings.inventoryV3.stored).map(([k, v]) => [k, itemsToString(v)])
             ),
-            assets: itemsToString(extensionSettings.inventoryV3.assets)
+            assets: itemsToString(extensionSettings.inventoryV3.assets),
+            // For simplified mode
+            items: extensionSettings.useSimplifiedInventory ? itemsToString(extensionSettings.inventoryV3.simplified) : undefined
         };
     }
     
@@ -347,6 +435,41 @@ export function parseJSONTrackerData(jsonData) {
                 normalizedSkills[category] = [];
             }
         }
+        
+        // Validate grantedBy references - remove if item doesn't exist
+        // Build set of all valid item names from current inventory (including just-parsed items)
+        const validItemNames = new Set();
+        const inv = extensionSettings.inventoryV3;
+        if (inv) {
+            const addItems = (items) => {
+                if (!Array.isArray(items)) return;
+                items.forEach(item => {
+                    const name = typeof item === 'string' ? item : item?.name;
+                    if (name) validItemNames.add(name.toLowerCase());
+                });
+            };
+            addItems(inv.onPerson);
+            addItems(inv.assets);
+            addItems(inv.simplified);
+            if (inv.stored) {
+                Object.values(inv.stored).forEach(items => addItems(items));
+            }
+        }
+        
+        // Check each skill's grantedBy and remove if invalid
+        for (const abilities of Object.values(normalizedSkills)) {
+            if (!Array.isArray(abilities)) continue;
+            for (const ability of abilities) {
+                if (ability && typeof ability === 'object' && ability.grantedBy) {
+                    const grantedByLower = ability.grantedBy.toLowerCase();
+                    if (!validItemNames.has(grantedByLower)) {
+                        debugLog('[RPG Parser] Removing invalid grantedBy:', ability.grantedBy, 'from skill:', ability.name);
+                        delete ability.grantedBy;
+                    }
+                }
+            }
+        }
+        
         extensionSettings.skillsV2 = normalizedSkills;
         debugLog('[RPG Parser] Skills parsed:', Object.keys(normalizedSkills));
         
@@ -355,6 +478,40 @@ export function parseJSONTrackerData(jsonData) {
             if (!extensionSettings.skillsData) extensionSettings.skillsData = {};
             const names = abilities.map(a => typeof a === 'string' ? a : (a?.name || '')).filter(n => n);
             extensionSettings.skillsData[category] = names.join(', ') || 'None';
+        }
+        
+        // Validate grantsSkill references on items - remove if skill doesn't exist
+        // Build set of all valid skill names from just-parsed skills
+        const validSkillNames = new Set();
+        for (const abilities of Object.values(normalizedSkills)) {
+            if (!Array.isArray(abilities)) continue;
+            abilities.forEach(ability => {
+                const name = typeof ability === 'string' ? ability : ability?.name;
+                if (name) validSkillNames.add(name.toLowerCase());
+            });
+        }
+        
+        // Check each item's grantsSkill and remove if invalid
+        const validateItemsGrantsSkill = (items) => {
+            if (!Array.isArray(items)) return;
+            for (const item of items) {
+                if (item && typeof item === 'object' && item.grantsSkill) {
+                    const grantsSkillLower = item.grantsSkill.toLowerCase();
+                    if (!validSkillNames.has(grantsSkillLower)) {
+                        debugLog('[RPG Parser] Removing invalid grantsSkill:', item.grantsSkill, 'from item:', item.name);
+                        delete item.grantsSkill;
+                    }
+                }
+            }
+        };
+        
+        if (inv) {
+            validateItemsGrantsSkill(inv.onPerson);
+            validateItemsGrantsSkill(inv.assets);
+            validateItemsGrantsSkill(inv.simplified);
+            if (inv.stored) {
+                Object.values(inv.stored).forEach(items => validateItemsGrantsSkill(items));
+            }
         }
     }
     
@@ -748,8 +905,11 @@ export function parseSkills(skillsText) {
             extensionSettings.skillAbilityLinks = {};
         }
 
-        // Get configured skill categories
-        const configuredCategories = extensionSettings.trackerConfig?.userStats?.skillsSection?.customFields || [];
+        // Get configured skill categories (handle both old string and new object format)
+        const rawCategories = extensionSettings.trackerConfig?.userStats?.skillsSection?.customFields || [];
+        const configuredCategories = rawCategories
+            .filter(cat => typeof cat === 'string' || cat.enabled !== false)
+            .map(cat => typeof cat === 'string' ? cat : cat.name);
         
         const lines = skillsText.split('\n');
         const newSkillAbilityLinks = {};

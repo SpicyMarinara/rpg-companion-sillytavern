@@ -127,7 +127,7 @@ export async function onMessageReceived(data) {
                 renderThoughts();
                 renderInventory();
                 renderQuests();
-                if (typeof renderSkills === 'function') renderSkills();
+                renderSkills();
                 saveChatData();
                 return; // Skip legacy text parsing
             }

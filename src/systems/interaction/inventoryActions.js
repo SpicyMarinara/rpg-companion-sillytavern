@@ -273,7 +273,7 @@ export function removeItem(field, itemIndex, location) {
     if (!removedItemName) {
         removedItemName = items[itemIndex];
     }
-    
+
     items.splice(itemIndex, 1); // Remove item at index
     
     // Check if this item was linked to a skill and handle removal

@@ -1224,10 +1224,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     min-width: 0;
+    /* Allow wrapping for long day names */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .rpg-calendar-year {
@@ -1255,8 +1255,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     line-height: 1.1;
     word-wrap: break-word;
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .rpg-weather-forecast.rpg-editable {
@@ -2073,12 +2071,28 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     outline: 1px solid var(--rpg-highlight);
 }
 
+/* Show full content on hover for text fields (not badges/icons) */
+.rpg-editable:not(.rpg-relationship-badge):not(.rpg-character-emoji):hover {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    word-break: break-word;
+}
+
 .rpg-editable:focus,
 .rpg-editable-stat:focus,
 .rpg-editable-stat-name:focus {
     background: var(--rpg-bg);
     outline: 2px solid var(--rpg-highlight);
     box-shadow: 0 0 8px var(--rpg-highlight);
+}
+
+/* Show full content when focused for text fields (not badges/icons) */
+.rpg-editable:not(.rpg-relationship-badge):not(.rpg-character-emoji):focus {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    word-break: break-word;
 }
 
 /* Edit button container and styling */
@@ -3682,6 +3696,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     flex-direction: column;
     gap: 0.5em;
+    margin-top: 0.5em;
     margin-bottom: 1em;
 }
 
@@ -3711,6 +3726,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-stat-remove,
 .rpg-attr-remove,
+.rpg-skill-remove,
 .rpg-remove-relationship {
     flex-shrink: 0;
     padding: 0.375em 0.625em;
@@ -3720,6 +3736,48 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     color: white;
     cursor: pointer;
     transition: opacity 0.2s;
+}
+
+/* Skills list spacing */
+#rpg-editor-skills-list {
+    margin-top: 0.3em;
+}
+
+/* Items with description field (stats, attrs, skills) */
+.rpg-editor-item-with-desc,
+.rpg-editor-skill-item {
+    flex-wrap: wrap;
+}
+
+.rpg-skill-name,
+.rpg-stat-desc,
+.rpg-attr-desc {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.375em 0.5em;
+    background: var(--rpg-bg);
+    border: 1px solid var(--rpg-border);
+    border-radius: 0.25em;
+    color: var(--rpg-text);
+    font-size: 0.95em;
+}
+
+.rpg-skill-desc,
+.rpg-stat-desc,
+.rpg-attr-desc {
+    flex: 2;
+    min-width: 180px;
+    padding: 0.375em 0.5em;
+    background: var(--rpg-bg);
+    border: 1px solid var(--rpg-border);
+    border-radius: 0.25em;
+    color: var(--rpg-text);
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.rpg-skill-toggle {
+    flex-shrink: 0;
 }
 
 .rpg-stat-remove:hover,

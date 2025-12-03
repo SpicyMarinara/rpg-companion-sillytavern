@@ -111,22 +111,22 @@ export let extensionSettings = {
         userStats: {
             // Array of custom stats (allows add/remove/rename)
             customStats: [
-                { id: 'health', name: 'Health', enabled: true },
-                { id: 'satiety', name: 'Satiety', enabled: true },
-                { id: 'energy', name: 'Energy', enabled: true },
-                { id: 'hygiene', name: 'Hygiene', enabled: true },
-                { id: 'arousal', name: 'Arousal', enabled: true }
+                { id: 'health', name: 'Health', description: '', enabled: true },
+                { id: 'satiety', name: 'Satiety', description: '', enabled: true },
+                { id: 'energy', name: 'Energy', description: '', enabled: true },
+                { id: 'hygiene', name: 'Hygiene', description: '', enabled: true },
+                { id: 'arousal', name: 'Arousal', description: '', enabled: true }
             ],
             // RPG Attributes (customizable D&D-style attributes)
             showRPGAttributes: true,
             alwaysSendAttributes: false, // If true, always send attributes; if false, only send with dice rolls
             rpgAttributes: [
-                { id: 'str', name: 'STR', enabled: true },
-                { id: 'dex', name: 'DEX', enabled: true },
-                { id: 'con', name: 'CON', enabled: true },
-                { id: 'int', name: 'INT', enabled: true },
-                { id: 'wis', name: 'WIS', enabled: true },
-                { id: 'cha', name: 'CHA', enabled: true }
+                { id: 'str', name: 'STR', description: '', enabled: true },
+                { id: 'dex', name: 'DEX', description: '', enabled: true },
+                { id: 'con', name: 'CON', description: '', enabled: true },
+                { id: 'int', name: 'INT', description: '', enabled: true },
+                { id: 'wis', name: 'WIS', description: '', enabled: true },
+                { id: 'cha', name: 'CHA', description: '', enabled: true }
             ],
             // Status section config
             statusSection: {
@@ -134,11 +134,14 @@ export let extensionSettings = {
                 showMoodEmoji: true,
                 customFields: ['Conditions'] // User can edit what to track
             },
-            // Optional skills field
+            // Skills section config - array of skill categories
             skillsSection: {
                 enabled: false,
-                label: 'Skills', // User-editable
-                customFields: [] // Array of skill names
+                label: 'Skills', // User-editable section label
+                customFields: [
+                    // Each skill category has id, name, description, enabled
+                    // Example: { id: 'combat', name: 'Combat', description: 'Fighting and weapon abilities', enabled: true }
+                ]
             }
         },
         infoBox: {
@@ -180,8 +183,8 @@ export let extensionSettings = {
             characterStats: {
                 enabled: false,
                 customStats: [
-                    { id: 'health', name: 'Health', enabled: true },
-                    { id: 'arousal', name: 'Arousal', enabled: true }
+                    { id: 'health', name: 'Health', description: '', enabled: true },
+                    { id: 'arousal', name: 'Arousal', description: '', enabled: true }
                 ]
             }
         }
