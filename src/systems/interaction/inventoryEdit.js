@@ -14,7 +14,7 @@ import { sanitizeItemName } from '../../utils/security.js';
  * Updates an existing inventory item's name.
  * Validates, sanitizes, and persists the change.
  *
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
  * @param {number} index - Index of item in the array
  * @param {string} newName - New name for the item
  * @param {string} [location] - Location name (required for 'stored' field)
@@ -33,7 +33,10 @@ export function updateInventoryItem(field, index, newName, location) {
 
     // Get current items for the field
     let currentString;
-    if (field === 'stored') {
+    if (field === 'simplified') {
+        // For simplified inventory, use items field or fall back to onPerson
+        currentString = inventory.items || inventory.onPerson || 'None';
+    } else if (field === 'stored') {
         if (!location) {
             console.error('[RPG Companion] Location required for stored items');
             return;
@@ -59,7 +62,11 @@ export function updateInventoryItem(field, index, newName, location) {
     const newItemString = serializeItems(items);
 
     // Update the inventory
-    if (field === 'stored') {
+    if (field === 'simplified') {
+        // Update both items and onPerson for simplified mode
+        inventory.items = newItemString;
+        inventory.onPerson = newItemString;
+    } else if (field === 'stored') {
         inventory.stored[location] = newItemString;
     } else {
         inventory[field] = newItemString;

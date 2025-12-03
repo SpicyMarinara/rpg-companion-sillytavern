@@ -53,6 +53,9 @@
                     <!-- Content will be populated by JavaScript -->
                 </div>
 
+                <!-- Divider after Inventory -->
+                <div id="rpg-divider-inventory" class="rpg-divider"></div>
+
                 <!-- Quests Section -->
                 <div id="rpg-quests" class="rpg-section rpg-quests-section">
                     <!-- Content will be populated by JavaScript -->
@@ -182,6 +185,19 @@
                     <span data-i18n-key="template.settingsModal.display.showInventory">Show Inventory</span>
                 </label>
 
+                <label class="checkbox_label" style="margin-left: 24px;">
+                    <input type="checkbox" id="rpg-toggle-simplified-inventory" />
+                    <span data-i18n-key="template.settingsModal.display.useSimplifiedInventory">Use Simplified Inventory</span>
+                </label>
+                <small style="display: block; margin-left: 48px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.useSimplifiedInventoryNote">
+                    Single flat list instead of On Person / Stored / Assets categories
+                </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-quests" />
+                    <span data-i18n-key="template.settingsModal.display.showQuests">Show Quests</span>
+                </label>
+
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-thoughts-in-chat" />
                     <span data-i18n-key="template.settingsModal.display.showThoughtsInChat">Show Thoughts in Chat</span>
@@ -266,6 +282,28 @@
                 <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.skipInjectionsNote">
                     When set, the extension will not inject tracker prompts, examples, or HTML instructions according to the selected mode when a guided generation (via `instruct` or `quiet_prompt`) is detected. Useful when using GuidedGenerations or similar extensions.
                 </small>
+
+                <!-- Custom Tracker Prompt Editor -->
+                <div class="rpg-setting-row" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rpg-border);">
+                    <label for="rpg-custom-tracker-prompt" style="display: block; margin-bottom: 8px; font-weight: 600;" data-i18n-key="template.settingsModal.advanced.customTrackerPromptTitle">
+                        <i class="fa-solid fa-scroll" aria-hidden="true"></i> Custom Tracker Prompt:
+                    </label>
+
+                    <textarea id="rpg-custom-tracker-prompt"
+                              style="width: 100%; min-height: 150px; padding: 10px; border-radius: 4px;
+                                     border: 1px solid var(--SmartThemeBorderColor); background: var(--SmartThemeBlurTintColor);
+                                     color: var(--SmartThemeBodyColor); font-family: 'Courier New', monospace; font-size: 12px;
+                                     resize: vertical; line-height: 1.5;"
+                              placeholder=""></textarea>
+                    <div style="margin-top: 8px; display: flex; gap: 8px;">
+                        <button id="rpg-restore-default-tracker-prompt" class="menu_button" style="flex: 1;">
+                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> <span data-i18n-key="template.settingsModal.advanced.restoreDefaultTrackerPrompt">Restore Default</span>
+                        </button>
+                    </div>
+                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.customTrackerPromptNote">
+                        Customize the instructions sent to the AI for generating tracker data. Use {{user}} as a placeholder for the user's name. This is the main prompt that tells the AI how to format and update the RPG trackers.
+                    </small>
+                </div>
 
                 <!-- Custom HTML Prompt Editor -->
                 <div class="rpg-setting-row" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rpg-border);">

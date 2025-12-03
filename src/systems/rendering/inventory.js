@@ -445,6 +445,85 @@ export function updateInventoryDisplay(containerId, options = {}) {
 }
 
 /**
+ * Renders the simplified (single-list) inventory view
+ * Used when useSimplifiedInventory setting is enabled
+ * @param {string} itemsString - All items as a comma-separated string
+ * @param {string} viewMode - View mode ('list' or 'grid')
+ * @returns {string} HTML for simplified inventory view
+ */
+export function renderSimplifiedInventoryView(itemsString, viewMode = 'list') {
+    const items = parseItems(itemsString);
+
+    let itemsHtml = '';
+    if (items.length === 0) {
+        itemsHtml = `<div class="rpg-inventory-empty" data-i18n-key="inventory.simplified.empty">${i18n.getTranslation('inventory.simplified.empty')}</div>`;
+    } else {
+        if (viewMode === 'grid') {
+            // Grid view: card-style items
+            itemsHtml = items.map((item, index) => `
+                <div class="rpg-item-card" data-field="simplified" data-index="${index}">
+                    <button class="rpg-item-remove" data-action="remove-item" data-field="simplified" data-index="${index}" title="${i18n.getTranslation('inventory.simplified.removeTitle')}">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="simplified" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                </div>
+            `).join('');
+        } else {
+            // List view: full-width rows
+            itemsHtml = items.map((item, index) => `
+                <div class="rpg-item-row" data-field="simplified" data-index="${index}">
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="simplified" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    <button class="rpg-item-remove" data-action="remove-item" data-field="simplified" data-index="${index}" title="${i18n.getTranslation('inventory.simplified.removeTitle')}">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+    }
+
+    const listViewClass = viewMode === 'list' ? 'rpg-item-list-view' : 'rpg-item-grid-view';
+
+    return `
+        <div class="rpg-inventory-container">
+            <div class="rpg-inventory-section" data-section="simplified">
+                <div class="rpg-inventory-header">
+                    <h4 data-i18n-key="inventory.simplified.title">${i18n.getTranslation('inventory.simplified.title')}</h4>
+                    <div class="rpg-inventory-header-actions">
+                        <div class="rpg-view-toggle">
+                            <button class="rpg-view-btn ${viewMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="simplified" data-view="list" title="${i18n.getTranslation('global.listView')}">
+                                <i class="fa-solid fa-list"></i>
+                            </button>
+                            <button class="rpg-view-btn ${viewMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="simplified" data-view="grid" title="${i18n.getTranslation('global.gridView')}">
+                                <i class="fa-solid fa-th"></i>
+                            </button>
+                        </div>
+                        <button class="rpg-inventory-add-btn" data-action="add-item" data-field="simplified" title="Add new item">
+                            <i class="fa-solid fa-plus"></i> <span data-i18n-key="inventory.simplified.addItemButton">${i18n.getTranslation('inventory.simplified.addItemButton')}</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="rpg-inventory-content">
+                    <div class="rpg-inline-form" id="rpg-add-item-form-simplified" style="display: none;">
+                        <input type="text" class="rpg-inline-input" id="rpg-new-item-simplified" placeholder="${i18n.getTranslation('inventory.simplified.addItemPlaceholder')}" data-i18n-placeholder-key="inventory.simplified.addItemPlaceholder" />
+                        <div class="rpg-inline-buttons">
+                            <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-item" data-field="simplified">
+                                <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
+                            </button>
+                            <button class="rpg-inline-btn rpg-inline-save" data-action="save-add-item" data-field="simplified">
+                                <i class="fa-solid fa-check"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="rpg-item-list ${listViewClass}">
+                        ${itemsHtml}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
  * Main inventory rendering function (matches pattern of other render functions)
  * Gets data from state/settings and updates DOM directly.
  * Call this after AI generation, character changes, or swipes.
@@ -458,11 +537,25 @@ export function renderInventory() {
     // Get inventory data from settings
     const inventory = extensionSettings.userStats.inventory;
 
-    // Get current render options (active tab, collapsed locations)
-    const options = getInventoryRenderOptions();
+    let html;
 
-    // Generate HTML and update DOM
-    const html = generateInventoryHTML(inventory, options);
+    // Check if we should render simplified inventory
+    if (extensionSettings.useSimplifiedInventory) {
+        // For simplified mode, combine all items into a single string
+        // Use the 'items' field if available (from simplified parsing),
+        // otherwise fall back to onPerson
+        const itemsString = inventory.items || inventory.onPerson || 'None';
+        // Get view mode from settings (use 'simplified' key or fall back to 'onPerson')
+        const viewModes = extensionSettings.inventoryViewModes || {};
+        const viewMode = viewModes.simplified || viewModes.onPerson || 'list';
+        html = renderSimplifiedInventoryView(itemsString, viewMode);
+    } else {
+        // Full categorized inventory
+        // Get current render options (active tab, collapsed locations)
+        const options = getInventoryRenderOptions();
+        html = generateInventoryHTML(inventory, options);
+    }
+
     $inventoryContainer.html(html);
 
     // Restore form states after re-rendering (fixes Bug #1)

@@ -119,7 +119,7 @@ import { setupClassicStatsButtons } from './src/systems/features/classicStats.js
 import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/systems/features/htmlCleaning.js';
 import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
 import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
-import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
+import { DEFAULT_HTML_PROMPT, DEFAULT_TRACKER_PROMPT } from './src/systems/generation/promptBuilder.js';
 
 // Integration modules
 import {
@@ -323,6 +323,29 @@ async function initUI() {
         extensionSettings.showInventory = $(this).prop('checked');
         saveSettings();
         updateSectionVisibility();
+        // Re-setup desktop tabs to show/hide inventory tab
+        if (window.innerWidth > 1000) {
+            removeDesktopTabs();
+            setupDesktopTabs();
+        }
+    });
+
+    $('#rpg-toggle-simplified-inventory').on('change', function() {
+        extensionSettings.useSimplifiedInventory = $(this).prop('checked');
+        saveSettings();
+        renderInventory(); // Re-render inventory with new mode
+    });
+
+    $('#rpg-toggle-quests').on('change', function() {
+        extensionSettings.showQuests = $(this).prop('checked');
+        saveSettings();
+        updateSectionVisibility();
+        renderQuests(); // Re-render quests
+        // Re-setup desktop tabs to show/hide quests tab
+        if (window.innerWidth > 1000) {
+            removeDesktopTabs();
+            setupDesktopTabs();
+        }
     });
 
     $('#rpg-toggle-thoughts-in-chat').on('change', function() {
@@ -359,6 +382,19 @@ async function initUI() {
         $('#rpg-custom-html-prompt').val('');
         saveSettings();
         toastr.success('HTML prompt restored to default');
+    });
+
+    // Custom Tracker Prompt handlers
+    $('#rpg-custom-tracker-prompt').on('input', function() {
+        extensionSettings.customTrackerPrompt = $(this).val().trim();
+        saveSettings();
+    });
+
+    $('#rpg-restore-default-tracker-prompt').on('click', function() {
+        extensionSettings.customTrackerPrompt = '';
+        $('#rpg-custom-tracker-prompt').val('');
+        saveSettings();
+        toastr.success('Tracker prompt restored to default');
     });
 
     $('#rpg-skip-guided-mode').on('change', function() {
@@ -460,6 +496,8 @@ async function initUI() {
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
+    $('#rpg-toggle-simplified-inventory').prop('checked', extensionSettings.useSimplifiedInventory);
+    $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
@@ -467,7 +505,10 @@ async function initUI() {
     // Set default HTML prompt as actual text if no custom prompt exists
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
 
-    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
+    // Set default tracker prompt as actual text if no custom prompt exists
+    $('#rpg-custom-tracker-prompt').val(extensionSettings.customTrackerPrompt || DEFAULT_TRACKER_PROMPT);
+
+    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);

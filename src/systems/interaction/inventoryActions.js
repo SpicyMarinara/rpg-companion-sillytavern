@@ -34,7 +34,8 @@ let openForms = {
     addLocation: false,
     addItemOnPerson: false,
     addItemStored: {}, // { [locationName]: true/false }
-    addItemAssets: false
+    addItemAssets: false,
+    addItemSimplified: false
 };
 
 /**
@@ -54,7 +55,7 @@ function updateLastGeneratedDataInventory() {
 
 /**
  * Shows the inline form for adding a new item.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function showAddItemForm(field, location) {
@@ -76,6 +77,8 @@ export function showAddItemForm(field, location) {
             openForms.addItemOnPerson = true;
         } else if (field === 'assets') {
             openForms.addItemAssets = true;
+        } else if (field === 'simplified') {
+            openForms.addItemSimplified = true;
         }
     }
 
@@ -88,7 +91,7 @@ export function showAddItemForm(field, location) {
 
 /**
  * Hides the inline form for adding a new item.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function hideAddItemForm(field, location) {
@@ -111,6 +114,8 @@ export function hideAddItemForm(field, location) {
             openForms.addItemOnPerson = false;
         } else if (field === 'assets') {
             openForms.addItemAssets = false;
+        } else if (field === 'simplified') {
+            openForms.addItemSimplified = false;
         }
     }
 
@@ -123,7 +128,7 @@ export function hideAddItemForm(field, location) {
 
 /**
  * Adds a new item to the inventory.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function saveAddItem(field, location) {
@@ -154,7 +159,10 @@ export function saveAddItem(field, location) {
 
     // Get current items, add new one, serialize back
     let currentString;
-    if (field === 'stored') {
+    if (field === 'simplified') {
+        // For simplified inventory, use items field or fall back to onPerson
+        currentString = inventory.items || inventory.onPerson || 'None';
+    } else if (field === 'stored') {
         currentString = inventory.stored[location] || 'None';
     } else {
         currentString = inventory[field] || 'None';
@@ -165,7 +173,11 @@ export function saveAddItem(field, location) {
     const newString = serializeItems(items);
 
     // Save back to inventory
-    if (field === 'stored') {
+    if (field === 'simplified') {
+        // Update both items and onPerson for simplified mode
+        inventory.items = newString;
+        inventory.onPerson = newString;
+    } else if (field === 'stored') {
         inventory.stored[location] = newString;
     } else {
         inventory[field] = newString;
@@ -183,7 +195,7 @@ export function saveAddItem(field, location) {
 
 /**
  * Removes an item from the inventory.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
  * @param {number} itemIndex - Index of item to remove
  * @param {string} [location] - Location name (required for 'stored' field)
  */
@@ -194,7 +206,10 @@ export function removeItem(field, itemIndex, location) {
 
     // Get current items, remove the one at index, serialize back
     let currentString;
-    if (field === 'stored') {
+    if (field === 'simplified') {
+        // For simplified inventory, use items field or fall back to onPerson
+        currentString = inventory.items || inventory.onPerson || 'None';
+    } else if (field === 'stored') {
         currentString = inventory.stored[location] || 'None';
     } else {
         currentString = inventory[field] || 'None';
@@ -212,7 +227,11 @@ export function removeItem(field, itemIndex, location) {
     // console.log('[RPG Companion] DEBUG newString after removal:', newString);
 
     // Save back to inventory
-    if (field === 'stored') {
+    if (field === 'simplified') {
+        // Update both items and onPerson for simplified mode
+        inventory.items = newString;
+        inventory.onPerson = newString;
+    } else if (field === 'stored') {
         inventory.stored[location] = newString;
     } else {
         inventory[field] = newString;
@@ -580,6 +599,15 @@ export function restoreFormStates() {
     if (openForms.addItemAssets) {
         const form = $('#rpg-add-item-form-assets');
         const input = $('#rpg-new-item-assets');
+        if (form.length > 0) {
+            form.show();
+        }
+    }
+
+    // Restore add item simplified form
+    if (openForms.addItemSimplified) {
+        const form = $('#rpg-add-item-form-simplified');
+        const input = $('#rpg-new-item-simplified');
         if (form.length > 0) {
             form.show();
         }

@@ -4,6 +4,7 @@
  */
 
 import { i18n } from '../../core/i18n.js';
+import { extensionSettings } from '../../core/state.js';
 
 /**
  * Sets up desktop tab navigation for organizing content.
@@ -31,21 +32,25 @@ export function setupDesktopTabs() {
         return;
     }
 
-    // Create tab navigation
+    // Create tab navigation - conditionally show inventory and quests tabs based on settings
+    const inventoryTabHtml = extensionSettings.showInventory ? `
+            <button class="rpg-tab-btn" data-tab="inventory">
+                <i class="fa-solid fa-box"></i>
+                <span data-i18n-key="global.inventory">Inventory</span>
+            </button>` : '';
+
+    const questsTabHtml = extensionSettings.showQuests ? `
+            <button class="rpg-tab-btn" data-tab="quests">
+                <i class="fa-solid fa-scroll"></i>
+                <span data-i18n-key="global.quests">Quests</span>
+            </button>` : '';
+
     const $tabNav = $(`
         <div class="rpg-tabs-nav">
             <button class="rpg-tab-btn active" data-tab="status">
                 <i class="fa-solid fa-chart-simple"></i>
                 <span data-i18n-key="global.status">Status</span>
-            </button>
-            <button class="rpg-tab-btn" data-tab="inventory">
-                <i class="fa-solid fa-box"></i>
-                <span data-i18n-key="global.inventory">Inventory</span>
-            </button>
-            <button class="rpg-tab-btn" data-tab="quests">
-                <i class="fa-solid fa-scroll"></i>
-                <span data-i18n-key="global.quests">Quests</span>
-            </button>
+            </button>${inventoryTabHtml}${questsTabHtml}
         </div>
     `);
 

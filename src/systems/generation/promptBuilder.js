@@ -17,6 +17,12 @@ import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../co
 export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
 
 /**
+ * Default tracker instruction prompt text
+ * Use {{user}} as placeholder for the user's name (will be replaced at runtime)
+ */
+export const DEFAULT_TRACKER_PROMPT = `At the start of every reply, you must attach an update to the trackers in EXACTLY the same format as below, enclosed in separate Markdown code fences. Replace X with actual numbers (e.g., 69) and replace all [placeholders] with concrete in-world details that {{user}} perceives about the current scene and the present characters. Do NOT keep the brackets or placeholder text in your response. For example: [Location] becomes Forest Clearing, [Mood Emoji] becomes 😊. Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences (0% if the time progressed only by a few minutes, 1-5% normally, and above 5% only if a major time-skip/event occurs).`;
+
+/**
  * Gets character card information for current chat (handles both single and group chats)
  * @returns {string} Formatted character information
  */
@@ -91,11 +97,18 @@ async function getCharacterCardsInfo() {
 export function buildInventorySummary(inventory) {
     // Handle legacy v1 string format
     if (typeof inventory === 'string') {
-        return inventory;
+        return `Inventory: ${inventory}`;
     }
 
     // Handle v2 object format
     if (inventory && typeof inventory === 'object' && inventory.version === 2) {
+        // Check for simplified inventory mode
+        if (inventory.simplified || extensionSettings.useSimplifiedInventory) {
+            const items = inventory.items || inventory.onPerson || 'None';
+            return `Inventory: ${items}`;
+        }
+
+        // Full categorized format
         let summary = '';
 
         // Add On Person section
@@ -204,9 +217,9 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
     // Only add tracker instructions if at least one tracker is enabled
     if (hasAnyTrackers) {
-        // Universal instruction header
-        instructions += `\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the same format as below, enclosed in separate Markdown code fences. Replace X with actual numbers (e.g., 69) and replace all [placeholders] with concrete in-world details that ${userName} perceives about the current scene and the present characters. Do NOT keep the brackets or placeholder text in your response. For example: [Location] becomes Forest Clearing, [Mood Emoji] becomes 😊. Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences (0% if the time progressed only by a few minutes, 1-5% normally, and above 5% only if a major time-skip/event occurs).
-`;
+        // Universal instruction header - use custom prompt if set, otherwise use default
+        const trackerPrompt = (extensionSettings.customTrackerPrompt || DEFAULT_TRACKER_PROMPT).replace(/\{\{user\}\}/g, userName);
+        instructions += `\n${trackerPrompt}\n`;
 
         // Add format specifications for each enabled tracker
         if (extensionSettings.showUserStats) {
@@ -241,9 +254,13 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += `Skills: [${skillFieldsText || 'Skill1, Skill2, etc.'}]\n`;
             }
 
-            // Add inventory format based on feature flag - only if showInventory is enabled
+            // Add inventory format - only if showInventory is enabled
             if (extensionSettings.showInventory) {
-                if (FEATURE_FLAGS.useNewInventory) {
+                if (extensionSettings.useSimplifiedInventory) {
+                    // Simplified single-line inventory format
+                    instructions += 'Inventory: [Items currently carried/worn/owned, or "None"]\n';
+                } else if (FEATURE_FLAGS.useNewInventory) {
+                    // Full v2 categorized inventory format
                     instructions += 'On Person: [Items currently carried/worn, or "None"]\n';
                     instructions += 'Stored - [Location Name]: [Items stored at this location]\n';
                     instructions += '(Add multiple "Stored - [Location]:" lines as needed for different storage locations)\n';
@@ -254,9 +271,11 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 }
             }
 
-            // Add quests section
-            instructions += 'Main Quests: [Short title of the currently active main quest (for example, "Save the world"), or "None"]\n';
-            instructions += 'Optional Quests: [Short titles of the currently active optional quests (for example, "Find Zandik\'s book"), or "None"]\n';
+            // Add quests section - only if showQuests is enabled
+            if (extensionSettings.showQuests) {
+                instructions += 'Main Quests: [Short title of the currently active main quest (for example, "Save the world"), or "None"]\n';
+                instructions += 'Optional Quests: [Short titles of the currently active optional quests (for example, "Find Zandik\'s book"), or "None"]\n';
+            }
 
             instructions += '```\n\n';
         }
@@ -484,8 +503,8 @@ export function generateRPGPromptText() {
             promptText += `Last ${userName}'s Stats:\nNone - this is the first update.\n\n`;
         }
 
-        // Add current quests to the previous data context
-        if (extensionSettings.quests) {
+        // Add current quests to the previous data context - only if showQuests is enabled
+        if (extensionSettings.showQuests && extensionSettings.quests) {
             if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
                 promptText += `Main Quests: ${extensionSettings.quests.main}\n`;
             }
