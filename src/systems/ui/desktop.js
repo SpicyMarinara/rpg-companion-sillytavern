@@ -126,20 +126,22 @@ export function removeDesktopTabs() {
     // Remove tabs container
     $('.rpg-tabs-container').remove();
 
-    // Get dividers
+    // Get dividers (all 4 dividers in the template)
     const $dividerStats = $('#rpg-divider-stats');
     const $dividerInfo = $('#rpg-divider-info');
     const $dividerThoughts = $('#rpg-divider-thoughts');
+    const $dividerInventory = $('#rpg-divider-inventory');
 
     // Restore original sections to content box in correct order
     const $contentBox = $('.rpg-content-box');
 
     // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory, Quests
+    // Each section goes before its corresponding divider
     if ($dividerStats.length) {
         $dividerStats.before($userStats);
         $dividerInfo.before($infoBox);
         $dividerThoughts.before($thoughts);
-        $contentBox.append($inventory);
+        $dividerInventory.before($inventory);
         $contentBox.append($quests);
     } else {
         // Fallback if dividers don't exist
@@ -155,6 +157,7 @@ export function removeDesktopTabs() {
     $infoBox.show();
     $thoughts.show();
     $inventory.show();
+    $quests.show();
     $('.rpg-divider').show();
 
     console.log('[RPG Desktop] Desktop tabs removed');
