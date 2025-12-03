@@ -55,9 +55,11 @@ export function buildUserStatsText() {
         text += `${stats.conditions || 'None'}\n`;
     }
 
-    // Add inventory summary
-    const inventorySummary = buildInventorySummary(stats.inventory);
-    text += inventorySummary;
+    // Add inventory summary only if inventory is enabled
+    if (extensionSettings.showInventory) {
+        const inventorySummary = buildInventorySummary(stats.inventory);
+        text += inventorySummary;
+    }
 
     // Add skills if enabled
     if (config.skillsSection.enabled && stats.skills) {

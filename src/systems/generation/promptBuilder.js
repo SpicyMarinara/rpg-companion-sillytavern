@@ -183,8 +183,49 @@ export function generateTrackerExample() {
 
     // Use COMMITTED data for generation context, not displayed data
     // Wrap each tracker section in markdown code blocks
+    
+    // Build a combined stats/inventory/quests block if any are enabled
+    let statsBlock = '';
+    
     if (extensionSettings.showUserStats && committedTrackerData.userStats) {
-        example += '```\n' + committedTrackerData.userStats + '\n```\n\n';
+        statsBlock += committedTrackerData.userStats;
+    }
+
+    // Add inventory example if enabled (and not already in userStats) - case-insensitive check
+    if (extensionSettings.showInventory && extensionSettings.userStats?.inventory) {
+        const inventorySummary = buildInventorySummary(extensionSettings.userStats.inventory);
+        if (inventorySummary && inventorySummary !== 'None') {
+            // Only add if not already present in userStats (case-insensitive)
+            const statsBlockLower = statsBlock.toLowerCase();
+            if (!statsBlockLower.includes('on person:') && !statsBlockLower.includes('inventory:')) {
+                if (statsBlock) statsBlock += '\n';
+                statsBlock += inventorySummary;
+            }
+        }
+    }
+
+    // Add quests example if enabled - case-insensitive check
+    if (extensionSettings.showQuests && extensionSettings.quests) {
+        let questsText = '';
+        if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
+            questsText += `Main Quests: ${extensionSettings.quests.main}\n`;
+        }
+        if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
+            const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
+            if (optionalQuests) {
+                questsText += `Optional Quests: ${optionalQuests}`;
+            }
+        }
+        // Only add if not already present in userStats (case-insensitive)
+        const statsBlockLower = statsBlock.toLowerCase();
+        if (questsText && !statsBlockLower.includes('main quest') && !statsBlockLower.includes('optional quest')) {
+            if (statsBlock) statsBlock += '\n';
+            statsBlock += questsText;
+        }
+    }
+
+    if (statsBlock) {
+        example += '```\n' + statsBlock.trim() + '\n```\n\n';
     }
 
     if (extensionSettings.showInfoBox && committedTrackerData.infoBox) {
@@ -469,6 +510,36 @@ export function generateContextualSummary() {
         }
     }
 
+    // Add inventory context if enabled (only if not already present in cleaned stats)
+    if (extensionSettings.showInventory && extensionSettings.userStats?.inventory) {
+        const inventorySummary = buildInventorySummary(extensionSettings.userStats.inventory);
+        if (inventorySummary && inventorySummary !== 'None') {
+            // Check if inventory is already in the summary (case-insensitive)
+            const summaryLower = summary.toLowerCase();
+            if (!summaryLower.includes('inventory:') && !summaryLower.includes('on person:')) {
+                summary += inventorySummary + '\n\n';
+            }
+        }
+    }
+
+    // Add quests context if enabled (only if not already present in cleaned stats)
+    if (extensionSettings.showQuests && extensionSettings.quests) {
+        const summaryLower = summary.toLowerCase();
+        // Only add if not already present
+        if (!summaryLower.includes('main quest') && !summaryLower.includes('optional quest')) {
+            if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
+                summary += `Main Quests: ${extensionSettings.quests.main}\n`;
+            }
+            if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
+                const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
+                if (optionalQuests) {
+                    summary += `Optional Quests: ${optionalQuests}\n`;
+                }
+            }
+            summary += '\n';
+        }
+    }
+
     // Include attributes based on settings
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
     const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
@@ -511,24 +582,32 @@ export function generateRPGPromptText() {
             promptText += `Last ${userName}'s Stats:\nNone - this is the first update.\n\n`;
         }
 
-        // Add current quests to the previous data context - only if showQuests is enabled
-        if (extensionSettings.showQuests && extensionSettings.quests) {
-            if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
-                promptText += `Main Quests: ${extensionSettings.quests.main}\n`;
-            }
-            if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
-                const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
-                promptText += `Optional Quests: ${optionalQuests || 'None'}\n`;
-            }
-            promptText += `\n`;
-        }
-
         // Add current skills to the previous data context
         const skillsSection = extensionSettings.trackerConfig?.userStats?.skillsSection;
         if (skillsSection?.enabled && skillsSection.customFields && skillsSection.customFields.length > 0) {
             const skillsList = skillsSection.customFields.join(', ');
             promptText += `Skills: ${skillsList}\n\n`;
         }
+    }
+
+    // Add current inventory to the previous data context - independent of showUserStats
+    if (extensionSettings.showInventory && extensionSettings.userStats?.inventory) {
+        const inventorySummary = buildInventorySummary(extensionSettings.userStats.inventory);
+        if (inventorySummary && inventorySummary !== 'None') {
+            promptText += `Last Inventory:\n${inventorySummary}\n\n`;
+        }
+    }
+
+    // Add current quests to the previous data context - independent of showUserStats
+    if (extensionSettings.showQuests && extensionSettings.quests) {
+        if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
+            promptText += `Main Quests: ${extensionSettings.quests.main}\n`;
+        }
+        if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
+            const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
+            promptText += `Optional Quests: ${optionalQuests || 'None'}\n`;
+        }
+        promptText += `\n`;
     }
 
     if (extensionSettings.showInfoBox) {
