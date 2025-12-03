@@ -570,7 +570,7 @@ export function generateRPGPromptText() {
         if (customStats.length > 0) {
             previousState.stats = {};
             for (const stat of customStats) {
-                previousState.stats[stat.name] = extensionSettings.userStats[stat.id] || 100;
+                previousState.stats[stat.name] = extensionSettings.userStats[stat.id] ?? 100;
             }
         }
         
