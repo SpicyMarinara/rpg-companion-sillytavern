@@ -16,11 +16,20 @@ import {
 import { evaluateSuppression } from './suppression.js';
 import { parseUserStats } from './parser.js';
 import {
-    generateTrackerExample,
-    generateTrackerInstructions,
+    generateJSONTrackerInstructions,
     generateContextualSummary,
     DEFAULT_HTML_PROMPT
 } from './promptBuilder.js';
+
+/**
+ * Gets tracker instructions (always uses JSON format)
+ * @param {boolean} includeHtmlPrompt 
+ * @param {boolean} includeContinuation 
+ * @returns {string}
+ */
+function getTrackerInstructions(includeHtmlPrompt, includeContinuation) {
+    return generateJSONTrackerInstructions(includeHtmlPrompt, includeContinuation);
+}
 
 /**
  * Event handler for generation start.
@@ -167,9 +176,9 @@ export function onGenerationStarted(type, data) {
 
     if (extensionSettings.generationMode === 'together') {
         // console.log('[RPG Companion] In together mode, generating prompts...');
-        const example = generateTrackerExample();
+        const example = ''; // JSON format includes schema in instructions, no separate example needed
         // Don't include HTML prompt in instructions - inject it separately to avoid duplication on swipes
-        const instructions = generateTrackerInstructions(false, true);
+        const instructions = getTrackerInstructions(false, true);
 
         // Clear separate mode context injection - we don't use contextual summary in together mode
         setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);

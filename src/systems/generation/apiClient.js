@@ -16,7 +16,7 @@ import {
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
 import { generateSeparateUpdatePrompt } from './promptBuilder.js';
-import { parseResponse, parseUserStats } from './parser.js';
+import { parseResponse, parseUserStats, parseSkills, tryParseJSONResponse } from './parser.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts } from '../rendering/thoughts.js';
@@ -133,18 +133,35 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
         if (response) {
             // console.log('[RPG Companion] Raw AI response:', response);
-            const parsedData = parseResponse(response);
-            // console.log('[RPG Companion] Parsed data:', parsedData);
-            // console.log('[RPG Companion] parsedData.userStats:', parsedData.userStats ? parsedData.userStats.substring(0, 100) + '...' : 'null');
+            
+            // Try JSON parsing first if structured data mode is enabled
+            const jsonParsed = tryParseJSONResponse(response);
+            
+            if (jsonParsed) {
+                // JSON parsing succeeded - render all sections
+                console.log('[RPG Companion] JSON parsing successful');
+                renderUserStats();
+                renderInfoBox();
+                renderThoughts();
+                renderInventory();
+                renderQuests();
+                if (typeof renderSkills === 'function') renderSkills();
+                saveChatData();
+            } else {
+                // JSON parsing failed - try legacy text-based parsing as fallback
+                console.warn('[RPG Companion] JSON parsing failed, attempting legacy text parsing...');
+                const parsedData = parseResponse(response);
+                // console.log('[RPG Companion] Parsed data:', parsedData);
+                // console.log('[RPG Companion] parsedData.userStats:', parsedData.userStats ? parsedData.userStats.substring(0, 100) + '...' : 'null');
 
-            // DON'T update lastGeneratedData here - it should only reflect the data
-            // from the assistant message the user replied to, not auto-generated updates
-            // This ensures swipes/regenerations use consistent source data
+                // DON'T update lastGeneratedData here - it should only reflect the data
+                // from the assistant message the user replied to, not auto-generated updates
+                // This ensures swipes/regenerations use consistent source data
 
-            // Store RPG data for the last assistant message (separate mode)
-            const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
-            // console.log('[RPG Companion] Last message is_user:', lastMessage ? lastMessage.is_user : 'no message');
-            if (lastMessage && !lastMessage.is_user) {
+                // Store RPG data for the last assistant message (separate mode)
+                const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
+                // console.log('[RPG Companion] Last message is_user:', lastMessage ? lastMessage.is_user : 'no message');
+                if (lastMessage && !lastMessage.is_user) {
                 if (!lastMessage.extra) {
                     lastMessage.extra = {};
                 }
@@ -165,6 +182,9 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 if (parsedData.userStats) {
                     lastGeneratedData.userStats = parsedData.userStats;
                     parseUserStats(parsedData.userStats);
+                }
+                if (parsedData.skills) {
+                    parseSkills(parsedData.skills);
                 }
                 if (parsedData.infoBox) {
                     lastGeneratedData.infoBox = parsedData.infoBox;
@@ -212,8 +232,9 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 renderQuests();
             }
 
-            // Save to chat metadata
-            saveChatData();
+                // Save to chat metadata
+                saveChatData();
+            }
         }
 
     } catch (error) {

@@ -140,6 +140,13 @@ export function saveChatData() {
         quests: extensionSettings.quests,
         lastGeneratedData: lastGeneratedData,
         committedTrackerData: committedTrackerData,
+        // Structured data (JSON format)
+        inventoryV3: extensionSettings.inventoryV3,
+        skillsV2: extensionSettings.skillsV2,
+        skillAbilityLinks: extensionSettings.skillAbilityLinks,
+        infoBoxData: extensionSettings.infoBoxData,
+        charactersData: extensionSettings.charactersData,
+        questsV2: extensionSettings.questsV2,
         timestamp: Date.now()
     };
 
@@ -247,14 +254,50 @@ export function loadChatData() {
         };
     }
 
-    // Restore last generated data
+    // Restore last generated data (sanitize null values in infoBox)
     if (savedData.lastGeneratedData) {
-        setLastGeneratedData({ ...savedData.lastGeneratedData });
+        const sanitizedData = { ...savedData.lastGeneratedData };
+        if (sanitizedData.infoBox && typeof sanitizedData.infoBox === 'string') {
+            // Remove lines that contain "null" values
+            sanitizedData.infoBox = sanitizedData.infoBox
+                .split('\n')
+                .filter(line => !line.match(/:\s*null\s*$/i) && !line.match(/:\s*undefined\s*$/i))
+                .join('\n');
+        }
+        setLastGeneratedData(sanitizedData);
     }
 
-    // Restore committed tracker data
+    // Restore committed tracker data (sanitize null values in infoBox)
     if (savedData.committedTrackerData) {
-        setCommittedTrackerData({ ...savedData.committedTrackerData });
+        const sanitizedData = { ...savedData.committedTrackerData };
+        if (sanitizedData.infoBox && typeof sanitizedData.infoBox === 'string') {
+            // Remove lines that contain "null" values
+            sanitizedData.infoBox = sanitizedData.infoBox
+                .split('\n')
+                .filter(line => !line.match(/:\s*null\s*$/i) && !line.match(/:\s*undefined\s*$/i))
+                .join('\n');
+        }
+        setCommittedTrackerData(sanitizedData);
+    }
+
+    // Restore structured data (JSON format)
+    if (savedData.inventoryV3) {
+        extensionSettings.inventoryV3 = savedData.inventoryV3;
+    }
+    if (savedData.skillsV2) {
+        extensionSettings.skillsV2 = savedData.skillsV2;
+    }
+    if (savedData.skillAbilityLinks) {
+        extensionSettings.skillAbilityLinks = savedData.skillAbilityLinks;
+    }
+    if (savedData.infoBoxData) {
+        extensionSettings.infoBoxData = savedData.infoBoxData;
+    }
+    if (savedData.charactersData) {
+        extensionSettings.charactersData = savedData.charactersData;
+    }
+    if (savedData.questsV2) {
+        extensionSettings.questsV2 = savedData.questsV2;
     }
 
     // Migrate inventory in chat data if feature flag enabled

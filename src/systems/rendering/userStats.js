@@ -61,8 +61,8 @@ export function buildUserStatsText() {
         text += inventorySummary;
     }
 
-    // Add skills if enabled
-    if (config.skillsSection.enabled && stats.skills) {
+    // Add skills if enabled AND not shown in separate tab
+    if (config.skillsSection.enabled && stats.skills && !extensionSettings.showSkills) {
         text += `\n${config.skillsSection.label}: ${stats.skills}`;
     }
 
@@ -167,8 +167,8 @@ export function renderUserStats() {
         html += '</div>';
     }
 
-    // Skills section (conditionally rendered)
-    if (config.skillsSection.enabled) {
+    // Skills section (conditionally rendered) - only if NOT shown in separate tab
+    if (config.skillsSection.enabled && !extensionSettings.showSkills) {
         const skillsValue = stats.skills || 'None';
         html += `
             <div class="rpg-skills-section">

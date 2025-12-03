@@ -87,8 +87,9 @@ class Internationalization {
         });
     }
 
-    getTranslation(key) {
-        return this.translations[key] || null;
+    getTranslation(key, fallback = null) {
+        // Return translation, or fallback, or the key itself (prevents "null" from showing)
+        return this.translations[key] || fallback || key;
     }
 
     async setLanguage(lang) {

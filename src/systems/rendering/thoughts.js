@@ -106,6 +106,279 @@ function namesMatch(cardName, aiName) {
  * Displays character cards with avatars, relationship badges, and traits.
  * Includes event listeners for editable character fields.
  */
+/**
+ * Converts structured character data to the internal format used by the renderer
+ * @param {Array} charactersData - Array of structured character objects
+ * @param {Object} config - Tracker configuration
+ * @returns {Array} Array of character objects in the format expected by the renderer
+ */
+function convertStructuredCharactersToFormat(charactersData, config) {
+    if (!charactersData || !Array.isArray(charactersData) || charactersData.length === 0) {
+        return null;
+    }
+    
+    const enabledFields = config?.customFields?.filter(f => f && f.enabled && f.name) || [];
+    const enabledCharStats = config?.characterStats?.enabled && config?.characterStats?.customStats?.filter(s => s && s.enabled && s.name) || [];
+    const thoughtsFieldName = config?.thoughts?.name || 'Thoughts';
+    
+    return charactersData.map(char => {
+        const result = {
+            name: char.name || 'Unknown',
+            emoji: char.emoji || '😶',
+            fields: {},
+            relationship: char.relationship || null,
+            stats: {},
+            thoughts: char.thoughts || ''
+        };
+        
+        // Map custom fields - check both top-level and nested in char.fields
+        const charFields = char.fields || {};
+        enabledFields.forEach(field => {
+            const fieldId = field.id || field.name.toLowerCase().replace(/\s+/g, '_');
+            // First check char.fields (LLM format), then check top-level
+            if (charFields[field.name] !== undefined) {
+                result.fields[field.name] = charFields[field.name];
+            } else if (charFields[fieldId] !== undefined) {
+                result.fields[field.name] = charFields[fieldId];
+            } else if (char[fieldId] !== undefined) {
+                result.fields[field.name] = char[fieldId];
+            } else if (char[field.name] !== undefined) {
+                result.fields[field.name] = char[field.name];
+            }
+        });
+        
+        // Map character stats - check both nested and top-level
+        const charStats = char.stats || {};
+        if (enabledCharStats.length > 0) {
+            enabledCharStats.forEach(stat => {
+                const statId = stat.id || stat.name.toLowerCase().replace(/\s+/g, '_');
+                if (charStats[stat.name] !== undefined) {
+                    result.stats[stat.name] = charStats[stat.name];
+                } else if (charStats[statId] !== undefined) {
+                    result.stats[stat.name] = charStats[statId];
+                }
+            });
+        }
+        
+        // Also add description if present
+        if (char.description) {
+            result.description = char.description;
+        }
+        
+        return result;
+    });
+}
+
+/**
+ * Renders characters using structured data format
+ * @param {Array} characters - Parsed character data
+ * @param {Object} config - Tracker config
+ * @param {Array} enabledFields - Enabled custom fields
+ * @param {Array} enabledCharStats - Enabled character stats
+ * @param {Array} relationshipFields - Available relationship types
+ * @param {boolean} hasRelationshipEnabled - Whether relationships are enabled
+ */
+function renderStructuredCharacters(characters, config, enabledFields, enabledCharStats, relationshipFields, hasRelationshipEnabled) {
+    debugLog('[RPG Thoughts] Rendering structured characters:', characters.length);
+    
+    const thoughtsFieldName = config?.thoughts?.name || 'Thoughts';
+    const thoughtsEnabled = config?.thoughts?.enabled;
+    
+    // Build HTML for each character
+    let html = '<div class="rpg-present-characters">';
+    
+    for (const char of characters) {
+        const avatarUrl = getCharacterAvatarUrl(char.name);
+        const relationshipEmoji = getRelationshipEmoji(char.relationship);
+        
+        html += `
+            <div class="rpg-character-card rpg-structured" data-character="${escapeHtmlAttr(char.name)}">
+                <div class="rpg-character-header">
+                    <div class="rpg-character-avatar">
+                        <img src="${avatarUrl}" onerror="this.src='${FALLBACK_AVATAR_DATA_URI}'" alt="${escapeHtmlAttr(char.name)}">
+                        ${char.relationship ? `<span class="rpg-relationship-badge" title="${escapeHtmlAttr(char.relationship)}">${relationshipEmoji}</span>` : ''}
+                    </div>
+                    <div class="rpg-character-info">
+                        <div class="rpg-character-name">
+                            <span class="rpg-char-emoji rpg-editable" contenteditable="true" data-character="${escapeHtmlAttr(char.name)}" data-field="emoji">${char.emoji}</span>
+                            <span class="rpg-char-name-text rpg-editable" contenteditable="true" data-character="${escapeHtmlAttr(char.name)}" data-field="name">${char.name}</span>
+                        </div>
+                        ${char.description ? `<div class="rpg-character-description">${char.description}</div>` : ''}
+                    </div>
+                </div>`;
+        
+        // Custom fields - safely check if fields exists
+        const charFields = char.fields || {};
+        if (enabledFields.length > 0 && Object.keys(charFields).length > 0) {
+            html += '<div class="rpg-character-fields">';
+            for (const field of enabledFields) {
+                const value = charFields[field.name] || '';
+                if (value) {
+                    html += `
+                        <div class="rpg-character-field">
+                            <span class="rpg-field-label">${field.name}:</span>
+                            <span class="rpg-field-value rpg-editable" contenteditable="true" data-character="${escapeHtmlAttr(char.name)}" data-field="${field.name}">${value}</span>
+                        </div>`;
+                }
+            }
+            html += '</div>';
+        }
+        
+        // Character stats (health, arousal, etc.) - safely check if stats exists
+        const charStats = char.stats || {};
+        if (enabledCharStats.length > 0 && Object.keys(charStats).length > 0) {
+            html += '<div class="rpg-character-stats">';
+            for (const stat of enabledCharStats) {
+                const value = charStats[stat.name];
+                if (value !== undefined) {
+                    const color = getStatColor(value, stat.lowColor || '#ff0000', stat.highColor || '#00ff00');
+                    html += `
+                        <div class="rpg-char-stat">
+                            <span class="rpg-stat-name">${stat.name}</span>
+                            <div class="rpg-stat-bar">
+                                <div class="rpg-stat-fill" style="width: ${value}%; background-color: ${color};"></div>
+                            </div>
+                            <span class="rpg-stat-value rpg-editable" contenteditable="true" data-character="${escapeHtmlAttr(char.name)}" data-field="${stat.name}">${value}%</span>
+                        </div>`;
+                }
+            }
+            html += '</div>';
+        }
+        
+        // Relationship field
+        if (hasRelationshipEnabled && char.relationship) {
+            // Add the character's relationship to options if not already in the list
+            const allRelationships = [...relationshipFields];
+            if (char.relationship && !allRelationships.includes(char.relationship)) {
+                allRelationships.unshift(char.relationship);
+            }
+            html += `
+                <div class="rpg-character-relationship">
+                    <span class="rpg-field-label">Relationship:</span>
+                    <select class="rpg-relationship-select" data-character="${escapeHtmlAttr(char.name)}" data-field="Relationship">
+                        ${allRelationships.map(r => `<option value="${r}" ${char.relationship === r ? 'selected' : ''}>${r}</option>`).join('')}
+                    </select>
+                </div>`;
+        }
+        
+        // Thoughts
+        if (thoughtsEnabled && char.thoughts) {
+            html += `
+                <div class="rpg-character-thoughts">
+                    <span class="rpg-thoughts-label">${thoughtsFieldName}:</span>
+                    <span class="rpg-thoughts-text rpg-editable" contenteditable="true" data-character="${escapeHtmlAttr(char.name)}" data-field="${thoughtsFieldName}">${char.thoughts}</span>
+                </div>`;
+        }
+        
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    
+    // If no characters
+    if (characters.length === 0) {
+        html = '<div class="rpg-no-characters">No characters present</div>';
+    }
+    
+    $thoughtsContainer.html(html);
+    
+    // Remove updating animation
+    if (extensionSettings.enableAnimations) {
+        setTimeout(() => $thoughtsContainer.removeClass('rpg-content-updating'), 300);
+    }
+    
+    // Setup event listeners for editable fields
+    setupStructuredCharacterEventListeners();
+}
+
+/**
+ * Gets relationship emoji from relationship string
+ * Returns a default emoji (⚖️) if relationship is not in the predefined map
+ */
+function getRelationshipEmoji(relationship) {
+    if (!relationship) return null;
+    const map = { 
+        'Enemy': '⚔️', 
+        'Neutral': '⚖️', 
+        'Friend': '⭐', 
+        'Lover': '❤️',
+        'Ally': '🤝',
+        'Rival': '🎯',
+        'Family': '👨‍👩‍👧',
+        'Stranger': '❓'
+    };
+    // Return mapped emoji or default '⚖️' for unknown relationships
+    return map[relationship] || '⚖️';
+}
+
+/**
+ * Gets character avatar URL
+ */
+function getCharacterAvatarUrl(characterName) {
+    // Try to find matching character from SillyTavern
+    try {
+        const context = getContext();
+        if (context && characters) {
+            const char = characters.find(c => namesMatch(c.name, characterName));
+            if (char && char.avatar) {
+                return getSafeThumbnailUrl('avatar', char.avatar);
+            }
+        }
+    } catch (e) {
+        debugLog('[RPG Thoughts] Error getting avatar:', e);
+    }
+    return FALLBACK_AVATAR_DATA_URI;
+}
+
+/**
+ * Setup event listeners for structured character editing
+ */
+function setupStructuredCharacterEventListeners() {
+    $thoughtsContainer.off('blur', '.rpg-editable').on('blur', '.rpg-editable', function() {
+        const $this = $(this);
+        const characterName = $this.data('character');
+        const field = $this.data('field');
+        const newValue = $this.text().trim();
+        
+        // Update the charactersData
+        const charIndex = extensionSettings.charactersData?.findIndex(c => c.name === characterName);
+        if (charIndex !== undefined && charIndex !== -1) {
+            const char = extensionSettings.charactersData[charIndex];
+            
+            if (field === 'name') {
+                char.name = newValue;
+            } else if (field === 'emoji') {
+                char.emoji = newValue;
+            } else if (field === 'Thoughts' || field === extensionSettings.trackerConfig?.presentCharacters?.thoughts?.name) {
+                char.thoughts = newValue;
+            } else {
+                // Custom field or stat
+                const fieldId = field.toLowerCase().replace(/\s+/g, '_');
+                if (char.stats && char.stats[fieldId] !== undefined) {
+                    char.stats[fieldId] = parseInt(newValue.replace('%', '')) || 0;
+                } else {
+                    char[fieldId] = newValue;
+                }
+            }
+            
+            saveChatData();
+        }
+    });
+    
+    // Relationship select
+    $thoughtsContainer.off('change', '.rpg-relationship-select').on('change', '.rpg-relationship-select', function() {
+        const characterName = $(this).data('character');
+        const newValue = $(this).val();
+        
+        const charIndex = extensionSettings.charactersData?.findIndex(c => c.name === characterName);
+        if (charIndex !== undefined && charIndex !== -1) {
+            extensionSettings.charactersData[charIndex].relationship = newValue;
+            saveChatData();
+            renderThoughts(); // Re-render to update badge
+        }
+    });
+}
+
 export function renderThoughts() {
     if (!extensionSettings.showCharacterThoughts || !$thoughtsContainer) {
         return;
@@ -127,9 +400,48 @@ export function renderThoughts() {
     const enabledCharStats = characterStatsConfig?.enabled && characterStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
     const relationshipFields = config?.relationshipFields || [];
     const hasRelationshipEnabled = relationshipFields.length > 0;
-
-    // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
-    const characterThoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts || '';
+    
+    // Convert structured character data to text format for the original fancy renderer
+    let characterThoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts || '';
+    
+    // If we have structured data, convert it to text format
+    if (extensionSettings.charactersData && Array.isArray(extensionSettings.charactersData) && extensionSettings.charactersData.length > 0) {
+        const lines = [];
+        for (const char of extensionSettings.charactersData) {
+            // Character name line
+            lines.push(`- ${char.name || 'Unknown'}`);
+            
+            // Details line with emoji and fields
+            const details = [char.emoji || '😶'];
+            const charFields = char.fields || {};
+            for (const [key, value] of Object.entries(charFields)) {
+                if (value) details.push(`${key}: ${value}`);
+            }
+            lines.push(`Details: ${details.join(' | ')}`);
+            
+            // Relationship line
+            if (char.relationship) {
+                lines.push(`Relationship: ${char.relationship}`);
+            }
+            
+            // Stats line
+            const charStats = char.stats || {};
+            if (Object.keys(charStats).length > 0) {
+                const statsStr = Object.entries(charStats).map(([k, v]) => `${k}: ${v}%`).join(' | ');
+                lines.push(`Stats: ${statsStr}`);
+            }
+            
+            // Thoughts line
+            if (char.thoughts) {
+                const thoughtsFieldName = config?.thoughts?.name || 'Thoughts';
+                lines.push(`${thoughtsFieldName}: ${char.thoughts}`);
+            }
+        }
+        if (lines.length > 0) {
+            characterThoughtsData = lines.join('\n');
+            debugLog('[RPG Thoughts] Converted structured data to text format');
+        }
+    }
 
     debugLog('[RPG Thoughts] Raw characterThoughts data:', characterThoughtsData);
     debugLog('[RPG Thoughts] Data length:', characterThoughtsData.length + ' chars');
@@ -376,14 +688,16 @@ export function renderThoughts() {
                 debugLog(`[RPG Thoughts] Final avatar for ${char.name}:`, characterPortrait.substring(0, 50) + '...');
 
                 // Get relationship badge - only if relationships are enabled in config
-                let relationshipBadge = '⚖️'; // Default
+                let relationshipBadge = '⚖️'; // Default emoji
+                let relationshipText = 'Neutral'; // Default text for tooltip
                 let relationshipFieldName = 'Relationship';
 
                 if (hasRelationshipEnabled) {
                     // In the new format, relationship is always stored in char.Relationship
                     if (char.Relationship) {
-                        // Try to map text to emoji
-                        relationshipBadge = relationshipEmojis[char.Relationship] || char.Relationship;
+                        relationshipText = char.Relationship;
+                        // Try to map text to emoji, fall back to default link emoji for unknown types
+                        relationshipBadge = relationshipEmojis[char.Relationship] || '⚖️';
                     }
                 }
 
@@ -396,7 +710,7 @@ export function renderThoughts() {
                     <div class="rpg-character-card" data-character-name="${escapedName}">
                         <div class="rpg-character-avatar">
                             <img src="${characterPortrait}" alt="${escapedName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                            ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
+                            ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${relationshipFieldName}" title="${escapeHtmlAttr(relationshipText)}">${relationshipBadge}</div>` : ''}
                         </div>
                         <div class="rpg-character-content">
                             <div class="rpg-character-info">

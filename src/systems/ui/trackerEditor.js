@@ -8,6 +8,7 @@ import { saveSettings } from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts } from '../rendering/thoughts.js';
+import { renderSkills } from '../rendering/skills.js';
 
 let $editorModal = null;
 let activeTab = 'userStats';
@@ -287,10 +288,21 @@ function renderUserStatsTab() {
 
     // Skills Section
     html += `<h4><i class="fa-solid fa-star"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsSectionTitle')}</h4>`;
-    html += '<div class="rpg-editor-toggle-row">';
-    html += `<input type="checkbox" id="rpg-skills-enabled" ${config.skillsSection.enabled ? 'checked' : ''}>`;
+    
+    // Check if skills are shown as separate section - if so, disable the toggle
+    const skillsInSeparateTab = extensionSettings.showSkills;
+    const skillsToggleDisabled = skillsInSeparateTab ? 'disabled' : '';
+    const skillsToggleStyle = skillsInSeparateTab ? 'style="opacity: 0.5; cursor: not-allowed;"' : '';
+    
+    html += `<div class="rpg-editor-toggle-row" ${skillsToggleStyle}>`;
+    html += `<input type="checkbox" id="rpg-skills-enabled" ${config.skillsSection.enabled ? 'checked' : ''} ${skillsToggleDisabled}>`;
     html += `<label for="rpg-skills-enabled">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableSkillsSection')}</label>`;
     html += '</div>';
+    
+    // Show note when skills are in separate tab
+    if (skillsInSeparateTab) {
+        html += `<small style="display: block; margin-top: -8px; margin-bottom: 12px; color: #888; font-size: 11px;" data-i18n-key="template.trackerEditorModal.userStatsTab.skillsInSeparateTabNote">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsInSeparateTabNote')}</small>`;
+    }
 
     html += `<label>${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsLabelLabel')}</label>`;
     html += `<input type="text" id="rpg-skills-label" value="${config.skillsSection.label}" class="rpg-text-input" placeholder="Skills">`;
@@ -415,17 +427,24 @@ function setupUserStatsListeners() {
     // Skills section toggles
     $('#rpg-skills-enabled').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.skillsSection.enabled = $(this).is(':checked');
+        saveSettings();
+        // Re-render both user stats (if skills shown there) and skills section
+        renderUserStats();
+        renderSkills();
     });
 
     $('#rpg-skills-label').off('blur').on('blur', function() {
         extensionSettings.trackerConfig.userStats.skillsSection.label = $(this).val();
         saveSettings();
+        renderUserStats();
     });
 
     $('#rpg-skills-fields').off('blur').on('blur', function() {
         const fields = $(this).val().split(',').map(f => f.trim()).filter(f => f);
         extensionSettings.trackerConfig.userStats.skillsSection.customFields = fields;
         saveSettings();
+        // Re-render skills section when skills list changes
+        renderSkills();
     });
 }
 

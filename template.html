@@ -48,6 +48,14 @@
                 <!-- Divider after Thoughts -->
                 <div id="rpg-divider-thoughts" class="rpg-divider"></div>
 
+                <!-- Skills Section -->
+                <div id="rpg-skills" class="rpg-section rpg-skills-section">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+
+                <!-- Divider after Skills -->
+                <div id="rpg-divider-skills" class="rpg-divider"></div>
+
                 <!-- Inventory Section -->
                 <div id="rpg-inventory" class="rpg-section rpg-inventory-section">
                     <!-- Content will be populated by JavaScript -->
@@ -191,6 +199,30 @@
                 </label>
                 <small style="display: block; margin-left: 48px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.useSimplifiedInventoryNote">
                     Single flat list instead of On Person / Stored / Assets categories
+                </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-skills" />
+                    <span data-i18n-key="template.settingsModal.display.showSkills">Show Skills Section</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.showSkillsNote">
+                    Displays skills as a separate tab instead of within Status. Configure skills in Edit Trackers.
+                </small>
+
+                <label class="checkbox_label" style="margin-left: 24px;">
+                    <input type="checkbox" id="rpg-toggle-item-skill-links" />
+                    <span data-i18n-key="template.settingsModal.display.enableItemSkillLinks">Enable Item-Skill Links</span>
+                </label>
+                <small style="display: block; margin-left: 48px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.enableItemSkillLinksNote">
+                    Items can grant skills. Removing an item unlinks or removes the skill.
+                </small>
+
+                <label class="checkbox_label" style="margin-left: 48px;">
+                    <input type="checkbox" id="rpg-toggle-delete-skill-with-item" />
+                    <span data-i18n-key="template.settingsModal.display.deleteSkillWithItem">Delete skill when item removed</span>
+                </label>
+                <small style="display: block; margin-left: 72px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.deleteSkillWithItemNote">
+                    When disabled (default), removing an item just unlinks the skill. When enabled, the skill is deleted.
                 </small>
 
                 <label class="checkbox_label">

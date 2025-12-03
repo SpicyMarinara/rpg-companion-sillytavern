@@ -19,6 +19,48 @@ function escapeHtml(text) {
 }
 
 /**
+ * Checks if we have structured quests data (v2 format with name + description)
+ * @returns {boolean}
+ */
+function hasStructuredQuests() {
+    const q = extensionSettings.questsV2;
+    return q && (q.main !== undefined || q.optional !== undefined);
+}
+
+/**
+ * Gets the main quest (supports both legacy and structured format)
+ * @returns {{name: string, description: string}|null}
+ */
+function getMainQuest() {
+    if (hasStructuredQuests() && extensionSettings.questsV2.main) {
+        return extensionSettings.questsV2.main;
+    }
+    // Legacy format
+    const title = extensionSettings.quests?.main;
+    if (title && title !== 'None') {
+        return { name: title, description: extensionSettings.quests?.mainDescription || '' };
+    }
+    return null;
+}
+
+/**
+ * Gets optional quests (supports both legacy and structured format)
+ * @returns {Array<{name: string, description: string}>}
+ */
+function getOptionalQuests() {
+    if (hasStructuredQuests() && extensionSettings.questsV2.optional) {
+        return extensionSettings.questsV2.optional;
+    }
+    // Legacy format
+    const titles = extensionSettings.quests?.optional || [];
+    const descriptions = extensionSettings.quests?.optionalDescriptions || [];
+    return titles.map((title, i) => ({
+        name: title,
+        description: descriptions[i] || ''
+    }));
+}
+
+/**
  * Renders the quests sub-tab navigation (Main, Optional)
  * @param {string} activeTab - Currently active sub-tab ('main', 'optional')
  * @returns {string} HTML for sub-tab navigation
@@ -38,12 +80,15 @@ export function renderQuestsSubTabs(activeTab = 'main') {
 
 /**
  * Renders the main quest view
- * @param {string} mainQuest - Current main quest title
+ * @param {string} mainQuest - Current main quest title (legacy param, ignored if structured)
  * @returns {string} HTML for main quest view
  */
 export function renderMainQuestView(mainQuest) {
-    const questDisplay = (mainQuest && mainQuest !== 'None') ? mainQuest : '';
-    const hasQuest = questDisplay.length > 0;
+    // Use structured data helpers
+    const quest = getMainQuest();
+    const hasQuest = quest !== null;
+    const questName = quest?.name || '';
+    const questDesc = quest?.description || '';
 
     return `
         <div class="rpg-quest-section">
@@ -56,7 +101,8 @@ export function renderMainQuestView(mainQuest) {
             <div class="rpg-quest-content">
                 ${hasQuest ? `
                     <div class="rpg-inline-form" id="rpg-edit-quest-form-main" style="display: none;">
-                        <input type="text" class="rpg-inline-input" id="rpg-edit-quest-main" value="${escapeHtml(questDisplay)}" />
+                        <input type="text" class="rpg-inline-input" id="rpg-edit-quest-main" value="${escapeHtml(questName)}" placeholder="Quest name" />
+                        <input type="text" class="rpg-inline-input" id="rpg-edit-quest-desc-main" value="${escapeHtml(questDesc)}" placeholder="Description (optional)" />
                         <div class="rpg-inline-buttons">
                             <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-edit-quest" data-field="main">
                                 <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
@@ -67,7 +113,7 @@ export function renderMainQuestView(mainQuest) {
                         </div>
                     </div>
                     <div class="rpg-quest-item" data-field="main">
-                        <div class="rpg-quest-title">${escapeHtml(questDisplay)}</div>
+                        <div class="rpg-quest-title">${escapeHtml(questName)}</div>
                         <div class="rpg-quest-actions">
                             <button class="rpg-quest-edit" data-action="edit-quest" data-field="main" title="Edit quest">
                                 <i class="fa-solid fa-edit"></i>
@@ -106,7 +152,8 @@ export function renderMainQuestView(mainQuest) {
  * @returns {string} HTML for optional quests view
  */
 export function renderOptionalQuestsView(optionalQuests) {
-    const quests = optionalQuests.filter(q => q && q !== 'None');
+    // Use structured data helpers
+    const quests = getOptionalQuests().filter(q => q && q.name && q.name !== 'None');
 
     let questsHtml = '';
     if (quests.length === 0) {
@@ -114,7 +161,7 @@ export function renderOptionalQuestsView(optionalQuests) {
     } else {
         questsHtml = quests.map((quest, index) => `
             <div class="rpg-quest-item" data-field="optional" data-index="${index}">
-                <div class="rpg-quest-title rpg-editable" contenteditable="true" data-field="optional" data-index="${index}" title="Click to edit">${escapeHtml(quest)}</div>
+                <div class="rpg-quest-title rpg-editable" contenteditable="true" data-field="optional" data-index="${index}" title="Click to edit">${escapeHtml(quest.name)}</div>
                 <div class="rpg-quest-actions">
                     <button class="rpg-quest-remove" data-action="remove-quest" data-field="optional" data-index="${index}" title="Complete/Remove quest">
                         <i class="fa-solid fa-check"></i>
@@ -218,17 +265,29 @@ function attachQuestEventHandlers() {
     // Save add quest
     $questsContainer.find('[data-action="save-add-quest"]').on('click', function() {
         const field = $(this).data('field');
-        const input = $(`#rpg-new-quest-${field}`);
-        const questTitle = input.val().trim();
+        const nameInput = $(`#rpg-new-quest-${field}`);
+        const descInput = $(`#rpg-new-quest-desc-${field}`);
+        const questTitle = nameInput.val().trim();
+        const questDesc = descInput?.val()?.trim() || '';
 
         if (questTitle) {
+            // Ensure structured format exists
+            if (!extensionSettings.questsV2) {
+                extensionSettings.questsV2 = { main: null, optional: [] };
+            }
+            
             if (field === 'main') {
                 extensionSettings.quests.main = questTitle;
+                extensionSettings.questsV2.main = { name: questTitle, description: questDesc };
             } else {
                 if (!extensionSettings.quests.optional) {
                     extensionSettings.quests.optional = [];
                 }
+                if (!extensionSettings.questsV2.optional) {
+                    extensionSettings.questsV2.optional = [];
+                }
                 extensionSettings.quests.optional.push(questTitle);
+                extensionSettings.questsV2.optional.push({ name: questTitle, description: questDesc });
             }
             saveSettings();
             renderQuests();
@@ -250,13 +309,21 @@ function attachQuestEventHandlers() {
         $('.rpg-quest-item[data-field="main"]').show();
     });
 
-    // Save edit quest
+    // Save edit quest (main)
     $questsContainer.find('[data-action="save-edit-quest"]').on('click', function() {
         const field = $(this).data('field');
-        const input = $(`#rpg-edit-quest-${field}`);
-        const questTitle = input.val().trim();
+        const nameInput = $(`#rpg-edit-quest-${field}`);
+        const descInput = $(`#rpg-edit-quest-desc-${field}`);
+        const questTitle = nameInput.val().trim();
+        const questDesc = descInput.val()?.trim() || '';
 
         if (questTitle) {
+            // Use structured format
+            if (!extensionSettings.questsV2) {
+                extensionSettings.questsV2 = { main: null, optional: [] };
+            }
+            extensionSettings.questsV2.main = { name: questTitle, description: questDesc };
+            // Also update legacy for backwards compatibility
             extensionSettings.quests.main = questTitle;
             saveSettings();
             renderQuests();
@@ -270,22 +337,41 @@ function attachQuestEventHandlers() {
 
         if (field === 'main') {
             extensionSettings.quests.main = 'None';
+            if (extensionSettings.questsV2) {
+                extensionSettings.questsV2.main = null;
+            }
         } else {
             extensionSettings.quests.optional.splice(index, 1);
+            if (extensionSettings.questsV2?.optional) {
+                extensionSettings.questsV2.optional.splice(index, 1);
+            }
         }
         saveSettings();
         renderQuests();
     });
 
-    // Inline editing for optional quests
-    $questsContainer.find('.rpg-quest-title.rpg-editable').on('blur', function() {
+    // Inline editing for optional quests (name and description)
+    $questsContainer.find('.rpg-quest-title.rpg-editable, .rpg-quest-description.rpg-editable').on('blur', function() {
         const $this = $(this);
         const field = $this.data('field');
         const index = $this.data('index');
-        const newTitle = $this.text().trim();
+        const prop = $this.data('prop') || 'name';
+        const newValue = $this.text().trim();
 
-        if (newTitle && field === 'optional' && index !== undefined) {
-            extensionSettings.quests.optional[index] = newTitle;
+        if (field === 'optional' && index !== undefined) {
+            // Ensure structured format exists
+            if (!extensionSettings.questsV2) {
+                extensionSettings.questsV2 = { main: null, optional: [] };
+            }
+            if (!extensionSettings.questsV2.optional[index]) {
+                extensionSettings.questsV2.optional[index] = { name: '', description: '' };
+            }
+            extensionSettings.questsV2.optional[index][prop] = newValue;
+            
+            // Also update legacy for backwards compatibility
+            if (prop === 'name') {
+                extensionSettings.quests.optional[index] = newValue;
+            }
             saveSettings();
         }
     });

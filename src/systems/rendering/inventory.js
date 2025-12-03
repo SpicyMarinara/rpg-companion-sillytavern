@@ -8,6 +8,7 @@ import { getInventoryRenderOptions, restoreFormStates } from '../interaction/inv
 import { updateInventoryItem } from '../interaction/inventoryEdit.js';
 import { parseItems } from '../../utils/itemParser.js';
 import { i18n } from '../../core/i18n.js';
+import { itemHasLinkedSkills, navigateToLinkedSkills } from './skills.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -21,6 +22,23 @@ import { i18n } from '../../core/i18n.js';
 export function getLocationId(locationName) {
     // Remove all non-alphanumeric characters except spaces, then replace spaces with hyphens
     return locationName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-');
+}
+
+/**
+ * Generates the skill link indicator for an inventory item
+ * @param {string} itemName - The item name
+ * @returns {string} HTML string for the link indicator (empty if no links)
+ */
+function getSkillLinkIndicator(itemName) {
+    if (!extensionSettings.enableItemSkillLinks || !extensionSettings.showSkills) {
+        return '';
+    }
+    if (itemHasLinkedSkills(itemName)) {
+        return `<button class="rpg-item-skill-link" data-action="goto-linked-skills" data-item="${escapeHtml(itemName)}" title="${i18n.getTranslation('inventory.gotoLinkedSkills')}">
+            <i class="fa-solid fa-star"></i>
+        </button>`;
+    }
+    return '';
 }
 
 /**
@@ -45,6 +63,31 @@ export function renderInventorySubTabs(activeTab = 'onPerson') {
 }
 
 /**
+ * Gets the description for an item from structured inventory data
+ * @param {string} field - Field type ('onPerson', 'stored', 'assets')
+ * @param {number} index - Item index
+ * @param {string} [location] - Location name for stored items
+ * @returns {string} Item description or empty string
+ */
+function getItemDescription(field, index, location = null) {
+    const inv3 = extensionSettings.inventoryV3;
+    if (!inv3) return '';
+    
+    let items;
+    if (field === 'onPerson') {
+        items = inv3.onPerson;
+    } else if (field === 'assets') {
+        items = inv3.assets;
+    } else if (field === 'stored' && location) {
+        items = inv3.stored?.[location];
+    }
+    
+    if (!items || !Array.isArray(items) || !items[index]) return '';
+    const item = items[index];
+    return (typeof item === 'object' ? item.description : '') || '';
+}
+
+/**
  * Renders the "On Person" inventory view with list or grid display
  * @param {string} onPersonItems - Current on-person items (comma-separated string)
  * @param {string} viewMode - View mode ('list' or 'grid')
@@ -59,24 +102,38 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
     } else {
         if (viewMode === 'grid') {
             // Grid view: card-style items
-            itemsHtml = items.map((item, index) => `
-                <div class="rpg-item-card" data-field="onPerson" data-index="${index}">
+            itemsHtml = items.map((item, index) => {
+                const desc = getItemDescription('onPerson', index);
+                return `
+                <div class="rpg-item-card ${itemHasLinkedSkills(item) ? 'rpg-has-skill-link' : ''}" data-field="onPerson" data-index="${index}">
                     <button class="rpg-item-remove" data-action="remove-item" data-field="onPerson" data-index="${index}" title="Remove item">
                         <i class="fa-solid fa-times"></i>
                     </button>
                     <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    ${getSkillLinkIndicator(item)}
+                    <div class="rpg-item-desc-row">
+                        <span class="rpg-item-description rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" data-prop="description" title="Click to edit description">${escapeHtml(desc)}</span>
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
         } else {
             // List view: full-width rows
-            itemsHtml = items.map((item, index) => `
-                <div class="rpg-item-row" data-field="onPerson" data-index="${index}">
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
-                    <button class="rpg-item-remove" data-action="remove-item" data-field="onPerson" data-index="${index}" title="Remove item">
-                        <i class="fa-solid fa-times"></i>
-                    </button>
+            itemsHtml = items.map((item, index) => {
+                const desc = getItemDescription('onPerson', index);
+                return `
+                <div class="rpg-item-row ${itemHasLinkedSkills(item) ? 'rpg-has-skill-link' : ''}" data-field="onPerson" data-index="${index}">
+                    <div class="rpg-item-main-row">
+                        <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                        ${getSkillLinkIndicator(item)}
+                        <button class="rpg-item-remove" data-action="remove-item" data-field="onPerson" data-index="${index}" title="Remove item">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="rpg-item-desc-row">
+                        <span class="rpg-item-description rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" data-prop="description" title="Click to edit description">${escapeHtml(desc)}</span>
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
     }
 
@@ -181,24 +238,38 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
             } else {
                 if (viewMode === 'grid') {
                     // Grid view: card-style items
-                    itemsHtml = items.map((item, index) => `
-                        <div class="rpg-item-card" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
+                    itemsHtml = items.map((item, index) => {
+                        const desc = getItemDescription('stored', index, location);
+                        return `
+                        <div class="rpg-item-card ${itemHasLinkedSkills(item) ? 'rpg-has-skill-link' : ''}" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
                             <button class="rpg-item-remove" data-action="remove-item" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Remove item">
                                 <i class="fa-solid fa-times"></i>
                             </button>
                             <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                            ${getSkillLinkIndicator(item)}
+                            <div class="rpg-item-desc-row">
+                                <span class="rpg-item-description rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" data-prop="description" title="Click to edit description">${escapeHtml(desc)}</span>
+                            </div>
                         </div>
-                    `).join('');
+                    `}).join('');
                 } else {
                     // List view: full-width rows
-                    itemsHtml = items.map((item, index) => `
-                        <div class="rpg-item-row" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
-                            <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
-                            <button class="rpg-item-remove" data-action="remove-item" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Remove item">
-                                <i class="fa-solid fa-times"></i>
-                            </button>
+                    itemsHtml = items.map((item, index) => {
+                        const desc = getItemDescription('stored', index, location);
+                        return `
+                        <div class="rpg-item-row ${itemHasLinkedSkills(item) ? 'rpg-has-skill-link' : ''}" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
+                            <div class="rpg-item-main-row">
+                                <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                                ${getSkillLinkIndicator(item)}
+                                <button class="rpg-item-remove" data-action="remove-item" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Remove item">
+                                    <i class="fa-solid fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="rpg-item-desc-row">
+                                <span class="rpg-item-description rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" data-prop="description" title="Click to edit description">${escapeHtml(desc)}</span>
+                            </div>
                         </div>
-                    `).join('');
+                    `}).join('');
                 }
             }
 
@@ -277,24 +348,38 @@ export function renderAssetsView(assets, viewMode = 'list') {
     } else {
         if (viewMode === 'grid') {
             // Grid view: card-style items
-            itemsHtml = items.map((item, index) => `
-                <div class="rpg-item-card" data-field="assets" data-index="${index}">
+            itemsHtml = items.map((item, index) => {
+                const desc = getItemDescription('assets', index);
+                return `
+                <div class="rpg-item-card ${itemHasLinkedSkills(item) ? 'rpg-has-skill-link' : ''}" data-field="assets" data-index="${index}">
                     <button class="rpg-item-remove" data-action="remove-item" data-field="assets" data-index="${index}" title="Remove asset">
                         <i class="fa-solid fa-times"></i>
                     </button>
                     <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    ${getSkillLinkIndicator(item)}
+                    <div class="rpg-item-desc-row">
+                        <span class="rpg-item-description rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" data-prop="description" title="Click to edit description">${escapeHtml(desc)}</span>
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
         } else {
             // List view: full-width rows
-            itemsHtml = items.map((item, index) => `
-                <div class="rpg-item-row" data-field="assets" data-index="${index}">
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
-                    <button class="rpg-item-remove" data-action="remove-item" data-field="assets" data-index="${index}" title="${i18n.getTranslation('inventory.assets.removeAssetTitle')}">
-                        <i class="fa-solid fa-times"></i>
-                    </button>
+            itemsHtml = items.map((item, index) => {
+                const desc = getItemDescription('assets', index);
+                return `
+                <div class="rpg-item-row ${itemHasLinkedSkills(item) ? 'rpg-has-skill-link' : ''}" data-field="assets" data-index="${index}">
+                    <div class="rpg-item-main-row">
+                        <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                        ${getSkillLinkIndicator(item)}
+                        <button class="rpg-item-remove" data-action="remove-item" data-field="assets" data-index="${index}" title="${i18n.getTranslation('inventory.assets.removeAssetTitle')}">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="rpg-item-desc-row">
+                        <span class="rpg-item-description rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" data-prop="description" title="Click to edit description">${escapeHtml(desc)}</span>
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
     }
 
@@ -461,18 +546,20 @@ export function renderSimplifiedInventoryView(itemsString, viewMode = 'list') {
         if (viewMode === 'grid') {
             // Grid view: card-style items
             itemsHtml = items.map((item, index) => `
-                <div class="rpg-item-card" data-field="simplified" data-index="${index}">
+                <div class="rpg-item-card ${itemHasLinkedSkills(item) ? 'rpg-has-skill-link' : ''}" data-field="simplified" data-index="${index}">
                     <button class="rpg-item-remove" data-action="remove-item" data-field="simplified" data-index="${index}" title="${i18n.getTranslation('inventory.simplified.removeTitle')}">
                         <i class="fa-solid fa-times"></i>
                     </button>
                     <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="simplified" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    ${getSkillLinkIndicator(item)}
                 </div>
             `).join('');
         } else {
             // List view: full-width rows
             itemsHtml = items.map((item, index) => `
-                <div class="rpg-item-row" data-field="simplified" data-index="${index}">
+                <div class="rpg-item-row ${itemHasLinkedSkills(item) ? 'rpg-has-skill-link' : ''}" data-field="simplified" data-index="${index}">
                     <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="simplified" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    ${getSkillLinkIndicator(item)}
                     <button class="rpg-item-remove" data-action="remove-item" data-field="simplified" data-index="${index}" title="${i18n.getTranslation('inventory.simplified.removeTitle')}">
                         <i class="fa-solid fa-times"></i>
                     </button>
@@ -524,6 +611,182 @@ export function renderSimplifiedInventoryView(itemsString, viewMode = 'list') {
 }
 
 /**
+ * Renders a single structured item (with name + description)
+ * @param {Object} item - Item object with name, description, grantsSkill
+ * @param {string} field - Field type ('onPerson', 'stored', 'assets')
+ * @param {number} index - Item index
+ * @param {string} viewMode - 'list' or 'grid'
+ * @param {string} [location] - Location name for stored items
+ * @returns {string} HTML for the item
+ */
+function renderStructuredItem(item, field, index, viewMode, location = null) {
+    // Normalize item - handle both string and object formats
+    const normalizedItem = typeof item === 'string' 
+        ? { name: item, description: '' }
+        : { name: item?.name || 'Unknown', description: item?.description || '', grantsSkill: item?.grantsSkill };
+    
+    const hasSkillLink = normalizedItem.grantsSkill || itemHasLinkedSkills(normalizedItem.name);
+    const skillLinkHtml = hasSkillLink ? getSkillLinkIndicator(normalizedItem.name) : '';
+    const grantsBadge = normalizedItem.grantsSkill 
+        ? `<span class="rpg-item-grants-badge" title="Grants: ${escapeHtml(normalizedItem.grantsSkill)}"><i class="fa-solid fa-star"></i></span>`
+        : '';
+    
+    const locationAttr = location ? `data-location="${escapeHtml(location)}"` : '';
+    
+    if (viewMode === 'grid') {
+        return `
+            <div class="rpg-item-card ${hasSkillLink ? 'rpg-has-skill-link' : ''}" data-field="${field}" data-index="${index}" ${locationAttr}>
+                <button class="rpg-item-remove" data-action="remove-item" data-field="${field}" data-index="${index}" ${locationAttr} title="Remove item">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+                <div class="rpg-item-content">
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="${field}" data-index="${index}" ${locationAttr} title="Click to edit name">${escapeHtml(normalizedItem.name)}</span>
+                    ${grantsBadge}
+                    <span class="rpg-item-description rpg-editable" contenteditable="true" data-field="${field}" data-index="${index}" data-prop="description" ${locationAttr} title="Click to edit description">${escapeHtml(normalizedItem.description)}</span>
+                </div>
+                ${skillLinkHtml}
+            </div>
+        `;
+    } else {
+        return `
+            <div class="rpg-item-row ${hasSkillLink ? 'rpg-has-skill-link' : ''}" data-field="${field}" data-index="${index}" ${locationAttr}>
+                <div class="rpg-item-info">
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="${field}" data-index="${index}" ${locationAttr} title="Click to edit name">${escapeHtml(normalizedItem.name)}</span>
+                    ${grantsBadge}
+                    <span class="rpg-item-description rpg-editable" contenteditable="true" data-field="${field}" data-index="${index}" data-prop="description" ${locationAttr} title="Click to edit description">${escapeHtml(normalizedItem.description)}</span>
+                </div>
+                ${skillLinkHtml}
+                <button class="rpg-item-remove" data-action="remove-item" data-field="${field}" data-index="${index}" ${locationAttr} title="Remove item">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Renders structured inventory (v3 format with name + description)
+ * @param {Object} inventoryV3 - Structured inventory data
+ * @param {Object} options - Render options
+ * @returns {string} HTML
+ */
+function renderStructuredInventory(inventoryV3, options) {
+    const { activeTab = 'onPerson' } = options;
+    const viewModes = extensionSettings.inventoryViewModes || {};
+    
+    // Sub-tabs
+    let html = renderInventorySubTabs(activeTab);
+    
+    // On Person tab
+    const onPersonMode = viewModes.onPerson || 'list';
+    const onPersonItems = inventoryV3.onPerson || [];
+    let onPersonHtml = onPersonItems.length === 0
+        ? `<div class="rpg-inventory-empty">${i18n.getTranslation('inventory.onPerson.empty')}</div>`
+        : onPersonItems.map((item, i) => renderStructuredItem(item, 'onPerson', i, onPersonMode)).join('');
+    
+    html += `
+        <div class="rpg-inventory-tab-content ${activeTab === 'onPerson' ? 'active' : ''}" data-tab="onPerson">
+            <div class="rpg-inventory-header">
+                <div class="rpg-view-toggle">
+                    <button class="rpg-view-btn ${onPersonMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="onPerson" data-view="list" title="${i18n.getTranslation('global.listView')}">
+                        <i class="fa-solid fa-list"></i>
+                    </button>
+                    <button class="rpg-view-btn ${onPersonMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="onPerson" data-view="grid" title="${i18n.getTranslation('global.gridView')}">
+                        <i class="fa-solid fa-th"></i>
+                    </button>
+                </div>
+                <button class="rpg-inventory-add-btn" data-action="add-item" data-field="onPerson" title="Add new item">
+                    <i class="fa-solid fa-plus"></i> ${i18n.getTranslation('inventory.onPerson.addItemButton')}
+                </button>
+            </div>
+            <div class="rpg-item-list rpg-item-${onPersonMode}-view">${onPersonHtml}</div>
+        </div>
+    `;
+    
+    // Stored tab
+    const storedMode = viewModes.stored || 'list';
+    const stored = inventoryV3.stored || {};
+    let storedHtml = '';
+    
+    for (const [location, items] of Object.entries(stored)) {
+        const locationItems = items.map((item, i) => renderStructuredItem(item, 'stored', i, storedMode, location)).join('');
+        storedHtml += `
+            <div class="rpg-storage-location" data-location="${escapeHtml(location)}">
+                <div class="rpg-location-header">
+                    <span class="rpg-location-name">${escapeHtml(location)}</span>
+                    <span class="rpg-location-count">(${items.length})</span>
+                </div>
+                <div class="rpg-item-list rpg-item-${storedMode}-view">${locationItems}</div>
+            </div>
+        `;
+    }
+    
+    if (Object.keys(stored).length === 0) {
+        storedHtml = `<div class="rpg-inventory-empty">${i18n.getTranslation('inventory.stored.empty')}</div>`;
+    }
+    
+    html += `
+        <div class="rpg-inventory-tab-content ${activeTab === 'stored' ? 'active' : ''}" data-tab="stored">
+            <div class="rpg-inventory-header">
+                <div class="rpg-view-toggle">
+                    <button class="rpg-view-btn ${storedMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="stored" data-view="list" title="${i18n.getTranslation('global.listView')}">
+                        <i class="fa-solid fa-list"></i>
+                    </button>
+                    <button class="rpg-view-btn ${storedMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="stored" data-view="grid" title="${i18n.getTranslation('global.gridView')}">
+                        <i class="fa-solid fa-th"></i>
+                    </button>
+                </div>
+                <button class="rpg-inventory-add-btn" data-action="add-location" title="Add storage location">
+                    <i class="fa-solid fa-plus"></i> ${i18n.getTranslation('inventory.stored.addLocationButton')}
+                </button>
+            </div>
+            ${storedHtml}
+        </div>
+    `;
+    
+    // Assets tab
+    const assetsMode = viewModes.assets || 'list';
+    const assets = inventoryV3.assets || [];
+    let assetsHtml = assets.length === 0
+        ? `<div class="rpg-inventory-empty">${i18n.getTranslation('inventory.assets.empty')}</div>`
+        : assets.map((item, i) => renderStructuredItem(item, 'assets', i, assetsMode)).join('');
+    
+    html += `
+        <div class="rpg-inventory-tab-content ${activeTab === 'assets' ? 'active' : ''}" data-tab="assets">
+            <div class="rpg-inventory-header">
+                <div class="rpg-view-toggle">
+                    <button class="rpg-view-btn ${assetsMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="assets" data-view="list" title="${i18n.getTranslation('global.listView')}">
+                        <i class="fa-solid fa-list"></i>
+                    </button>
+                    <button class="rpg-view-btn ${assetsMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="assets" data-view="grid" title="${i18n.getTranslation('global.gridView')}">
+                        <i class="fa-solid fa-th"></i>
+                    </button>
+                </div>
+                <button class="rpg-inventory-add-btn" data-action="add-item" data-field="assets" title="Add new asset">
+                    <i class="fa-solid fa-plus"></i> ${i18n.getTranslation('inventory.assets.addAssetButton')}
+                </button>
+            </div>
+            <div class="rpg-item-list rpg-item-${assetsMode}-view">${assetsHtml}</div>
+        </div>
+    `;
+    
+    return `<div class="rpg-inventory-container rpg-structured">${html}</div>`;
+}
+
+/**
+ * Checks if we have structured inventory data (v3 format)
+ * @returns {boolean}
+ */
+function hasStructuredInventory() {
+    const inv = extensionSettings.inventoryV3;
+    return inv && (
+        (inv.onPerson && inv.onPerson.length > 0) ||
+        (inv.assets && inv.assets.length > 0) ||
+        (inv.stored && Object.keys(inv.stored).length > 0)
+    );
+}
+
+/**
  * Main inventory rendering function (matches pattern of other render functions)
  * Gets data from state/settings and updates DOM directly.
  * Call this after AI generation, character changes, or swipes.
@@ -534,24 +797,35 @@ export function renderInventory() {
         return;
     }
 
-    // Get inventory data from settings
-    const inventory = extensionSettings.userStats.inventory;
-
     let html;
 
+    // Convert structured inventory (v3) to legacy format if present
+    // This ensures we always use the original renderer
+    let inventory = extensionSettings.userStats.inventory;
+    if (hasStructuredInventory()) {
+        const inv = extensionSettings.inventoryV3;
+        // Convert structured items to comma-separated strings
+        const itemsToString = (items) => {
+            if (!items || items.length === 0) return 'None';
+            return items.map(i => typeof i === 'string' ? i : i.name).join(', ');
+        };
+        inventory = {
+            version: 2,
+            onPerson: itemsToString(inv.onPerson),
+            stored: Object.fromEntries(
+                Object.entries(inv.stored || {}).map(([k, v]) => [k, itemsToString(v)])
+            ),
+            assets: itemsToString(inv.assets)
+        };
+    }
+    
     // Check if we should render simplified inventory
     if (extensionSettings.useSimplifiedInventory) {
-        // For simplified mode, combine all items into a single string
-        // Use the 'items' field if available (from simplified parsing),
-        // otherwise fall back to onPerson
         const itemsString = inventory.items || inventory.onPerson || 'None';
-        // Get view mode from settings (use 'simplified' key or fall back to 'onPerson')
         const viewModes = extensionSettings.inventoryViewModes || {};
         const viewMode = viewModes.simplified || viewModes.onPerson || 'list';
         html = renderSimplifiedInventoryView(itemsString, viewMode);
     } else {
-        // Full categorized inventory
-        // Get current render options (active tab, collapsed locations)
         const options = getInventoryRenderOptions();
         html = generateInventoryHTML(inventory, options);
     }
@@ -569,6 +843,45 @@ export function renderInventory() {
         const newName = $(this).text().trim();
         updateInventoryItem(field, index, newName, location);
     });
+    
+    // Event listener for editing item descriptions (structured mode)
+    $inventoryContainer.find('.rpg-item-description.rpg-editable').on('blur', function() {
+        const field = $(this).data('field');
+        const index = parseInt($(this).data('index'));
+        const location = $(this).data('location');
+        const newDesc = $(this).text().trim();
+        updateStructuredItemDescription(field, index, newDesc, location);
+    });
+}
+
+/**
+ * Updates an item's description in structured inventory
+ * @param {string} field - 'onPerson', 'stored', or 'assets'
+ * @param {number} index - Item index
+ * @param {string} newDescription - New description
+ * @param {string} [location] - Location for stored items
+ */
+function updateStructuredItemDescription(field, index, newDescription, location) {
+    const inv = extensionSettings.inventoryV3;
+    if (!inv) return;
+    
+    let item;
+    if (field === 'onPerson' && inv.onPerson?.[index]) {
+        item = inv.onPerson[index];
+    } else if (field === 'assets' && inv.assets?.[index]) {
+        item = inv.assets[index];
+    } else if (field === 'stored' && location && inv.stored?.[location]?.[index]) {
+        item = inv.stored[location][index];
+    }
+    
+    if (item) {
+        item.description = newDescription;
+        // Save changes
+        import('../../core/persistence.js').then(({ saveSettings, saveChatData }) => {
+            saveSettings();
+            saveChatData();
+        });
+    }
 }
 
 /**

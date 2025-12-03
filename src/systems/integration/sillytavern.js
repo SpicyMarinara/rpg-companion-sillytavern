@@ -21,13 +21,14 @@ import {
 import { saveChatData, loadChatData } from '../../core/persistence.js';
 
 // Generation & Parsing
-import { parseResponse, parseUserStats } from '../generation/parser.js';
+import { parseResponse, parseUserStats, parseSkills, tryParseJSONResponse } from '../generation/parser.js';
 import { updateRPGData } from '../generation/apiClient.js';
 
 // Rendering
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts, updateChatThoughts } from '../rendering/thoughts.js';
+import { renderSkills } from '../rendering/skills.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
 
@@ -114,6 +115,25 @@ export async function onMessageReceived(data) {
             const responseText = lastMessage.mes;
             // console.log('[RPG Companion] Parsing together mode response:', responseText);
 
+            // Try JSON parsing first if structured data mode is enabled
+            const jsonParsed = tryParseJSONResponse(responseText);
+            
+            if (jsonParsed) {
+                console.log('[RPG Companion] JSON parsing successful in together mode');
+                // JSON data is already applied to extensionSettings by the parser
+                // Just need to render and save
+                renderUserStats();
+                renderInfoBox();
+                renderThoughts();
+                renderInventory();
+                renderQuests();
+                if (typeof renderSkills === 'function') renderSkills();
+                saveChatData();
+                return; // Skip legacy text parsing
+            }
+
+            // JSON parsing failed - fall back to legacy text-based parsing
+            console.warn('[RPG Companion] JSON parsing failed in together mode, attempting legacy text parsing...');
             const parsedData = parseResponse(responseText);
             // console.log('[RPG Companion] Parsed data:', parsedData);
 
@@ -121,6 +141,9 @@ export async function onMessageReceived(data) {
             if (parsedData.userStats) {
                 lastGeneratedData.userStats = parsedData.userStats;
                 parseUserStats(parsedData.userStats);
+            }
+            if (parsedData.skills) {
+                parseSkills(parsedData.skills);
             }
             if (parsedData.infoBox) {
                 lastGeneratedData.infoBox = parsedData.infoBox;

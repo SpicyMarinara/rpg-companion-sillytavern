@@ -7,9 +7,11 @@ import { getContext } from '../../../../../../extensions.js';
 import { chat, getCurrentChatDetails, characters, this_chid } from '../../../../../../../script.js';
 import { selected_group, getGroupMembers, getGroupChat } from '../../../../../../group-chats.js';
 import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../core/state.js';
+import { generateSchemaExample } from '../../types/trackerData.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
+/** @typedef {import('../../types/trackerData.js').TrackerData} TrackerData */
 
 /**
  * Default HTML prompt text
@@ -17,10 +19,16 @@ import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../co
 export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
 
 /**
- * Default tracker instruction prompt text
+ * Default tracker instruction prompt text (legacy text format)
  * Use {{user}} as placeholder for the user's name (will be replaced at runtime)
  */
 export const DEFAULT_TRACKER_PROMPT = `At the start of every reply, you must attach an update to the trackers in EXACTLY the same format as below, enclosed in separate Markdown code fences. Replace X with actual numbers (e.g., 69) and replace all [placeholders] with concrete in-world details that {{user}} perceives about the current scene and the present characters. Do NOT keep the brackets or placeholder text in your response. For example: [Location] becomes Forest Clearing, [Mood Emoji] becomes 😊. Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences (0% if the time progressed only by a few minutes, 1-5% normally, and above 5% only if a major time-skip/event occurs).`;
+
+/**
+ * Default JSON tracker instruction prompt text
+ * Use {{user}} as placeholder for the user's name (will be replaced at runtime)
+ */
+export const DEFAULT_JSON_TRACKER_PROMPT = `At the start of every reply, output a JSON object inside a markdown code fence (with \`\`\`json). This tracks {{user}}'s stats, inventory, skills, and scene information. Follow the exact schema shown below. Use concrete values - no placeholders or brackets. Update stats realistically based on actions and time (0% change for minutes, 1-5% normally, 5%+ only for major events). Items and skills have "name" and "description" fields. Items can grant skills via "grantsSkill", and skills show their source via "grantedBy".`;
 
 /**
  * Gets character card information for current chat (handles both single and group chats)
@@ -173,6 +181,9 @@ function buildAttributesString() {
 }
 
 /**
+ * @deprecated Use generateJSONTrackerInstructions instead. This legacy text format
+ * is kept for backwards compatibility with older LLM responses.
+ * 
  * Generates an example block showing current tracker states in markdown code blocks.
  * Uses COMMITTED data (not displayed data) for generation context.
  *
@@ -240,6 +251,9 @@ export function generateTrackerExample() {
 }
 
 /**
+ * @deprecated Use generateJSONTrackerInstructions instead. This legacy text format
+ * is kept for backwards compatibility with older LLM responses.
+ * 
  * Generates the instruction portion - format specifications and guidelines.
  *
  * @param {boolean} includeHtmlPrompt - Whether to include the HTML prompt (true for main generation, false for separate tracker generation)
@@ -253,10 +267,10 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
     const trackerConfig = extensionSettings.trackerConfig;
     let instructions = '';
 
-    // Check if any trackers are enabled (including inventory and quests as independent sections)
+    // Check if any trackers are enabled (including inventory, skills and quests as independent sections)
     const hasAnyTrackers = extensionSettings.showUserStats || extensionSettings.showInfoBox || 
-                           extensionSettings.showCharacterThoughts || extensionSettings.showInventory || 
-                           extensionSettings.showQuests;
+                           extensionSettings.showCharacterThoughts || extensionSettings.showSkills ||
+                           extensionSettings.showInventory || extensionSettings.showQuests;
 
     // Only add tracker instructions if at least one tracker is enabled
     if (hasAnyTrackers) {
@@ -295,8 +309,9 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                     }
                 }
 
-                // Add skills section if enabled
-                if (userStatsConfig?.skillsSection?.enabled) {
+                // Add skills section if enabled in config AND NOT shown as separate section
+                // When showSkills is true, skills are in their own tab and have their own code block
+                if (userStatsConfig?.skillsSection?.enabled && !extensionSettings.showSkills) {
                     const skillFields = userStatsConfig.skillsSection.customFields || [];
                     const skillFieldsText = skillFields.map(f => `[${f}]`).join(', ');
                     instructions += `Skills: [${skillFieldsText || 'Skill1, Skill2, etc.'}]\n`;
@@ -327,6 +342,33 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             }
 
             instructions += '```\n\n';
+        }
+
+        // Add separate skills section when showSkills is enabled
+        if (extensionSettings.showSkills) {
+            const skillsConfig = trackerConfig?.userStats?.skillsSection;
+            const skillFields = skillsConfig?.customFields || [];
+            
+            if (skillFields.length > 0) {
+                instructions += '```\n';
+                instructions += 'Skills\n';
+                instructions += '---\n';
+                
+                // Each skill category contains a list of abilities
+                for (const skillName of skillFields) {
+                    if (extensionSettings.enableItemSkillLinks) {
+                        instructions += `${skillName}: [Abilities in this category, e.g. "Sword Fighting (Iron Sword), Parry" or "None"]\n`;
+                    } else {
+                        instructions += `${skillName}: [Abilities in this category, e.g. "Lockpicking, Sneaking" or "None"]\n`;
+                    }
+                }
+                
+                if (extensionSettings.enableItemSkillLinks) {
+                    instructions += '\n(Abilities from items use parentheses: "Skill (Item)". Remove if item is removed or unequipped.)\n';
+                }
+                
+                instructions += '```\n\n';
+            }
         }
 
         if (extensionSettings.showInfoBox) {
@@ -460,6 +502,220 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 }
 
 /**
+ * Generates JSON-based tracker instructions.
+ * Creates a prompt asking the LLM to output structured JSON data.
+ * 
+ * @param {boolean} includeHtmlPrompt - Whether to include the HTML prompt
+ * @param {boolean} includeContinuation - Whether to include continuation instruction
+ * @param {boolean} includeAttributes - Whether to include RPG attributes
+ * @returns {string} Formatted JSON instruction text for the AI
+ */
+export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includeContinuation = true, includeAttributes = true) {
+    const userName = getContext().name1;
+    const trackerConfig = extensionSettings.trackerConfig;
+    let instructions = '';
+
+    // Check which sections are enabled
+    const showStats = extensionSettings.showUserStats;
+    const showInfoBox = extensionSettings.showInfoBox;
+    const showCharacters = extensionSettings.showCharacterThoughts;
+    const showInventory = extensionSettings.showInventory;
+    const showSkills = extensionSettings.showSkills;
+    const showQuests = extensionSettings.showQuests;
+    const enableItemSkillLinks = extensionSettings.enableItemSkillLinks;
+
+    const hasAnyTrackers = showStats || showInfoBox || showCharacters || showInventory || showSkills || showQuests;
+
+    if (!hasAnyTrackers) {
+        return instructions;
+    }
+
+    // JSON instruction header
+    const jsonPrompt = (extensionSettings.customTrackerPrompt || DEFAULT_JSON_TRACKER_PROMPT).replace(/\{\{user\}\}/g, userName);
+    instructions += `\n${jsonPrompt}\n\n`;
+
+    // Build the JSON schema example based on enabled sections
+    instructions += '```json\n';
+    instructions += '{\n';
+
+    let sections = [];
+
+    // Stats section
+    if (showStats) {
+        const enabledStats = trackerConfig?.userStats?.customStats?.filter(s => s?.enabled && s?.name) || [];
+        if (enabledStats.length > 0) {
+            let statsJson = '  "stats": {\n';
+            statsJson += enabledStats.map(s => `    "${s.name}": 75`).join(',\n');
+            statsJson += '\n  }';
+            sections.push(statsJson);
+        }
+
+        // Status section
+        const statusConfig = trackerConfig?.userStats?.statusSection;
+        if (statusConfig?.enabled) {
+            let statusJson = '  "status": {\n';
+            const statusParts = [];
+            if (statusConfig.showMoodEmoji) {
+                statusParts.push('    "mood": "😊"');
+            }
+            const customFields = statusConfig.customFields || [];
+            if (customFields.length > 0) {
+                const fieldsJson = customFields.map(f => `      "${f}": "[${f} description]"`).join(',\n');
+                statusParts.push(`    "fields": {\n${fieldsJson}\n    }`);
+            }
+            statusJson += statusParts.join(',\n');
+            statusJson += '\n  }';
+            sections.push(statusJson);
+        }
+    }
+
+    // Info Box section
+    if (showInfoBox) {
+        const widgets = trackerConfig?.infoBox?.widgets || {};
+        const infoParts = [];
+        if (widgets.date?.enabled) infoParts.push('    "date": "Monday, March 15, 1242"');
+        if (widgets.time?.enabled) infoParts.push('    "time": "14:00 → 15:30"');
+        if (widgets.weather?.enabled) infoParts.push('    "weather": "☀️ Sunny"');
+        if (widgets.temperature?.enabled) {
+            const unit = widgets.temperature.unit === 'F' ? '°F' : '°C';
+            infoParts.push(`    "temperature": "22${unit}"`);
+        }
+        if (widgets.location?.enabled) infoParts.push('    "location": "Forest Clearing"');
+        if (widgets.recentEvents?.enabled) infoParts.push('    "recentEvents": "Brief summary of recent events"');
+        
+        if (infoParts.length > 0) {
+            sections.push('  "infoBox": {\n' + infoParts.join(',\n') + '\n  }');
+        }
+    }
+
+    // Characters section
+    if (showCharacters) {
+        const charConfig = trackerConfig?.presentCharacters || {};
+        let charExample = '    {\n      "name": "Character Name"';
+        
+        if (charConfig.relationshipFields?.length > 0) {
+            charExample += `,\n      "relationship": "${charConfig.relationshipFields[0]}"`;
+        }
+        
+        const enabledFields = charConfig.customFields?.filter(f => f.enabled) || [];
+        if (enabledFields.length > 0) {
+            const fieldsJson = enabledFields.map(f => `        "${f.name}": "[${f.description || f.name}]"`).join(',\n');
+            charExample += `,\n      "fields": {\n${fieldsJson}\n      }`;
+        }
+        
+        if (charConfig.thoughts?.enabled) {
+            charExample += ',\n      "thoughts": "Character\'s inner thoughts in first person..."';
+        }
+        
+        charExample += '\n    }';
+        sections.push('  "characters": [\n' + charExample + '\n  ]');
+    }
+
+    // Inventory section
+    if (showInventory) {
+        let invSection = '  "inventory": {\n';
+        
+        if (extensionSettings.useSimplifiedInventory) {
+            // Simplified: single list
+            let itemExample = '{ "name": "Item Name", "description": "What it is" }';
+            if (enableItemSkillLinks) {
+                itemExample = '{ "name": "Iron Sword", "description": "A sturdy blade", "grantsSkill": "Sword Fighting" }';
+            }
+            invSection += `    "items": [${itemExample}]\n`;
+        } else {
+            // Full categorized inventory
+            let itemExample = '{ "name": "Item", "description": "Description" }';
+            if (enableItemSkillLinks) {
+                itemExample = '{ "name": "Iron Sword", "description": "A sturdy blade", "grantsSkill": "Sword Fighting" }';
+            }
+            invSection += `    "onPerson": [${itemExample}],\n`;
+            invSection += '    "stored": { "Location Name": [{ "name": "Stored Item", "description": "Description" }] },\n';
+            invSection += '    "assets": [{ "name": "Property/Vehicle", "description": "Description" }]\n';
+        }
+        
+        invSection += '  }';
+        sections.push(invSection);
+    }
+
+    // Skills section
+    if (showSkills) {
+        const skillCategories = trackerConfig?.userStats?.skillsSection?.customFields || [];
+        if (skillCategories.length > 0) {
+            let skillsSection = '  "skills": {\n';
+            const categoryExamples = skillCategories.map(cat => {
+                let skillExample = '{ "name": "Ability Name", "description": "What this ability does" }';
+                if (enableItemSkillLinks) {
+                    skillExample = '{ "name": "Ability", "description": "Description", "grantedBy": "Item Name" }';
+                }
+                return `    "${cat}": [${skillExample}]`;
+            });
+            skillsSection += categoryExamples.join(',\n');
+            skillsSection += '\n  }';
+            sections.push(skillsSection);
+        }
+    }
+
+    // Quests section
+    if (showQuests) {
+        let questsSection = '  "quests": {\n';
+        questsSection += '    "main": { "name": "Main Quest Title", "description": "Primary objective" },\n';
+        questsSection += '    "optional": [{ "name": "Side Quest", "description": "Optional objective" }]\n';
+        questsSection += '  }';
+        sections.push(questsSection);
+    }
+
+    instructions += sections.join(',\n');
+    instructions += '\n}\n```\n\n';
+
+    // Add notes about the format
+    instructions += 'Important:\n';
+    instructions += '- Output ONLY valid JSON inside the code fence\n';
+    instructions += '- Use actual values, not placeholders like [Location]\n';
+    instructions += '- Stats are percentages (0-100)\n';
+    instructions += '- Empty arrays [] for sections with no items\n';
+    instructions += '- null for main quest if none active\n';
+    
+    if (enableItemSkillLinks) {
+        instructions += '- Items can grant skills: add "grantsSkill": "Skill Name" to the item\n';
+        instructions += '- Skills from items: add "grantedBy": "Item Name" to the skill\n';
+        instructions += '- If an item is removed/lost, remove its linked skill too\n';
+    }
+    
+    instructions += '\n';
+
+    // Continuation instruction
+    if (includeContinuation) {
+        instructions += `After the JSON block, continue the story naturally from where the last message left off. The tracker data should reflect and influence the narrative - fatigue affects performance, mood colors dialogue, etc.\n\n`;
+    }
+
+    // Attributes
+    if (includeAttributes) {
+        const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
+        const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
+
+        if (shouldSendAttributes) {
+            const attributesString = buildAttributesString();
+            instructions += `${userName}'s attributes: ${attributesString}\n`;
+
+            if (extensionSettings.lastDiceRoll) {
+                const roll = extensionSettings.lastDiceRoll;
+                instructions += `${userName} rolled ${roll.total} on ${roll.formula}. Determine success/failure based on attributes.\n\n`;
+            } else {
+                instructions += '\n';
+            }
+        }
+    }
+
+    // HTML prompt
+    if (extensionSettings.enableHtmlPrompt && includeHtmlPrompt) {
+        const htmlPrompt = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+        instructions += htmlPrompt;
+    }
+
+    return instructions;
+}
+
+/**
  * Generates a formatted contextual summary for SEPARATE mode injection.
  * Includes the full tracker data in original format (without code fences and separators).
  * Uses COMMITTED data (not displayed data) for generation context.
@@ -561,75 +817,88 @@ export function generateContextualSummary() {
 }
 
 /**
- * Generates the RPG tracking prompt text (for backward compatibility with separate mode).
- * Uses COMMITTED data (not displayed data) for generation context.
+ * Generates the RPG tracking prompt text for separate mode.
+ * Shows previous data in JSON format and requests JSON response.
  *
  * @returns {string} Full prompt text for separate tracker generation
  */
 export function generateRPGPromptText() {
-    // Use COMMITTED data for generation context, not displayed data
     const userName = getContext().name1;
 
     let promptText = '';
 
-    promptText += `Here are the previous trackers in the roleplay that you should consider when responding:\n`;
+    promptText += `Here are the previous trackers in JSON format that you should consider when responding:\n`;
     promptText += `<previous>\n`;
 
+    // Build previous state as JSON
+    const previousState = {};
+    
+    // Stats
     if (extensionSettings.showUserStats) {
-        if (committedTrackerData.userStats) {
-            promptText += `Last ${userName}'s Stats:\n${committedTrackerData.userStats}\n\n`;
-        } else {
-            promptText += `Last ${userName}'s Stats:\nNone - this is the first update.\n\n`;
+        const customStats = extensionSettings.trackerConfig?.userStats?.customStats?.filter(s => s?.enabled) || [];
+        if (customStats.length > 0) {
+            previousState.stats = {};
+            for (const stat of customStats) {
+                previousState.stats[stat.name] = extensionSettings.userStats[stat.id] || 100;
+            }
         }
-
-        // Add current skills to the previous data context
-        const skillsSection = extensionSettings.trackerConfig?.userStats?.skillsSection;
-        if (skillsSection?.enabled && skillsSection.customFields && skillsSection.customFields.length > 0) {
-            const skillsList = skillsSection.customFields.join(', ');
-            promptText += `Skills: ${skillsList}\n\n`;
-        }
-    }
-
-    // Add current inventory to the previous data context - independent of showUserStats
-    if (extensionSettings.showInventory && extensionSettings.userStats?.inventory) {
-        const inventorySummary = buildInventorySummary(extensionSettings.userStats.inventory);
-        if (inventorySummary && inventorySummary !== 'None') {
-            promptText += `Last Inventory:\n${inventorySummary}\n\n`;
-        }
-    }
-
-    // Add current quests to the previous data context - independent of showUserStats
-    if (extensionSettings.showQuests && extensionSettings.quests) {
-        if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
-            promptText += `Main Quests: ${extensionSettings.quests.main}\n`;
-        }
-        if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
-            const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
-            promptText += `Optional Quests: ${optionalQuests || 'None'}\n`;
-        }
-        promptText += `\n`;
-    }
-
-    if (extensionSettings.showInfoBox) {
-        if (committedTrackerData.infoBox) {
-            promptText += `Last Info Box:\n${committedTrackerData.infoBox}\n\n`;
-        } else {
-            promptText += `Last Info Box:\nNone - this is the first update.\n\n`;
+        
+        // Status
+        const statusConfig = extensionSettings.trackerConfig?.userStats?.statusSection;
+        if (statusConfig?.enabled) {
+            previousState.status = {
+                mood: extensionSettings.userStats.mood || '😐',
+                fields: {}
+            };
+            const customFields = statusConfig.customFields || [];
+            for (const field of customFields) {
+                previousState.status.fields[field] = extensionSettings.userStats.conditions || 'None';
+            }
         }
     }
-
-    if (extensionSettings.showCharacterThoughts) {
-        if (committedTrackerData.characterThoughts) {
-            promptText += `Last Present Characters:\n${committedTrackerData.characterThoughts}\n`;
-        } else {
-            promptText += `Last Present Characters:\nNone - this is the first update.\n`;
+    
+    // InfoBox
+    if (extensionSettings.showInfoBox && extensionSettings.infoBoxData) {
+        previousState.infoBox = extensionSettings.infoBoxData;
+    }
+    
+    // Characters
+    if (extensionSettings.showCharacterThoughts && extensionSettings.charactersData?.length > 0) {
+        previousState.characters = extensionSettings.charactersData;
+    }
+    
+    // Inventory
+    if (extensionSettings.showInventory) {
+        if (extensionSettings.inventoryV3 && (extensionSettings.inventoryV3.onPerson?.length > 0 || 
+            Object.keys(extensionSettings.inventoryV3.stored || {}).length > 0 ||
+            extensionSettings.inventoryV3.assets?.length > 0)) {
+            previousState.inventory = extensionSettings.inventoryV3;
         }
+    }
+    
+    // Skills
+    if (extensionSettings.showSkills && extensionSettings.skillsV2) {
+        previousState.skills = extensionSettings.skillsV2;
+    }
+    
+    // Quests
+    if (extensionSettings.showQuests && extensionSettings.questsV2) {
+        previousState.quests = extensionSettings.questsV2;
+    }
+    
+    // Output as JSON if we have any data, otherwise indicate first update
+    if (Object.keys(previousState).length > 0) {
+        promptText += '```json\n';
+        promptText += JSON.stringify(previousState, null, 2);
+        promptText += '\n```\n';
+    } else {
+        promptText += 'None - this is the first update.\n';
     }
 
     promptText += `</previous>\n`;
 
-    // Don't include HTML prompt, continuation instruction, or attributes for separate tracker generation
-    promptText += generateTrackerInstructions(false, false, false);
+    // Add JSON format instructions
+    promptText += generateJSONTrackerInstructions(false, false, false);
 
     return promptText;
 }

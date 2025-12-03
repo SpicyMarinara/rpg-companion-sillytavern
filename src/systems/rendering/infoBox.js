@@ -52,6 +52,175 @@ function separateEmojiFromText(str) {
 }
 
 /**
+ * Checks if a value is valid (not null, undefined, or the string "null")
+ */
+function isValidValue(val) {
+    return val !== null && val !== undefined && val !== 'null' && val !== '';
+}
+
+/**
+ * Checks if we have valid structured infoBox data
+ * @param {Object} data - The infoBoxData object
+ * @returns {boolean}
+ */
+function hasStructuredInfoBoxData(data) {
+    if (!data) return false;
+    // Handle recentEvents as either string or array
+    const hasEvents = data.recentEvents && (
+        (Array.isArray(data.recentEvents) && data.recentEvents.length > 0) ||
+        (typeof data.recentEvents === 'string' && data.recentEvents.length > 0 && data.recentEvents !== 'null')
+    );
+    return isValidValue(data.date) || isValidValue(data.weather) || isValidValue(data.temperature) || 
+           isValidValue(data.time) || isValidValue(data.location) || hasEvents;
+}
+
+/**
+ * Renders the info box using structured JSON data
+ * @param {Object} data - Structured infoBox data
+ */
+function renderStructuredInfoBox(data) {
+    const config = extensionSettings.trackerConfig?.infoBox;
+    const widgets = config?.widgets || {};
+    
+    // Build widgets HTML
+    let widgetsHtml = '';
+    let widgetCount = 0;
+    
+    // Date widget - skip null values
+    if (widgets.date?.enabled && isValidValue(data.date)) {
+        widgetCount++;
+        widgetsHtml += `
+            <div class="rpg-dashboard-widget rpg-calendar-widget">
+                <i class="fa-solid fa-calendar"></i>
+                <div class="rpg-widget-content">
+                    <span class="rpg-widget-label" data-i18n-key="infobox.date">${i18n.getTranslation('infobox.date')}</span>
+                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="date">${data.date}</span>
+                </div>
+            </div>`;
+    }
+    
+    // Weather widget - skip null values
+    if (widgets.weather?.enabled && isValidValue(data.weather)) {
+        widgetCount++;
+        const { emoji, text } = separateEmojiFromText(data.weather);
+        widgetsHtml += `
+            <div class="rpg-dashboard-widget rpg-weather-widget">
+                <span class="rpg-weather-emoji rpg-editable" contenteditable="true" data-field="weatherEmoji">${emoji || '🌤️'}</span>
+                <div class="rpg-widget-content">
+                    <span class="rpg-widget-label" data-i18n-key="infobox.weather">${i18n.getTranslation('infobox.weather')}</span>
+                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="weather">${text}</span>
+                </div>
+            </div>`;
+    }
+    
+    // Temperature widget - skip null values
+    if (widgets.temperature?.enabled && isValidValue(data.temperature)) {
+        widgetCount++;
+        widgetsHtml += `
+            <div class="rpg-dashboard-widget rpg-temperature-widget">
+                <i class="fa-solid fa-temperature-half"></i>
+                <div class="rpg-widget-content">
+                    <span class="rpg-widget-label" data-i18n-key="infobox.temperature">${i18n.getTranslation('infobox.temperature')}</span>
+                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="temperature">${data.temperature}</span>
+                </div>
+            </div>`;
+    }
+    
+    // Time widget - skip null values
+    if (widgets.time?.enabled && isValidValue(data.time)) {
+        widgetCount++;
+        widgetsHtml += `
+            <div class="rpg-dashboard-widget rpg-time-widget">
+                <i class="fa-solid fa-clock"></i>
+                <div class="rpg-widget-content">
+                    <span class="rpg-widget-label" data-i18n-key="infobox.time">${i18n.getTranslation('infobox.time')}</span>
+                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="time">${data.time}</span>
+                </div>
+            </div>`;
+    }
+    
+    // Location widget - skip null values
+    if (widgets.location?.enabled && isValidValue(data.location)) {
+        widgetCount++;
+        widgetsHtml += `
+            <div class="rpg-dashboard-widget rpg-location-widget">
+                <i class="fa-solid fa-map-marker-alt"></i>
+                <div class="rpg-widget-content">
+                    <span class="rpg-widget-label" data-i18n-key="infobox.location">${i18n.getTranslation('infobox.location')}</span>
+                    <span class="rpg-widget-value rpg-editable" contenteditable="true" data-field="location">${data.location}</span>
+                </div>
+            </div>`;
+    }
+    
+    // Recent events widget - handle both string and array formats
+    const recentEvents = Array.isArray(data.recentEvents) 
+        ? data.recentEvents 
+        : (data.recentEvents ? [data.recentEvents] : []);
+    if (widgets.recentEvents?.enabled && recentEvents.length > 0) {
+        widgetCount++;
+        const eventsHtml = recentEvents.map((event, i) => 
+            `<li class="rpg-event-item rpg-editable" contenteditable="true" data-field="recentEvents" data-index="${i}">${event}</li>`
+        ).join('');
+        widgetsHtml += `
+            <div class="rpg-dashboard-widget rpg-events-widget rpg-widget-wide">
+                <i class="fa-solid fa-scroll"></i>
+                <div class="rpg-widget-content">
+                    <span class="rpg-widget-label" data-i18n-key="infobox.recentEvents">${i18n.getTranslation('infobox.recentEvents')}</span>
+                    <ul class="rpg-events-list">${eventsHtml}</ul>
+                </div>
+            </div>`;
+    }
+    
+    // Determine layout class based on widget count
+    const layoutClass = widgetCount <= 2 ? 'rpg-dashboard-row-1' : 
+                       widgetCount <= 4 ? 'rpg-dashboard-row-2' : 'rpg-dashboard-row-3';
+    
+    const html = `<div class="rpg-dashboard ${layoutClass}">${widgetsHtml}</div>`;
+    
+    $infoBoxContainer.html(html);
+    
+    // Remove updating animation
+    if (extensionSettings.enableAnimations) {
+        setTimeout(() => $infoBoxContainer.removeClass('rpg-content-updating'), 300);
+    }
+    
+    // Setup event listeners for editable fields
+    setupStructuredInfoBoxEventListeners();
+}
+
+/**
+ * Setup event listeners for structured info box editing
+ */
+function setupStructuredInfoBoxEventListeners() {
+    $infoBoxContainer.off('blur', '.rpg-editable').on('blur', '.rpg-editable', function() {
+        const $this = $(this);
+        const field = $this.data('field');
+        const index = $this.data('index');
+        const newValue = $this.text().trim();
+        
+        if (!extensionSettings.infoBoxData) {
+            extensionSettings.infoBoxData = {};
+        }
+        
+        if (field === 'recentEvents' && index !== undefined) {
+            if (!extensionSettings.infoBoxData.recentEvents) {
+                extensionSettings.infoBoxData.recentEvents = [];
+            }
+            extensionSettings.infoBoxData.recentEvents[index] = newValue;
+        } else if (field === 'weatherEmoji') {
+            // Combine emoji with existing weather text
+            const currentWeather = extensionSettings.infoBoxData.weather || '';
+            const { text } = separateEmojiFromText(currentWeather);
+            extensionSettings.infoBoxData.weather = newValue + ' ' + text;
+        } else {
+            extensionSettings.infoBoxData[field] = newValue;
+        }
+        
+        saveChatData();
+    });
+}
+
+/**
  * Renders the info box as a visual dashboard with calendar, weather, temperature, clock, and map widgets.
  * Includes event listeners for editable fields.
  */
@@ -65,8 +234,28 @@ export function renderInfoBox() {
         $infoBoxContainer.addClass('rpg-content-updating');
     }
 
-    // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
-    const infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox;
+    // Convert structured JSON data to text format for the original fancy renderer
+    const structuredData = extensionSettings.infoBoxData;
+    let infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox;
+    
+    // If we have structured data, convert it to text format
+    if (structuredData && hasStructuredInfoBoxData(structuredData)) {
+        const lines = [];
+        if (isValidValue(structuredData.date)) lines.push(`Date: ${structuredData.date}`);
+        if (isValidValue(structuredData.time)) lines.push(`Time: ${structuredData.time}`);
+        if (isValidValue(structuredData.weather)) lines.push(`Weather: ${structuredData.weather}`);
+        if (isValidValue(structuredData.temperature)) lines.push(`Temperature: ${structuredData.temperature}`);
+        if (isValidValue(structuredData.location)) lines.push(`Location: ${structuredData.location}`);
+        if (structuredData.recentEvents) {
+            const events = Array.isArray(structuredData.recentEvents) 
+                ? structuredData.recentEvents 
+                : [structuredData.recentEvents];
+            events.filter(e => e && e !== 'null').forEach(e => lines.push(`Recent Events: ${e}`));
+        }
+        if (lines.length > 0) {
+            infoBoxData = lines.join('\n');
+        }
+    }
 
     // If no data yet, show placeholder
     if (!infoBoxData) {
@@ -117,105 +306,132 @@ export function renderInfoBox() {
     for (const line of lines) {
         // console.log('[RPG Companion] Processing line:', line);
 
+        // Helper to check if a value is valid (not null/empty)
+        const isValidParsedValue = (val) => val && val !== 'null' && val !== 'undefined' && val.toLowerCase() !== 'none';
+        
         // Support both new text format (Date:) and legacy emoji format (🗓️:)
         // Prioritize text format over emoji format
         if (line.startsWith('Date:')) {
             if (!parsedFields.date) {
                 // console.log('[RPG Companion] → Matched DATE (text format)');
                 const dateStr = line.replace('Date:', '').trim();
-                const dateParts = dateStr.split(',').map(p => p.trim());
-                data.weekday = dateParts[0] || '';
-                data.month = dateParts[1] || '';
-                data.year = dateParts[2] || '';
-                data.date = dateStr;
-                parsedFields.date = true;
+                if (isValidParsedValue(dateStr)) {
+                    const dateParts = dateStr.split(',').map(p => p.trim());
+                    data.weekday = dateParts[0] || '';
+                    data.month = dateParts[1] || '';
+                    data.year = dateParts[2] || '';
+                    data.date = dateStr;
+                    parsedFields.date = true;
+                }
             }
         } else if (line.includes('🗓️:')) {
             if (!parsedFields.date) {
                 // console.log('[RPG Companion] → Matched DATE (emoji format)');
                 const dateStr = line.replace('🗓️:', '').trim();
-                const dateParts = dateStr.split(',').map(p => p.trim());
-                data.weekday = dateParts[0] || '';
-                data.month = dateParts[1] || '';
-                data.year = dateParts[2] || '';
-                data.date = dateStr;
-                parsedFields.date = true;
+                if (isValidParsedValue(dateStr)) {
+                    const dateParts = dateStr.split(',').map(p => p.trim());
+                    data.weekday = dateParts[0] || '';
+                    data.month = dateParts[1] || '';
+                    data.year = dateParts[2] || '';
+                    data.date = dateStr;
+                    parsedFields.date = true;
+                }
             }
         } else if (line.startsWith('Temperature:')) {
             if (!parsedFields.temperature) {
                 // console.log('[RPG Companion] → Matched TEMPERATURE (text format)');
                 const tempStr = line.replace('Temperature:', '').trim();
-                data.temperature = tempStr;
-                const tempMatch = tempStr.match(/(-?\d+)/);
-                if (tempMatch) {
-                    data.tempValue = parseInt(tempMatch[1]);
+                if (isValidParsedValue(tempStr)) {
+                    data.temperature = tempStr;
+                    const tempMatch = tempStr.match(/(-?\d+)/);
+                    if (tempMatch) {
+                        data.tempValue = parseInt(tempMatch[1]);
+                    }
+                    parsedFields.temperature = true;
                 }
-                parsedFields.temperature = true;
             }
         } else if (line.includes('🌡️:')) {
             if (!parsedFields.temperature) {
                 // console.log('[RPG Companion] → Matched TEMPERATURE (emoji format)');
                 const tempStr = line.replace('🌡️:', '').trim();
-                data.temperature = tempStr;
-                const tempMatch = tempStr.match(/(-?\d+)/);
-                if (tempMatch) {
-                    data.tempValue = parseInt(tempMatch[1]);
+                if (isValidParsedValue(tempStr)) {
+                    data.temperature = tempStr;
+                    const tempMatch = tempStr.match(/(-?\d+)/);
+                    if (tempMatch) {
+                        data.tempValue = parseInt(tempMatch[1]);
+                    }
+                    parsedFields.temperature = true;
                 }
-                parsedFields.temperature = true;
             }
         } else if (line.startsWith('Time:')) {
             if (!parsedFields.time) {
                 // console.log('[RPG Companion] → Matched TIME (text format)');
                 const timeStr = line.replace('Time:', '').trim();
-                data.time = timeStr;
-                const timeParts = timeStr.split('→').map(t => t.trim());
-                data.timeStart = timeParts[0] || '';
-                data.timeEnd = timeParts[1] || '';
-                parsedFields.time = true;
+                if (isValidParsedValue(timeStr)) {
+                    data.time = timeStr;
+                    const timeParts = timeStr.split('→').map(t => t.trim());
+                    data.timeStart = timeParts[0] || '';
+                    data.timeEnd = timeParts[1] || '';
+                    parsedFields.time = true;
+                }
             }
         } else if (line.includes('🕒:')) {
             if (!parsedFields.time) {
                 // console.log('[RPG Companion] → Matched TIME (emoji format)');
                 const timeStr = line.replace('🕒:', '').trim();
-                data.time = timeStr;
-                const timeParts = timeStr.split('→').map(t => t.trim());
-                data.timeStart = timeParts[0] || '';
-                data.timeEnd = timeParts[1] || '';
-                parsedFields.time = true;
+                if (isValidParsedValue(timeStr)) {
+                    data.time = timeStr;
+                    const timeParts = timeStr.split('→').map(t => t.trim());
+                    data.timeStart = timeParts[0] || '';
+                    data.timeEnd = timeParts[1] || '';
+                    parsedFields.time = true;
+                }
             }
         } else if (line.startsWith('Location:')) {
             if (!parsedFields.location) {
                 // console.log('[RPG Companion] → Matched LOCATION (text format)');
-                data.location = line.replace('Location:', '').trim();
-                parsedFields.location = true;
+                const locStr = line.replace('Location:', '').trim();
+                if (isValidParsedValue(locStr)) {
+                    data.location = locStr;
+                    parsedFields.location = true;
+                }
             }
         } else if (line.includes('🗺️:')) {
             if (!parsedFields.location) {
                 // console.log('[RPG Companion] → Matched LOCATION (emoji format)');
-                data.location = line.replace('🗺️:', '').trim();
-                parsedFields.location = true;
+                const locStr = line.replace('🗺️:', '').trim();
+                if (isValidParsedValue(locStr)) {
+                    data.location = locStr;
+                    parsedFields.location = true;
+                }
             }
         } else if (line.startsWith('Weather:')) {
             if (!parsedFields.weather) {
                 // New text format: Weather: [Emoji], [Forecast] OR Weather: [Emoji][Forecast] (no separator - FIXED)
                 const weatherStr = line.replace('Weather:', '').trim();
-                const { emoji, text } = separateEmojiFromText(weatherStr);
-
-                if (emoji && text) {
-                    data.weatherEmoji = emoji;
-                    data.weatherForecast = text;
-                } else if (weatherStr.includes(',')) {
-                    // Fallback to comma split if emoji detection failed
-                    const weatherParts = weatherStr.split(',').map(p => p.trim());
-                    data.weatherEmoji = weatherParts[0] || '';
-                    data.weatherForecast = weatherParts[1] || '';
+                
+                // Skip null/invalid values
+                if (!isValidParsedValue(weatherStr)) {
+                    parsedFields.weather = true; // Mark as parsed so we don't try again
                 } else {
-                    // No clear separation - assume it's all forecast text
-                    data.weatherEmoji = '🌤️'; // Default emoji
-                    data.weatherForecast = weatherStr;
-                }
+                    const { emoji, text } = separateEmojiFromText(weatherStr);
 
-                parsedFields.weather = true;
+                    if (emoji && text) {
+                        data.weatherEmoji = emoji;
+                        data.weatherForecast = text;
+                    } else if (weatherStr.includes(',')) {
+                        // Fallback to comma split if emoji detection failed
+                        const weatherParts = weatherStr.split(',').map(p => p.trim());
+                        data.weatherEmoji = weatherParts[0] || '';
+                        data.weatherForecast = weatherParts[1] || '';
+                    } else {
+                        // No clear separation - assume it's all forecast text
+                        data.weatherEmoji = '🌤️'; // Default emoji
+                        data.weatherForecast = weatherStr;
+                    }
+
+                    parsedFields.weather = true;
+                }
             }
         } else {
             // Check if it's a legacy weather line (emoji format)
@@ -270,6 +486,20 @@ export function renderInfoBox() {
     //     timeStart: data.timeStart,
     //     location: data.location
     // });
+
+    // Sanitize parsed values - filter out "null" strings and invalid values
+    const sanitize = (val) => (val && val !== 'null' && val !== 'undefined' && val.toLowerCase() !== 'none') ? val : '';
+    data.date = sanitize(data.date);
+    data.weekday = sanitize(data.weekday);
+    data.month = sanitize(data.month);
+    data.year = sanitize(data.year);
+    data.weatherEmoji = sanitize(data.weatherEmoji);
+    data.weatherForecast = sanitize(data.weatherForecast);
+    data.temperature = sanitize(data.temperature);
+    data.time = sanitize(data.time);
+    data.timeStart = sanitize(data.timeStart);
+    data.timeEnd = sanitize(data.timeEnd);
+    data.location = sanitize(data.location);
 
     // Get tracker configuration
     const config = extensionSettings.trackerConfig?.infoBox;

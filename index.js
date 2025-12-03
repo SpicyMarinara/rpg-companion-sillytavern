@@ -35,6 +35,7 @@ import {
     setUserStatsContainer,
     setInfoBoxContainer,
     setThoughtsContainer,
+    setSkillsContainer,
     setInventoryContainer,
     setQuestsContainer
 } from './src/core/state.js';
@@ -49,7 +50,7 @@ import {
     generateRPGPromptText,
     generateSeparateUpdatePrompt
 } from './src/systems/generation/promptBuilder.js';
-import { parseResponse, parseUserStats } from './src/systems/generation/parser.js';
+import { parseResponse, parseUserStats, parseSkills } from './src/systems/generation/parser.js';
 import { updateRPGData } from './src/systems/generation/apiClient.js';
 import { onGenerationStarted } from './src/systems/generation/injector.js';
 
@@ -65,6 +66,7 @@ import {
 } from './src/systems/rendering/thoughts.js';
 import { renderInventory } from './src/systems/rendering/inventory.js';
 import { renderQuests } from './src/systems/rendering/quests.js';
+import { renderSkills } from './src/systems/rendering/skills.js';
 
 // Interaction modules
 import { initInventoryEventListeners } from './src/systems/interaction/inventoryActions.js';
@@ -258,6 +260,7 @@ async function initUI() {
     setUserStatsContainer($('#rpg-user-stats'));
     setInfoBoxContainer($('#rpg-info-box'));
     setThoughtsContainer($('#rpg-thoughts'));
+    setSkillsContainer($('#rpg-skills'));
     setInventoryContainer($('#rpg-inventory'));
     setQuestsContainer($('#rpg-quests'));
 
@@ -346,6 +349,30 @@ async function initUI() {
             removeDesktopTabs();
             setupDesktopTabs();
         }
+    });
+
+    $('#rpg-toggle-skills').on('change', function() {
+        extensionSettings.showSkills = $(this).prop('checked');
+        saveSettings();
+        updateSectionVisibility();
+        renderSkills(); // Render skills section
+        // Re-setup desktop tabs to show/hide skills tab
+        if (window.innerWidth > 1000) {
+            removeDesktopTabs();
+            setupDesktopTabs();
+        }
+    });
+
+    $('#rpg-toggle-item-skill-links').on('change', function() {
+        extensionSettings.enableItemSkillLinks = $(this).prop('checked');
+        saveSettings();
+        // Re-render skills to show/hide link badges
+        renderSkills();
+    });
+
+    $('#rpg-toggle-delete-skill-with-item').on('change', function() {
+        extensionSettings.deleteSkillWithItem = $(this).prop('checked');
+        saveSettings();
     });
 
     $('#rpg-toggle-thoughts-in-chat').on('change', function() {
@@ -497,6 +524,9 @@ async function initUI() {
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
     $('#rpg-toggle-simplified-inventory').prop('checked', extensionSettings.useSimplifiedInventory);
+    $('#rpg-toggle-skills').prop('checked', extensionSettings.showSkills);
+    $('#rpg-toggle-item-skill-links').prop('checked', extensionSettings.enableItemSkillLinks);
+    $('#rpg-toggle-delete-skill-with-item').prop('checked', extensionSettings.deleteSkillWithItem);
     $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
@@ -543,6 +573,7 @@ async function initUI() {
     renderUserStats();
     renderInfoBox();
     renderThoughts();
+    renderSkills();
     renderInventory();
     renderQuests();
     updateDiceDisplay();

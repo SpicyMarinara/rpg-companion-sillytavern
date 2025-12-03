@@ -20,6 +20,9 @@ export let extensionSettings = {
     showCharacterThoughts: true,
     showInventory: true, // Show inventory section (v2 system)
     useSimplifiedInventory: false, // Use simplified single-list inventory instead of categorized (On Person/Stored/Assets)
+    showSkills: false, // Show skills as separate section (moves skills from Status to own tab)
+    enableItemSkillLinks: false, // Enable linking items to skills (item grants skill, removing item removes skill)
+    deleteSkillWithItem: false, // When true, deleting an item also deletes linked skills. When false (default), just unlinks.
     showQuests: true, // Show quests section
     showThoughtsInChat: true, // Show thoughts overlay in chat
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
@@ -50,14 +53,52 @@ export let extensionSettings = {
         arousal: 0,
         mood: '😐',
         conditions: 'None',
-        /** @type {InventoryV2} */
+        /** @type {InventoryV2} Legacy string-based inventory */
         inventory: {
             version: 2,
             onPerson: "None",
             stored: {},
             assets: "None"
-        }
+        },
+        skills: "None" // Legacy single-string skills (for Status section)
     },
+    /**
+     * Structured inventory v3 - items as objects with name, description, and skill links
+     * @type {{onPerson: Array<{name: string, description: string, grantsSkill?: string}>, stored: Object<string, Array>, assets: Array}}
+     */
+    inventoryV3: {
+        onPerson: [],  // Array of { name, description, grantsSkill? }
+        stored: {},    // { locationName: [{ name, description, grantsSkill? }] }
+        assets: []     // Array of { name, description }
+    },
+    /**
+     * Structured skills v2 - abilities as objects with name, description, and item links
+     * Key is the skill category name from config
+     * @type {Object<string, Array<{name: string, description: string, grantedBy?: string}>>}
+     */
+    skillsV2: {
+        // Example: "Combat": [{ name: "Sword Fighting", description: "Blade proficiency", grantedBy: "Iron Sword" }]
+    },
+    /**
+     * Structured info box data (from JSON parsing)
+     */
+    infoBoxData: {},
+    /**
+     * Structured characters data (from JSON parsing)
+     */
+    charactersData: [],
+    /**
+     * Structured quests v2 (from JSON parsing)
+     */
+    questsV2: {
+        main: null,
+        optional: []
+    },
+    // Legacy fields kept for backwards compatibility
+    skills: { list: [], categories: {} },
+    itemSkillLinks: {},
+    skillAbilityLinks: {},
+    skillsData: {},
     statNames: {
         health: 'Health',
         satiety: 'Satiety',
@@ -250,6 +291,7 @@ export let $userStatsContainer = null;
 export let $infoBoxContainer = null;
 export let $thoughtsContainer = null;
 export let $inventoryContainer = null;
+export let $skillsContainer = null;
 export let $questsContainer = null;
 
 /**
@@ -317,6 +359,10 @@ export function setThoughtsContainer($element) {
 
 export function setInventoryContainer($element) {
     $inventoryContainer = $element;
+}
+
+export function setSkillsContainer($element) {
+    $skillsContainer = $element;
 }
 
 export function setQuestsContainer($element) {

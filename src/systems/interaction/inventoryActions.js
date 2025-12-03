@@ -10,6 +10,7 @@ import { buildUserStatsText } from '../rendering/userStats.js';
 import { renderInventory, getLocationId } from '../rendering/inventory.js';
 import { parseItems, serializeItems } from '../../utils/itemParser.js';
 import { sanitizeLocationName, sanitizeItemName } from '../../utils/security.js';
+import { handleItemRemoved, navigateToLinkedSkills } from '../rendering/skills.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -134,15 +135,20 @@ export function hideAddItemForm(field, location) {
 export function saveAddItem(field, location) {
     const inventory = extensionSettings.userStats.inventory;
     let inputId;
+    let descInputId;
 
     if (field === 'stored') {
         inputId = `.rpg-location-item-input[data-location="${location}"]`;
+        descInputId = `.rpg-location-item-desc-input[data-location="${location}"]`;
     } else {
         inputId = `#rpg-new-item-${field}`;
+        descInputId = `#rpg-new-item-desc-${field}`;
     }
 
     const input = $(inputId);
+    const descInput = $(descInputId);
     const rawItemName = input.val().trim();
+    const itemDescription = descInput?.val()?.trim() || '';
 
     if (!rawItemName) {
         hideAddItemForm(field, location);
@@ -157,10 +163,39 @@ export function saveAddItem(field, location) {
         return;
     }
 
-    // Get current items, add new one, serialize back
+    // Update structured inventory (inventoryV3) if it exists
+    if (extensionSettings.inventoryV3) {
+        const newItem = { name: itemName, description: itemDescription };
+        
+        if (field === 'simplified') {
+            if (!extensionSettings.inventoryV3.simplified) {
+                extensionSettings.inventoryV3.simplified = [];
+            }
+            extensionSettings.inventoryV3.simplified.push(newItem);
+        } else if (field === 'stored') {
+            if (!extensionSettings.inventoryV3.stored) {
+                extensionSettings.inventoryV3.stored = {};
+            }
+            if (!extensionSettings.inventoryV3.stored[location]) {
+                extensionSettings.inventoryV3.stored[location] = [];
+            }
+            extensionSettings.inventoryV3.stored[location].push(newItem);
+        } else if (field === 'onPerson') {
+            if (!extensionSettings.inventoryV3.onPerson) {
+                extensionSettings.inventoryV3.onPerson = [];
+            }
+            extensionSettings.inventoryV3.onPerson.push(newItem);
+        } else if (field === 'assets') {
+            if (!extensionSettings.inventoryV3.assets) {
+                extensionSettings.inventoryV3.assets = [];
+            }
+            extensionSettings.inventoryV3.assets.push(newItem);
+        }
+    }
+
+    // Also update legacy inventory format for backwards compatibility
     let currentString;
     if (field === 'simplified') {
-        // For simplified inventory, use items field or fall back to onPerson
         currentString = inventory.items || inventory.onPerson || 'None';
     } else if (field === 'stored') {
         currentString = inventory.stored[location] || 'None';
@@ -174,7 +209,6 @@ export function saveAddItem(field, location) {
 
     // Save back to inventory
     if (field === 'simplified') {
-        // Update both items and onPerson for simplified mode
         inventory.items = newString;
         inventory.onPerson = newString;
     } else if (field === 'stored') {
@@ -201,13 +235,31 @@ export function saveAddItem(field, location) {
  */
 export function removeItem(field, itemIndex, location) {
     const inventory = extensionSettings.userStats.inventory;
+    let removedItemName = null;
 
-    // console.log('[RPG Companion] DEBUG removeItem called:', { field, itemIndex, location });
+    // Remove from structured inventory (inventoryV3) if it exists
+    if (extensionSettings.inventoryV3) {
+        let structuredArray = null;
+        
+        if (field === 'simplified' && extensionSettings.inventoryV3.simplified) {
+            structuredArray = extensionSettings.inventoryV3.simplified;
+        } else if (field === 'stored' && extensionSettings.inventoryV3.stored?.[location]) {
+            structuredArray = extensionSettings.inventoryV3.stored[location];
+        } else if (field === 'onPerson' && extensionSettings.inventoryV3.onPerson) {
+            structuredArray = extensionSettings.inventoryV3.onPerson;
+        } else if (field === 'assets' && extensionSettings.inventoryV3.assets) {
+            structuredArray = extensionSettings.inventoryV3.assets;
+        }
+        
+        if (structuredArray && structuredArray[itemIndex]) {
+            removedItemName = structuredArray[itemIndex].name;
+            structuredArray.splice(itemIndex, 1);
+        }
+    }
 
-    // Get current items, remove the one at index, serialize back
+    // Get current items from legacy format
     let currentString;
     if (field === 'simplified') {
-        // For simplified inventory, use items field or fall back to onPerson
         currentString = inventory.items || inventory.onPerson || 'None';
     } else if (field === 'stored') {
         currentString = inventory.stored[location] || 'None';
@@ -215,20 +267,24 @@ export function removeItem(field, itemIndex, location) {
         currentString = inventory[field] || 'None';
     }
 
-    // console.log('[RPG Companion] DEBUG currentString before removal:', currentString);
-
     const items = parseItems(currentString);
-    // console.log('[RPG Companion] DEBUG items array before removal:', items);
 
+    // Get the item name before removing (for item-skill link check) - use structured name if available
+    if (!removedItemName) {
+        removedItemName = items[itemIndex];
+    }
+    
     items.splice(itemIndex, 1); // Remove item at index
-    // console.log('[RPG Companion] DEBUG items array after removal:', items);
+    
+    // Check if this item was linked to a skill and handle removal
+    if (removedItemName && extensionSettings.enableItemSkillLinks) {
+        handleItemRemoved(removedItemName);
+    }
 
     const newString = serializeItems(items);
-    // console.log('[RPG Companion] DEBUG newString after removal:', newString);
 
-    // Save back to inventory
+    // Save back to legacy inventory
     if (field === 'simplified') {
-        // Update both items and onPerson for simplified mode
         inventory.items = newString;
         inventory.onPerson = newString;
     } else if (field === 'stored') {
@@ -485,6 +541,16 @@ export function initInventoryEventListeners() {
         const itemIndex = parseInt($(this).data('index'));
         const location = $(this).data('location');
         removeItem(field, itemIndex, location);
+    });
+
+    // Go to linked skills button (on inventory items)
+    $(document).on('click', '.rpg-item-skill-link[data-action="goto-linked-skills"]', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const itemName = $(this).data('item');
+        if (itemName) {
+            navigateToLinkedSkills(itemName);
+        }
     });
 
     // Add location button - shows inline form
