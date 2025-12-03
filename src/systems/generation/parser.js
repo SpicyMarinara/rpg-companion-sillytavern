@@ -210,7 +210,10 @@ export function parseResponse(responseText) {
                 content.match(/User Stats\s*\n\s*---/i) ||
                 content.match(/Player Stats\s*\n\s*---/i) ||
                 // Fallback: look for stat keywords without strict header
-                (content.match(/Health:\s*\d+%/i) && content.match(/Energy:\s*\d+%/i));
+                (content.match(/Health:\s*\d+%/i) && content.match(/Energy:\s*\d+%/i)) ||
+                // Fallback: inventory-only or quests-only blocks (no stats header)
+                (content.match(/^(On Person:|Inventory:|Main Quests?:|Optional Quests:)/im) && 
+                 !content.match(/Info Box/i) && !content.match(/Present Characters/i));
 
             // Match Info Box section - flexible patterns
             const isInfoBox =

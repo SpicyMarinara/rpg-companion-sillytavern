@@ -212,8 +212,10 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
     const trackerConfig = extensionSettings.trackerConfig;
     let instructions = '';
 
-    // Check if any trackers are enabled
-    const hasAnyTrackers = extensionSettings.showUserStats || extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts;
+    // Check if any trackers are enabled (including inventory and quests as independent sections)
+    const hasAnyTrackers = extensionSettings.showUserStats || extensionSettings.showInfoBox || 
+                           extensionSettings.showCharacterThoughts || extensionSettings.showInventory || 
+                           extensionSettings.showQuests;
 
     // Only add tracker instructions if at least one tracker is enabled
     if (hasAnyTrackers) {
@@ -221,40 +223,46 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         const trackerPrompt = (extensionSettings.customTrackerPrompt || DEFAULT_TRACKER_PROMPT).replace(/\{\{user\}\}/g, userName);
         instructions += `\n${trackerPrompt}\n`;
 
-        // Add format specifications for each enabled tracker
-        if (extensionSettings.showUserStats) {
+        // Check if we need a combined stats/inventory/quests code block
+        const hasStatsBlock = extensionSettings.showUserStats || extensionSettings.showInventory || extensionSettings.showQuests;
+
+        if (hasStatsBlock) {
             const userStatsConfig = trackerConfig?.userStats;
             const enabledStats = userStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
 
             instructions += '```\n';
-            instructions += `${userName}'s Stats\n`;
-            instructions += '---\n';
+            
+            // Add user stats section if enabled
+            if (extensionSettings.showUserStats) {
+                instructions += `${userName}'s Stats\n`;
+                instructions += '---\n';
 
-            // Add custom stats dynamically
-            for (const stat of enabledStats) {
-                instructions += `- ${stat.name}: X%\n`;
-            }
+                // Add custom stats dynamically
+                for (const stat of enabledStats) {
+                    instructions += `- ${stat.name}: X%\n`;
+                }
 
-            // Add status section if enabled
-            if (userStatsConfig?.statusSection?.enabled) {
-                const statusFields = userStatsConfig.statusSection.customFields || [];
-                const statusFieldsText = statusFields.map(f => `${f}`).join(', ');
+                // Add status section if enabled
+                if (userStatsConfig?.statusSection?.enabled) {
+                    const statusFields = userStatsConfig.statusSection.customFields || [];
+                    const statusFieldsText = statusFields.map(f => `${f}`).join(', ');
 
-                if (userStatsConfig.statusSection.showMoodEmoji) {
-                    instructions += `Status: [Mood Emoji${statusFieldsText ? ', ' + statusFieldsText : ''}]\n`;
-                } else if (statusFieldsText) {
-                    instructions += `Status: [${statusFieldsText}]\n`;
+                    if (userStatsConfig.statusSection.showMoodEmoji) {
+                        instructions += `Status: [Mood Emoji${statusFieldsText ? ', ' + statusFieldsText : ''}]\n`;
+                    } else if (statusFieldsText) {
+                        instructions += `Status: [${statusFieldsText}]\n`;
+                    }
+                }
+
+                // Add skills section if enabled
+                if (userStatsConfig?.skillsSection?.enabled) {
+                    const skillFields = userStatsConfig.skillsSection.customFields || [];
+                    const skillFieldsText = skillFields.map(f => `[${f}]`).join(', ');
+                    instructions += `Skills: [${skillFieldsText || 'Skill1, Skill2, etc.'}]\n`;
                 }
             }
 
-            // Add skills section if enabled
-            if (userStatsConfig?.skillsSection?.enabled) {
-                const skillFields = userStatsConfig.skillsSection.customFields || [];
-                const skillFieldsText = skillFields.map(f => `[${f}]`).join(', ');
-                instructions += `Skills: [${skillFieldsText || 'Skill1, Skill2, etc.'}]\n`;
-            }
-
-            // Add inventory format - only if showInventory is enabled
+            // Add inventory format - independent of showUserStats
             if (extensionSettings.showInventory) {
                 if (extensionSettings.useSimplifiedInventory) {
                     // Simplified single-line inventory format
@@ -271,7 +279,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 }
             }
 
-            // Add quests section - only if showQuests is enabled
+            // Add quests section - independent of showUserStats
             if (extensionSettings.showQuests) {
                 instructions += 'Main Quests: [Short title of the currently active main quest (for example, "Save the world"), or "None"]\n';
                 instructions += 'Optional Quests: [Short titles of the currently active optional quests (for example, "Find Zandik\'s book"), or "None"]\n';
