@@ -1838,7 +1838,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     max-height: clamp(200px, 18vh, 250px);
     box-sizing: border-box; /* Include padding and border in width calculation */
     flex-shrink: 0; /* Prevent cards from shrinking */
-    overflow: hidden;
+    overflow: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--rpg-border) transparent;
 }
