@@ -401,6 +401,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     }
 
     instructions += '- Empty arrays [] for sections with no items\n';
+    instructions += '- Items may be added or removed from all sections\n';
     instructions += '- null for main quest if none active\n';
     
     // Add stat descriptions if any have descriptions

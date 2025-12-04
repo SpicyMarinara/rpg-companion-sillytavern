@@ -1957,6 +1957,38 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     white-space: nowrap; /* Prevent name from wrapping */
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Character remove button */
+.rpg-character-remove {
+    flex-shrink: 0;
+    background: rgba(255, 0, 0, 0.2);
+    border: 1px solid rgba(255, 0, 0, 0.4);
+    border-radius: 50%;
+    width: clamp(18px, 2.5vh, 22px);
+    height: clamp(18px, 2.5vh, 22px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(14px, 2vw, 18px);
+    color: var(--rpg-highlight);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    line-height: 1;
+    margin-left: auto;
+}
+
+.rpg-character-remove:hover {
+    background: rgba(255, 0, 0, 0.4);
+    border-color: rgba(255, 0, 0, 0.6);
+    transform: scale(1.1);
+}
+
+.rpg-character-remove:active {
+    transform: scale(0.95);
 }
 
 /* Character traits/status line and custom fields */

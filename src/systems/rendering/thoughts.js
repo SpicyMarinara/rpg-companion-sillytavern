@@ -478,6 +478,7 @@ export function renderThoughts() {
                                 <div class="rpg-character-header">
                                     <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
                                     <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="name" title="Click to edit name">${char.name}</span>
+                                    <button class="rpg-character-remove" data-character="${escapedName}" title="Remove character">×</button>
                                 </div>
                 `;
 
@@ -539,6 +540,15 @@ export function renderThoughts() {
         const value = $(this).text().trim();
         console.log('[RPG Companion] Character stat edit:', { character, field, value });
         updateCharacterField(character, field, value);
+    });
+
+    // Add event handlers for remove character buttons
+    $thoughtsContainer.find('.rpg-character-remove').on('click', function(e) {
+        e.stopPropagation();
+        const characterName = $(this).data('character');
+        if (characterName && confirm(`Remove ${characterName} from present characters?`)) {
+            removeCharacter(characterName);
+        }
     });
 
     // Remove updating class after animation
@@ -777,6 +787,112 @@ export function updateCharacterField(characterName, field, value) {
         setTimeout(() => updateChatThoughts(), 100);
     } else {
         updateChatThoughts();
+    }
+}
+
+/**
+ * Removes a character from Present Characters data and re-renders.
+ * Works with both structured (charactersData) and text (characterThoughts) formats.
+ *
+ * @param {string} characterName - Name of the character to remove
+ */
+export function removeCharacter(characterName) {
+    console.log('[RPG Companion] Removing character:', characterName);
+
+    // Remove from structured data if it exists
+    if (extensionSettings.charactersData && Array.isArray(extensionSettings.charactersData)) {
+        const initialLength = extensionSettings.charactersData.length;
+        extensionSettings.charactersData = extensionSettings.charactersData.filter(
+            char => char.name && char.name.toLowerCase() !== characterName.toLowerCase()
+        );
+        if (extensionSettings.charactersData.length < initialLength) {
+            console.log('[RPG Companion] Removed character from structured data');
+        }
+    }
+
+    // Remove from text format
+    if (!lastGeneratedData.characterThoughts) {
+        console.log('[RPG Companion] No characterThoughts data to remove from');
+        return;
+    }
+
+    const lines = lastGeneratedData.characterThoughts.split('\n');
+    const presentCharsConfig = extensionSettings.trackerConfig?.presentCharacters;
+    
+    let characterFound = false;
+    let inTargetCharacter = false;
+    let characterStartIndex = -1;
+    let characterEndIndex = -1;
+    const linesToRemove = [];
+
+    // Find the character block
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        if (line.startsWith('- ')) {
+            const name = line.substring(2).trim();
+            if (name.toLowerCase() === characterName.toLowerCase()) {
+                characterFound = true;
+                inTargetCharacter = true;
+                characterStartIndex = i;
+                linesToRemove.push(i);
+            } else if (inTargetCharacter) {
+                characterEndIndex = i;
+                break;
+            }
+        } else if (inTargetCharacter) {
+            // Include all lines until the next character or end of file
+            linesToRemove.push(i);
+            // Check if this is a character name line (next character)
+            if (line.startsWith('- ')) {
+                characterEndIndex = i;
+                break;
+            }
+        }
+    }
+
+    if (characterFound && characterEndIndex === -1) {
+        characterEndIndex = lines.length;
+    }
+
+    if (characterFound && linesToRemove.length > 0) {
+        // Remove lines in reverse order to maintain indices
+        for (let i = linesToRemove.length - 1; i >= 0; i--) {
+            lines.splice(linesToRemove[i], 1);
+        }
+
+        // Clean up any trailing empty lines after removal
+        while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+            lines.pop();
+        }
+
+        lastGeneratedData.characterThoughts = lines.join('\n');
+        committedTrackerData.characterThoughts = lines.join('\n');
+
+        console.log('[RPG Companion] Removed character from text format');
+
+        // Update chat swipe data
+        const chat = getContext().chat;
+        if (chat && chat.length > 0) {
+            for (let i = chat.length - 1; i >= 0; i--) {
+                const message = chat[i];
+                if (!message.is_user) {
+                    if (message.extra && message.extra.rpg_companion_swipes) {
+                        const swipeId = message.swipe_id || 0;
+                        if (message.extra.rpg_companion_swipes[swipeId]) {
+                            message.extra.rpg_companion_swipes[swipeId].characterThoughts = lines.join('\n');
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        saveChatData();
+        renderThoughts();
+        updateChatThoughts();
+    } else {
+        console.log('[RPG Companion] Character not found in text format:', characterName);
     }
 }
 
