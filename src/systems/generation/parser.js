@@ -217,6 +217,43 @@ export function parseJSONTrackerData(jsonData) {
         }
     }
     
+    // Parse attributes (RPG attributes like STR, DEX, etc.)
+    // Only parse if allowAIUpdateAttributes is enabled
+    const allowAIUpdateAttributes = trackerConfig?.userStats?.allowAIUpdateAttributes !== false; // Default to true for backwards compatibility
+    if (jsonData.attributes && typeof jsonData.attributes === 'object' && allowAIUpdateAttributes) {
+        debugLog('[RPG Parser] Parsing attributes:', Object.keys(jsonData.attributes));
+        const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [
+            { id: 'str', name: 'STR', description: '', enabled: true },
+            { id: 'dex', name: 'DEX', description: '', enabled: true },
+            { id: 'con', name: 'CON', description: '', enabled: true },
+            { id: 'int', name: 'INT', description: '', enabled: true },
+            { id: 'wis', name: 'WIS', description: '', enabled: true },
+            { id: 'cha', name: 'CHA', description: '', enabled: true }
+        ];
+        
+        for (const [attrName, value] of Object.entries(jsonData.attributes)) {
+            // Find matching attribute in config (case-insensitive)
+            const attrConfig = rpgAttributes.find(a => 
+                a && a.name && a.name.toLowerCase() === attrName.toLowerCase()
+            );
+            if (attrConfig && typeof value === 'number') {
+                // Store in classicStats using the attribute id
+                extensionSettings.classicStats[attrConfig.id] = Math.max(1, value);
+                debugLog(`[RPG Parser] Attribute ${attrConfig.name}: ${value}`);
+            }
+        }
+    } else if (jsonData.attributes && !allowAIUpdateAttributes) {
+        debugLog('[RPG Parser] Attributes found in response but allowAIUpdateAttributes is disabled - skipping update');
+    }
+    
+    // Parse level (only if allowAIUpdateAttributes is enabled)
+    if (jsonData.level !== undefined && typeof jsonData.level === 'number' && allowAIUpdateAttributes) {
+        extensionSettings.level = Math.max(1, jsonData.level);
+        debugLog(`[RPG Parser] Level: ${extensionSettings.level}`);
+    } else if (jsonData.level !== undefined && !allowAIUpdateAttributes) {
+        debugLog('[RPG Parser] Level found in response but allowAIUpdateAttributes is disabled - skipping update');
+    }
+    
     // Parse status
     if (jsonData.status) {
         if (jsonData.status.mood) {

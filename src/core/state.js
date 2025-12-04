@@ -120,6 +120,7 @@ export let extensionSettings = {
             // RPG Attributes (customizable D&D-style attributes)
             showRPGAttributes: true,
             alwaysSendAttributes: false, // If true, always send attributes; if false, only send with dice rolls
+            allowAIUpdateAttributes: true, // If true, allow AI to update attributes from JSON response; if false, attributes are read-only
             rpgAttributes: [
                 { id: 'str', name: 'STR', description: '', enabled: true },
                 { id: 'dex', name: 'DEX', description: '', enabled: true },

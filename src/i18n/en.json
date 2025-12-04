@@ -87,6 +87,8 @@
     "template.trackerEditorModal.userStatsTab.enableRpgAttributes": "Enable RPG Attributes Section",
     "template.trackerEditorModal.userStatsTab.alwaysIncludeAttributes": "Always Include Attributes in Prompt",
     "template.trackerEditorModal.userStatsTab.alwaysIncludeAttributesNote": "If disabled, attributes are only sent when a dice roll is active.",
+    "template.trackerEditorModal.userStatsTab.allowAIUpdateAttributes": "Allow AI to Update RPG Attributes",
+    "template.trackerEditorModal.userStatsTab.allowAIUpdateAttributesNote": "If enabled, the AI can update attribute values and level from its responses. If disabled, attributes are read-only and can only be changed manually.",
     "template.trackerEditorModal.userStatsTab.addAttributeButton": "Add Attribute",
     "template.trackerEditorModal.userStatsTab.statusSectionTitle": "Status Section",
     "template.trackerEditorModal.userStatsTab.enableStatusSection": "Enable Status Section",

@@ -87,6 +87,8 @@
     "template.trackerEditorModal.userStatsTab.enableRpgAttributes": "啟用 RPG 屬性",
     "template.trackerEditorModal.userStatsTab.alwaysIncludeAttributes": "始終發送屬性（prompt）",
     "template.trackerEditorModal.userStatsTab.alwaysIncludeAttributesNote": "將 RPG 屬性始終包含在提示詞中，即使它們未顯示在面板上也一樣。",
+    "template.trackerEditorModal.userStatsTab.allowAIUpdateAttributes": "允許 AI 更新 RPG 屬性",
+    "template.trackerEditorModal.userStatsTab.allowAIUpdateAttributesNote": "如果啟用，AI 可以從其 JSON 回應中更新屬性值和等級。如果禁用，屬性為唯讀，只能手動更改。",
     "template.trackerEditorModal.userStatsTab.addAttributeButton": "添加屬性",
     "template.trackerEditorModal.userStatsTab.statusSectionTitle": "狀態欄",
     "template.trackerEditorModal.userStatsTab.enableStatusSection": "啟用狀態欄",

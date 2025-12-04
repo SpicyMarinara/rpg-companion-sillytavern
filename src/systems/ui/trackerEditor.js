@@ -242,6 +242,14 @@ function renderUserStatsTab() {
     html += '</div>';
     html += `<small class="rpg-editor-note">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributesNote')}</small>`;
 
+    // Allow AI to update attributes toggle
+    const allowAIUpdateAttributes = config.allowAIUpdateAttributes !== undefined ? config.allowAIUpdateAttributes : true;
+    html += '<div class="rpg-editor-toggle-row">';
+    html += `<input type="checkbox" id="rpg-allow-ai-update-attrs" ${allowAIUpdateAttributes ? 'checked' : ''}>`;
+    html += `<label for="rpg-allow-ai-update-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.allowAIUpdateAttributes')}</label>`;
+    html += '</div>';
+    html += `<small class="rpg-editor-note">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.allowAIUpdateAttributesNote')}</small>`;
+
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
 
     // Ensure rpgAttributes exists in the actual config (not just local fallback)
@@ -444,9 +452,13 @@ function setupUserStatsListeners() {
     });
 
     // Always send attributes toggle
-    $('#rpg-always-send-attrs').off('change').on('change', function() {
-        extensionSettings.trackerConfig.userStats.alwaysSendAttributes = $(this).is(':checked');
-    });
+        $('#rpg-always-send-attrs').off('change').on('change', function() {
+            extensionSettings.trackerConfig.userStats.alwaysSendAttributes = $(this).is(':checked');
+        });
+
+        $('#rpg-allow-ai-update-attrs').off('change').on('change', function() {
+            extensionSettings.trackerConfig.userStats.allowAIUpdateAttributes = $(this).is(':checked');
+        });
 
     // Status section toggles
     $('#rpg-status-enabled').off('change').on('change', function() {

@@ -44,6 +44,12 @@
  */
 
 /**
+ * @typedef {Object.<string, number>} TrackerAttributes
+ * Dynamic attributes object - keys are attribute names from config (e.g., STR, DEX), values are numeric
+ * Example: { "STR": 15, "DEX": 12, "INT": 18 }
+ */
+
+/**
  * @typedef {Object} TrackerStatus
  * @property {string} [mood] - Mood emoji (if enabled)
  * @property {Object.<string, string>} [fields] - Dynamic custom fields from config
@@ -84,6 +90,8 @@
  * @typedef {Object} TrackerData
  * @property {TrackerStats} [stats] - Numeric stats (based on config)
  * @property {TrackerStatus} [status] - Status info (mood, custom fields)
+ * @property {TrackerAttributes} [attributes] - RPG attributes (STR, DEX, etc.)
+ * @property {number} [level] - Character level
  * @property {TrackerInfoBox} [infoBox] - Scene information (based on enabled widgets)
  * @property {TrackerCharacter[]} [characters] - Present characters
  * @property {TrackerInventory} [inventory] - Player inventory
@@ -429,6 +437,14 @@ export function mergeTrackerData(existing, newData) {
             ...newData.status,
             fields: { ...merged.status?.fields, ...newData.status?.fields }
         };
+    }
+    
+    if (newData.attributes) {
+        merged.attributes = { ...merged.attributes, ...newData.attributes };
+    }
+    
+    if (newData.level !== undefined) {
+        merged.level = newData.level;
     }
     
     if (newData.infoBox) {

@@ -235,15 +235,15 @@ export function onGenerationStarted(type, data) {
             setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         }
     } else if (extensionSettings.generationMode === 'separate') {
-        // In SEPARATE mode, inject the contextual summary for main roleplay generation
-        const contextSummary = generateContextualSummary();
+        // In SEPARATE mode, inject the current state as JSON for main roleplay generation
+        const currentStateJSON = generateContextualSummary();
 
-        if (contextSummary) {
-            const wrappedContext = `\nHere is context information about the current scene, and what follows is the last message in the chat history:
+        if (currentStateJSON) {
+            const wrappedContext = `\nHere is {{user}}'s current state in JSON format. This is merely informative, it's not your job to update it:
 <context>
-${contextSummary}
-
-Ensure these details naturally reflect and influence the narrative. Character behavior, dialogue, and story events should acknowledge these conditions when relevant, such as fatigue affecting performance, low hygiene influencing social interactions, environmental factors shaping the scene, or a character's emotional state coloring their responses.
+\`\`\`json
+${currentStateJSON}
+\`\`\`
 </context>\n\n`;
 
             // Inject context at depth 1 (before last user message) as SYSTEM
@@ -251,7 +251,7 @@ Ensure these details naturally reflect and influence the narrative. Character be
             if (!shouldSuppress) {
                 setExtensionPrompt('rpg-companion-context', wrappedContext, extension_prompt_types.IN_CHAT, 1, false);
             }
-            // console.log('[RPG Companion] Injected contextual summary for separate mode:', contextSummary);
+            // console.log('[RPG Companion] Injected current state JSON for separate mode:', currentStateJSON);
         } else {
             // Clear if no data yet
             setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);

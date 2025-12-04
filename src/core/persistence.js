@@ -434,6 +434,8 @@ function migrateToTrackerConfig() {
             userStats: {
                 customStats: [],
                 showRPGAttributes: true,
+                alwaysSendAttributes: false,
+                allowAIUpdateAttributes: true,
                 rpgAttributes: [
                     { id: 'str', name: 'STR', description: '', enabled: true },
                     { id: 'dex', name: 'DEX', description: '', enabled: true },
