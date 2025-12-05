@@ -90,6 +90,47 @@ import {
     clearExtensionPrompts
 } from './src/systems/integration/sillytavern.js';
 
+// Character State Tracking modules (NEW)
+import {
+    getCharacterState,
+    updateCharacterState,
+    setCharacterState
+} from './src/core/characterState.js';
+import {
+    generateCharacterTrackingPrompt
+} from './src/systems/generation/characterPromptBuilder.js';
+import {
+    parseAndApplyCharacterStateUpdate,
+    removeCharacterStateBlock
+} from './src/systems/generation/characterParser.js';
+import {
+    renderCharacterStateOverview,
+    updateCharacterStateDisplay
+} from './src/systems/rendering/characterStateRenderer.js';
+
+console.log('[Character Tracking] ✅ All character tracking modules imported successfully');
+
+// Old state variable declarations removed - now imported from core modules
+// (extensionSettings, lastGeneratedData, committedTrackerData, etc. are now in src/core/state.js)
+
+// Utility functions removed - now imported from src/utils/avatars.js
+// (getSafeThumbnailUrl)
+
+// Persistence functions removed - now imported from src/core/persistence.js
+// (loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData)
+
+// Theme functions removed - now imported from src/systems/ui/theme.js
+// (applyTheme, applyCustomTheme, toggleCustomColors, toggleAnimations,
+//  updateSettingsPopupTheme, applyCustomThemeToSettingsPopup)
+
+// Layout functions removed - now imported from src/systems/ui/layout.js
+// (togglePlotButtons, updateCollapseToggleIcon, setupCollapseToggle,
+//  updatePanelVisibility, updateSectionVisibility, applyPanelPosition)
+// Note: closeMobilePanelWithAnimation is only used internally by mobile.js
+
+// Mobile UI functions removed - now imported from src/systems/ui/mobile.js
+// (setupMobileToggle, constrainFabToViewport, setupMobileTabs, removeMobileTabs,
+//  setupMobileKeyboardHandling, setupContentEditableScrolling)
 
 /**
  * Updates UI elements that are dynamically generated and not covered by data-i18n-key.
@@ -625,12 +666,153 @@ async function initUI() {
     initInventoryEventListeners();
     setupMemoryRecollectionButton();
     initLorebookLimiter();
+
+    // Initialize character state display (NEW)
+    // First, ensure the container exists (in case template.html didn't load)
+    if ($('#rpg-character-state-container').length === 0) {
+        console.log('[Character Tracking] Container not found, creating it dynamically...');
+
+        // Try to add to existing content box
+        const $contentBox = $('.rpg-content-box');
+        if ($contentBox.length > 0) {
+            $contentBox.append('<div id="rpg-character-state-container" class="rpg-section rpg-character-state-section"></div>');
+            console.log('[Character Tracking] ✅ Container created dynamically');
+        } else {
+            console.warn('[Character Tracking] ❌ Could not find .rpg-content-box to add container');
+        }
+    }
+
+    updateCharacterStateDisplay();
 }
 
 
 
 
 
+
+// ============================================================================
+// CHARACTER STATE TRACKING - Event Wrappers (NEW)
+// ============================================================================
+
+/**
+ * Wrapper for onMessageReceived that adds character state tracking
+ */
+async function onMessageReceivedWithCharacterTracking(data) {
+    // Call original handler first
+    await onMessageReceived(data);
+
+    // If extension is not enabled or character tracking not active, skip
+    if (!extensionSettings.enabled) return;
+
+    try {
+        // Parse and apply character state updates from the LLM response
+        const stateUpdate = parseAndApplyCharacterStateUpdate(data);
+
+        if (stateUpdate) {
+            console.log('[Character Tracking] State updated successfully');
+
+            // Update the UI to show new character state
+            updateCharacterStateDisplay();
+
+            // Save character state to chat metadata
+            saveCharacterStateToChat();
+
+            // Optionally remove state block from displayed message
+            // (uncomment if you want to hide the technical state blocks)
+            // data.mes = removeCharacterStateBlock(data.mes);
+        }
+    } catch (error) {
+        console.error('[Character Tracking] Error processing state update:', error);
+    }
+}
+
+/**
+ * Wrapper for onGenerationStarted that adds character state tracking prompt
+ */
+async function onGenerationStartedWithCharacterTracking(data) {
+    // Call original handler first
+    await onGenerationStarted(data);
+
+    // If extension is not enabled, skip
+    if (!extensionSettings.enabled) return;
+
+    try {
+        // Generate and inject character tracking prompt
+        const trackingPrompt = generateCharacterTrackingPrompt();
+
+        setExtensionPrompt(
+            'RPG_CHARACTER_STATE_TRACKING',
+            trackingPrompt,
+            extension_prompt_types.IN_PROMPT,
+            1000, // position (adjust as needed)
+            false,
+            extension_prompt_roles.SYSTEM
+        );
+
+        console.log('[Character Tracking] Tracking prompt injected');
+    } catch (error) {
+        console.error('[Character Tracking] Error injecting tracking prompt:', error);
+    }
+}
+
+/**
+ * Wrapper for onCharacterChanged that loads character state
+ */
+async function onCharacterChangedWithCharacterTracking(characterId) {
+    // Call original handler first
+    await onCharacterChanged(characterId);
+
+    // If extension is not enabled, skip
+    if (!extensionSettings.enabled) return;
+
+    try {
+        // Load character state from chat metadata
+        loadCharacterStateFromChat();
+
+        // Update display
+        updateCharacterStateDisplay();
+
+        console.log('[Character Tracking] Character state loaded for new chat');
+    } catch (error) {
+        console.error('[Character Tracking] Error loading character state:', error);
+    }
+}
+
+/**
+ * Save character state to chat metadata
+ */
+function saveCharacterStateToChat() {
+    const charState = getCharacterState();
+
+    // Store in SillyTavern's chat metadata
+    if (!chat_metadata.rpg_extension) {
+        chat_metadata.rpg_extension = {};
+    }
+
+    chat_metadata.rpg_extension.character_state = charState;
+
+    // Save chat metadata
+    saveChatDebounced();
+
+    console.log('[Character Tracking] Character state saved to chat metadata');
+}
+
+/**
+ * Load character state from chat metadata
+ */
+function loadCharacterStateFromChat() {
+    if (chat_metadata.rpg_extension && chat_metadata.rpg_extension.character_state) {
+        const savedState = chat_metadata.rpg_extension.character_state;
+        setCharacterState(savedState);
+        console.log('[Character Tracking] Character state loaded from chat metadata');
+    } else {
+        console.log('[Character Tracking] No saved character state found, using defaults');
+    }
+}
+
+// ============================================================================
+// END CHARACTER STATE TRACKING
+// ============================================================================
 
 /**
  * Ensures the "RPG Companion Trackers" preset exists in the user's OpenAI Settings.
@@ -701,6 +883,10 @@ async function ensureTrackerPresetExists() {
  */
 jQuery(async () => {
     try {
+        console.log('========================================');
+        console.log('🎭 RPG COMPANION v2.0.0 CHARACTER TRACKING');
+        console.log('✅ NEW VERSION WITH CHARACTER STATE TRACKING LOADED!');
+        console.log('========================================');
         console.log('[RPG Companion] Starting initialization...');
 
         try {
@@ -754,12 +940,13 @@ jQuery(async () => {
             console.error('[RPG Companion] Conflict detection failed:', error);
         }
 
+        // Register all event listeners (with character tracking wrappers)
         try {
             registerAllEvents({
                 [event_types.MESSAGE_SENT]: onMessageSent,
-                [event_types.GENERATION_STARTED]: onGenerationStarted,
-                [event_types.MESSAGE_RECEIVED]: onMessageReceived,
-                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar],
+                [event_types.GENERATION_STARTED]: onGenerationStartedWithCharacterTracking, // MODIFIED: Now uses character tracking wrapper
+                [event_types.MESSAGE_RECEIVED]: onMessageReceivedWithCharacterTracking, // MODIFIED: Now uses character tracking wrapper
+                [event_types.CHAT_CHANGED]: [onCharacterChangedWithCharacterTracking, updatePersonaAvatar], // MODIFIED: Now uses character tracking wrapper
                 [event_types.MESSAGE_SWIPED]: onMessageSwiped,
                 [event_types.USER_MESSAGE_RENDERED]: updatePersonaAvatar,
                 [event_types.SETTINGS_UPDATED]: updatePersonaAvatar
