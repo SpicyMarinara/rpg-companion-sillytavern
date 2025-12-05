@@ -27,7 +27,9 @@ const DEFAULT_INVENTORY_V2 = {
  * @returns {MigrationResult} Migration result with v2 inventory and metadata
  */
 export function migrateInventory(inventory) {
+    // Case 1: Already v2 format (has version property and is an object)
     if (inventory && typeof inventory === 'object' && inventory.version === 2) {
+        // console.log('[RPG Companion Migration] Inventory already v2, no migration needed');
         return {
             inventory: inventory,
             migrated: false,
@@ -35,7 +37,9 @@ export function migrateInventory(inventory) {
         };
     }
 
+    // Case 2: null or undefined → use defaults
     if (inventory === null || inventory === undefined) {
+        // console.log('[RPG Companion Migration] Inventory is null/undefined, using defaults');
         return {
             inventory: { ...DEFAULT_INVENTORY_V2 },
             migrated: true,
@@ -43,9 +47,12 @@ export function migrateInventory(inventory) {
         };
     }
 
+    // Case 3: v1 string format → migrate to v2
     if (typeof inventory === 'string') {
+        // Check if it's an empty/default string
         const trimmed = inventory.trim();
         if (trimmed === '' || trimmed.toLowerCase() === 'none') {
+            // console.log('[RPG Companion Migration] Inventory is empty/None, using defaults');
             return {
                 inventory: { ...DEFAULT_INVENTORY_V2 },
                 migrated: true,
@@ -53,6 +60,8 @@ export function migrateInventory(inventory) {
             };
         }
 
+        // Non-empty v1 string → migrate to v2.onPerson
+        // console.log('[RPG Companion Migration] Migrating v1 string to v2.onPerson:', inventory);
         return {
             inventory: {
                 version: 2,

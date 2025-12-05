@@ -5,6 +5,7 @@
 
 import {
     extensionSettings,
+    pendingDiceRoll,
     setPendingDiceRoll
 } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';

@@ -10,14 +10,18 @@ import {
     lastGeneratedData,
     committedTrackerData,
     isGenerating,
+    lastActionWasSwipe,
     setIsGenerating,
     setLastActionWasSwipe
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
 import { generateSeparateUpdatePrompt } from './promptBuilder.js';
-import { parseResponse, parseUserStats, parseSkills, tryParseJSONResponse } from './parser.js';
+import { parseResponse, parseUserStats } from './parser.js';
+import { renderUserStats } from '../rendering/userStats.js';
+import { renderInfoBox } from '../rendering/infoBox.js';
+import { renderThoughts } from '../rendering/thoughts.js';
+import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
-import { renderSkills } from '../rendering/skills.js';
 import { i18n } from '../../core/i18n.js';
 
 // Store the original preset name to restore after tracker generation
@@ -32,8 +36,12 @@ async function getCurrentPresetName() {
         // Use /preset without arguments to get the current preset name
         const result = await executeSlashCommandsOnChatInput('/preset', { quiet: true });
 
+        // console.log('[RPG Companion] /preset result:', result);
+
+        // The result should be an object with a 'pipe' property containing the preset name
         if (result && typeof result === 'object' && result.pipe) {
             const presetName = String(result.pipe).trim();
+            // console.log('[RPG Companion] Extracted preset name:', presetName);
             return presetName || null;
         }
 
@@ -54,7 +62,11 @@ async function getCurrentPresetName() {
  */
 async function switchToPreset(presetName) {
     try {
+        // Use the /preset slash command to switch presets
+        // This is the proper way to change presets in SillyTavern
         await executeSlashCommandsOnChatInput(`/preset ${presetName}`, { quiet: true });
+
+        // console.log(`[RPG Companion] Switched to preset "${presetName}"`);
         return true;
     } catch (error) {
         console.error('[RPG Companion] Error switching preset:', error);
@@ -75,6 +87,7 @@ async function switchToPreset(presetName) {
  */
 export async function updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory) {
     if (isGenerating) {
+        // console.log('[RPG Companion] Already generating, skipping...');
         return;
     }
 
@@ -83,6 +96,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
     }
 
     if (extensionSettings.generationMode !== 'separate') {
+        // console.log('[RPG Companion] Not in separate mode, skipping manual update');
         return;
     }
 
@@ -118,27 +132,19 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         });
 
         if (response) {
-            const jsonParsed = tryParseJSONResponse(response);
-            
-            if (jsonParsed) {
-                // JSON parsing succeeded - render all sections
-                console.log('[RPG Companion] JSON parsing successful');
-                renderUserStats();
-                renderInfoBox();
-                renderThoughts();
-                renderInventory();
-                renderQuests();
-                renderSkills();
-                saveChatData();
-            } else {
-                console.warn('[RPG Companion] JSON parsing failed, attempting legacy text parsing...');
-                const parsedData = parseResponse(response);
+            // console.log('[RPG Companion] Raw AI response:', response);
+            const parsedData = parseResponse(response);
+            // console.log('[RPG Companion] Parsed data:', parsedData);
+            // console.log('[RPG Companion] parsedData.userStats:', parsedData.userStats ? parsedData.userStats.substring(0, 100) + '...' : 'null');
 
-                extensionSettings.charactersData = [];
-                const parsedCharacterThoughts = parsedData.characterThoughts || '';
+            // DON'T update lastGeneratedData here - it should only reflect the data
+            // from the assistant message the user replied to, not auto-generated updates
+            // This ensures swipes/regenerations use consistent source data
 
-                const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
-                if (lastMessage && !lastMessage.is_user) {
+            // Store RPG data for the last assistant message (separate mode)
+            const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
+            // console.log('[RPG Companion] Last message is_user:', lastMessage ? lastMessage.is_user : 'no message');
+            if (lastMessage && !lastMessage.is_user) {
                 if (!lastMessage.extra) {
                     lastMessage.extra = {};
                 }
@@ -147,40 +153,50 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 }
 
                 const currentSwipeId = lastMessage.swipe_id || 0;
-                    lastMessage.extra.rpg_companion_swipes[currentSwipeId] = {
-                        userStats: parsedData.userStats,
-                        infoBox: parsedData.infoBox,
-                        characterThoughts: parsedCharacterThoughts
-                    };
+                lastMessage.extra.rpg_companion_swipes[currentSwipeId] = {
+                    userStats: parsedData.userStats,
+                    infoBox: parsedData.infoBox,
+                    characterThoughts: parsedData.characterThoughts
+                };
 
-                    if (parsedData.userStats) {
+                // console.log('[RPG Companion] Stored separate mode RPG data for message swipe', currentSwipeId);
+
+                // Update lastGeneratedData for display AND future commit
+                if (parsedData.userStats) {
                     lastGeneratedData.userStats = parsedData.userStats;
                     parseUserStats(parsedData.userStats);
-                }
-                if (parsedData.skills) {
-                    parseSkills(parsedData.skills);
                 }
                 if (parsedData.infoBox) {
                     lastGeneratedData.infoBox = parsedData.infoBox;
                 }
-                    lastGeneratedData.characterThoughts = parsedCharacterThoughts;
+                if (parsedData.characterThoughts) {
+                    lastGeneratedData.characterThoughts = parsedData.characterThoughts;
+                }
+                // console.log('[RPG Companion] 💾 SEPARATE MODE: Updated lastGeneratedData:', {
+                //     userStats: lastGeneratedData.userStats ? 'exists' : 'null',
+                //     infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
+                //     characterThoughts: lastGeneratedData.characterThoughts ? 'exists' : 'null'
+                // });
 
-                    const hasAnyCommittedContent = (
-                        (committedTrackerData.userStats && committedTrackerData.userStats.trim() !== '') ||
-                        (committedTrackerData.infoBox && committedTrackerData.infoBox.trim() !== '' && committedTrackerData.infoBox !== 'Info Box\n---\n') ||
-                        (committedTrackerData.characterThoughts && committedTrackerData.characterThoughts.trim() !== '' && committedTrackerData.characterThoughts !== 'Present Characters\n---\n')
-                    );
+                // Only auto-commit on TRULY first generation (no committed data exists at all)
+                // This prevents auto-commit after refresh when we have saved committed data
+                const hasAnyCommittedContent = (
+                    (committedTrackerData.userStats && committedTrackerData.userStats.trim() !== '') ||
+                    (committedTrackerData.infoBox && committedTrackerData.infoBox.trim() !== '' && committedTrackerData.infoBox !== 'Info Box\n---\n') ||
+                    (committedTrackerData.characterThoughts && committedTrackerData.characterThoughts.trim() !== '' && committedTrackerData.characterThoughts !== 'Present Characters\n---\n')
+                );
 
-                    if (!hasAnyCommittedContent) {
-                        committedTrackerData.userStats = parsedData.userStats;
-                        committedTrackerData.infoBox = parsedData.infoBox;
-                        committedTrackerData.characterThoughts = parsedCharacterThoughts;
-                    }
+                // Only commit if we have NO committed content at all (truly first time ever)
+                if (!hasAnyCommittedContent) {
+                    committedTrackerData.userStats = parsedData.userStats;
+                    committedTrackerData.infoBox = parsedData.infoBox;
+                    committedTrackerData.characterThoughts = parsedData.characterThoughts;
+                    // console.log('[RPG Companion] 🔆 FIRST TIME: Auto-committed tracker data');
+                }
 
                 // Render the updated data
                 renderUserStats();
                 renderInfoBox();
-                lastGeneratedData.characterThoughts = parsedCharacterThoughts;
                 renderThoughts();
                 renderInventory();
                 renderQuests();
@@ -191,15 +207,13 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 }
                 renderUserStats();
                 renderInfoBox();
-                lastGeneratedData.characterThoughts = parsedCharacterThoughts;
                 renderThoughts();
                 renderInventory();
                 renderQuests();
             }
 
-                // Save to chat metadata
-                saveChatData();
-            }
+            // Save to chat metadata
+            saveChatData();
         }
 
     } catch (error) {
@@ -214,9 +228,14 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
         setIsGenerating(false);
 
+        // Restore button to original state
         const $updateBtn = $('#rpg-manual-update');
         const refreshText = i18n.getTranslation('template.mainPanel.refreshRpgInfo') || 'Refresh RPG Info';
         $updateBtn.html(`<i class="fa-solid fa-sync"></i> ${refreshText}`).prop('disabled', false);
+
+        // Reset the flag after tracker generation completes
+        // This ensures the flag persists through both main generation AND tracker generation
+        // console.log('[RPG Companion] 🔄 Tracker generation complete - resetting lastActionWasSwipe to false');
         setLastActionWasSwipe(false);
     }
 }
