@@ -542,6 +542,20 @@ async function initUI() {
     initLorebookLimiter();
 
     // Initialize character state display (NEW)
+    // First, ensure the container exists (in case template.html didn't load)
+    if ($('#rpg-character-state-container').length === 0) {
+        console.log('[Character Tracking] Container not found, creating it dynamically...');
+
+        // Try to add to existing content box
+        const $contentBox = $('.rpg-content-box');
+        if ($contentBox.length > 0) {
+            $contentBox.append('<div id="rpg-character-state-container" class="rpg-section rpg-character-state-section"></div>');
+            console.log('[Character Tracking] ✅ Container created dynamically');
+        } else {
+            console.warn('[Character Tracking] ❌ Could not find .rpg-content-box to add container');
+        }
+    }
+
     updateCharacterStateDisplay();
 }
 
