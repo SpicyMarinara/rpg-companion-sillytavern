@@ -748,6 +748,10 @@ async function ensureTrackerPresetExists() {
  */
 jQuery(async () => {
     try {
+        console.log('========================================');
+        console.log('🎭 RPG COMPANION v2.0.0 CHARACTER TRACKING');
+        console.log('✅ NEW VERSION WITH CHARACTER STATE TRACKING LOADED!');
+        console.log('========================================');
         console.log('[RPG Companion] Starting initialization...');
 
         // Load settings with validation
