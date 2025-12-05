@@ -215,7 +215,8 @@ export function loadChatData() {
                     onPerson: "None",
                     stored: {},
                     assets: "None"
-                }
+                },
+                skills: "None" // Legacy single-string skills (for Status section)
             },
             quests: {
                 main: "None",
@@ -231,6 +232,7 @@ export function loadChatData() {
             skillsV2: {},
             skillsData: {},
             skillAbilityLinks: {},
+            skills: { list: [], categories: {} },
             charactersData: [],
             infoBoxData: null,
             questsV2: {

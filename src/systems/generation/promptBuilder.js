@@ -28,7 +28,7 @@ export const DEFAULT_JSON_TRACKER_PROMPT = `At the start of every reply, output 
  * Default message interception prompt text
  * Guides the LLM to rewrite the user's message based on current RPG state and recent chat
  */
-export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (JSON). You must validate the feasibility of the user's intended actions against the JSON state; if the draft contradicts the state (e.g., acting smart while 'Intelligence' is low, or running while having a 'Leg Injury'), you are required to override the core intent, rewriting the action to portray immediate failure, struggle, or involuntary reaction instead of the user's desired success. Even further, if the intended course of action is physically impossible via the state or represents a thought process conceptually alien to the character's nature or current state, you are mandated to completely overwrite the user's intent. Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Return ONLY the modified message text.`;
+export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (JSON). You must validate the feasibility of the user's intended actions for {{user}} against the JSON state; if the draft contradicts the state (e.g., acting smart while 'Intelligence' is low, or running while having a 'Leg Injury'), you are required to override the core intent, rewriting the action to portray immediate failure, struggle, or involuntary reaction instead of the user's desired success. Even further, if the intended course of action is physically impossible via the state or represents a thought process conceptually alien to the character's nature or current state, you are mandated to completely overwrite the user's intent. Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Never include information that was not already present in the original draft. Never narrate the consequences of {{user}}'s actions, only what they are. Return ONLY the modified message text.`;
 
 /**
  * Gets character card information for current chat (handles both single and group chats)
@@ -407,6 +407,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         instructions += '- Level is a numeric value (typically 1+, represents character progression)\n';
     }
 
+    instructions += '- Items should be placeed in the inventory section, not the skills section\n';
     instructions += '- Characters should be removed as soon as they leave the scene\n';
     instructions += '- Your list of characters must never include {{user}}\n';
     instructions += '- Empty arrays [] for sections with no items\n';

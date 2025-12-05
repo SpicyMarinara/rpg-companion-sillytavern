@@ -360,6 +360,7 @@ export function onCharacterChanged() {
     renderThoughts();
     renderInventory();
     renderQuests();
+    renderSkills();
 
     // Update chat thought overlays
     updateChatThoughts();

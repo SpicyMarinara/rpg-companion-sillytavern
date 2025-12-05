@@ -17,6 +17,7 @@ import { saveSettings, saveChatData } from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { updateChatThoughts } from '../rendering/thoughts.js';
 import { renderQuests } from '../rendering/quests.js';
+import { renderSkills } from '../rendering/skills.js';
 import {
     rollDice as rollDiceCore,
     clearDiceRoll as clearDiceRollCore,
@@ -390,7 +391,13 @@ export function setupSettingsPopup() {
             arousal: 0,
             mood: '😐',
             conditions: 'None',
-            inventory: 'None'
+            inventory: {
+                version: 2,
+                onPerson: "None",
+                stored: {},
+                assets: "None"
+            },
+            skills: "None" // Legacy single-string skills (for Status section)
         };
 
         // Reset classic stats (attributes) to defaults
@@ -412,6 +419,12 @@ export function setupSettingsPopup() {
             optional: []
         };
 
+        // Reset skills data
+        extensionSettings.skillsV2 = {};
+        extensionSettings.skillsData = {};
+        extensionSettings.skillAbilityLinks = {};
+        extensionSettings.skills = { list: [], categories: {} }; // Legacy skills object
+
         // Save everything
         saveChatData();
         saveSettings();
@@ -421,6 +434,7 @@ export function setupSettingsPopup() {
         updateDiceDisplayCore();
         updateChatThoughts(); // Clear the thought bubble in chat
         renderQuests(); // Clear and re-render quests UI
+        renderSkills(); // Clear and re-render skills UI
 
         // console.log('[RPG Companion] Chat cache cleared');
     });
