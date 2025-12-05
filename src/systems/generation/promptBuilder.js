@@ -182,7 +182,7 @@ function buildAttributesString() {
 /**
  * Generates JSON-based tracker instructions.
  * Creates a prompt asking the LLM to output structured JSON data.
- * 
+ *
  * @param {boolean} includeHtmlPrompt - Whether to include the HTML prompt
  * @param {boolean} includeContinuation - Whether to include continuation instruction
  * @param {boolean} includeAttributes - Whether to include RPG attributes
@@ -224,7 +224,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         const enabledStats = trackerConfig?.userStats?.customStats?.filter(s => s?.enabled && s?.name) || [];
         if (enabledStats.length > 0) {
             let statsJson = '  "stats": {\n';
-            statsJson += enabledStats.map(s => `    "${s.name}": 75`).join(',\n');
+            statsJson += enabledStats.map(s => `    "${s.name}": X`).join(',\n');
             statsJson += '\n  }';
             sections.push(statsJson);
         }
@@ -235,7 +235,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             let statusJson = '  "status": {\n';
             const statusParts = [];
             if (statusConfig.showMoodEmoji) {
-                statusParts.push('    "mood": "😊"');
+                statusParts.push('    "mood": "[Mood Emoji]"');
             }
             const customFields = statusConfig.customFields || [];
             if (customFields.length > 0) {
@@ -250,7 +250,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         // Skills section
         const skillsSectionEnabled = trackerConfig?.userStats?.skillsSection?.enabled || false;
         if (skillsSectionEnabled && !extensionSettings.showSkills) {
-            sections.push(`  "skills": "Skill1, Skill2, Skill3"`);
+            sections.push(`  "skills": "[Skills]"`);
         }
     }
 
@@ -258,7 +258,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes;
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
     const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
-    
+
     if (showRPGAttributes && shouldSendAttributes) {
         const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [
             { id: 'str', name: 'STR', description: '', enabled: true },
@@ -269,7 +269,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             { id: 'cha', name: 'CHA', description: '', enabled: true }
         ];
         const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
-        
+
         if (enabledAttributes.length > 0) {
             let attrsJson = '  "attributes": {\n';
             const attrParts = enabledAttributes.map(attr => {
@@ -279,7 +279,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             attrsJson += attrParts.join(',\n');
             attrsJson += '\n  }';
             sections.push(attrsJson);
-            
+
             // Add level
             const currentLevel = extensionSettings.level ?? 1;
             sections.push(`  "level": ${currentLevel}`);
@@ -290,16 +290,16 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     if (showInfoBox) {
         const widgets = trackerConfig?.infoBox?.widgets || {};
         const infoParts = [];
-        if (widgets.date?.enabled) infoParts.push('    "date": "Monday, March 15, 1242"');
-        if (widgets.time?.enabled) infoParts.push('    "time": "14:00 → 15:30"');
-        if (widgets.weather?.enabled) infoParts.push('    "weather": "☀️ Sunny"');
+        if (widgets.date?.enabled) infoParts.push('    "date": "[Day, Month, Year]"');
+        if (widgets.time?.enabled) infoParts.push('    "time": "[Time Start → Time End]"');
+        if (widgets.weather?.enabled) infoParts.push('    "weather": "[Weather Emoji, Weather]"');
         if (widgets.temperature?.enabled) {
             const unit = widgets.temperature.unit === 'F' ? '°F' : '°C';
-            infoParts.push(`    "temperature": "22${unit}"`);
+            infoParts.push(`    "temperature": "X${unit}"`);
         }
-        if (widgets.location?.enabled) infoParts.push('    "location": "Forest Clearing"');
-        if (widgets.recentEvents?.enabled) infoParts.push('    "recentEvents": ["Event 1", "Event 2"]');
-        
+        if (widgets.location?.enabled) infoParts.push('    "location": "[Location]"');
+        if (widgets.recentEvents?.enabled) infoParts.push('    "recentEvents": "[Events]"');
+
         if (infoParts.length > 0) {
             sections.push('  "infoBox": {\n' + infoParts.join(',\n') + '\n  }');
         }
@@ -308,32 +308,32 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     // Characters section
     if (showCharacters) {
         const charConfig = trackerConfig?.presentCharacters || {};
-        let charExample = '    {\n      "name": "Character Name",\n      "emoji": "🧑"';
-        
+        let charExample = '    {\n      "name": "Character Name",\n      "emoji": "[Character Emoji]"';
+
         if (charConfig.relationshipFields?.length > 0) {
             // Show allowed relationship values as explanation
             const allowedRelationships = charConfig.relationshipFields.join(' | ');
-            charExample += `,\n      "relationship": "(${allowedRelationships})"`;
+            charExample += `,\n      "relationship": "[${allowedRelationships}]"`;
         }
-        
+
         const enabledFields = charConfig.customFields?.filter(f => f.enabled) || [];
         if (enabledFields.length > 0) {
             const fieldsJson = enabledFields.map(f => `        "${f.name}": "[${f.description || f.name}]"`).join(',\n');
             charExample += `,\n      "fields": {\n${fieldsJson}\n      }`;
         }
-        
+
         // Character stats (Health, Arousal, etc.)
         const charStatsConfig = charConfig.characterStats;
         const enabledCharStats = charStatsConfig?.enabled && charStatsConfig?.customStats?.filter(s => s?.enabled && s?.name) || [];
         if (enabledCharStats.length > 0) {
-            const statsJson = enabledCharStats.map(s => `        "${s.name}": 75`).join(',\n');
+            const statsJson = enabledCharStats.map(s => `        "${s.name}": X`).join(',\n');
             charExample += `,\n      "stats": {\n${statsJson}\n      }`;
         }
-        
+
         if (charConfig.thoughts?.enabled) {
             charExample += ',\n      "thoughts": "Character\'s inner thoughts in first person..."';
         }
-        
+
         charExample += '\n    }';
         sections.push('  "characters": [\n' + charExample + '\n  ]');
     }
@@ -341,25 +341,25 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     // Inventory section
     if (showInventory) {
         let invSection = '  "inventory": {\n';
-        
+
         if (extensionSettings.useSimplifiedInventory) {
             // Simplified: single list
-            let itemExample = '{ "name": "Item Name", "description": "What it is" }';
+            let itemExample = '{ "name": "Item Name", "description": "[What It Is]" }';
             if (enableItemSkillLinks) {
-                itemExample = '{ "name": "Iron Sword", "description": "A sturdy blade", "grantsSkill": "Sword Fighting" }';
+                itemExample = '{ "name": "Iron Sword", "description": "[What It Is]", "grantsSkill": "[Skill]" }';
             }
             invSection += `    "items": [${itemExample}]\n`;
         } else {
             // Full categorized inventory
             let itemExample = '{ "name": "Item", "description": "Description" }';
             if (enableItemSkillLinks) {
-                itemExample = '{ "name": "Iron Sword", "description": "A sturdy blade", "grantsSkill": "Sword Fighting" }';
+                itemExample = '{ "name": "Iron Sword", "description": "[What It Is]", "grantsSkill": "[Skill]" }';
             }
             invSection += `    "onPerson": [${itemExample}],\n`;
-            invSection += '    "stored": { "Location Name": [{ "name": "Stored Item", "description": "Description" }] },\n';
-            invSection += '    "assets": [{ "name": "Property/Vehicle", "description": "Description" }]\n';
+            invSection += '    "stored": { "Location Name": [{ "name": "Stored Item", "description": "[What It Is]" }] },\n';
+            invSection += '    "assets": [{ "name": "[Property/Vehicle]", "description": "[What It Is]" }]\n';
         }
-        
+
         invSection += '  }';
         sections.push(invSection);
     }
@@ -369,14 +369,14 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         const skillCategories = trackerConfig?.userStats?.skillsSection?.customFields || [];
         // Migration function handles string array → object array conversion on load
         const enabledCategories = skillCategories.filter(cat => cat.enabled !== false);
-        
+
         if (enabledCategories.length > 0) {
             let skillsSection = '  "skills": {\n';
             const categoryExamples = enabledCategories.map(cat => {
                 const catName = cat.name;
-                let skillExample = '{ "name": "Ability Name", "description": "What this ability does" }';
+                let skillExample = '{ "name": "Ability Name", "description": "[What This Ability Does]" }';
                 if (enableItemSkillLinks) {
-                    skillExample = '{ "name": "Ability", "description": "Description", "grantedBy": "Item Name" }';
+                    skillExample = '{ "name": "Ability", "description": "[Description]", "grantedBy": "[Item Name]" }';
                 }
                 return `    "${catName}": [${skillExample}]`;
             });
@@ -389,8 +389,8 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     // Quests section
     if (showQuests) {
         let questsSection = '  "quests": {\n';
-        questsSection += '    "main": { "name": "Main Quest Title", "description": "Primary objective" },\n';
-        questsSection += '    "optional": [{ "name": "Side Quest", "description": "Optional objective" }]\n';
+        questsSection += '    "main": { "name": "Main Quest Title", "description": "[Primary objective]" },\n';
+        questsSection += '    "optional": [{ "name": "Side Quest", "description": "[Optional objective]" }]\n';
         questsSection += '  }';
         sections.push(questsSection);
     }
@@ -419,7 +419,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     instructions += '- Your list of characters must never include {{user}}\n';
     instructions += '- Empty arrays [] for sections with no items\n';
     instructions += '- null for main quest if none active\n';
-    
+
     // Add stat descriptions if any have descriptions
     if (showStats) {
         const customStats = trackerConfig?.userStats?.customStats || [];
@@ -431,16 +431,16 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             });
         }
     }
-    
+
     if (showSkills) {
         const skillsLabel = trackerConfig?.userStats?.skillsSection?.label || 'Skills';
         if (skillsLabel !== 'Skills') {
             instructions += `- The "skills" section represents "${skillsLabel}" in this context\n`;
         }
-        
+
         // Add skill category descriptions if any have descriptions
         const skillCategories = trackerConfig?.userStats?.skillsSection?.customFields || [];
-        const categoriesWithDesc = skillCategories.filter(cat => 
+        const categoriesWithDesc = skillCategories.filter(cat =>
             typeof cat === 'object' && cat.description && cat.enabled !== false
         );
         if (categoriesWithDesc.length > 0) {
@@ -450,7 +450,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             });
         }
     }
-    
+
     if (enableItemSkillLinks) {
         instructions += '- Items can grant skills: add {"grantsSkill": "Skill Name"} to the item object\n';
         instructions += '- When a skill comes from an item, add {"grantedBy": "Item Name"} to that skill object\n';
@@ -458,7 +458,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             instructions += '- If an item is removed/lost, also remove any skill it granted\n';
         }
     }
-    
+
     instructions += '\n';
 
     // Continuation instruction
@@ -474,7 +474,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         if (shouldSendAttributes) {
             const attributesString = buildAttributesString();
             instructions += `${userName}'s attributes: ${attributesString}\n`;
-            
+
             // Add attribute descriptions if any have descriptions
             const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [];
             const attrsWithDesc = rpgAttributes.filter(a => a?.enabled && a?.description);
@@ -515,7 +515,7 @@ export function generateContextualSummary() {
     const currentState = {};
     const trackerConfig = extensionSettings.trackerConfig;
     const descriptions = {};
-    
+
     // Stats
     if (extensionSettings.showUserStats) {
         const customStats = trackerConfig?.userStats?.customStats?.filter(s => s?.enabled) || [];
@@ -529,7 +529,7 @@ export function generateContextualSummary() {
                 }
             }
         }
-        
+
         // Status
         const statusConfig = trackerConfig?.userStats?.statusSection;
         if (statusConfig?.enabled) {
@@ -549,12 +549,12 @@ export function generateContextualSummary() {
             currentState.skills = extensionSettings.userStats?.skills || 'None';
         }
     }
-    
+
     // InfoBox
     if (extensionSettings.showInfoBox && extensionSettings.infoBoxData) {
         currentState.infoBox = extensionSettings.infoBoxData;
     }
-    
+
     // Characters - format to match schema
     if (extensionSettings.showCharacterThoughts && extensionSettings.charactersData?.length > 0) {
         // Ensure characters match the expected schema format
@@ -567,7 +567,7 @@ export function generateContextualSummary() {
             if (char.thoughts) formatted.thoughts = char.thoughts;
             return formatted;
         });
-        
+
         // Add character field descriptions
         const charConfig = trackerConfig?.presentCharacters;
         if (charConfig?.customFields?.length > 0) {
@@ -578,7 +578,7 @@ export function generateContextualSummary() {
                 }
             }
         }
-        
+
         // Add character stats descriptions
         const charStatsConfig = charConfig?.characterStats;
         if (charStatsConfig?.enabled && charStatsConfig?.customStats?.length > 0) {
@@ -592,7 +592,7 @@ export function generateContextualSummary() {
             }
         }
     }
-    
+
     // Inventory - format to match schema (use "items" for simplified mode)
     if (extensionSettings.showInventory && extensionSettings.inventoryV3) {
         const inv = extensionSettings.inventoryV3;
@@ -613,14 +613,14 @@ export function generateContextualSummary() {
             }
         }
     }
-    
+
     // Skills
     if (extensionSettings.showSkills && extensionSettings.skillsV2) {
         currentState.skills = extensionSettings.skillsV2;
-        
+
         // Add skill category descriptions
         const skillCategories = trackerConfig?.userStats?.skillsSection?.customFields || [];
-        const categoriesWithDesc = skillCategories.filter(cat => 
+        const categoriesWithDesc = skillCategories.filter(cat =>
             typeof cat === 'object' && cat.enabled !== false && cat.description
         );
         if (categoriesWithDesc.length > 0) {
@@ -630,17 +630,17 @@ export function generateContextualSummary() {
             }
         }
     }
-    
+
     // Quests
     if (extensionSettings.showQuests && extensionSettings.questsV2) {
         currentState.quests = extensionSettings.questsV2;
     }
-    
+
     // Attributes and level (if RPG attributes are enabled and should be included)
     const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes;
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
     const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
-    
+
     if (showRPGAttributes && shouldSendAttributes) {
         const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [
             { id: 'str', name: 'STR', description: '', enabled: true },
@@ -651,7 +651,7 @@ export function generateContextualSummary() {
             { id: 'cha', name: 'CHA', description: '', enabled: true }
         ];
         const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
-        
+
         if (enabledAttributes.length > 0) {
             currentState.attributes = {};
             descriptions.attributes = {};
@@ -662,22 +662,22 @@ export function generateContextualSummary() {
                     descriptions.attributes[attr.name] = attr.description;
                 }
             }
-            
+
             // Add level
             currentState.level = extensionSettings.level ?? 1;
         }
     }
-    
+
     // Add descriptions metadata if any exist
     if (Object.keys(descriptions).length > 0) {
         currentState._descriptions = descriptions;
     }
-    
+
     // Return JSON string if we have any data, otherwise empty string
     if (Object.keys(currentState).length > 0) {
         return JSON.stringify(currentState, null, 2);
     }
-    
+
     return '';
 }
 
@@ -696,7 +696,7 @@ export function generateRPGPromptText() {
 
     // Build previous state as JSON
     const previousState = {};
-    
+
     // Stats
     if (extensionSettings.showUserStats) {
         const customStats = extensionSettings.trackerConfig?.userStats?.customStats?.filter(s => s?.enabled) || [];
@@ -706,7 +706,7 @@ export function generateRPGPromptText() {
                 previousState.stats[stat.name] = extensionSettings.userStats[stat.id] ?? 100;
             }
         }
-        
+
         // Status
         const statusConfig = extensionSettings.trackerConfig?.userStats?.statusSection;
         if (statusConfig?.enabled) {
@@ -726,12 +726,12 @@ export function generateRPGPromptText() {
             previousState.skills = extensionSettings.userStats.skills;
         }
     }
-    
+
     // InfoBox
     if (extensionSettings.showInfoBox && extensionSettings.infoBoxData) {
         previousState.infoBox = extensionSettings.infoBoxData;
     }
-    
+
     // Characters - format to match schema
     if (extensionSettings.showCharacterThoughts && extensionSettings.charactersData?.length > 0) {
         // Ensure characters match the expected schema format
@@ -745,7 +745,7 @@ export function generateRPGPromptText() {
             return formatted;
         });
     }
-    
+
     // Inventory - format to match schema (use "items" for simplified mode)
     if (extensionSettings.showInventory && extensionSettings.inventoryV3) {
         const inv = extensionSettings.inventoryV3;
@@ -766,22 +766,22 @@ export function generateRPGPromptText() {
             }
         }
     }
-    
+
     // Skills
     if (extensionSettings.showSkills && extensionSettings.skillsV2) {
         previousState.skills = extensionSettings.skillsV2;
     }
-    
+
     // Quests
     if (extensionSettings.showQuests && extensionSettings.questsV2) {
         previousState.quests = extensionSettings.questsV2;
     }
-    
+
     // Attributes and level (if RPG attributes are enabled and should be included)
     const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes;
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
     const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
-    
+
     if (showRPGAttributes && shouldSendAttributes) {
         const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [
             { id: 'str', name: 'STR', description: '', enabled: true },
@@ -792,19 +792,19 @@ export function generateRPGPromptText() {
             { id: 'cha', name: 'CHA', description: '', enabled: true }
         ];
         const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
-        
+
         if (enabledAttributes.length > 0) {
             previousState.attributes = {};
             for (const attr of enabledAttributes) {
                 const value = extensionSettings.classicStats?.[attr.id] ?? 10;
                 previousState.attributes[attr.name] = value;
             }
-            
+
             // Add level
             previousState.level = extensionSettings.level ?? 1;
         }
     }
-    
+
     // Output as JSON if we have any data, otherwise indicate first update
     if (Object.keys(previousState).length > 0) {
         promptText += '```json\n';
