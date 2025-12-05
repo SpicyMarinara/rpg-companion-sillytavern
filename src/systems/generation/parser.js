@@ -4,7 +4,7 @@
  * Supports both legacy text format and new JSON format
  */
 
-import { extensionSettings, FEATURE_FLAGS, addDebugLog, lastGeneratedData } from '../../core/state.js';
+import { extensionSettings, FEATURE_FLAGS, addDebugLog, lastGeneratedData, committedTrackerData } from '../../core/state.js';
 import { saveSettings, saveChatData } from '../../core/persistence.js';
 import { extractInventory } from './inventoryParser.js';
 import { validateTrackerData, mergeTrackerData } from '../../types/trackerData.js';
@@ -317,47 +317,52 @@ export function parseJSONTrackerData(jsonData) {
     }
     
     // Parse characters - store for UI rendering AND generate text format for thought bubbles
-    if (jsonData.characters && Array.isArray(jsonData.characters)) {
-        extensionSettings.charactersData = jsonData.characters;
-        debugLog('[RPG Parser] Characters:', jsonData.characters.length);
+    const parsedCharacters = Array.isArray(jsonData.characters) ? jsonData.characters : [];
+    extensionSettings.charactersData = parsedCharacters;
+    debugLog('[RPG Parser] Characters:', parsedCharacters.length);
+    
+    // Generate text format for lastGeneratedData.characterThoughts (needed for thought bubbles)
+    const config = extensionSettings.trackerConfig?.presentCharacters;
+    const thoughtsFieldName = config?.thoughts?.name || 'Thoughts';
+    const lines = [];
+    for (const char of parsedCharacters) {
+        // Character name line
+        lines.push(`- ${char.name || 'Unknown'}`);
         
-        // Generate text format for lastGeneratedData.characterThoughts (needed for thought bubbles)
-        const config = extensionSettings.trackerConfig?.presentCharacters;
-        const thoughtsFieldName = config?.thoughts?.name || 'Thoughts';
-        const lines = [];
-        for (const char of jsonData.characters) {
-            // Character name line
-            lines.push(`- ${char.name || 'Unknown'}`);
-            
-            // Details line with emoji and fields
-            const details = [char.emoji || '😶'];
-            const charFields = char.fields || {};
-            for (const [key, value] of Object.entries(charFields)) {
-                if (value) details.push(`${key}: ${value}`);
-            }
-            lines.push(`Details: ${details.join(' | ')}`);
-            
-            // Relationship line
-            if (char.relationship) {
-                lines.push(`Relationship: ${char.relationship}`);
-            }
-            
-            // Stats line
-            const charStats = char.stats || {};
-            if (Object.keys(charStats).length > 0) {
-                const statsStr = Object.entries(charStats).map(([k, v]) => `${k}: ${v}%`).join(' | ');
-                lines.push(`Stats: ${statsStr}`);
-            }
-            
-            // Thoughts line
-            if (char.thoughts) {
-                lines.push(`${thoughtsFieldName}: ${char.thoughts}`);
-            }
+        // Details line with emoji and fields
+        const details = [char.emoji || '😶'];
+        const charFields = char.fields || {};
+        for (const [key, value] of Object.entries(charFields)) {
+            if (value) details.push(`${key}: ${value}`);
         }
-        if (lines.length > 0) {
-            lastGeneratedData.characterThoughts = lines.join('\n');
-            debugLog('[RPG Parser] Generated text format for characterThoughts');
+        lines.push(`Details: ${details.join(' | ')}`);
+        
+        // Relationship line
+        if (char.relationship) {
+            lines.push(`Relationship: ${char.relationship}`);
         }
+        
+        // Stats line
+        const charStats = char.stats || {};
+        if (Object.keys(charStats).length > 0) {
+            const statsStr = Object.entries(charStats).map(([k, v]) => `${k}: ${v}%`).join(' | ');
+            lines.push(`Stats: ${statsStr}`);
+        }
+        
+        // Thoughts line
+        if (char.thoughts) {
+            lines.push(`${thoughtsFieldName}: ${char.thoughts}`);
+        }
+    }
+    if (lines.length > 0) {
+        lastGeneratedData.characterThoughts = lines.join('\n');
+        committedTrackerData.characterThoughts = lines.join('\n');
+        debugLog('[RPG Parser] Generated text format for characterThoughts');
+    } else {
+        // No characters provided in the JSON response - clear any stale state/UI data
+        lastGeneratedData.characterThoughts = '';
+        committedTrackerData.characterThoughts = '';
+        debugLog('[RPG Parser] No characters present; cleared characterThoughts state');
     }
     
     // Parse inventory (structured format)

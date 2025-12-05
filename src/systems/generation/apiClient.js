@@ -155,6 +155,10 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 // console.log('[RPG Companion] Parsed data:', parsedData);
                 // console.log('[RPG Companion] parsedData.userStats:', parsedData.userStats ? parsedData.userStats.substring(0, 100) + '...' : 'null');
 
+            // Legacy text parsing does not provide structured characters; clear stale structured data
+            extensionSettings.charactersData = [];
+            const parsedCharacterThoughts = parsedData.characterThoughts || '';
+
                 // DON'T update lastGeneratedData here - it should only reflect the data
                 // from the assistant message the user replied to, not auto-generated updates
                 // This ensures swipes/regenerations use consistent source data
@@ -174,7 +178,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 lastMessage.extra.rpg_companion_swipes[currentSwipeId] = {
                     userStats: parsedData.userStats,
                     infoBox: parsedData.infoBox,
-                    characterThoughts: parsedData.characterThoughts
+                    characterThoughts: parsedCharacterThoughts
                 };
 
                 // console.log('[RPG Companion] Stored separate mode RPG data for message swipe', currentSwipeId);
@@ -190,9 +194,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 if (parsedData.infoBox) {
                     lastGeneratedData.infoBox = parsedData.infoBox;
                 }
-                if (parsedData.characterThoughts) {
-                    lastGeneratedData.characterThoughts = parsedData.characterThoughts;
-                }
+                lastGeneratedData.characterThoughts = parsedCharacterThoughts;
                 // console.log('[RPG Companion] 💾 SEPARATE MODE: Updated lastGeneratedData:', {
                 //     userStats: lastGeneratedData.userStats ? 'exists' : 'null',
                 //     infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
@@ -211,13 +213,14 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 if (!hasAnyCommittedContent) {
                     committedTrackerData.userStats = parsedData.userStats;
                     committedTrackerData.infoBox = parsedData.infoBox;
-                    committedTrackerData.characterThoughts = parsedData.characterThoughts;
+                committedTrackerData.characterThoughts = parsedCharacterThoughts;
                     // console.log('[RPG Companion] 🔆 FIRST TIME: Auto-committed tracker data');
                 }
 
                 // Render the updated data
                 renderUserStats();
                 renderInfoBox();
+                lastGeneratedData.characterThoughts = parsedCharacterThoughts;
                 renderThoughts();
                 renderInventory();
                 renderQuests();
@@ -228,6 +231,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 }
                 renderUserStats();
                 renderInfoBox();
+                lastGeneratedData.characterThoughts = parsedCharacterThoughts;
                 renderThoughts();
                 renderInventory();
                 renderQuests();

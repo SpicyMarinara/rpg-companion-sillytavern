@@ -119,7 +119,7 @@ import { setupClassicStatsButtons } from './src/systems/features/classicStats.js
 import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/systems/features/htmlCleaning.js';
 import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
 import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
-import { DEFAULT_HTML_PROMPT, DEFAULT_JSON_TRACKER_PROMPT } from './src/systems/generation/promptBuilder.js';
+import { DEFAULT_HTML_PROMPT, DEFAULT_JSON_TRACKER_PROMPT, DEFAULT_MESSAGE_INTERCEPTION_PROMPT } from './src/systems/generation/promptBuilder.js';
 
 // Integration modules
 import {
@@ -170,6 +170,95 @@ function updateDynamicLabels() {
 
     // Update mobile tab labels
     updateMobileTabLabels();
+
+    // Update inline interception toggle text if present
+    updateInterceptionToggleState();
+}
+
+/**
+ * Updates the inline interception toggle text and styling near the send form.
+ */
+function updateInterceptionToggleState() {
+    const $toggle = $('#rpg-interception-toggle');
+    if ($toggle.length === 0) {
+        return;
+    }
+
+    const active = extensionSettings.messageInterceptionActive !== false;
+    const labelKey = active
+        ? 'template.settingsModal.advanced.interceptionOn'
+        : 'template.settingsModal.advanced.interceptionOff';
+    const label = i18n.getTranslation(labelKey) || (active ? 'Interception On' : 'Interception Off');
+    const prefix = i18n.getTranslation('template.settingsModal.advanced.interceptionModeLabel') || 'Interception:';
+    const icon = active ? 'fa-bolt' : 'fa-ban';
+    const background = active ? '#4a90e2' : '#666';
+
+    $toggle
+        .css({
+            'background-color': background,
+            color: '#fff'
+        })
+        .html(`<i class="fa-solid ${icon}"></i> ${prefix} ${label}`);
+}
+
+/**
+ * Shows/hides the inline interception toggle based on interception setting.
+ */
+function updateInterceptionToggleVisibility() {
+    const $toggle = $('#rpg-interception-toggle');
+    if ($toggle.length === 0) {
+        return;
+    }
+
+    $toggle.toggle(extensionSettings.enableMessageInterception);
+
+    if (extensionSettings.enableMessageInterception) {
+        updateInterceptionToggleState();
+    }
+}
+
+/**
+ * Ensures the extension buttons wrapper exists above the send form.
+ */
+function ensureExtensionButtonsWrapper() {
+    if ($('#extension-buttons-wrapper').length === 0) {
+        $('#send_form').prepend('<div id="extension-buttons-wrapper" style="text-align: center; margin: 5px auto;"></div>');
+    }
+}
+
+/**
+ * Renders the inline interception toggle near plot buttons.
+ */
+function renderInterceptionToggle() {
+    ensureExtensionButtonsWrapper();
+
+    if ($('#rpg-interception-toggle').length === 0) {
+        const buttonHtml = `
+            <button id="rpg-interception-toggle" class="menu_button interactable" style="
+                background-color: #e94560;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-size: 13px;
+                cursor: pointer;
+                margin: 0 4px;
+                display: inline-block;
+            " tabindex="0" role="button">
+                <i class="fa-solid fa-bolt"></i> Interception: On
+            </button>
+        `;
+        $('#extension-buttons-wrapper').append(buttonHtml);
+
+        $('#rpg-interception-toggle').on('click', () => {
+            const active = extensionSettings.messageInterceptionActive !== false;
+            extensionSettings.messageInterceptionActive = !active;
+            saveSettings();
+            updateInterceptionToggleState();
+        });
+    }
+
+    updateInterceptionToggleVisibility();
 }
 
 /**
@@ -283,6 +372,14 @@ async function initUI() {
         const value = $(this).val();
         extensionSettings.updateDepth = parseInt(String(value));
         saveSettings();
+    });
+
+    $('#rpg-message-interception-depth').on('change', function() {
+        const value = parseInt(String($(this).val()));
+        if (!Number.isNaN(value)) {
+            extensionSettings.messageInterceptionContextDepth = value;
+            saveSettings();
+        }
     });
 
     $('#rpg-memory-messages').on('change', function() {
@@ -409,6 +506,24 @@ async function initUI() {
         toastr.success('HTML prompt restored to default');
     });
 
+    $('#rpg-toggle-message-interception').on('change', function() {
+        extensionSettings.enableMessageInterception = $(this).prop('checked');
+        saveSettings();
+        updateInterceptionToggleVisibility();
+    });
+
+    $('#rpg-custom-message-interception-prompt').on('input', function() {
+        extensionSettings.customMessageInterceptionPrompt = $(this).val().trim();
+        saveSettings();
+    });
+
+    $('#rpg-restore-default-message-interception-prompt').on('click', function() {
+        extensionSettings.customMessageInterceptionPrompt = '';
+        $('#rpg-custom-message-interception-prompt').val(DEFAULT_MESSAGE_INTERCEPTION_PROMPT);
+        saveSettings();
+        toastr.success('Message interception prompt restored to default');
+    });
+
     // Custom Tracker Prompt handlers
     $('#rpg-custom-tracker-prompt').on('input', function() {
         extensionSettings.customTrackerPrompt = $(this).val().trim();
@@ -529,12 +644,24 @@ async function initUI() {
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
+    $('#rpg-toggle-message-interception').prop('checked', extensionSettings.enableMessageInterception);
+    updateInterceptionToggleVisibility();
 
     // Set default HTML prompt as actual text if no custom prompt exists
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
 
     // Set default tracker prompt as actual text if no custom prompt exists
     $('#rpg-custom-tracker-prompt').val(extensionSettings.customTrackerPrompt || DEFAULT_JSON_TRACKER_PROMPT);
+
+    // Set default message interception prompt as actual text if no custom prompt exists
+    $('#rpg-custom-message-interception-prompt').val(
+        extensionSettings.customMessageInterceptionPrompt || DEFAULT_MESSAGE_INTERCEPTION_PROMPT
+    );
+
+    // Message interception depth
+    $('#rpg-message-interception-depth').val(
+        extensionSettings.messageInterceptionContextDepth || extensionSettings.updateDepth || 4
+    );
 
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
@@ -581,6 +708,7 @@ async function initUI() {
     initTrackerEditor();
     addDiceQuickReply();
     setupPlotButtons(sendPlotProgression);
+    renderInterceptionToggle();
     setupMobileKeyboardHandling();
     setupContentEditableScrolling();
     initInventoryEventListeners();

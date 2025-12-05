@@ -234,6 +234,13 @@ function renderUserStatsTab() {
     html += `<label for="rpg-show-rpg-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableRpgAttributes')}</label>`;
     html += '</div>';
 
+    // Allow AI to update attributes toggle
+    const allowAIUpdateAttributes = config.allowAIUpdateAttributes !== undefined ? config.allowAIUpdateAttributes : true;
+    html += '<div class="rpg-editor-toggle-row">';
+    html += `<input type="checkbox" id="rpg-allow-ai-update-attrs" ${allowAIUpdateAttributes ? 'checked' : ''}>`;
+    html += `<label for="rpg-allow-ai-update-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.allowAIUpdateAttributes')}</label>`;
+    html += '</div>';
+
     // Always send attributes toggle
     const alwaysSendAttributes = config.alwaysSendAttributes !== undefined ? config.alwaysSendAttributes : false;
     html += '<div class="rpg-editor-toggle-row">';
@@ -241,14 +248,6 @@ function renderUserStatsTab() {
     html += `<label for="rpg-always-send-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributes')}</label>`;
     html += '</div>';
     html += `<small class="rpg-editor-note">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributesNote')}</small>`;
-
-    // Allow AI to update attributes toggle
-    const allowAIUpdateAttributes = config.allowAIUpdateAttributes !== undefined ? config.allowAIUpdateAttributes : true;
-    html += '<div class="rpg-editor-toggle-row">';
-    html += `<input type="checkbox" id="rpg-allow-ai-update-attrs" ${allowAIUpdateAttributes ? 'checked' : ''}>`;
-    html += `<label for="rpg-allow-ai-update-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.allowAIUpdateAttributes')}</label>`;
-    html += '</div>';
-    html += `<small class="rpg-editor-note">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.allowAIUpdateAttributesNote')}</small>`;
 
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
 

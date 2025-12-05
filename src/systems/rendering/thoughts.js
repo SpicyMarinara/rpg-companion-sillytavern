@@ -163,7 +163,8 @@ export function renderThoughts() {
     const hasRelationshipEnabled = relationshipFields.length > 0;
     
     // Convert structured character data to text format for the original fancy renderer
-    let characterThoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts || '';
+    // Use nullish coalescing so an empty string from the latest response clears UI
+    let characterThoughtsData = lastGeneratedData.characterThoughts ?? committedTrackerData.characterThoughts ?? '';
     
     // If we have structured data, convert it to text format
     if (extensionSettings.charactersData && Array.isArray(extensionSettings.charactersData) && extensionSettings.charactersData.length > 0) {

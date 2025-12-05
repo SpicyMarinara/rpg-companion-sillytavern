@@ -4,7 +4,14 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { chat, user_avatar, setExtensionPrompt, extension_prompt_types, updateMessageBlock } from '../../../../../../../script.js';
+import {
+    chat,
+    user_avatar,
+    setExtensionPrompt,
+    extension_prompt_types,
+    updateMessageBlock,
+    generateRaw
+} from '../../../../../../../script.js';
 
 // Core modules
 import {
@@ -14,15 +21,14 @@ import {
     lastActionWasSwipe,
     isPlotProgression,
     setLastActionWasSwipe,
-    setIsPlotProgression,
-    updateLastGeneratedData,
-    updateCommittedTrackerData
+    setIsPlotProgression
 } from '../../core/state.js';
 import { saveChatData, loadChatData } from '../../core/persistence.js';
 
 // Generation & Parsing
 import { parseResponse, parseUserStats, parseSkills, tryParseJSONResponse } from '../generation/parser.js';
 import { updateRPGData } from '../generation/apiClient.js';
+import { generateContextualSummary, DEFAULT_MESSAGE_INTERCEPTION_PROMPT } from '../generation/promptBuilder.js';
 
 // Rendering
 import { renderUserStats } from '../rendering/userStats.js';
@@ -76,12 +82,21 @@ export function commitTrackerData() {
  * Sets the flag to indicate this is NOT a swipe.
  * In separate mode with auto-update disabled, commits the displayed tracker data.
  */
-export function onMessageSent() {
+export async function onMessageSent() {
     if (!extensionSettings.enabled) return;
 
     // User sent a new message - NOT a swipe
     setLastActionWasSwipe(false);
     // console.log('[RPG Companion] 🟢 EVENT: onMessageSent - lastActionWasSwipe =', lastActionWasSwipe);
+
+    // Optionally intercept and rewrite the user message via LLM
+    if (extensionSettings.enableMessageInterception && extensionSettings.messageInterceptionActive !== false) {
+        try {
+            await interceptAndModifyUserMessage();
+        } catch (error) {
+            console.error('[RPG Companion] Message interception failed:', error);
+        }
+    }
 
     // In separate mode with auto-update disabled, commit displayed tracker when user sends a message
     if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
@@ -97,6 +112,84 @@ export function onMessageSent() {
             // console.log('[RPG Companion] 💾 Committed displayed tracker on user message (auto-update disabled)');
         }
     }
+}
+
+/**
+ * Intercepts the last user message, asks the LLM to rewrite it using RPG state and recent chat,
+ * and updates the chat/DOM with the modified content.
+ */
+async function interceptAndModifyUserMessage() {
+    const context = getContext();
+    const chatHistory = context.chat || chat;
+
+    if (!chatHistory || chatHistory.length === 0) {
+        return;
+    }
+
+    const lastMessage = chatHistory[chatHistory.length - 1];
+    if (!lastMessage || !lastMessage.is_user) {
+        return; // Only rewrite user messages
+    }
+
+    const originalText = lastMessage.mes || '';
+    const stateJson = generateContextualSummary();
+    const depth = extensionSettings.messageInterceptionContextDepth || extensionSettings.updateDepth || 4;
+    const startIndex = Math.max(0, chatHistory.length - 1 - depth);
+    const recentMessages = chatHistory.slice(startIndex, chatHistory.length - 1);
+
+    const recentContext = recentMessages
+        .map((m) => {
+            const role = m.is_system ? 'system' : m.is_user ? '{{user}}' : '{{char}}';
+            const content = (m.mes || '').replace(/\s+/g, ' ').trim();
+            return `- ${role}: ${content}`;
+        })
+        .join('\n');
+
+    const basePrompt =
+        (extensionSettings.customMessageInterceptionPrompt || '').trim() ||
+        DEFAULT_MESSAGE_INTERCEPTION_PROMPT;
+
+    const promptMessages = [
+        {
+            role: 'system',
+            content: basePrompt
+        },
+        {
+            role: 'system',
+            content: `{{user}}'s persona definition:\n{{persona}}`
+        },
+        {
+            role: 'system',
+            content: `Current RPG state (JSON):\n${stateJson ? `\`\`\`json\n${stateJson}\n\`\`\`` : 'None'}`
+        },
+        {
+            role: 'system',
+            content: `Recent messages (newest last):\n${recentContext || 'None'}`
+        },
+        {
+            role: 'user',
+            content: `User draft message:\n${originalText}\n\nReturn only the modified message text.`
+        }
+    ];
+
+    const response = await generateRaw({
+        prompt: promptMessages,
+        quietToLoud: false
+    });
+
+    if (!response || typeof response !== 'string') {
+        return;
+    }
+
+    const cleaned = response.trim();
+    if (!cleaned) {
+        return;
+    }
+
+    // Update chat history and DOM
+    lastMessage.mes = cleaned;
+    const messageId = chatHistory.length - 1;
+    updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
 }
 
 /**
@@ -137,6 +230,10 @@ export async function onMessageReceived(data) {
             const parsedData = parseResponse(responseText);
             // console.log('[RPG Companion] Parsed data:', parsedData);
 
+            // Legacy text parsing does not produce structured characters; clear old state to avoid stale UI/state
+            extensionSettings.charactersData = [];
+            const parsedCharacterThoughts = parsedData.characterThoughts || '';
+
             // Update stored data
             if (parsedData.userStats) {
                 lastGeneratedData.userStats = parsedData.userStats;
@@ -148,9 +245,9 @@ export async function onMessageReceived(data) {
             if (parsedData.infoBox) {
                 lastGeneratedData.infoBox = parsedData.infoBox;
             }
-            if (parsedData.characterThoughts) {
-                lastGeneratedData.characterThoughts = parsedData.characterThoughts;
-            }
+
+            // Response omitted characters section - clear any previous thoughts to reflect removal
+            lastGeneratedData.characterThoughts = parsedCharacterThoughts;
 
             // Store RPG data for this specific swipe in the message's extra field
             if (!lastMessage.extra) {
@@ -164,7 +261,7 @@ export async function onMessageReceived(data) {
             lastMessage.extra.rpg_companion_swipes[currentSwipeId] = {
                 userStats: parsedData.userStats,
                 infoBox: parsedData.infoBox,
-                characterThoughts: parsedData.characterThoughts
+                characterThoughts: parsedCharacterThoughts
             };
 
             // console.log('[RPG Companion] Stored RPG data for swipe', currentSwipeId);
@@ -173,7 +270,7 @@ export async function onMessageReceived(data) {
             if (!committedTrackerData.userStats && !committedTrackerData.infoBox && !committedTrackerData.characterThoughts) {
                 committedTrackerData.userStats = parsedData.userStats;
                 committedTrackerData.infoBox = parsedData.infoBox;
-                committedTrackerData.characterThoughts = parsedData.characterThoughts;
+                committedTrackerData.characterThoughts = parsedCharacterThoughts;
                 // console.log('[RPG Companion] 🔆 FIRST TIME: Auto-committed tracker data');
             } else {
                 // console.log('[RPG Companion] Data will be committed when user replies');

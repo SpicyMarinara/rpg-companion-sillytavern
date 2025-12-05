@@ -13,6 +13,7 @@ export let extensionSettings = {
     enabled: true,
     autoUpdate: true,
     updateDepth: 4, // How many messages to include in the context
+    messageInterceptionContextDepth: 4, // How many recent messages to send when intercepting user messages
     generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
     useSeparatePreset: false, // Use 'RPG Companion Trackers' preset for tracker generation instead of main API model
     showUserStats: true,
@@ -28,6 +29,9 @@ export let extensionSettings = {
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
     customTrackerPrompt: '', // Custom tracker instruction prompt (empty = use default)
+    enableMessageInterception: false, // Enable intercepting user messages with LLM rewrite
+    messageInterceptionActive: true, // Runtime toggle to allow/skip interception
+    customMessageInterceptionPrompt: '', // Custom prompt for message interception (empty = default)
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
     enablePlotButtons: true, // Show plot progression buttons above chat input
     panelPosition: 'right', // 'left', 'right', or 'top'

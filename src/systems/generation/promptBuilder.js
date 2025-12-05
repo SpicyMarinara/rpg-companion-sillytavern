@@ -25,10 +25,16 @@ export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, an
 export const DEFAULT_JSON_TRACKER_PROMPT = `At the start of every reply, output a JSON object inside a markdown code fence (with \`\`\`json). This tracks {{user}}'s stats, inventory, skills, and scene information. Follow the exact schema shown below. Use concrete values - no placeholders or brackets. Update stats realistically based on actions and time (0% change for minutes, 1-5% normally, 5%+ only for major events). Items and skills have "name" and "description" fields. Items can grant skills via "grantsSkill", and skills show their source via "grantedBy".`;
 
 /**
+ * Default message interception prompt text
+ * Guides the LLM to rewrite the user's message based on current RPG state and recent chat
+ */
+export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (JSON). You must validate the feasibility of the user's intended actions against the JSON state; if the draft contradicts the state (e.g., acting smart while 'Intelligence' is low, or running while having a 'Leg Injury'), you are required to override the core intent, rewriting the action to portray immediate failure, struggle, or involuntary reaction instead of the user's desired success. Even further, if the intended course of action is physically impossible via the state or represents a thought process conceptually alien to the character's nature or current state, you are mandated to completely overwrite the user's intent. Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Return ONLY the modified message text.`;
+
+/**
  * Gets character card information for current chat (handles both single and group chats)
  * @returns {string} Formatted character information
  */
-async function getCharacterCardsInfo() {
+export async function getCharacterCardsInfo() {
     let characterInfo = '';
 
     // Check if in group chat
@@ -196,6 +202,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     const showSkills = extensionSettings.showSkills;
     const showQuests = extensionSettings.showQuests;
     const enableItemSkillLinks = extensionSettings.enableItemSkillLinks;
+    const deleteSkillWithItem = extensionSettings.deleteSkillWithItem;
 
     const hasAnyTrackers = showStats || showInfoBox || showCharacters || showInventory || showSkills || showQuests;
 
@@ -400,8 +407,9 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         instructions += '- Level is a numeric value (typically 1+, represents character progression)\n';
     }
 
+    instructions += '- Characters should be removed as soon as they leave the scene\n';
+    instructions += '- Your list of characters must never include {{user}}\n';
     instructions += '- Empty arrays [] for sections with no items\n';
-    instructions += '- Items may be added or removed from all sections\n';
     instructions += '- null for main quest if none active\n';
     
     // Add stat descriptions if any have descriptions
@@ -438,7 +446,9 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     if (enableItemSkillLinks) {
         instructions += '- Items can grant skills: add {"grantsSkill": "Skill Name"} to the item object\n';
         instructions += '- When a skill comes from an item, add {"grantedBy": "Item Name"} to that skill object\n';
-        instructions += '- If an item is removed/lost, also remove any skill it granted\n';
+        if (deleteSkillWithItem) {
+            instructions += '- If an item is removed/lost, also remove any skill it granted\n';
+        }
     }
     
     instructions += '\n';
