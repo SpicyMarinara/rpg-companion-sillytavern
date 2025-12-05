@@ -10,7 +10,8 @@ import {
     lastGeneratedData,
     committedTrackerData,
     isGenerating,
-    setIsGenerating
+    setIsGenerating,
+    setLastActionWasSwipe
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
 import { generateSeparateUpdatePrompt } from './promptBuilder.js';

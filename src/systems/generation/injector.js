@@ -9,7 +9,8 @@ import {
     extensionSettings,
     committedTrackerData,
     lastGeneratedData,
-    isGenerating
+    isGenerating,
+    lastActionWasSwipe
 } from '../../core/state.js';
 import { evaluateSuppression } from './suppression.js';
 import { parseUserStats } from './parser.js';

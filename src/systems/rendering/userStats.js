@@ -62,8 +62,8 @@ export function buildUserStatsText() {
     }
 
     // Add skills if enabled AND not shown in separate tab
-    if (config.skillsSection.enabled && stats.skills && !extensionSettings.showSkills) {
-        text += `\n${config.skillsSection.label}: ${stats.skills}`;
+    if (config.skillsSection.enabled && !extensionSettings.showSkills) {
+        text += `\n${config.skillsSection.label}: ${extensionSettings.userStats?.skills || 'None'}`;
     }
 
     return text.trim();

@@ -246,6 +246,12 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             statusJson += '\n  }';
             sections.push(statusJson);
         }
+
+        // Skills section
+        const skillsSectionEnabled = trackerConfig?.userStats?.skillsSection?.enabled || false;
+        if (skillsSectionEnabled && !extensionSettings.showSkills) {
+            sections.push(`  "skills": "Skill1, Skill2, Skill3"`);
+        }
     }
 
     // Attributes section (if RPG attributes are enabled and should be included)
@@ -536,6 +542,12 @@ export function generateContextualSummary() {
                 currentState.status.fields[field] = extensionSettings.userStats.conditions || 'None';
             }
         }
+
+        // Skills section
+        const skillsSectionEnabled = trackerConfig?.userStats?.skillsSection?.enabled || false;
+        if (skillsSectionEnabled && !extensionSettings.showSkills) {
+            currentState.skills = extensionSettings.userStats?.skills || 'None';
+        }
     }
     
     // InfoBox
@@ -676,6 +688,7 @@ export function generateContextualSummary() {
  * @returns {string} Full prompt text for separate tracker generation
  */
 export function generateRPGPromptText() {
+    const trackerConfig = extensionSettings.trackerConfig;
     let promptText = '';
 
     promptText += `Here are the previous trackers in JSON format that you should consider when responding:\n`;
@@ -705,6 +718,12 @@ export function generateRPGPromptText() {
             for (const field of customFields) {
                 previousState.status.fields[field] = extensionSettings.userStats.conditions || 'None';
             }
+        }
+
+        // Skills
+        const skillsSectionEnabled = trackerConfig?.userStats?.skillsSection?.enabled || false;
+        if (skillsSectionEnabled && !extensionSettings.showSkills) {
+            previousState.skills = extensionSettings.userStats.skills;
         }
     }
     
@@ -759,7 +778,6 @@ export function generateRPGPromptText() {
     }
     
     // Attributes and level (if RPG attributes are enabled and should be included)
-    const trackerConfig = extensionSettings.trackerConfig;
     const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes;
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
     const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;

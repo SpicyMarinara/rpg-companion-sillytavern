@@ -301,8 +301,8 @@ export function validateTrackerData(data) {
     }
     
     // Validate skills structure if present
-    if (data.skills && typeof data.skills !== 'object') {
-        errors.push('skills must be an object');
+    if (data.skills && typeof data.skills !== 'object' && typeof data.skills !== 'string') {
+        errors.push('skills must be an object or a string');
     }
     
     // Validate quests structure if present

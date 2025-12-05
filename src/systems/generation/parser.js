@@ -279,6 +279,12 @@ export function parseJSONTrackerData(jsonData) {
             debugLog('[RPG Parser] Status fields (filtered):', filteredValues);
         }
     }
+
+    // Parse skills (string)
+    if (jsonData.skills && typeof jsonData.skills === 'string') {
+        extensionSettings.userStats.skills = jsonData.skills;
+        debugLog('[RPG Parser] Skills (string format) extracted from status:', jsonData.skills);
+    }
     
     // Parse infoBox - normalize values and filter out null
     if (jsonData.infoBox) {
