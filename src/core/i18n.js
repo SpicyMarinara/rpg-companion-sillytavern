@@ -1,5 +1,6 @@
 //- No-op in case this is running outside of SillyTavern
-const { extension_settings } = typeof self.SillyTavern !== 'undefined' ? self.SillyTavern.getContext() : { extension_settings: {} };
+// eslint-disable-next-line no-unused-vars
+const { extension_settings: _extension_settings } = typeof self.SillyTavern !== 'undefined' ? self.SillyTavern.getContext() : { extension_settings: {} };
 
 class Internationalization {
     constructor() {
@@ -87,8 +88,9 @@ class Internationalization {
         });
     }
 
-    getTranslation(key) {
-        return this.translations[key] || null;
+    getTranslation(key, fallback = null) {
+        // Return translation, or fallback, or the key itself (prevents "null" from showing)
+        return this.translations[key] || fallback || key;
     }
 
     async setLanguage(lang) {
