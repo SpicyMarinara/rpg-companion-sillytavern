@@ -101,45 +101,6 @@ function namesMatch(cardName, aiName) {
     return wordBoundary.test(aiCore);
 }
 
-/**
- * Gets relationship emoji from relationship string
- * Returns a default emoji (⚖️) if relationship is not in the predefined map
- */
-function getRelationshipEmoji(relationship) {
-    if (!relationship) return null;
-    const map = { 
-        'Enemy': '⚔️', 
-        'Neutral': '⚖️', 
-        'Friend': '⭐', 
-        'Lover': '❤️',
-        'Ally': '🤝',
-        'Rival': '🎯',
-        'Family': '👨‍👩‍👧',
-        'Stranger': '❓'
-    };
-    // Return mapped emoji or default '⚖️' for unknown relationships
-    return map[relationship] || '⚖️';
-}
-
-/**
- * Gets character avatar URL
- */
-function getCharacterAvatarUrl(characterName) {
-    // Try to find matching character from SillyTavern
-    try {
-        const context = getContext();
-        if (context && characters) {
-            const char = characters.find(c => namesMatch(c.name, characterName));
-            if (char && char.avatar) {
-                return getSafeThumbnailUrl('avatar', char.avatar);
-            }
-        }
-    } catch (e) {
-        debugLog('[RPG Thoughts] Error getting avatar:', e);
-    }
-    return FALLBACK_AVATAR_DATA_URI;
-}
-
 export function renderThoughts() {
     if (!extensionSettings.showCharacterThoughts || !$thoughtsContainer) {
         return;
@@ -818,11 +779,9 @@ export function removeCharacter(characterName) {
     }
 
     const lines = lastGeneratedData.characterThoughts.split('\n');
-    const presentCharsConfig = extensionSettings.trackerConfig?.presentCharacters;
     
     let characterFound = false;
     let inTargetCharacter = false;
-    let characterStartIndex = -1;
     let characterEndIndex = -1;
     const linesToRemove = [];
 
@@ -835,7 +794,6 @@ export function removeCharacter(characterName) {
             if (name.toLowerCase() === characterName.toLowerCase()) {
                 characterFound = true;
                 inTargetCharacter = true;
-                characterStartIndex = i;
                 linesToRemove.push(i);
             } else if (inTargetCharacter) {
                 characterEndIndex = i;
@@ -902,12 +860,6 @@ export function removeCharacter(characterName) {
  * Creates floating thought bubbles positioned near character avatars.
  */
 export function updateChatThoughts() {
-    // console.log('[RPG Companion] ======== updateChatThoughts called ========');
-    // console.log('[RPG Companion] Extension enabled:', extensionSettings.enabled);
-    // console.log('[RPG Companion] showThoughtsInChat setting:', extensionSettings.showThoughtsInChat);
-    // console.log('[RPG Companion] Toggle element checked:', $('#rpg-toggle-thoughts-in-chat').prop('checked'));
-    // console.log('[RPG Companion] lastGeneratedData.characterThoughts:', lastGeneratedData.characterThoughts);
-
     // Remove existing thought panel and icon
     $('#rpg-thought-panel').remove();
     $('#rpg-thought-icon').remove();
@@ -915,9 +867,7 @@ export function updateChatThoughts() {
     $(window).off('resize.thoughtPanel');
     $(document).off('click.thoughtPanel');
 
-    // If extension is disabled, thoughts in chat are disabled, or no thoughts, just return
     if (!extensionSettings.enabled || !extensionSettings.showThoughtsInChat || !lastGeneratedData.characterThoughts) {
-        // console.log('[RPG Companion] Thoughts in chat disabled or no data');
         return;
     }
 
@@ -926,8 +876,6 @@ export function updateChatThoughts() {
     const thoughtsArray = []; // Array of {name, emoji, thought}
     const thoughtsConfig = extensionSettings.trackerConfig?.presentCharacters?.thoughts;
     const thoughtsLabel = thoughtsConfig?.name || 'Thoughts';
-
-    // console.log('[RPG Companion] Parsing thoughts from lines:', lines);
 
     // Parse new format to build character map and thoughts
     let currentCharName = null;
@@ -985,12 +933,8 @@ export function updateChatThoughts() {
 
     // If no thoughts parsed, return
     if (thoughtsArray.length === 0) {
-        // console.log('[RPG Companion] No thoughts parsed, returning');
         return;
     }
-
-    // console.log('[RPG Companion] Total thoughts:', thoughtsArray.length);
-    // console.log('[RPG Companion] Thoughts array:', thoughtsArray);
 
     // Find the last message to position near
     const $messages = $('#chat .mes');
@@ -1006,7 +950,6 @@ export function updateChatThoughts() {
     }
 
     if (!$targetMessage) {
-        // console.log('[RPG Companion] No target message found');
         return;
     }
 
@@ -1026,10 +969,8 @@ export function createThoughtPanel($message, thoughtsArray) {
     $('#rpg-thought-panel').remove();
     $('#rpg-thought-icon').remove();
 
-    // Get the avatar position from the message
     const $avatar = $message.find('.avatar img');
     if (!$avatar.length) {
-        // console.log('[RPG Companion] No avatar found in message');
         return;
     }
 
@@ -1226,14 +1167,10 @@ export function createThoughtPanel($message, thoughtsArray) {
         });
     }
 
-    // console.log('[RPG Companion] Thought panel created at:', { top, left });
-
-    // Add event handlers for editable thoughts in the bubble
     $thoughtPanel.find('.rpg-editable').on('blur', function() {
         const character = $(this).data('character');
         const field = $(this).data('field');
         const value = $(this).text().trim();
-        // console.log('[RPG Companion] 💭 Thought bubble blur event - character:', character, 'field:', field, 'value:', value);
         updateCharacterField(character, field, value);
     });
 

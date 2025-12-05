@@ -4,10 +4,10 @@
  * Supports both legacy text format and new JSON format
  */
 
-import { extensionSettings, FEATURE_FLAGS, addDebugLog, lastGeneratedData, committedTrackerData } from '../../core/state.js';
+import { extensionSettings, addDebugLog, lastGeneratedData, committedTrackerData } from '../../core/state.js';
 import { saveSettings, saveChatData } from '../../core/persistence.js';
 import { extractInventory } from './inventoryParser.js';
-import { validateTrackerData, mergeTrackerData } from '../../types/trackerData.js';
+import { validateTrackerData } from '../../types/trackerData.js';
 import { handleItemRemoved } from '../rendering/skills.js';
 
 /**
@@ -850,24 +850,13 @@ export function parseUserStats(statsText) {
             }
         }
 
-        // Extract inventory - use v2 parser if feature flag enabled, otherwise fallback to v1
-        if (FEATURE_FLAGS.useNewInventory) {
-            const inventoryData = extractInventory(statsText);
-            if (inventoryData) {
-                extensionSettings.userStats.inventory = inventoryData;
-                debugLog('[RPG Parser] Inventory v2 extracted:', inventoryData);
-            } else {
-                debugLog('[RPG Parser] Inventory v2 extraction failed');
-            }
+        // Extract inventory - extractInventory() handles v2 format and falls back to v1 if needed
+        const inventoryData = extractInventory(statsText);
+        if (inventoryData) {
+            extensionSettings.userStats.inventory = inventoryData;
+            debugLog('[RPG Parser] Inventory extracted:', inventoryData);
         } else {
-            // Legacy v1 parsing for backward compatibility
-            const inventoryMatch = statsText.match(/Inventory:\s*(.+)/i);
-            if (inventoryMatch) {
-                extensionSettings.userStats.inventory = inventoryMatch[1].trim();
-                debugLog('[RPG Parser] Inventory v1 extracted:', inventoryMatch[1].trim());
-            } else {
-                debugLog('[RPG Parser] Inventory v1 not found');
-            }
+            debugLog('[RPG Parser] Inventory extraction failed');
         }
 
         // Extract quests
@@ -900,7 +889,7 @@ export function parseUserStats(statsText) {
             arousal: extensionSettings.userStats.arousal,
             mood: extensionSettings.userStats.mood,
             conditions: extensionSettings.userStats.conditions,
-            inventory: FEATURE_FLAGS.useNewInventory ? 'v2 object' : extensionSettings.userStats.inventory
+            inventory: extensionSettings.userStats.inventory
         });
 
         saveSettings();
@@ -947,11 +936,11 @@ export function parseSkills(skillsText) {
             extensionSettings.skillAbilityLinks = {};
         }
 
-        // Get configured skill categories (handle both old string and new object format)
+        // Migration function handles string array → object array conversion on load
         const rawCategories = extensionSettings.trackerConfig?.userStats?.skillsSection?.customFields || [];
         const configuredCategories = rawCategories
-            .filter(cat => typeof cat === 'string' || cat.enabled !== false)
-            .map(cat => typeof cat === 'string' ? cat : cat.name);
+            .filter(cat => cat.enabled !== false)
+            .map(cat => cat.name);
         
         const lines = skillsText.split('\n');
         const newSkillAbilityLinks = {};

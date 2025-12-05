@@ -369,7 +369,6 @@ export function setupSettingsPopup() {
                 const message = chat[i];
                 if (message.extra && message.extra.rpg_companion_swipes) {
                     delete message.extra.rpg_companion_swipes;
-                    // console.log('[RPG Companion] Cleared swipe data from message at index', i);
                 }
             }
         }
@@ -434,9 +433,7 @@ export function setupSettingsPopup() {
         updateDiceDisplayCore();
         updateChatThoughts(); // Clear the thought bubble in chat
         renderQuests(); // Clear and re-render quests UI
-        renderSkills(); // Clear and re-render skills UI
-
-        // console.log('[RPG Companion] Chat cache cleared');
+        renderSkills();
     });
 
     return settingsModal;

@@ -128,11 +128,7 @@ export function renderInfoBox() {
         return;
     }
 
-    // console.log('[RPG Companion] renderInfoBox called with data:', infoBoxData);
-
-    // Parse the info box data
     const lines = infoBoxData.split('\n');
-    // console.log('[RPG Companion] Info Box split into lines:', lines);
     const data = {
         date: '',
         weekday: '',
@@ -158,8 +154,6 @@ export function renderInfoBox() {
     };
 
     for (const line of lines) {
-        // console.log('[RPG Companion] Processing line:', line);
-
         // Helper to check if a value is valid (not null/empty)
         const isValidParsedValue = (val) => val && val !== 'null' && val !== 'undefined' && val.toLowerCase() !== 'none';
         
@@ -167,7 +161,6 @@ export function renderInfoBox() {
         // Prioritize text format over emoji format
         if (line.startsWith('Date:')) {
             if (!parsedFields.date) {
-                // console.log('[RPG Companion] → Matched DATE (text format)');
                 const dateStr = line.replace('Date:', '').trim();
                 if (isValidParsedValue(dateStr)) {
                     const dateParts = dateStr.split(',').map(p => p.trim());
@@ -180,7 +173,6 @@ export function renderInfoBox() {
             }
         } else if (line.includes('🗓️:')) {
             if (!parsedFields.date) {
-                // console.log('[RPG Companion] → Matched DATE (emoji format)');
                 const dateStr = line.replace('🗓️:', '').trim();
                 if (isValidParsedValue(dateStr)) {
                     const dateParts = dateStr.split(',').map(p => p.trim());
@@ -193,7 +185,6 @@ export function renderInfoBox() {
             }
         } else if (line.startsWith('Temperature:')) {
             if (!parsedFields.temperature) {
-                // console.log('[RPG Companion] → Matched TEMPERATURE (text format)');
                 const tempStr = line.replace('Temperature:', '').trim();
                 if (isValidParsedValue(tempStr)) {
                     data.temperature = tempStr;
@@ -206,7 +197,6 @@ export function renderInfoBox() {
             }
         } else if (line.includes('🌡️:')) {
             if (!parsedFields.temperature) {
-                // console.log('[RPG Companion] → Matched TEMPERATURE (emoji format)');
                 const tempStr = line.replace('🌡️:', '').trim();
                 if (isValidParsedValue(tempStr)) {
                     data.temperature = tempStr;
@@ -219,7 +209,6 @@ export function renderInfoBox() {
             }
         } else if (line.startsWith('Time:')) {
             if (!parsedFields.time) {
-                // console.log('[RPG Companion] → Matched TIME (text format)');
                 const timeStr = line.replace('Time:', '').trim();
                 if (isValidParsedValue(timeStr)) {
                     data.time = timeStr;
@@ -231,7 +220,6 @@ export function renderInfoBox() {
             }
         } else if (line.includes('🕒:')) {
             if (!parsedFields.time) {
-                // console.log('[RPG Companion] → Matched TIME (emoji format)');
                 const timeStr = line.replace('🕒:', '').trim();
                 if (isValidParsedValue(timeStr)) {
                     data.time = timeStr;
@@ -243,7 +231,6 @@ export function renderInfoBox() {
             }
         } else if (line.startsWith('Location:')) {
             if (!parsedFields.location) {
-                // console.log('[RPG Companion] → Matched LOCATION (text format)');
                 const locStr = line.replace('Location:', '').trim();
                 if (isValidParsedValue(locStr)) {
                     data.location = locStr;
@@ -252,7 +239,6 @@ export function renderInfoBox() {
             }
         } else if (line.includes('🗺️:')) {
             if (!parsedFields.location) {
-                // console.log('[RPG Companion] → Matched LOCATION (emoji format)');
                 const locStr = line.replace('🗺️:', '').trim();
                 if (isValidParsedValue(locStr)) {
                     data.location = locStr;
@@ -297,45 +283,22 @@ export function renderInfoBox() {
                 const notDivider = !line.includes('---');
                 const notCodeFence = !line.trim().startsWith('```');
 
-                // console.log('[RPG Companion] → Checking weather conditions:', {
-                //     line: line,
-                //     hasColon: hasColon,
-                //     notInfoBox: notInfoBox,
-                //     notDivider: notDivider
-                // });
-
                 if (hasColon && notInfoBox && notDivider && notCodeFence && line.trim().length > 0) {
-                    // Match format: [Weather Emoji]: [Forecast]
-                    // Capture everything before colon as emoji, everything after as forecast
-                    // console.log('[RPG Companion] → Testing WEATHER match for:', line);
                     const weatherMatch = line.match(/^\s*([^:]+):\s*(.+)$/);
                     if (weatherMatch) {
                         const potentialEmoji = weatherMatch[1].trim();
                         const forecast = weatherMatch[2].trim();
 
-                        // If the first part is short (likely emoji), treat as weather
                         if (potentialEmoji.length <= 5) {
                             data.weatherEmoji = potentialEmoji;
                             data.weatherForecast = forecast;
                             parsedFields.weather = true;
-                            // console.log('[RPG Companion] ✓ Weather parsed:', data.weatherEmoji, data.weatherForecast);
-                        } else {
-                            // console.log('[RPG Companion] ✗ First part too long for emoji:', potentialEmoji);
                         }
-                    } else {
-                        // console.log('[RPG Companion] ✗ Weather regex did not match');
                     }
-                } else {
-                    // console.log('[RPG Companion] → No match for this line');
                 }
             }
         }
     }
-
-    // console.log('[RPG Companion] Parsed Info Box data:', {
-    //     date: data.date,
-    //     weatherEmoji: data.weatherEmoji,
-    //     weatherForecast: data.weatherForecast,
     //     temperature: data.temperature,
     //     timeStart: data.timeStart,
     //     location: data.location
@@ -635,14 +598,12 @@ export function updateInfoBoxField(field, value) {
     // Reconstruct the Info Box text with updated field
     const lines = lastGeneratedData.infoBox.split('\n');
     let dateLineFound = false;
-    let dateLineIndex = -1;
     let weatherLineIndex = -1;
 
     // Find the date line
     for (let i = 0; i < lines.length; i++) {
         if (lines[i].includes('🗓️:') || lines[i].startsWith('Date:')) {
             dateLineFound = true;
-            dateLineIndex = i;
             break;
         }
     }
@@ -876,7 +837,6 @@ export function updateInfoBoxField(field, value) {
                     const swipeId = message.swipe_id || 0;
                     if (message.extra.rpg_companion_swipes[swipeId]) {
                         message.extra.rpg_companion_swipes[swipeId].infoBox = updatedLines.join('\n');
-                        // console.log('[RPG Companion] Updated infoBox in message swipe data');
                     }
                 }
                 break;
@@ -907,34 +867,57 @@ function updateRecentEvent(field, value) {
     }[field];
 
     if (eventIndex !== undefined) {
-        // Parse current infoBox to get existing events
-        const lines = (committedTrackerData.infoBox || '').split('\n');
+        // Get existing events - prioritize structured data (same logic as renderInfoBox)
         let recentEvents = [];
-
-        // Find existing Recent Events line
-        const recentEventsLine = lines.find(line => line.startsWith('Recent Events:'));
-        if (recentEventsLine) {
-            const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
-            if (eventsString) {
-                recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
+        
+        // First check structured infoBoxData (from JSON parsing)
+        if (extensionSettings.infoBoxData?.recentEvents) {
+            const events = extensionSettings.infoBoxData.recentEvents;
+            if (Array.isArray(events)) {
+                // Get all valid events, preserving order (max 3)
+                recentEvents = events.filter(e => e && e !== 'null').slice(0, 3);
+            } else if (typeof events === 'string' && events !== 'null') {
+                recentEvents = [events];
+            }
+        }
+        
+        // Fallback to text format from committedTrackerData
+        if (recentEvents.length === 0 && committedTrackerData.infoBox) {
+            const lines = (committedTrackerData.infoBox || '').split('\n');
+            const recentEventsLine = lines.find(line => line.startsWith('Recent Events:'));
+            if (recentEventsLine) {
+                const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
+                if (eventsString) {
+                    recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e).slice(0, 3);
+                }
             }
         }
 
-        // Ensure array has enough slots
+        // Filter out placeholder text - treat it as empty
+        const placeholderText = i18n.getTranslation('infobox.recentEvents.addEventPlaceholder');
+        const cleanedValue = (value === placeholderText || value === 'Add event...' || value === 'Click to add event') ? '' : value.trim();
+
+        // Update the specific event in the array
+        // Ensure array has enough slots for the index we're updating
         while (recentEvents.length <= eventIndex) {
             recentEvents.push('');
         }
-
         // Update the specific event
-        recentEvents[eventIndex] = value;
-
-        // Filter out empty events and rebuild the line
+        recentEvents[eventIndex] = cleanedValue;
+        
+        // Filter out empty events for final storage (but preserve order of non-empty ones)
         const validEvents = recentEvents.filter(e => e && e.trim());
+        
         const newRecentEventsLine = validEvents.length > 0
             ? `Recent Events: ${validEvents.join(', ')}`
             : '';
 
         // Update infoBox with new Recent Events line
+        // Need to get lines from committedTrackerData if we haven't already
+        let lines = [];
+        if (committedTrackerData.infoBox) {
+            lines = committedTrackerData.infoBox.split('\n');
+        }
         const updatedLines = lines.filter(line => !line.startsWith('Recent Events:'));
         if (newRecentEventsLine) {
             // Add Recent Events line at the end (before any empty lines)
@@ -950,6 +933,14 @@ function updateRecentEvent(field, value) {
 
         committedTrackerData.infoBox = updatedLines.join('\n');
         lastGeneratedData.infoBox = updatedLines.join('\n');
+
+        // Also update the structured data to keep it in sync
+        // Store only valid events (renderInfoBox will handle showing placeholders for empty slots)
+        // This prevents renderInfoBox() from using stale structured data
+        if (!extensionSettings.infoBoxData) {
+            extensionSettings.infoBoxData = {};
+        }
+        extensionSettings.infoBoxData.recentEvents = validEvents;
 
         // Update the message's swipe data
         const chat = getContext().chat;

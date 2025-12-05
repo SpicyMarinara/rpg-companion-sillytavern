@@ -4,10 +4,9 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { chat, getCurrentChatDetails, characters, this_chid } from '../../../../../../../script.js';
+import { chat, characters, this_chid } from '../../../../../../../script.js';
 import { selected_group, getGroupMembers, getGroupChat } from '../../../../../../group-chats.js';
-import { extensionSettings, committedTrackerData } from '../../core/state.js';
-import { generateSchemaExample } from '../../types/trackerData.js';
+import { extensionSettings } from '../../core/state.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -28,7 +27,7 @@ export const DEFAULT_JSON_TRACKER_PROMPT = `At the start of every reply, output 
  * Default message interception prompt text
  * Guides the LLM to rewrite the user's message based on current RPG state and recent chat
  */
-export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (JSON). You must validate the feasibility of the user's intended actions for {{user}} against the JSON state; if the draft contradicts the state (e.g., acting smart while 'Intelligence' is low, or running while having a 'Leg Injury'), you are required to override the core intent, rewriting the action to portray immediate failure, struggle, or involuntary reaction instead of the user's desired success. Even further, if the intended course of action is physically impossible via the state or represents a thought process conceptually alien to the character's nature or current state, you are mandated to completely overwrite the user's intent. Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Never include information that was not already present in the original draft. Never narrate the consequences of {{user}}'s actions, only what they are. Return ONLY the modified message text.`;
+export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (JSON). You must validate the feasibility of the user's intended actions for {{user}} to take against the JSON state; if the draft contradicts said state (e.g. acting smart while 'Intelligence' is low, or running while having a 'Leg Injury'), you are required to override the core intent, rewriting the action to portray immediate failure, struggle, or an involuntary reaction instead of the user's desired success. Even further, if the intended course of action is physically impossible via the state or represents a thought process that is conceptually alien to the character's nature or current state, you are mandated to completely overwrite the user's intent. Be careful not to confuse communicated intent (e.g. walk towards some direction, or throw a punch) with intended speech. Intent must always be overwritten with intent (e.g. if user wanted for {{user}} to run, but they have a leg injury, your correction will make them limp). Speech must always be overwritten with speech (e.g. if user means for {{user}} to speak eloquently, but they're not smart enough, you'd dumb down their choice of words or speech patterns). Never replace intent with failed speech (e.g. user communicates that {{user}} will throw a punch, or make a gesture, but you incorrectly decide that they will make muffled noises instead, as they are gagged). Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Never include information that was not already present in the original draft. Never narrate the consequences of {{user}}'s actions, only what they are. Return ONLY the modified message text.`;
 
 /**
  * Gets character card information for current chat (handles both single and group chats)
@@ -362,16 +361,13 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     // Skills section
     if (showSkills) {
         const skillCategories = trackerConfig?.userStats?.skillsSection?.customFields || [];
-        // Filter to only enabled categories and handle both old (string) and new (object) formats
-        const enabledCategories = skillCategories.filter(cat => {
-            if (typeof cat === 'string') return true;
-            return cat.enabled !== false;
-        });
+        // Migration function handles string array → object array conversion on load
+        const enabledCategories = skillCategories.filter(cat => cat.enabled !== false);
         
         if (enabledCategories.length > 0) {
             let skillsSection = '  "skills": {\n';
             const categoryExamples = enabledCategories.map(cat => {
-                const catName = typeof cat === 'string' ? cat : cat.name;
+                const catName = cat.name;
                 let skillExample = '{ "name": "Ability Name", "description": "What this ability does" }';
                 if (enableItemSkillLinks) {
                     skillExample = '{ "name": "Ability", "description": "Description", "grantedBy": "Item Name" }';
@@ -405,6 +401,11 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     if (showRPGAttributes && shouldSendAttributes) {
         instructions += '- Attributes are numeric values (typically 1-20, but can be higher)\n';
         instructions += '- Level is a numeric value (typically 1+, represents character progression)\n';
+    }
+
+    if (showQuests) {
+        instructions += '- A main quest can be created when the current main objective changes\n';
+        instructions += '- Optional quests can be created for smaller matters that need to be resolved\n';
     }
 
     instructions += '- Items should be placeed in the inventory section, not the skills section\n';
@@ -675,8 +676,6 @@ export function generateContextualSummary() {
  * @returns {string} Full prompt text for separate tracker generation
  */
 export function generateRPGPromptText() {
-    const userName = getContext().name1;
-
     let promptText = '';
 
     promptText += `Here are the previous trackers in JSON format that you should consider when responding:\n`;
@@ -814,7 +813,6 @@ export function generateRPGPromptText() {
  */
 export async function generateSeparateUpdatePrompt() {
     const depth = extensionSettings.updateDepth;
-    const userName = getContext().name1;
 
     const messages = [];
 

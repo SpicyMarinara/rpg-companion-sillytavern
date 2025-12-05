@@ -37,10 +37,10 @@ function serializeItems(items) {
  */
 export function getSkillCategories() {
     const categories = extensionSettings.trackerConfig?.userStats?.skillsSection?.customFields || [];
-    // Handle both old format (string array) and new format (object array)
+    // Migration function handles string array → object array conversion on load
     return categories
-        .filter(cat => typeof cat === 'string' || cat.enabled !== false)
-        .map(cat => typeof cat === 'string' ? cat : cat.name);
+        .filter(cat => cat.enabled !== false)
+        .map(cat => cat.name);
 }
 
 /**

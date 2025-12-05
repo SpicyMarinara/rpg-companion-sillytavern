@@ -103,13 +103,6 @@ export let extensionSettings = {
     itemSkillLinks: {},
     skillAbilityLinks: {},
     skillsData: {},
-    statNames: {
-        health: 'Health',
-        satiety: 'Satiety',
-        energy: 'Energy',
-        hygiene: 'Hygiene',
-        arousal: 'Arousal'
-    },
     // Tracker customization configuration
     trackerConfig: {
         userStats: {
@@ -277,13 +270,6 @@ export function addDebugLog(message, data = null) {
         debugLogs.shift();
     }
 }
-
-/**
- * Feature flags for gradual rollout of new features
- */
-export const FEATURE_FLAGS = {
-    useNewInventory: true // Enable v2 inventory system with categorized storage
-};
 
 /**
  * Fallback avatar image (base64-encoded SVG with "?" icon)

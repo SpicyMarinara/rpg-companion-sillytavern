@@ -5,7 +5,6 @@
 
 import { extensionSettings, lastGeneratedData, committedTrackerData } from '../../core/state.js';
 import { saveSettings, saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
-import { buildInventorySummary } from '../generation/promptBuilder.js';
 import { buildUserStatsText } from '../rendering/userStats.js';
 import { renderInventory, getLocationId } from '../rendering/inventory.js';
 import { parseItems, serializeItems } from '../../utils/itemParser.js';
@@ -293,8 +292,6 @@ export function removeItem(field, itemIndex, location) {
         inventory[field] = newString;
     }
 
-    // console.log('[RPG Companion] DEBUG inventory after save:', inventory);
-
     updateLastGeneratedDataInventory();
     saveSettings();
     saveChatData();
@@ -375,15 +372,11 @@ export function saveAddLocation() {
  * @param {string} locationName - Name of location to remove
  */
 export function showRemoveConfirmation(locationName) {
-    // console.log('[RPG Companion] DEBUG showRemoveConfirmation called for:', locationName);
     const confirmId = `rpg-remove-confirm-${getLocationId(locationName)}`;
-    // console.log('[RPG Companion] DEBUG confirmId:', confirmId);
     const confirmUI = $(`#${confirmId}`);
-    // console.log('[RPG Companion] DEBUG confirmUI element found:', confirmUI.length);
 
     if (confirmUI.length > 0) {
         confirmUI.show();
-        // console.log('[RPG Companion] DEBUG confirmation shown');
     } else {
         console.warn('[RPG Companion] DEBUG confirmation element not found!');
     }
@@ -407,12 +400,9 @@ export function hideRemoveConfirmation(locationName) {
  * @param {string} locationName - Name of location to remove
  */
 export function confirmRemoveLocation(locationName) {
-    // console.log('[RPG Companion] DEBUG confirmRemoveLocation called for:', locationName);
     const inventory = extensionSettings.userStats.inventory;
-    // console.log('[RPG Companion] DEBUG inventory.stored before deletion:', inventory.stored);
 
     delete inventory.stored[locationName];
-    // console.log('[RPG Companion] DEBUG inventory.stored after deletion:', inventory.stored);
 
     // Remove from collapsed list if present
     const index = collapsedLocations.indexOf(locationName);
@@ -424,9 +414,6 @@ export function confirmRemoveLocation(locationName) {
     saveSettings();
     saveChatData();
     updateMessageSwipeData();
-
-    // Re-render inventory UI
-    // console.log('[RPG Companion] DEBUG calling renderInventory()');
     renderInventory();
 }/**
  * Toggles the collapsed state of a storage location section.
@@ -621,8 +608,6 @@ export function initInventoryEventListeners() {
         const view = $(this).data('view');
         switchViewMode(field, view);
     });
-
-    // console.log('[RPG Companion] Inventory event listeners initialized');
 }
 
 /**
@@ -645,7 +630,6 @@ export function restoreFormStates() {
     // Restore add location form
     if (openForms.addLocation) {
         const form = $('#rpg-add-location-form');
-        const input = $('#rpg-new-location-name');
         if (form.length > 0) {
             form.show();
             // Don't refocus to avoid disrupting user interaction
@@ -655,7 +639,6 @@ export function restoreFormStates() {
     // Restore add item on person form
     if (openForms.addItemOnPerson) {
         const form = $('#rpg-add-item-form-onPerson');
-        const input = $('#rpg-new-item-onPerson');
         if (form.length > 0) {
             form.show();
         }
@@ -664,7 +647,6 @@ export function restoreFormStates() {
     // Restore add item assets form
     if (openForms.addItemAssets) {
         const form = $('#rpg-add-item-form-assets');
-        const input = $('#rpg-new-item-assets');
         if (form.length > 0) {
             form.show();
         }
@@ -673,7 +655,6 @@ export function restoreFormStates() {
     // Restore add item simplified form
     if (openForms.addItemSimplified) {
         const form = $('#rpg-add-item-form-simplified');
-        const input = $('#rpg-new-item-simplified');
         if (form.length > 0) {
             form.show();
         }

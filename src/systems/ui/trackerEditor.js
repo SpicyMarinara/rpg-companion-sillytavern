@@ -321,13 +321,12 @@ function renderUserStatsTab() {
     html += `<label>${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsListLabel')}</label>`;
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-skills-list">';
     
-    // Handle both old format (string array) and new format (object array)
+    // Migration function handles string array → object array conversion on load
     const skillFields = config.skillsSection.customFields || [];
     skillFields.forEach((skill, index) => {
-        // Support both old format (string) and new format (object)
-        const skillName = typeof skill === 'string' ? skill : (skill.name || '');
-        const skillDesc = typeof skill === 'string' ? '' : (skill.description || '');
-        const skillEnabled = typeof skill === 'string' ? true : (skill.enabled !== false);
+        const skillName = skill.name || '';
+        const skillDesc = skill.description || '';
+        const skillEnabled = skill.enabled !== false;
         
         html += `
             <div class="rpg-editor-stat-item rpg-editor-skill-item" data-index="${index}">
@@ -518,9 +517,9 @@ function setupUserStatsListeners() {
     });
 
     // Toggle skill category
+    // Migration function handles string array → object array conversion on load
     $('.rpg-skill-toggle').off('change').on('change', function() {
         const index = $(this).data('index');
-        ensureSkillIsObject(index);
         extensionSettings.trackerConfig.userStats.skillsSection.customFields[index].enabled = $(this).is(':checked');
         saveSettings();
         renderSkills();
@@ -529,7 +528,6 @@ function setupUserStatsListeners() {
     // Rename skill category
     $('.rpg-skill-name').off('blur').on('blur', function() {
         const index = $(this).data('index');
-        ensureSkillIsObject(index);
         extensionSettings.trackerConfig.userStats.skillsSection.customFields[index].name = $(this).val();
         saveSettings();
         renderSkills();
@@ -538,25 +536,9 @@ function setupUserStatsListeners() {
     // Update skill description
     $('.rpg-skill-desc').off('blur').on('blur', function() {
         const index = $(this).data('index');
-        ensureSkillIsObject(index);
         extensionSettings.trackerConfig.userStats.skillsSection.customFields[index].description = $(this).val();
         saveSettings();
     });
-}
-
-/**
- * Helper to convert old string-format skill to object format
- */
-function ensureSkillIsObject(index) {
-    const skill = extensionSettings.trackerConfig.userStats.skillsSection.customFields[index];
-    if (typeof skill === 'string') {
-        extensionSettings.trackerConfig.userStats.skillsSection.customFields[index] = {
-            id: 'skill_' + Date.now(),
-            name: skill,
-            description: '',
-            enabled: true
-        };
-    }
 }
 
 /**

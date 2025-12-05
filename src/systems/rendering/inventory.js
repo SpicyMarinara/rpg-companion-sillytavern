@@ -8,7 +8,7 @@ import { getInventoryRenderOptions, restoreFormStates } from '../interaction/inv
 import { updateInventoryItem } from '../interaction/inventoryEdit.js';
 import { parseItems } from '../../utils/itemParser.js';
 import { i18n } from '../../core/i18n.js';
-import { itemHasLinkedSkills, navigateToLinkedSkills } from './skills.js';
+import { itemHasLinkedSkills } from './skills.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -443,18 +443,9 @@ function generateInventoryHTML(inventory, options = {}) {
         collapsedLocations = []
     } = options;
 
-    // Handle legacy v1 format - convert to v2 for display
-    let v2Inventory = inventory;
-    if (typeof inventory === 'string') {
-        v2Inventory = {
-            version: 2,
-            onPerson: inventory,
-            stored: {},
-            assets: 'None'
-        };
-    }
-
     // Ensure v2 structure has all required fields
+    // Note: Migration functions handle v1→v2 conversion on load, so inventory should always be v2 here
+    let v2Inventory = inventory;
     if (!v2Inventory || typeof v2Inventory !== 'object') {
         v2Inventory = {
             version: 2,
@@ -686,7 +677,6 @@ export function renderInventory() {
 
     $inventoryContainer.html(html);
 
-    // Restore form states after re-rendering (fixes Bug #1)
     restoreFormStates();
 
     // Event listener for editing item names (mobile-friendly contenteditable)

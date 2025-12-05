@@ -317,23 +317,19 @@ export function renderUserStats() {
         const field = $(this).data('field');
         const value = $(this).text().trim().replace(':', '');
 
-        if (!extensionSettings.statNames) {
-            extensionSettings.statNames = {
-                health: 'Health',
-                satiety: 'Satiety',
-                energy: 'Energy',
-                hygiene: 'Hygiene',
-                arousal: 'Arousal'
-            };
+        // Update the stat name in customStats array (new format)
+        const config = extensionSettings.trackerConfig?.userStats;
+        if (config && config.customStats) {
+            const stat = config.customStats.find(s => s.id === field);
+            if (stat && value) {
+                stat.name = value;
+                saveSettings();
+                saveChatData();
+
+                // Re-render to update the display
+                renderUserStats();
+            }
         }
-
-        extensionSettings.statNames[field] = value || extensionSettings.statNames[field];
-
-        saveSettings();
-        saveChatData();
-
-        // Re-render to update the display
-        renderUserStats();
     });
 
     // Add event listener for level editing

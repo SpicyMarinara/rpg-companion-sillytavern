@@ -62,15 +62,10 @@ export function commitTrackerData() {
                 const swipeData = message.extra.rpg_companion_swipes[swipeId];
 
                 if (swipeData) {
-                    // console.log('[RPG Companion] Committing tracker data from assistant message at index', i, 'swipe', swipeId);
                     committedTrackerData.userStats = swipeData.userStats || null;
                     committedTrackerData.infoBox = swipeData.infoBox || null;
                     committedTrackerData.characterThoughts = swipeData.characterThoughts || null;
-                } else {
-                    // console.log('[RPG Companion] No swipe data found for swipe', swipeId);
                 }
-            } else {
-                // console.log('[RPG Companion] No RPG data found in last assistant message');
             }
             break;
         }
@@ -85,9 +80,7 @@ export function commitTrackerData() {
 export async function onMessageSent() {
     if (!extensionSettings.enabled) return;
 
-    // User sent a new message - NOT a swipe
     setLastActionWasSwipe(false);
-    // console.log('[RPG Companion] 🟢 EVENT: onMessageSent - lastActionWasSwipe =', lastActionWasSwipe);
 
     // Optionally intercept and rewrite the user message via LLM
     if (extensionSettings.enableMessageInterception && extensionSettings.messageInterceptionActive !== false) {
@@ -106,10 +99,7 @@ export async function onMessageSent() {
             committedTrackerData.infoBox = lastGeneratedData.infoBox;
             committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
 
-            // Save to chat metadata
             saveChatData();
-
-            // console.log('[RPG Companion] 💾 Committed displayed tracker on user message (auto-update disabled)');
         }
     }
 }
@@ -206,7 +196,6 @@ export async function onMessageReceived(data) {
         const lastMessage = chat[chat.length - 1];
         if (lastMessage && !lastMessage.is_user) {
             const responseText = lastMessage.mes;
-            // console.log('[RPG Companion] Parsing together mode response:', responseText);
 
             // Try JSON parsing first if structured data mode is enabled
             const jsonParsed = tryParseJSONResponse(responseText);
@@ -228,7 +217,6 @@ export async function onMessageReceived(data) {
             // JSON parsing failed - fall back to legacy text-based parsing
             console.warn('[RPG Companion] JSON parsing failed in together mode, attempting legacy text parsing...');
             const parsedData = parseResponse(responseText);
-            // console.log('[RPG Companion] Parsed data:', parsedData);
 
             // Legacy text parsing does not produce structured characters; clear old state to avoid stale UI/state
             extensionSettings.charactersData = [];
@@ -264,16 +252,11 @@ export async function onMessageReceived(data) {
                 characterThoughts: parsedCharacterThoughts
             };
 
-            // console.log('[RPG Companion] Stored RPG data for swipe', currentSwipeId);
-
             // If there's no committed data yet (first time generating), automatically commit
             if (!committedTrackerData.userStats && !committedTrackerData.infoBox && !committedTrackerData.characterThoughts) {
                 committedTrackerData.userStats = parsedData.userStats;
                 committedTrackerData.infoBox = parsedData.infoBox;
                 committedTrackerData.characterThoughts = parsedCharacterThoughts;
-                // console.log('[RPG Companion] 🔆 FIRST TIME: Auto-committed tracker data');
-            } else {
-                // console.log('[RPG Companion] Data will be committed when user replies');
             }
 
             // Remove the tracker code blocks from the visible message
@@ -307,8 +290,6 @@ export async function onMessageReceived(data) {
             const messageId = chat.length - 1;
             updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
 
-            // console.log('[RPG Companion] Cleaned message, removed tracker code blocks from DOM');
-
             // Save to chat metadata
             saveChatData();
         }
@@ -321,9 +302,7 @@ export async function onMessageReceived(data) {
 
     // Reset the swipe flag after generation completes
     // This ensures that if the user swiped → auto-reply generated → flag is now cleared
-    // so the next user message will be treated as a new message (not a swipe)
     if (lastActionWasSwipe) {
-        // console.log('[RPG Companion] 🔄 Generation complete after swipe - resetting lastActionWasSwipe to false');
         setLastActionWasSwipe(false);
     }
 
@@ -331,7 +310,6 @@ export async function onMessageReceived(data) {
     // Note: No need to clear extension prompt since we used quiet_prompt option
     if (isPlotProgression) {
         setIsPlotProgression(false);
-        // console.log('[RPG Companion] Plot progression generation completed');
     }
 }
 
@@ -375,8 +353,6 @@ export function onMessageSwiped(messageIndex) {
         return;
     }
 
-    // console.log('[RPG Companion] Message swiped at index:', messageIndex);
-
     // Get the message that was swiped
     const message = chat[messageIndex];
     if (!message || message.is_user) {
@@ -393,15 +369,8 @@ export function onMessageSwiped(messageIndex) {
         message.swipes[currentSwipeId].length > 0;
 
     if (!isExistingSwipe) {
-        // This is a NEW swipe that will trigger generation
         setLastActionWasSwipe(true);
-        // console.log('[RPG Companion] 🔵 EVENT: onMessageSwiped (NEW generation) - lastActionWasSwipe =', lastActionWasSwipe);
-    } else {
-        // This is navigating to an EXISTING swipe - don't change the flag
-        // console.log('[RPG Companion] 🔵 EVENT: onMessageSwiped (existing swipe navigation) - lastActionWasSwipe unchanged =', lastActionWasSwipe);
     }
-
-    // console.log('[RPG Companion] Loading data for swipe', currentSwipeId);
 
     // Load RPG data for this swipe into lastGeneratedData (for display only)
     // This updates what the user sees, but does NOT commit it
@@ -418,13 +387,6 @@ export function onMessageSwiped(messageIndex) {
         if (swipeData.userStats) {
             parseUserStats(swipeData.userStats);
         }
-
-        // console.log('[RPG Companion] Loaded RPG data for swipe', currentSwipeId, '(display only, NOT committed)');
-        // console.log('[RPG Companion] committedTrackerData unchanged - will be updated if user replies to this swipe');
-    } else {
-        // No data for this swipe - keep existing lastGeneratedData (don't clear it)
-        // This ensures the display remains consistent and data is available for next commit
-        // console.log('[RPG Companion] No RPG data for swipe', currentSwipeId, '- keeping existing lastGeneratedData');
     }
 
     // Re-render the panels (display only - committedTrackerData unchanged)
@@ -444,7 +406,6 @@ export function onMessageSwiped(messageIndex) {
 export function updatePersonaAvatar() {
     const portraitImg = document.querySelector('.rpg-user-portrait');
     if (!portraitImg) {
-        // console.log('[RPG Companion] Portrait image element not found in DOM');
         return;
     }
 
@@ -452,23 +413,13 @@ export function updatePersonaAvatar() {
     const context = getContext();
     const currentUserAvatar = context.user_avatar || user_avatar;
 
-    // console.log('[RPG Companion] Attempting to update persona avatar:', currentUserAvatar);
-
     // Try to get a valid thumbnail URL using our safe helper
     if (currentUserAvatar) {
         const thumbnailUrl = getSafeThumbnailUrl('persona', currentUserAvatar);
 
         if (thumbnailUrl) {
-            // Only update the src if we got a valid URL
             portraitImg.src = thumbnailUrl;
-            // console.log('[RPG Companion] Persona avatar updated successfully');
-        } else {
-            // Don't update the src if we couldn't get a valid URL
-            // This prevents 400 errors and keeps the existing image
-            // console.warn('[RPG Companion] Could not get valid thumbnail URL for persona avatar, keeping existing image');
         }
-    } else {
-        // console.log('[RPG Companion] No user avatar configured, keeping existing image');
     }
 }
 
@@ -480,6 +431,4 @@ export function clearExtensionPrompts() {
     setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
     setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
     setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
-    // Note: rpg-companion-plot is not cleared here since it's passed via quiet_prompt option
-    // console.log('[RPG Companion] Cleared all extension prompts');
 }

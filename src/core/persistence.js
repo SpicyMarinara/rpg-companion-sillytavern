@@ -9,11 +9,9 @@ import {
     extensionSettings,
     lastGeneratedData,
     committedTrackerData,
-    setExtensionSettings,
     updateExtensionSettings,
     setLastGeneratedData,
-    setCommittedTrackerData,
-    FEATURE_FLAGS
+    setCommittedTrackerData
 } from './state.js';
 import { migrateInventory } from '../utils/migration.js';
 import { validateStoredInventory, cleanItemString } from '../utils/security.js';
@@ -78,19 +76,14 @@ export function loadSettings() {
             }
 
             updateExtensionSettings(savedSettings);
-            // console.log('[RPG Companion] Settings loaded:', extensionSettings);
-        } else {
-            // console.log('[RPG Companion] No saved settings found, using defaults');
         }
 
-        // Migrate inventory if feature flag enabled
-        if (FEATURE_FLAGS.useNewInventory) {
-            const migrationResult = migrateInventory(extensionSettings.userStats.inventory);
-            if (migrationResult.migrated) {
-                console.log(`[RPG Companion] Inventory migrated from ${migrationResult.source} to v2 format`);
-                extensionSettings.userStats.inventory = migrationResult.inventory;
-                saveSettings(); // Persist migrated inventory
-            }
+        // Migrate inventory from v1 (string) to v2 (object) format if needed
+        const migrationResult = migrateInventory(extensionSettings.userStats.inventory);
+        if (migrationResult.migrated) {
+            console.log(`[RPG Companion] Inventory migrated from ${migrationResult.source} to v2 format`);
+            extensionSettings.userStats.inventory = migrationResult.inventory;
+            saveSettings(); // Persist migrated inventory
         }
 
         // Migrate to trackerConfig if it doesn't exist
@@ -102,6 +95,11 @@ export function loadSettings() {
         
         // Migrate to new stats/skills format with descriptions
         if (migrateStatsAndSkillsFormat()) {
+            saveSettings(); // Persist migration
+        }
+        
+        // Migrate quests from legacy format to structured format
+        if (migrateQuestsFormat()) {
             saveSettings(); // Persist migration
         }
     } catch (error) {
@@ -186,8 +184,6 @@ export function updateMessageSwipeData() {
                 infoBox: lastGeneratedData.infoBox,
                 characterThoughts: lastGeneratedData.characterThoughts
             };
-
-            // console.log('[RPG Companion] Updated message swipe data after user edit');
             break;
         }
     }
@@ -323,8 +319,13 @@ export function loadChatData() {
         extensionSettings.questsV2 = savedData.questsV2;
     }
 
-    // Migrate inventory in chat data if feature flag enabled
-    if (FEATURE_FLAGS.useNewInventory && extensionSettings.userStats.inventory) {
+    // Migrate quests from legacy format to structured format if needed
+    if (migrateQuestsFormat()) {
+        saveChatData(); // Persist migrated quests to chat metadata
+    }
+
+    // Migrate inventory from v1 (string) to v2 (object) format if needed
+    if (extensionSettings.userStats.inventory) {
         const migrationResult = migrateInventory(extensionSettings.userStats.inventory);
         if (migrationResult.migrated) {
             console.log(`[RPG Companion] Chat inventory migrated from ${migrationResult.source} to v2 format`);
@@ -333,16 +334,12 @@ export function loadChatData() {
         }
     }
 
-    // Validate inventory structure (Bug #3 fix)
     validateInventoryStructure(extensionSettings.userStats.inventory, 'chat');
-
-    // console.log('[RPG Companion] Loaded chat data:', savedData);
 }
 
 /**
  * Validates and repairs inventory structure to prevent corruption.
  * Ensures all v2 fields exist and are the correct type.
- * Fixes Bug #3: Location disappears when switching tabs
  *
  * @param {Object} inventory - Inventory object to validate
  * @param {string} source - Source of load ('settings' or 'chat') for logging
@@ -385,7 +382,6 @@ function validateInventoryStructure(inventory, source) {
         }
     }
 
-    // Validate stored field (CRITICAL for Bug #3)
     if (!inventory.stored || typeof inventory.stored !== 'object' || Array.isArray(inventory.stored)) {
         console.error(`[RPG Companion] Corrupted stored inventory from ${source}, resetting to empty object`);
         inventory.stored = {};
@@ -686,6 +682,63 @@ function migrateStatsAndSkillsFormat() {
     
     if (migrated) {
         console.log('[RPG Companion] Stats/skills format migration complete');
+    }
+    
+    return migrated;
+}
+
+/**
+ * Migrates quests from legacy format to structured format (questsV2).
+ * Legacy format: quests.main (string), quests.optional (string array)
+ * New format: questsV2.main ({name, description}), questsV2.optional (array of {name, description})
+ * @returns {boolean} true if any migration was performed
+ */
+function migrateQuestsFormat() {
+    let migrated = false;
+    
+    // Initialize questsV2 if it doesn't exist
+    if (!extensionSettings.questsV2) {
+        extensionSettings.questsV2 = {
+            main: null,
+            optional: []
+        };
+    }
+    
+    // Migrate main quest if it exists in legacy format but not in new format
+    // Check if legacy format has data AND new format is empty/null
+    if (extensionSettings.quests?.main && 
+        extensionSettings.quests.main !== 'None' && 
+        extensionSettings.quests.main !== '' &&
+        (!extensionSettings.questsV2.main || !extensionSettings.questsV2.main.name)) {
+        extensionSettings.questsV2.main = {
+            name: extensionSettings.quests.main,
+            description: extensionSettings.quests?.mainDescription || ''
+        };
+        migrated = true;
+        console.log('[RPG Companion] Migrated main quest to structured format:', extensionSettings.quests.main);
+    }
+    
+    // Migrate optional quests if they exist in legacy format but not in new format
+    // Check if legacy format has data AND new format is empty
+    if (extensionSettings.quests?.optional && 
+        Array.isArray(extensionSettings.quests.optional) && 
+        extensionSettings.quests.optional.length > 0 &&
+        (!extensionSettings.questsV2.optional || extensionSettings.questsV2.optional.length === 0)) {
+        const descriptions = extensionSettings.quests?.optionalDescriptions || [];
+        extensionSettings.questsV2.optional = extensionSettings.quests.optional
+            .filter(title => title && title !== 'None' && title !== '')
+            .map((title, i) => ({
+                name: title,
+                description: descriptions[i] || ''
+            }));
+        if (extensionSettings.questsV2.optional.length > 0) {
+            migrated = true;
+            console.log('[RPG Companion] Migrated optional quests to structured format:', extensionSettings.questsV2.optional.length, 'quests');
+        }
+    }
+    
+    if (migrated) {
+        console.log('[RPG Companion] Quests format migration complete');
     }
     
     return migrated;

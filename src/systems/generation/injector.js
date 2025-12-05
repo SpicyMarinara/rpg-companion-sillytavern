@@ -9,9 +9,7 @@ import {
     extensionSettings,
     committedTrackerData,
     lastGeneratedData,
-    isGenerating,
-    lastActionWasSwipe,
-    setLastActionWasSwipe
+    isGenerating
 } from '../../core/state.js';
 import { evaluateSuppression } from './suppression.js';
 import { parseUserStats } from './parser.js';
@@ -39,15 +37,7 @@ function getTrackerInstructions(includeHtmlPrompt, includeContinuation) {
  * @param {Object} data - Event data
  */
 export function onGenerationStarted(type, data) {
-    // console.log('[RPG Companion] onGenerationStarted called');
-    // console.log('[RPG Companion] enabled:', extensionSettings.enabled);
-    // console.log('[RPG Companion] generationMode:', extensionSettings.generationMode);
-    // console.log('[RPG Companion] ⚡ EVENT: onGenerationStarted - lastActionWasSwipe =', lastActionWasSwipe, '| isGenerating =', isGenerating);
-    // console.log('[RPG Companion] Committed Prompt:', committedTrackerData);
-
-    // Skip tracker injection for image generation requests
     if (data?.quietImage) {
-        // console.log('[RPG Companion] Detected image generation (quietImage=true), skipping tracker injection');
         return;
     }
 
@@ -57,74 +47,27 @@ export function onGenerationStarted(type, data) {
 
     const context = getContext();
     const chat = context.chat;
-    // Detect if a guided generation is active (GuidedGenerations and similar extensions
-    // inject an ephemeral 'instruct' injection into chatMetadata.script_injects).
-    // If present, we should avoid injecting RPG tracker instructions that ask
-    // the model to include stats/etc. This prevents conflicts when guided prompts
-    // are used (e.g., GuidedGenerations Extension).
-    // Evaluate suppression using the shared helper
     const suppression = evaluateSuppression(extensionSettings, context, data);
-    const { shouldSuppress, skipMode, isGuidedGeneration, isImpersonationGeneration, hasQuietPrompt, instructContent, quietPromptRaw, matchedPattern } = suppression;
+    const { shouldSuppress, skipMode, isGuidedGeneration, isImpersonationGeneration, hasQuietPrompt } = suppression;
 
     if (shouldSuppress) {
-        // Debugging: indicate active suppression and which source triggered it
         console.debug(`[RPG Companion] Suppression active (mode=${skipMode}). isGuided=${isGuidedGeneration}, isImpersonation=${isImpersonationGeneration}, hasQuietPrompt=${hasQuietPrompt} - skipping RPG tracker injections for this generation.`);
-
-        // Also clear any existing RPG Companion prompts so they do not leak into this generation
-        // (e.g., previously set extension prompts should not be used alongside a guided prompt)
         setExtensionPrompt('rpg-companion-inject', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
     }
-    const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
 
-    // For SEPARATE mode only: Check if we need to commit extension data
-    // BUT: Only do this for the MAIN generation, not the tracker update generation
-    // If isGenerating is true, this is the tracker update generation (second call), so skip flag logic
-    // console.log('[RPG Companion DEBUG] Before generating:', lastGeneratedData.characterThoughts, ' , committed - ', committedTrackerData.characterThoughts);
     if (extensionSettings.generationMode === 'separate' && !isGenerating) {
         if (!lastActionWasSwipe) {
-            // User sent a new message - commit lastGeneratedData before generation
-            // console.log('[RPG Companion] 📝 COMMIT: New message - committing lastGeneratedData');
-            // console.log('[RPG Companion]   BEFORE commit - committedTrackerData:', {
-            //     userStats: committedTrackerData.userStats ? 'exists' : 'null',
-            //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-            //     characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-            // });
-            // console.log('[RPG Companion]   BEFORE commit - lastGeneratedData:', {
-            //     userStats: lastGeneratedData.userStats ? 'exists' : 'null',
-            //     infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
-            //     characterThoughts: lastGeneratedData.characterThoughts ? 'exists' : 'null'
-            // });
             committedTrackerData.userStats = lastGeneratedData.userStats;
             committedTrackerData.infoBox = lastGeneratedData.infoBox;
             committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
-            // console.log('[RPG Companion]   AFTER commit - committedTrackerData:', {
-            //     userStats: committedTrackerData.userStats ? 'exists' : 'null',
-            //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-            //     characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-            // });
-
-            // Reset flag after committing (ready for next cycle)
-
-        } else {
-            // console.log('[RPG Companion] 🔄 SWIPE: Using existing committedTrackerData (no commit)');
-            // console.log('[RPG Companion]   committedTrackerData:', {
-            //     userStats: committedTrackerData.userStats ? 'exists' : 'null',
-            //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-            //     characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-            // });
-            // Reset flag after using it (swipe generation complete, ready for next action)
         }
     }
 
-    // For TOGETHER mode: Check if we need to commit extension data
-    // Only commit when user sends a new message (not on swipes)
     if (extensionSettings.generationMode === 'together') {
         if (!lastActionWasSwipe) {
-            // User sent a new message - commit data from the last assistant message they replied to
-            // This ensures swipes use consistent data from before the first swipe
             console.log('[RPG Companion] 📝 TOGETHER MODE COMMIT: New message - committing from last assistant message');
 
             // Find the last assistant message (before the user's new message)
@@ -163,79 +106,44 @@ export function onGenerationStarted(type, data) {
         }
     }
 
-    // Use the committed tracker data as source for generation
-    // console.log('[RPG Companion] Using committedTrackerData for generation');
-    // console.log('[RPG Companion] committedTrackerData.userStats:', committedTrackerData.userStats);
-
-    // Parse stats from committed data to update the extensionSettings for prompt generation
     if (committedTrackerData.userStats) {
-        // console.log('[RPG Companion] Parsing committed userStats into extensionSettings');
         parseUserStats(committedTrackerData.userStats);
-        // console.log('[RPG Companion] After parsing, extensionSettings.userStats:', JSON.stringify(extensionSettings.userStats));
     }
 
     if (extensionSettings.generationMode === 'together') {
-        // console.log('[RPG Companion] In together mode, generating prompts...');
-        const example = ''; // JSON format includes schema in instructions, no separate example needed
-        // Don't include HTML prompt in instructions - inject it separately to avoid duplication on swipes
+        const example = '';
         const instructions = getTrackerInstructions(false, true);
 
-        // Clear separate mode context injection - we don't use contextual summary in together mode
         setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
 
-        // console.log('[RPG Companion] Example:', example ? 'exists' : 'empty');
-        // console.log('[RPG Companion] Chat length:', chat ? chat.length : 'chat is null');
-
-        // Find the last assistant message in the chat history
-        let lastAssistantDepth = -1; // -1 means not found
+        let lastAssistantDepth = -1;
         if (chat && chat.length > 0) {
-            // console.log('[RPG Companion] Searching for last assistant message...');
-            // Start from depth 1 (skip depth 0 which is usually user's message or prefill)
             for (let depth = 1; depth < chat.length; depth++) {
-                const index = chat.length - 1 - depth; // Convert depth to index
+                const index = chat.length - 1 - depth;
                 const message = chat[index];
-                // console.log('[RPG Companion] Checking depth', depth, 'index', index, 'message properties:', Object.keys(message));
-                // Check for assistant message: not user and not system
                 if (!message.is_user && !message.is_system) {
-                    // Found assistant message at this depth
-                    // Inject at the SAME depth to prepend to this assistant message
                     lastAssistantDepth = depth;
-                    // console.log('[RPG Companion] Found last assistant message at depth', depth, '-> injecting at same depth:', lastAssistantDepth);
                     break;
                 }
             }
         }
 
-        // If we have previous tracker data and found an assistant message, inject it as an assistant message
         if (!shouldSuppress && example && lastAssistantDepth > 0) {
             setExtensionPrompt('rpg-companion-example', example, extension_prompt_types.IN_CHAT, lastAssistantDepth, false, extension_prompt_roles.ASSISTANT);
-            // console.log('[RPG Companion] Injected tracker example as assistant message at depth:', lastAssistantDepth);
-        } else {
-            // console.log('[RPG Companion] NOT injecting example. example:', !!example, 'lastAssistantDepth:', lastAssistantDepth);
         }
 
-        // Inject the instructions as a user message at depth 0 (right before generation)
-        // If this is a guided generation (user explicitly injected 'instruct'), skip adding
-        // our tracker instructions to avoid clobbering the guided prompt.
         if (!shouldSuppress) {
             setExtensionPrompt('rpg-companion-inject', instructions, extension_prompt_types.IN_CHAT, 0, false, extension_prompt_roles.USER);
         }
-        // console.log('[RPG Companion] Injected RPG tracking instructions at depth 0 (right before generation)');
 
-        // Inject HTML prompt separately at depth 0 if enabled (prevents duplication on swipes)
         if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
-            // Use custom HTML prompt if set, otherwise use default
             const htmlPromptText = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
             const htmlPrompt = `\n${htmlPromptText}`;
-
             setExtensionPrompt('rpg-companion-html', htmlPrompt, extension_prompt_types.IN_CHAT, 0, false);
-            // console.log('[RPG Companion] Injected HTML prompt at depth 0 for together mode');
         } else {
-            // Clear HTML prompt if disabled
             setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         }
     } else if (extensionSettings.generationMode === 'separate') {
-        // In SEPARATE mode, inject the current state as JSON for main roleplay generation
         const currentStateJSON = generateContextualSummary();
 
         if (currentStateJSON) {
@@ -246,27 +154,18 @@ ${currentStateJSON}
 \`\`\`
 </context>\n\n`;
 
-            // Inject context at depth 1 (before last user message) as SYSTEM
-            // Skip when a guided generation injection is present to avoid conflicting instructions
             if (!shouldSuppress) {
                 setExtensionPrompt('rpg-companion-context', wrappedContext, extension_prompt_types.IN_CHAT, 1, false);
             }
-            // console.log('[RPG Companion] Injected current state JSON for separate mode:', currentStateJSON);
         } else {
-            // Clear if no data yet
             setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
         }
 
-        // Inject HTML prompt separately at depth 0 if enabled (same as together mode pattern)
         if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
-            // Use custom HTML prompt if set, otherwise use default
             const htmlPromptText = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
             const htmlPrompt = `\n${htmlPromptText}`;
-
             setExtensionPrompt('rpg-companion-html', htmlPrompt, extension_prompt_types.IN_CHAT, 0, false);
-            // console.log('[RPG Companion] Injected HTML prompt at depth 0 for separate mode');
         } else {
-            // Clear HTML prompt if disabled
             setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         }
 
