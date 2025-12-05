@@ -38,9 +38,26 @@ function serializeItems(items) {
 export function getSkillCategories() {
     const categories = extensionSettings.trackerConfig?.userStats?.skillsSection?.customFields || [];
     // Migration function handles string array → object array conversion on load
-    return categories
-        .filter(cat => cat.enabled !== false)
+    const enabledConfigCategories = categories
+        .filter(cat => cat && cat.enabled !== false && cat.name)
         .map(cat => cat.name);
+
+    if (enabledConfigCategories.length > 0) {
+        return enabledConfigCategories;
+    }
+
+    // Fallback: if no config categories are defined, derive them from existing skills data
+    const structuredCategories = Object.keys(extensionSettings.skillsV2 || {});
+    if (structuredCategories.length > 0) {
+        return structuredCategories;
+    }
+
+    const legacyCategories = new Set([
+        ...Object.keys(extensionSettings.skills?.categories || {}),
+        ...Object.keys(extensionSettings.skillsData || {})
+    ].filter(Boolean));
+
+    return Array.from(legacyCategories);
 }
 
 /**
