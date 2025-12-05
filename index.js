@@ -150,6 +150,8 @@ import {
     updateCharacterStateDisplay
 } from './src/systems/rendering/characterStateRenderer.js';
 
+console.log('[Character Tracking] ✅ All character tracking modules imported successfully');
+
 // Old state variable declarations removed - now imported from core modules
 // (extensionSettings, lastGeneratedData, committedTrackerData, etc. are now in src/core/state.js)
 

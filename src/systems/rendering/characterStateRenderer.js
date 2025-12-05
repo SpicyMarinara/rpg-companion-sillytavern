@@ -358,9 +358,16 @@ function getStatColor(statKey, value) {
  * Call this after parsing an LLM response to update the UI
  */
 export function updateCharacterStateDisplay() {
+    console.log('[Character State Renderer] 🎭 updateCharacterStateDisplay called');
+
     // Find the main container
     const $mainContainer = $('#rpg-character-state-container');
+    console.log('[Character State Renderer] Container found:', $mainContainer && $mainContainer.length > 0);
+
     if ($mainContainer && $mainContainer.length) {
+        console.log('[Character State Renderer] ✅ Rendering character state overview');
         renderCharacterStateOverview($mainContainer);
+    } else {
+        console.warn('[Character State Renderer] ❌ Container #rpg-character-state-container not found in DOM');
     }
 }
