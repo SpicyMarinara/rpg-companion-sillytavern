@@ -3,9 +3,11 @@
  * Handles generation of lorebook entries from chat history
  */
 
-import { chat, generateRaw, eventSource, event_types } from '../../../../../../../script.js';
+import { chat, characters, this_chid, generateRaw, substituteParams, eventSource, event_types } from '../../../../../../../script.js';
+import { selected_group } from '../../../../../../group-chats.js';
 import { extensionSettings, addDebugLog } from '../../core/state.js';
-import { checkWorldInfo, createNewWorldInfo, openWorldInfoEditor, saveWorldInfo } from '../../../../../../world-info.js';
+import { saveSettings } from '../../core/persistence.js';
+import { checkWorldInfo, createNewWorldInfo, openWorldInfoEditor, saveWorldInfo, setWorldInfoSettings } from '../../../../../../world-info.js';
 
 /**
  * Helper to log to both console and debug logs array
@@ -113,6 +115,68 @@ function createConstantHeaderEntry() {
 
     debugLog('[Memory Recollection] Created constant header entry');
     return entry;
+}
+
+/**
+ * Save a world info entry to a lorebook
+ * @param {string} lorebookUid - The filename/UID of the lorebook
+ * @param {Object} entry - The entry data
+ */
+async function saveWorldInfoEntry(lorebookUid, entry) {
+    try {
+        debugLog('[Memory Recollection] Saving entry to lorebook:', lorebookUid);
+
+        // Open the world info editor for this lorebook to load its data
+        await openWorldInfoEditor(lorebookUid);
+
+        // Wait for it to load
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Now access the loaded world info data
+        const worldInfo = window.world_info;
+
+        debugLog('[Memory Recollection] World info after opening:', {
+            type: typeof worldInfo,
+            isArray: Array.isArray(worldInfo),
+            hasEntries: worldInfo?.entries !== undefined,
+            keys: worldInfo ? Object.keys(worldInfo).slice(0, 10) : null
+        });
+
+        // Try different structures - it might be an array or might have different properties
+        let entries;
+        if (worldInfo && typeof worldInfo === 'object') {
+            if (worldInfo.entries) {
+                entries = worldInfo.entries;
+            } else if (Array.isArray(worldInfo)) {
+                // If it's an array, convert to entries object
+                entries = {};
+                worldInfo.forEach((e, i) => {
+                    if (e && e.uid) {
+                        entries[e.uid] = e;
+                    }
+                });
+            }
+        }
+
+        if (!entries) {
+            entries = {};
+        }
+
+        // Add the entry
+        entries[entry.uid] = entry;
+
+        debugLog('[Memory Recollection] Entry added, saving world info...');
+
+        // Save using the imported saveWorldInfo function
+        // Pass the entries as the data structure
+        await saveWorldInfo(lorebookUid, { entries });
+
+        debugLog('[Memory Recollection] Entry saved successfully');
+        return { success: true };
+    } catch (error) {
+        console.error('[Memory Recollection] Error saving entry:', error);
+        throw error;
+    }
 }
 
 /**

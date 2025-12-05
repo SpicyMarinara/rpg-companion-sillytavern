@@ -14,7 +14,7 @@ import { sanitizeItemName } from '../../utils/security.js';
  * Updates an existing inventory item's name.
  * Validates, sanitizes, and persists the change.
  *
- * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets')
  * @param {number} index - Index of item in the array
  * @param {string} newName - New name for the item
  * @param {string} [location] - Location name (required for 'stored' field)
@@ -31,38 +31,9 @@ export function updateInventoryItem(field, index, newName, location) {
         return;
     }
 
-    // Get the OLD item name before updating (for skill link updates)
-    let oldItemName = null;
-    if (extensionSettings.inventoryV3) {
-        let structuredArray = null;
-        
-        if (field === 'simplified' && extensionSettings.inventoryV3.simplified) {
-            structuredArray = extensionSettings.inventoryV3.simplified;
-        } else if (field === 'stored' && extensionSettings.inventoryV3.stored?.[location]) {
-            structuredArray = extensionSettings.inventoryV3.stored[location];
-        } else if (field === 'onPerson' && extensionSettings.inventoryV3.onPerson) {
-            structuredArray = extensionSettings.inventoryV3.onPerson;
-        } else if (field === 'assets' && extensionSettings.inventoryV3.assets) {
-            structuredArray = extensionSettings.inventoryV3.assets;
-        }
-        
-        if (structuredArray && structuredArray[index]) {
-            const item = structuredArray[index];
-            oldItemName = typeof item === 'string' ? item : item.name;
-            // Update the structured item
-            if (typeof item === 'object') {
-                item.name = sanitizedName;
-            } else {
-                structuredArray[index] = sanitizedName;
-            }
-        }
-    }
-
-    // Get current items for the legacy format
+    // Get current items for the field
     let currentString;
-    if (field === 'simplified') {
-        currentString = inventory.items || inventory.onPerson || 'None';
-    } else if (field === 'stored') {
+    if (field === 'stored') {
         if (!location) {
             console.error('[RPG Companion] Location required for stored items');
             return;
@@ -81,30 +52,17 @@ export function updateInventoryItem(field, index, newName, location) {
         return;
     }
 
-    // Get old name from legacy format if not found in structured format
-    if (!oldItemName) {
-        oldItemName = items[index];
-    }
-
     // Update the item at this index
     items[index] = sanitizedName;
 
     // Serialize back to string
     const newItemString = serializeItems(items);
 
-    // Update the legacy inventory
-    if (field === 'simplified') {
-        inventory.items = newItemString;
-        inventory.onPerson = newItemString;
-    } else if (field === 'stored') {
+    // Update the inventory
+    if (field === 'stored') {
         inventory.stored[location] = newItemString;
     } else {
         inventory[field] = newItemString;
-    }
-
-    // Update skill links if the item name changed
-    if (oldItemName && oldItemName !== sanitizedName && extensionSettings.skillAbilityLinks) {
-        updateSkillLinksForRenamedItem(oldItemName, sanitizedName);
     }
 
     // Update lastGeneratedData and committedTrackerData with new inventory
@@ -117,30 +75,6 @@ export function updateInventoryItem(field, index, newName, location) {
 
     // Re-render inventory
     renderInventory();
-}
-
-/**
- * Updates skill-ability links when an inventory item is renamed
- * @param {string} oldName - The old item name
- * @param {string} newName - The new item name
- */
-function updateSkillLinksForRenamedItem(oldName, newName) {
-    if (!extensionSettings.skillAbilityLinks) return;
-    
-    const oldNameLower = oldName.toLowerCase().trim();
-    let updated = false;
-    
-    for (const [key, linkedItem] of Object.entries(extensionSettings.skillAbilityLinks)) {
-        // Case-insensitive comparison to match the linking logic
-        if (linkedItem && linkedItem.toLowerCase().trim() === oldNameLower) {
-            extensionSettings.skillAbilityLinks[key] = newName;
-            updated = true;
-        }
-    }
-    
-    if (updated) {
-        console.log(`[RPG Companion] Updated skill links: "${oldName}" -> "${newName}"`);
-    }
 }
 
 /**

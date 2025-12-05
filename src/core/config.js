@@ -25,7 +25,6 @@ export const defaultSettings = {
     enabled: true,
     autoUpdate: true,
     updateDepth: 4, // How many messages to include in the context
-    messageInterceptionContextDepth: 4, // How many recent messages to send when intercepting user messages
     generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
     useSeparatePreset: false, // Use 'RPG Companion Trackers' preset for tracker generation instead of main API model
     showUserStats: true,
@@ -35,8 +34,6 @@ export const defaultSettings = {
     showThoughtsInChat: true, // Show thoughts overlay in chat
     alwaysShowThoughtBubble: false, // Auto-expand thought bubble without clicking icon
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
-    enableMessageInterception: false, // Enable intercepting user messages with LLM rewrite
-    messageInterceptionActive: true, // Runtime toggle to allow/skip interception
     // Controls when the extension skips injecting tracker instructions/examples/HTML
     // into generations that appear to be user-injected instructions. Valid values:
     //  - 'none'          -> never skip (legacy behavior: always inject)

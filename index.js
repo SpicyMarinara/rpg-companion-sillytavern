@@ -1,36 +1,70 @@
 import { getContext, renderExtensionTemplateAsync, extension_settings as st_extension_settings } from '../../../extensions.js';
-import { event_types, saveSettingsDebounced, getRequestHeaders } from '../../../../script.js';
+import { eventSource, event_types, substituteParams, chat, generateRaw, saveSettingsDebounced, chat_metadata, saveChatDebounced, user_avatar, getThumbnailUrl, characters, this_chid, extension_prompt_types, extension_prompt_roles, setExtensionPrompt, reloadCurrentChat, Generate, getRequestHeaders } from '../../../../script.js';
+import { selected_group, getGroupMembers } from '../../../group-chats.js';
+import { power_user } from '../../../power-user.js';
 
 // Core modules
 import { extensionName, extensionFolderPath } from './src/core/config.js';
 import { i18n } from './src/core/i18n.js';
 import {
     extensionSettings,
+    lastGeneratedData,
+    committedTrackerData,
+    lastActionWasSwipe,
+    isGenerating,
+    isPlotProgression,
+    pendingDiceRoll,
+    FALLBACK_AVATAR_DATA_URI,
+    $panelContainer,
+    $userStatsContainer,
+    $infoBoxContainer,
+    $thoughtsContainer,
+    $inventoryContainer,
+    $questsContainer,
+    setExtensionSettings,
+    updateExtensionSettings,
+    setLastGeneratedData,
+    updateLastGeneratedData,
+    setCommittedTrackerData,
+    updateCommittedTrackerData,
+    setLastActionWasSwipe,
+    setIsGenerating,
+    setIsPlotProgression,
+    setPendingDiceRoll,
     setPanelContainer,
     setUserStatsContainer,
     setInfoBoxContainer,
     setThoughtsContainer,
-    setSkillsContainer,
     setInventoryContainer,
     setQuestsContainer
 } from './src/core/state.js';
-import { loadSettings, saveSettings, loadChatData } from './src/core/persistence.js';
+import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData } from './src/core/persistence.js';
 import { registerAllEvents } from './src/core/events.js';
 
 // Generation & Parsing modules
+import {
+    generateTrackerExample,
+    generateTrackerInstructions,
+    generateContextualSummary,
+    generateRPGPromptText,
+    generateSeparateUpdatePrompt
+} from './src/systems/generation/promptBuilder.js';
+import { parseResponse, parseUserStats } from './src/systems/generation/parser.js';
 import { updateRPGData } from './src/systems/generation/apiClient.js';
 import { onGenerationStarted } from './src/systems/generation/injector.js';
 
 // Rendering modules
+import { getSafeThumbnailUrl } from './src/utils/avatars.js';
 import { renderUserStats } from './src/systems/rendering/userStats.js';
-import { renderInfoBox } from './src/systems/rendering/infoBox.js';
+import { renderInfoBox, updateInfoBoxField } from './src/systems/rendering/infoBox.js';
 import {
     renderThoughts,
-    updateChatThoughts
+    updateCharacterField,
+    updateChatThoughts,
+    createThoughtPanel
 } from './src/systems/rendering/thoughts.js';
 import { renderInventory } from './src/systems/rendering/inventory.js';
 import { renderQuests } from './src/systems/rendering/quests.js';
-import { renderSkills } from './src/systems/rendering/skills.js';
 
 // Interaction modules
 import { initInventoryEventListeners } from './src/systems/interaction/inventoryActions.js';
@@ -41,9 +75,12 @@ import {
     applyCustomTheme,
     toggleCustomColors,
     toggleAnimations,
-    updateSettingsPopupTheme
+    updateSettingsPopupTheme,
+    applyCustomThemeToSettingsPopup
 } from './src/systems/ui/theme.js';
 import {
+    DiceModal,
+    SettingsModal,
     setupDiceRoller,
     setupSettingsPopup,
     updateDiceDisplay,
@@ -55,6 +92,7 @@ import {
 } from './src/systems/ui/trackerEditor.js';
 import {
     togglePlotButtons,
+    updateCollapseToggleIcon,
     setupCollapseToggle,
     updatePanelVisibility,
     updateSectionVisibility,
@@ -63,6 +101,9 @@ import {
 } from './src/systems/ui/layout.js';
 import {
     setupMobileToggle,
+    constrainFabToViewport,
+    setupMobileTabs,
+    removeMobileTabs,
     setupMobileKeyboardHandling,
     setupContentEditableScrolling,
     updateMobileTabLabels
@@ -78,10 +119,11 @@ import { setupClassicStatsButtons } from './src/systems/features/classicStats.js
 import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/systems/features/htmlCleaning.js';
 import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
 import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
-import { DEFAULT_HTML_PROMPT, DEFAULT_JSON_TRACKER_PROMPT, DEFAULT_MESSAGE_INTERCEPTION_PROMPT } from './src/systems/generation/promptBuilder.js';
+import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
 
 // Integration modules
 import {
+    commitTrackerData,
     onMessageSent,
     onMessageReceived,
     onCharacterChanged,
@@ -148,95 +190,6 @@ function updateDynamicLabels() {
 
     // Update mobile tab labels
     updateMobileTabLabels();
-
-    // Update inline interception toggle text if present
-    updateInterceptionToggleState();
-}
-
-/**
- * Updates the inline interception toggle text and styling near the send form.
- */
-function updateInterceptionToggleState() {
-    const $toggle = $('#rpg-interception-toggle');
-    if ($toggle.length === 0) {
-        return;
-    }
-
-    const active = extensionSettings.messageInterceptionActive !== false;
-    const labelKey = active
-        ? 'template.settingsModal.advanced.interceptionOn'
-        : 'template.settingsModal.advanced.interceptionOff';
-    const label = i18n.getTranslation(labelKey) || (active ? 'Interception On' : 'Interception Off');
-    const prefix = i18n.getTranslation('template.settingsModal.advanced.interceptionModeLabel') || 'Interception:';
-    const icon = active ? 'fa-bolt' : 'fa-ban';
-    const background = active ? '#4a90e2' : '#666';
-
-    $toggle
-        .css({
-            'background-color': background,
-            color: '#fff'
-        })
-        .html(`<i class="fa-solid ${icon}"></i> ${prefix} ${label}`);
-}
-
-/**
- * Shows/hides the inline interception toggle based on interception setting.
- */
-function updateInterceptionToggleVisibility() {
-    const $toggle = $('#rpg-interception-toggle');
-    if ($toggle.length === 0) {
-        return;
-    }
-
-    $toggle.toggle(extensionSettings.enableMessageInterception);
-
-    if (extensionSettings.enableMessageInterception) {
-        updateInterceptionToggleState();
-    }
-}
-
-/**
- * Ensures the extension buttons wrapper exists above the send form.
- */
-function ensureExtensionButtonsWrapper() {
-    if ($('#extension-buttons-wrapper').length === 0) {
-        $('#send_form').prepend('<div id="extension-buttons-wrapper" style="text-align: center; margin: 5px auto;"></div>');
-    }
-}
-
-/**
- * Renders the inline interception toggle near plot buttons.
- */
-function renderInterceptionToggle() {
-    ensureExtensionButtonsWrapper();
-
-    if ($('#rpg-interception-toggle').length === 0) {
-        const buttonHtml = `
-            <button id="rpg-interception-toggle" class="menu_button interactable" style="
-                background-color: #e94560;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-size: 13px;
-                cursor: pointer;
-                margin: 0 4px;
-                display: inline-block;
-            " tabindex="0" role="button">
-                <i class="fa-solid fa-bolt"></i> Interception: On
-            </button>
-        `;
-        $('#extension-buttons-wrapper').append(buttonHtml);
-
-        $('#rpg-interception-toggle').on('click', () => {
-            const active = extensionSettings.messageInterceptionActive !== false;
-            extensionSettings.messageInterceptionActive = !active;
-            saveSettings();
-            updateInterceptionToggleState();
-        });
-    }
-
-    updateInterceptionToggleVisibility();
 }
 
 /**
@@ -325,21 +278,23 @@ async function initUI() {
     setUserStatsContainer($('#rpg-user-stats'));
     setInfoBoxContainer($('#rpg-info-box'));
     setThoughtsContainer($('#rpg-thoughts'));
-    setSkillsContainer($('#rpg-skills'));
     setInventoryContainer($('#rpg-inventory'));
     setQuestsContainer($('#rpg-quests'));
 
-        i18n.applyTranslations(document.body);
+    // Re-apply translations to the entire body to catch all new elements from the template
+    i18n.applyTranslations(document.body);
 
-        $('#rpg-toggle-auto-update').on('change', function() {
+    // Set up event listeners (enable/disable is handled in Extensions tab)
+    $('#rpg-toggle-auto-update').on('change', function() {
         extensionSettings.autoUpdate = $(this).prop('checked');
         saveSettings();
     });
 
-        $('#rpg-position-select').on('change', function() {
+    $('#rpg-position-select').on('change', function() {
         extensionSettings.panelPosition = String($(this).val());
         saveSettings();
         applyPanelPosition();
+        // Recreate thought bubbles to update their position
         updateChatThoughts();
     });
 
@@ -347,14 +302,6 @@ async function initUI() {
         const value = $(this).val();
         extensionSettings.updateDepth = parseInt(String(value));
         saveSettings();
-    });
-
-    $('#rpg-message-interception-depth').on('change', function() {
-        const value = parseInt(String($(this).val()));
-        if (!Number.isNaN(value)) {
-            extensionSettings.messageInterceptionContextDepth = value;
-            saveSettings();
-        }
     });
 
     $('#rpg-memory-messages').on('change', function() {
@@ -392,57 +339,15 @@ async function initUI() {
         updateSectionVisibility();
     });
 
-        $('#rpg-toggle-inventory').on('change', function() {
+    $('#rpg-toggle-inventory').on('change', function() {
         extensionSettings.showInventory = $(this).prop('checked');
         saveSettings();
         updateSectionVisibility();
-        if (window.innerWidth > 1000) {
-            removeDesktopTabs();
-            setupDesktopTabs();
-        }
-    });
-
-    $('#rpg-toggle-simplified-inventory').on('change', function() {
-        extensionSettings.useSimplifiedInventory = $(this).prop('checked');
-        saveSettings();
-        renderInventory();
-    });
-
-    $('#rpg-toggle-quests').on('change', function() {
-        extensionSettings.showQuests = $(this).prop('checked');
-        saveSettings();
-        updateSectionVisibility();
-        renderQuests();
-        if (window.innerWidth > 1000) {
-            removeDesktopTabs();
-            setupDesktopTabs();
-        }
-    });
-
-    $('#rpg-toggle-skills').on('change', function() {
-        extensionSettings.showSkills = $(this).prop('checked');
-        saveSettings();
-        updateSectionVisibility();
-        renderSkills();
-        if (window.innerWidth > 1000) {
-            removeDesktopTabs();
-            setupDesktopTabs();
-        }
-    });
-
-    $('#rpg-toggle-item-skill-links').on('change', function() {
-        extensionSettings.enableItemSkillLinks = $(this).prop('checked');
-        saveSettings();
-        renderSkills();
-    });
-
-    $('#rpg-toggle-delete-skill-with-item').on('change', function() {
-        extensionSettings.deleteSkillWithItem = $(this).prop('checked');
-        saveSettings();
     });
 
     $('#rpg-toggle-thoughts-in-chat').on('change', function() {
         extensionSettings.showThoughtsInChat = $(this).prop('checked');
+        // console.log('[RPG Companion] Toggle showThoughtsInChat changed to:', extensionSettings.showThoughtsInChat);
         saveSettings();
         updateChatThoughts();
     });
@@ -450,14 +355,17 @@ async function initUI() {
     $('#rpg-toggle-always-show-bubble').on('change', function() {
         extensionSettings.alwaysShowThoughtBubble = $(this).prop('checked');
         saveSettings();
+        // Force immediate save to ensure setting is persisted before any other code runs
         const context = getContext();
         const extension_settings = context.extension_settings || context.extensionSettings;
         extension_settings[extensionName] = extensionSettings;
+        // Re-render thoughts to apply the setting
         updateChatThoughts();
     });
 
     $('#rpg-toggle-html-prompt').on('change', function() {
         extensionSettings.enableHtmlPrompt = $(this).prop('checked');
+        // console.log('[RPG Companion] Toggle enableHtmlPrompt changed to:', extensionSettings.enableHtmlPrompt);
         saveSettings();
     });
 
@@ -468,40 +376,9 @@ async function initUI() {
 
     $('#rpg-restore-default-html-prompt').on('click', function() {
         extensionSettings.customHtmlPrompt = '';
-        $('#rpg-custom-html-prompt').val(DEFAULT_HTML_PROMPT);
+        $('#rpg-custom-html-prompt').val('');
         saveSettings();
         toastr.success('HTML prompt restored to default');
-    });
-
-    $('#rpg-toggle-message-interception').on('change', function() {
-        extensionSettings.enableMessageInterception = $(this).prop('checked');
-        saveSettings();
-        updateInterceptionToggleVisibility();
-    });
-
-    $('#rpg-custom-message-interception-prompt').on('input', function() {
-        extensionSettings.customMessageInterceptionPrompt = $(this).val().trim();
-        saveSettings();
-    });
-
-    $('#rpg-restore-default-message-interception-prompt').on('click', function() {
-        extensionSettings.customMessageInterceptionPrompt = '';
-        $('#rpg-custom-message-interception-prompt').val(DEFAULT_MESSAGE_INTERCEPTION_PROMPT);
-        saveSettings();
-        toastr.success('Message interception prompt restored to default');
-    });
-
-    // Custom Tracker Prompt handlers
-    $('#rpg-custom-tracker-prompt').on('input', function() {
-        extensionSettings.customTrackerPrompt = $(this).val().trim();
-        saveSettings();
-    });
-
-    $('#rpg-restore-default-tracker-prompt').on('click', function() {
-        extensionSettings.customTrackerPrompt = '';
-        $('#rpg-custom-tracker-prompt').val(DEFAULT_JSON_TRACKER_PROMPT);
-        saveSettings();
-        toastr.success('Tracker prompt restored to default');
     });
 
     $('#rpg-skip-guided-mode').on('change', function() {
@@ -511,6 +388,7 @@ async function initUI() {
 
     $('#rpg-toggle-plot-buttons').on('change', function() {
         extensionSettings.enablePlotButtons = $(this).prop('checked');
+        // console.log('[RPG Companion] Toggle enablePlotButtons changed to:', extensionSettings.enablePlotButtons);
         saveSettings();
         togglePlotButtons();
     });
@@ -523,6 +401,7 @@ async function initUI() {
 
     $('#rpg-manual-update').on('click', async function() {
         if (!extensionSettings.enabled) {
+            // console.log('[RPG Companion] Extension is disabled. Please enable it in the Extensions tab.');
             return;
         }
         await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
@@ -531,22 +410,23 @@ async function initUI() {
     $('#rpg-stat-bar-color-low').on('change', function() {
         extensionSettings.statBarColorLow = String($(this).val());
         saveSettings();
-        renderUserStats();
+        renderUserStats(); // Re-render with new colors
     });
 
     $('#rpg-stat-bar-color-high').on('change', function() {
         extensionSettings.statBarColorHigh = String($(this).val());
         saveSettings();
-        renderUserStats();
+        renderUserStats(); // Re-render with new colors
     });
 
+    // Theme selection
     $('#rpg-theme-select').on('change', function() {
         extensionSettings.theme = String($(this).val());
         saveSettings();
         applyTheme();
         toggleCustomColors();
-        updateSettingsPopupTheme(getSettingsModal());
-        updateChatThoughts();
+        updateSettingsPopupTheme(getSettingsModal()); // Update popup theme instantly
+        updateChatThoughts(); // Recreate thought bubbles with new theme
     });
 
     // Custom color pickers
@@ -555,8 +435,8 @@ async function initUI() {
         saveSettings();
         if (extensionSettings.theme === 'custom') {
             applyCustomTheme();
-            updateSettingsPopupTheme(getSettingsModal());
-            updateChatThoughts();
+            updateSettingsPopupTheme(getSettingsModal()); // Update popup theme instantly
+            updateChatThoughts(); // Update thought bubbles
         }
     });
 
@@ -565,8 +445,8 @@ async function initUI() {
         saveSettings();
         if (extensionSettings.theme === 'custom') {
             applyCustomTheme();
-            updateSettingsPopupTheme(getSettingsModal());
-            updateChatThoughts();
+            updateSettingsPopupTheme(getSettingsModal()); // Update popup theme instantly
+            updateChatThoughts(); // Update thought bubbles
         }
     });
 
@@ -575,8 +455,8 @@ async function initUI() {
         saveSettings();
         if (extensionSettings.theme === 'custom') {
             applyCustomTheme();
-            updateSettingsPopupTheme(getSettingsModal());
-            updateChatThoughts();
+            updateSettingsPopupTheme(getSettingsModal()); // Update popup theme instantly
+            updateChatThoughts(); // Update thought bubbles
         }
     });
 
@@ -585,11 +465,12 @@ async function initUI() {
         saveSettings();
         if (extensionSettings.theme === 'custom') {
             applyCustomTheme();
-            updateSettingsPopupTheme(getSettingsModal());
-            updateChatThoughts();
+            updateSettingsPopupTheme(getSettingsModal()); // Update popup theme instantly
+            updateChatThoughts(); // Update thought bubbles
         }
     });
 
+    // Initialize UI state (enable/disable is in Extensions tab)
     $('#rpg-toggle-auto-update').prop('checked', extensionSettings.autoUpdate);
     $('#rpg-position-select').val(extensionSettings.panelPosition);
     $('#rpg-update-depth').val(extensionSettings.updateDepth);
@@ -599,27 +480,14 @@ async function initUI() {
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
-    $('#rpg-toggle-simplified-inventory').prop('checked', extensionSettings.useSimplifiedInventory);
-    $('#rpg-toggle-skills').prop('checked', extensionSettings.showSkills);
-    $('#rpg-toggle-item-skill-links').prop('checked', extensionSettings.enableItemSkillLinks);
-    $('#rpg-toggle-delete-skill-with-item').prop('checked', extensionSettings.deleteSkillWithItem);
-    $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
-    $('#rpg-toggle-message-interception').prop('checked', extensionSettings.enableMessageInterception);
-    updateInterceptionToggleVisibility();
 
+    // Set default HTML prompt as actual text if no custom prompt exists
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
-    $('#rpg-custom-tracker-prompt').val(extensionSettings.customTrackerPrompt || DEFAULT_JSON_TRACKER_PROMPT);
-    $('#rpg-custom-message-interception-prompt').val(
-        extensionSettings.customMessageInterceptionPrompt || DEFAULT_MESSAGE_INTERCEPTION_PROMPT
-    );
-    $('#rpg-message-interception-depth').val(
-        extensionSettings.messageInterceptionContextDepth || extensionSettings.updateDepth || 4
-    );
 
-    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
+    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
@@ -639,18 +507,21 @@ async function initUI() {
     toggleCustomColors();
     toggleAnimations();
 
+    // Setup mobile toggle button
     setupMobileToggle();
 
+    // Setup desktop tabs (only on desktop viewport)
     if (window.innerWidth > 1000) {
         setupDesktopTabs();
     }
 
+    // Setup collapse/expand toggle button
     setupCollapseToggle();
 
+    // Render initial data if available
     renderUserStats();
     renderInfoBox();
     renderThoughts();
-    renderSkills();
     renderInventory();
     renderQuests();
     updateDiceDisplay();
@@ -660,11 +531,14 @@ async function initUI() {
     initTrackerEditor();
     addDiceQuickReply();
     setupPlotButtons(sendPlotProgression);
-    renderInterceptionToggle();
     setupMobileKeyboardHandling();
     setupContentEditableScrolling();
     initInventoryEventListeners();
+
+    // Setup Memory Recollection button in World Info
     setupMemoryRecollectionButton();
+
+    // Initialize Lorebook Limiter
     initLorebookLimiter();
 
     // Initialize character state display (NEW)
@@ -689,6 +563,13 @@ async function initUI() {
 
 
 
+// Rendering functions removed - now imported from src/systems/rendering/*
+// (renderUserStats, renderInfoBox, renderThoughts, updateInfoBoxField,
+//  updateCharacterField, updateChatThoughts, createThoughtPanel)
+
+// Event handlers removed - now imported from src/systems/integration/sillytavern.js
+// (commitTrackerData, onMessageSent, onMessageReceived, onCharacterChanged,
+//  onMessageSwiped, updatePersonaAvatar, clearExtensionPrompts)
 
 // ============================================================================
 // CHARACTER STATE TRACKING - Event Wrappers (NEW)
@@ -889,55 +770,76 @@ jQuery(async () => {
         console.log('========================================');
         console.log('[RPG Companion] Starting initialization...');
 
+        // Load settings with validation
         try {
             loadSettings();
         } catch (error) {
             console.error('[RPG Companion] Settings load failed, continuing with defaults:', error);
         }
 
+        // Initialize i18n early for the settings panel
         await i18n.init();
+
+        // Set up a central listener for language changes to update dynamic UI parts
         i18n.addEventListener('languageChanged', updateDynamicLabels);
 
+        // Add extension settings to Extensions tab
         try {
             await addExtensionSettings();
         } catch (error) {
             console.error('[RPG Companion] Failed to add extension settings tab:', error);
+            // Don't throw - extension can still work without settings tab
         }
 
+        // Initialize UI
         try {
             await initUI();
         } catch (error) {
             console.error('[RPG Companion] UI initialization failed:', error);
-            throw error;
+            throw error; // This is critical - can't continue without UI
         }
 
+        // Load chat-specific data for current chat
         try {
             loadChatData();
         } catch (error) {
             console.error('[RPG Companion] Chat data load failed, using defaults:', error);
         }
 
+        // Import the HTML cleaning regex if needed
         try {
             await ensureHtmlCleaningRegex(st_extension_settings, saveSettingsDebounced);
         } catch (error) {
             console.error('[RPG Companion] HTML regex import failed:', error);
+            // Non-critical - continue without it
         }
 
+        // Import the RPG Companion Trackers preset if needed
         try {
             await ensureTrackerPresetExists();
         } catch (error) {
             console.error('[RPG Companion] Preset import failed:', error);
+            // Non-critical - users can manually import if needed
         }
 
+        // Detect conflicting regex scripts from old manual formatters
         try {
             const conflicts = detectConflictingRegexScripts(st_extension_settings);
             if (conflicts.length > 0) {
                 console.log('[RPG Companion] ⚠️ Detected old manual formatting regex scripts that may conflict:');
                 conflicts.forEach(name => console.log(`  - ${name}`));
                 console.log('[RPG Companion] Consider disabling these regexes as the extension now handles formatting automatically.');
+
+                // Show user-friendly warning (non-blocking)
+                // toastr.warning(
+                //     `Found ${conflicts.length} old RPG formatting regex script(s). These may conflict with the extension. Check console for details.`,
+                //     'RPG Companion Warning',
+                //     { timeOut: 8000 }
+                // );
             }
         } catch (error) {
             console.error('[RPG Companion] Conflict detection failed:', error);
+            // Non-critical - continue anyway
         }
 
         // Register all event listeners (with character tracking wrappers)
@@ -953,13 +855,15 @@ jQuery(async () => {
             });
         } catch (error) {
             console.error('[RPG Companion] Event registration failed:', error);
-            throw error;
+            throw error; // This is critical - can't continue without events
         }
 
         console.log('[RPG Companion] ✅ Extension loaded successfully');
     } catch (error) {
         console.error('[RPG Companion] ❌ Critical initialization failure:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);
+
+        // Show user-friendly error message
         toastr.error(
             'RPG Companion failed to initialize. Check console for details. Please try refreshing the page or resetting extension settings.',
             'RPG Companion Error',

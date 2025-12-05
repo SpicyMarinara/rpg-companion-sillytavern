@@ -101,6 +101,11 @@ function namesMatch(cardName, aiName) {
     return wordBoundary.test(aiCore);
 }
 
+/**
+ * Renders character thoughts (Present Characters) panel.
+ * Displays character cards with avatars, relationship badges, and traits.
+ * Includes event listeners for editable character fields.
+ */
 export function renderThoughts() {
     if (!extensionSettings.showCharacterThoughts || !$thoughtsContainer) {
         return;
@@ -122,49 +127,9 @@ export function renderThoughts() {
     const enabledCharStats = characterStatsConfig?.enabled && characterStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
     const relationshipFields = config?.relationshipFields || [];
     const hasRelationshipEnabled = relationshipFields.length > 0;
-    
-    // Convert structured character data to text format for the original fancy renderer
-    // Use nullish coalescing so an empty string from the latest response clears UI
-    let characterThoughtsData = lastGeneratedData.characterThoughts ?? committedTrackerData.characterThoughts ?? '';
-    
-    // If we have structured data, convert it to text format
-    if (extensionSettings.charactersData && Array.isArray(extensionSettings.charactersData) && extensionSettings.charactersData.length > 0) {
-        const lines = [];
-        for (const char of extensionSettings.charactersData) {
-            // Character name line
-            lines.push(`- ${char.name || 'Unknown'}`);
-            
-            // Details line with emoji and fields
-            const details = [char.emoji || '😶'];
-            const charFields = char.fields || {};
-            for (const [key, value] of Object.entries(charFields)) {
-                if (value) details.push(`${key}: ${value}`);
-            }
-            lines.push(`Details: ${details.join(' | ')}`);
-            
-            // Relationship line
-            if (char.relationship) {
-                lines.push(`Relationship: ${char.relationship}`);
-            }
-            
-            // Stats line
-            const charStats = char.stats || {};
-            if (Object.keys(charStats).length > 0) {
-                const statsStr = Object.entries(charStats).map(([k, v]) => `${k}: ${v}%`).join(' | ');
-                lines.push(`Stats: ${statsStr}`);
-            }
-            
-            // Thoughts line
-            if (char.thoughts) {
-                const thoughtsFieldName = config?.thoughts?.name || 'Thoughts';
-                lines.push(`${thoughtsFieldName}: ${char.thoughts}`);
-            }
-        }
-        if (lines.length > 0) {
-            characterThoughtsData = lines.join('\n');
-            debugLog('[RPG Thoughts] Converted structured data to text format');
-        }
-    }
+
+    // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
+    const characterThoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts || '';
 
     debugLog('[RPG Thoughts] Raw characterThoughts data:', characterThoughtsData);
     debugLog('[RPG Thoughts] Data length:', characterThoughtsData.length + ' chars');
@@ -411,16 +376,14 @@ export function renderThoughts() {
                 debugLog(`[RPG Thoughts] Final avatar for ${char.name}:`, characterPortrait.substring(0, 50) + '...');
 
                 // Get relationship badge - only if relationships are enabled in config
-                let relationshipBadge = '⚖️'; // Default emoji
-                let relationshipText = 'Neutral'; // Default text for tooltip
+                let relationshipBadge = '⚖️'; // Default
                 let relationshipFieldName = 'Relationship';
 
                 if (hasRelationshipEnabled) {
                     // In the new format, relationship is always stored in char.Relationship
                     if (char.Relationship) {
-                        relationshipText = char.Relationship;
-                        // Try to map text to emoji, fall back to default link emoji for unknown types
-                        relationshipBadge = relationshipEmojis[char.Relationship] || '⚖️';
+                        // Try to map text to emoji
+                        relationshipBadge = relationshipEmojis[char.Relationship] || char.Relationship;
                     }
                 }
 
@@ -433,14 +396,13 @@ export function renderThoughts() {
                     <div class="rpg-character-card" data-character-name="${escapedName}">
                         <div class="rpg-character-avatar">
                             <img src="${characterPortrait}" alt="${escapedName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                            ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${relationshipFieldName}" title="${escapeHtmlAttr(relationshipText)}">${relationshipBadge}</div>` : ''}
+                            ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
                         </div>
                         <div class="rpg-character-content">
                             <div class="rpg-character-info">
                                 <div class="rpg-character-header">
                                     <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
                                     <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="name" title="Click to edit name">${char.name}</span>
-                                    <button class="rpg-character-remove" data-character="${escapedName}" title="Remove character">×</button>
                                 </div>
                 `;
 
@@ -502,15 +464,6 @@ export function renderThoughts() {
         const value = $(this).text().trim();
         console.log('[RPG Companion] Character stat edit:', { character, field, value });
         updateCharacterField(character, field, value);
-    });
-
-    // Add event handlers for remove character buttons
-    $thoughtsContainer.find('.rpg-character-remove').on('click', function(e) {
-        e.stopPropagation();
-        const characterName = $(this).data('character');
-        if (characterName && confirm(`Remove ${characterName} from present characters?`)) {
-            removeCharacter(characterName);
-        }
     });
 
     // Remove updating class after animation
@@ -753,113 +706,16 @@ export function updateCharacterField(characterName, field, value) {
 }
 
 /**
- * Removes a character from Present Characters data and re-renders.
- * Works with both structured (charactersData) and text (characterThoughts) formats.
- *
- * @param {string} characterName - Name of the character to remove
- */
-export function removeCharacter(characterName) {
-    console.log('[RPG Companion] Removing character:', characterName);
-
-    // Remove from structured data if it exists
-    if (extensionSettings.charactersData && Array.isArray(extensionSettings.charactersData)) {
-        const initialLength = extensionSettings.charactersData.length;
-        extensionSettings.charactersData = extensionSettings.charactersData.filter(
-            char => char.name && char.name.toLowerCase() !== characterName.toLowerCase()
-        );
-        if (extensionSettings.charactersData.length < initialLength) {
-            console.log('[RPG Companion] Removed character from structured data');
-        }
-    }
-
-    // Remove from text format
-    if (!lastGeneratedData.characterThoughts) {
-        console.log('[RPG Companion] No characterThoughts data to remove from');
-        return;
-    }
-
-    const lines = lastGeneratedData.characterThoughts.split('\n');
-    
-    let characterFound = false;
-    let inTargetCharacter = false;
-    let characterEndIndex = -1;
-    const linesToRemove = [];
-
-    // Find the character block
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-
-        if (line.startsWith('- ')) {
-            const name = line.substring(2).trim();
-            if (name.toLowerCase() === characterName.toLowerCase()) {
-                characterFound = true;
-                inTargetCharacter = true;
-                linesToRemove.push(i);
-            } else if (inTargetCharacter) {
-                characterEndIndex = i;
-                break;
-            }
-        } else if (inTargetCharacter) {
-            // Include all lines until the next character or end of file
-            linesToRemove.push(i);
-            // Check if this is a character name line (next character)
-            if (line.startsWith('- ')) {
-                characterEndIndex = i;
-                break;
-            }
-        }
-    }
-
-    if (characterFound && characterEndIndex === -1) {
-        characterEndIndex = lines.length;
-    }
-
-    if (characterFound && linesToRemove.length > 0) {
-        // Remove lines in reverse order to maintain indices
-        for (let i = linesToRemove.length - 1; i >= 0; i--) {
-            lines.splice(linesToRemove[i], 1);
-        }
-
-        // Clean up any trailing empty lines after removal
-        while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
-            lines.pop();
-        }
-
-        lastGeneratedData.characterThoughts = lines.join('\n');
-        committedTrackerData.characterThoughts = lines.join('\n');
-
-        console.log('[RPG Companion] Removed character from text format');
-
-        // Update chat swipe data
-        const chat = getContext().chat;
-        if (chat && chat.length > 0) {
-            for (let i = chat.length - 1; i >= 0; i--) {
-                const message = chat[i];
-                if (!message.is_user) {
-                    if (message.extra && message.extra.rpg_companion_swipes) {
-                        const swipeId = message.swipe_id || 0;
-                        if (message.extra.rpg_companion_swipes[swipeId]) {
-                            message.extra.rpg_companion_swipes[swipeId].characterThoughts = lines.join('\n');
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
-        saveChatData();
-        renderThoughts();
-        updateChatThoughts();
-    } else {
-        console.log('[RPG Companion] Character not found in text format:', characterName);
-    }
-}
-
-/**
  * Updates or removes thought overlays in the chat.
  * Creates floating thought bubbles positioned near character avatars.
  */
 export function updateChatThoughts() {
+    // console.log('[RPG Companion] ======== updateChatThoughts called ========');
+    // console.log('[RPG Companion] Extension enabled:', extensionSettings.enabled);
+    // console.log('[RPG Companion] showThoughtsInChat setting:', extensionSettings.showThoughtsInChat);
+    // console.log('[RPG Companion] Toggle element checked:', $('#rpg-toggle-thoughts-in-chat').prop('checked'));
+    // console.log('[RPG Companion] lastGeneratedData.characterThoughts:', lastGeneratedData.characterThoughts);
+
     // Remove existing thought panel and icon
     $('#rpg-thought-panel').remove();
     $('#rpg-thought-icon').remove();
@@ -867,7 +723,9 @@ export function updateChatThoughts() {
     $(window).off('resize.thoughtPanel');
     $(document).off('click.thoughtPanel');
 
+    // If extension is disabled, thoughts in chat are disabled, or no thoughts, just return
     if (!extensionSettings.enabled || !extensionSettings.showThoughtsInChat || !lastGeneratedData.characterThoughts) {
+        // console.log('[RPG Companion] Thoughts in chat disabled or no data');
         return;
     }
 
@@ -876,6 +734,8 @@ export function updateChatThoughts() {
     const thoughtsArray = []; // Array of {name, emoji, thought}
     const thoughtsConfig = extensionSettings.trackerConfig?.presentCharacters?.thoughts;
     const thoughtsLabel = thoughtsConfig?.name || 'Thoughts';
+
+    // console.log('[RPG Companion] Parsing thoughts from lines:', lines);
 
     // Parse new format to build character map and thoughts
     let currentCharName = null;
@@ -933,8 +793,12 @@ export function updateChatThoughts() {
 
     // If no thoughts parsed, return
     if (thoughtsArray.length === 0) {
+        // console.log('[RPG Companion] No thoughts parsed, returning');
         return;
     }
+
+    // console.log('[RPG Companion] Total thoughts:', thoughtsArray.length);
+    // console.log('[RPG Companion] Thoughts array:', thoughtsArray);
 
     // Find the last message to position near
     const $messages = $('#chat .mes');
@@ -950,6 +814,7 @@ export function updateChatThoughts() {
     }
 
     if (!$targetMessage) {
+        // console.log('[RPG Companion] No target message found');
         return;
     }
 
@@ -969,8 +834,10 @@ export function createThoughtPanel($message, thoughtsArray) {
     $('#rpg-thought-panel').remove();
     $('#rpg-thought-icon').remove();
 
+    // Get the avatar position from the message
     const $avatar = $message.find('.avatar img');
     if (!$avatar.length) {
+        // console.log('[RPG Companion] No avatar found in message');
         return;
     }
 
@@ -1167,10 +1034,14 @@ export function createThoughtPanel($message, thoughtsArray) {
         });
     }
 
+    // console.log('[RPG Companion] Thought panel created at:', { top, left });
+
+    // Add event handlers for editable thoughts in the bubble
     $thoughtPanel.find('.rpg-editable').on('blur', function() {
         const character = $(this).data('character');
         const field = $(this).data('field');
         const value = $(this).text().trim();
+        // console.log('[RPG Companion] 💭 Thought bubble blur event - character:', character, 'field:', field, 'value:', value);
         updateCharacterField(character, field, value);
     });
 

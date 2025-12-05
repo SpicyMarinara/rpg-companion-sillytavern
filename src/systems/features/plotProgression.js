@@ -70,6 +70,7 @@ export function setupPlotButtons(handlePlotClick) {
  */
 export async function sendPlotProgression(type) {
     if (!extensionSettings.enabled) {
+        // console.log('[RPG Companion] Extension is disabled');
         return;
     }
 
@@ -82,6 +83,8 @@ export async function sendPlotProgression(type) {
     extensionSettings.enabled = false;
 
     try {
+        // console.log(`[RPG Companion] Sending ${type} plot progression request...`);
+
         // Build the prompt based on type
         let prompt = '';
         if (type === 'random') {
@@ -97,7 +100,12 @@ export async function sendPlotProgression(type) {
             prompt += '\n\n' + htmlPromptText;
         }
 
+        // Set flag to indicate we're doing plot progression
+        // This will be used by onMessageReceived to clear the prompt after generation completes
         setIsPlotProgression(true);
+
+        // console.log('[RPG Companion] Calling Generate with continuation and plot prompt');
+        // console.log('[RPG Companion] Full prompt:', prompt);
 
         // Pass the prompt via options with the correct property name
         // Based on /continue slash command implementation, it uses quiet_prompt (underscore, not camelCase)
@@ -106,7 +114,10 @@ export async function sendPlotProgression(type) {
             quietToLoud: true
         };
 
+        // Call Generate with 'continue' type and our custom prompt
         await Generate('continue', options);
+
+        // console.log('[RPG Companion] Plot progression generation triggered');
     } catch (error) {
         console.error('[RPG Companion] Error sending plot progression:', error);
         setIsPlotProgression(false);

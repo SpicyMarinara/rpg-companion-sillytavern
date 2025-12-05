@@ -3,8 +3,6 @@
  * Extracts v2 inventory data from AI-generated text
  */
 
-import { extensionSettings } from '../../core/state.js';
-
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
 
@@ -104,83 +102,29 @@ export function extractLegacyInventory(text) {
 }
 
 /**
- * Extracts simplified inventory data (single "Inventory:" line).
- * Used when useSimplifiedInventory setting is enabled.
- *
- * Expected format: "Inventory: Sword, Shield, 3x Potions, Gold coins"
- *
- * @param {string} text - Text that may contain simplified inventory
- * @returns {InventoryV2|null} Parsed inventory or null
- */
-export function extractSimplifiedInventory(text) {
-    if (!text || typeof text !== 'string') {
-        return null;
-    }
-
-    // Match simplified format: "Inventory: ..."
-    const match = text.match(/Inventory:\s*(.+?)(?:\n|$)/i);
-    if (match && match[1]) {
-        const inventoryText = match[1].trim();
-        // Return null for empty values like "None" or ""
-        if (!inventoryText || inventoryText.toLowerCase() === 'none') {
-            return null;
-        }
-        // Return v2 format with items stored in both 'items' (for simplified display)
-        // and 'onPerson' (for backward compatibility)
-        return {
-            version: 2,
-            onPerson: inventoryText,
-            stored: {},
-            assets: "None",
-            items: inventoryText, // Simplified inventory storage
-            simplified: true // Flag to indicate this is simplified format
-        };
-    }
-
-    return null;
-}
-
-/**
  * Main inventory extraction function that tries v2 format first, then falls back to v1.
  * Converts v1 format to v2 automatically if found.
- * When useSimplifiedInventory is enabled, prioritizes simple "Inventory:" format.
  *
  * @param {string} statsText - Raw stats text from AI response
  * @returns {InventoryV2|null} Parsed inventory in v2 format or null
  */
 export function extractInventory(statsText) {
-    // If simplified inventory mode is enabled, try simplified format first
-    if (extensionSettings.useSimplifiedInventory) {
-        const simplifiedData = extractSimplifiedInventory(statsText);
-        if (simplifiedData) {
-            return simplifiedData;
-        }
-    }
-
     // Try v2 format first
     const v2Data = extractInventoryData(statsText);
     if (v2Data) {
         return v2Data;
     }
 
-    // Fallback to v1/simplified format and convert to v2
+    // Fallback to v1 format and convert to v2
     const v1Data = extractLegacyInventory(statsText);
     if (v1Data) {
         // Convert v1 string to v2 format (place in onPerson)
-        const result = {
+        return {
             version: 2,
             onPerson: v1Data,
             stored: {},
             assets: "None"
         };
-
-        // If simplified mode, also store in items field
-        if (extensionSettings.useSimplifiedInventory) {
-            result.items = v1Data;
-            result.simplified = true;
-        }
-
-        return result;
     }
 
     // No inventory data found

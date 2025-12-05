@@ -727,6 +727,7 @@ export function removeMobileTabs() {
  */
 export function setupMobileKeyboardHandling() {
     if (!window.visualViewport) {
+        // console.log('[RPG Mobile] Visual Viewport API not supported');
         return;
     }
 
@@ -749,9 +750,12 @@ export function setupMobileKeyboardHandling() {
             // Keyboard just appeared
             keyboardVisible = true;
             $panel.addClass('rpg-keyboard-visible');
+            // console.log('[RPG Mobile] Keyboard opened');
         } else if (!isKeyboardShowing && keyboardVisible) {
+            // Keyboard just disappeared
             keyboardVisible = false;
             $panel.removeClass('rpg-keyboard-visible');
+            // console.log('[RPG Mobile] Keyboard closed');
         }
     });
 }
