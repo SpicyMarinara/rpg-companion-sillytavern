@@ -9,6 +9,7 @@ import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts } from '../rendering/thoughts.js';
 import { renderSkills } from '../rendering/skills.js';
+import { setupDesktopTabs, removeDesktopTabs } from './desktop.js';
 
 let $editorModal = null;
 let activeTab = 'userStats';
@@ -107,13 +108,57 @@ function closeTrackerEditor() {
  */
 function applyTrackerConfig() {
     tempConfig = null; // Clear temp config
+    
+    // Sync skills data with new config categories
+    syncSkillsWithConfig();
+    
     saveSettings();
+
+    // Rebuild desktop tabs to pick up new labels
+    removeDesktopTabs();
+    setupDesktopTabs();
 
     // Re-render all trackers with new config
     renderUserStats();
     renderInfoBox();
     renderThoughts();
     renderSkills();
+}
+
+/**
+ * Sync lastGeneratedData.skills with the current config categories
+ * Removes categories that no longer exist in config
+ */
+function syncSkillsWithConfig() {
+    const configCategories = extensionSettings.trackerConfig?.userStats?.skillsSection?.customFields || [];
+    const enabledCategoryNames = new Set(
+        configCategories
+            .filter(cat => cat && cat.enabled !== false && cat.name)
+            .map(cat => cat.name)
+    );
+    
+    // If config has no categories, clear all skills
+    if (enabledCategoryNames.size === 0) {
+        lastGeneratedData.skills = {};
+        committedTrackerData.skills = {};
+        return;
+    }
+    
+    // Remove categories from data that don't exist in config
+    if (lastGeneratedData.skills) {
+        for (const category of Object.keys(lastGeneratedData.skills)) {
+            if (!enabledCategoryNames.has(category)) {
+                delete lastGeneratedData.skills[category];
+            }
+        }
+    }
+    if (committedTrackerData.skills) {
+        for (const category of Object.keys(committedTrackerData.skills)) {
+            if (!enabledCategoryNames.has(category)) {
+                delete committedTrackerData.skills[category];
+            }
+        }
+    }
 }
 
 /**
@@ -519,7 +564,7 @@ function setupUserStatsListeners() {
         }
         extensionSettings.trackerConfig.userStats.skillsSection.customFields.push({
             id: 'skill_' + Date.now(),
-            name: 'New Skill',
+            name: 'New Skill Category',
             description: '',
             enabled: true
         });
