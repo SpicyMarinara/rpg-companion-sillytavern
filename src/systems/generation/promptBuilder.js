@@ -140,6 +140,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     const enableItemSkillLinks = extensionSettings.enableItemSkillLinks;
     const deleteSkillWithItem = extensionSettings.deleteSkillWithItem;
 
+    const isChatStart = chat.length === 0 || (chat.length === 1 && !chat[0].is_user);
     const hasAnyTrackers = showStats || showInfoBox || showCharacters || showInventory || showSkills || showQuests;
 
     if (!hasAnyTrackers) {
@@ -337,7 +338,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     instructions += '- Use actual values, not placeholders like [Location]\n';
     instructions += '- Stats are percentages (0-100)\n';
 
-    if (showRPGAttributes && shouldSendAttributes) {
+    if (shouldSendAttributes) {
         instructions += '- Attributes are numeric values (typically 1-20, but can be higher)\n';
         instructions += '- Level is a numeric value (typically 1+, represents character progression)\n';
     }
@@ -347,12 +348,11 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         instructions += '- Optional quests can be created for smaller matters that need to be resolved\n';
     }
 
-    instructions += '- Items, equipment and possessions should be placeed in the inventory section\n';
     instructions += '- Characters should be removed as soon as they leave the scene\n';
     instructions += '- Your list of characters must never include {{user}}\n';
     instructions += '- Empty arrays [] for sections with no items\n';
     instructions += '- null for main quest if none active\n';
-    
+
     // Add stat descriptions if any have descriptions
     if (showStats) {
         const customStats = trackerConfig?.userStats?.customStats || [];
@@ -385,8 +385,10 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     }
     
     if (enableItemSkillLinks) {
-        instructions += '- Items can grant skills: add {"grantsSkill": "Skill Name"} to the item object\n';
-        instructions += '- When a skill comes from an item, add {"grantedBy": "Item Name"} to that skill object\n';
+        instructions += '- Items granting skills must be placed in the inventory section\n';
+        instructions += '- Skills granted by items must be placed in the skills section\n';
+        instructions += '- Items that grant skills: add {"grantsSkill": "Skill Name"} to the item object\n';
+        instructions += '- Skills from items: add {"grantedBy": "Item Name"} to that skill object\n';
         if (deleteSkillWithItem) {
             instructions += '- If an item is removed/lost, also remove any skill it granted\n';
         }
@@ -412,6 +414,11 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
                 instructions += `${userName} rolled ${roll.total} on ${roll.formula}. Determine success/failure based on attributes.\n\n`;
             }
         }
+    }
+
+    if (isChatStart) {
+        // Initialize user's inventory and skills
+        instructions += 'Make sure to initialize {{user}}\'s (the protagonist) inventory and skills, based on their description.\n';
     }
 
     // HTML prompt
@@ -466,6 +473,7 @@ function generateMarkdownTrackerInstructions(includeHtmlPrompt = true, includeCo
         useSimplifiedInventory: extensionSettings.useSimplifiedInventory
     };
     
+    const isChatStart = chat.length === 0 || (chat.length === 1 && !chat[0].is_user);
     const markdownSchema = generateMarkdownSchema(trackerConfig, schemaOptions);
     instructions += '```markdown\n';
     instructions += markdownSchema;
@@ -475,14 +483,23 @@ function generateMarkdownTrackerInstructions(includeHtmlPrompt = true, includeCo
     instructions += 'Format rules:\n';
     instructions += '- Use # for main sections (Stats, Status, InfoBox, Characters, Inventory, Skills, Quests)\n';
     instructions += '- Use ## for subsections (character names, inventory categories, skill categories)\n';
-    instructions += '- Use "Key: Value" for fields\n';
-    instructions += '- Use "- Item: Description" for list items\n';
-    instructions += '- Stats are percentages (0-100)\n';
-    instructions += '- Use actual values, not placeholders like [Location]\n';
-    instructions += '- Items, equipment and possessions should be placed in the inventory section\n';
-    instructions += '- Characters should be removed as soon as they leave the scene\n';
-    instructions += `- Your list of characters must never include ${userName}\n`;
     instructions += '- Empty sections can be omitted\n';
+    instructions += '- Use "Key: Value" for fields\n';
+    instructions += '- Use actual values, not placeholders like [Location]\n';
+    instructions += '- Stats are percentages (0-100)\n';
+
+    if (shouldSendAttributes) {
+        instructions += '- Attributes are numeric values (typically 1-20, but can be higher)\n';
+        instructions += '- Level is a numeric value (typically 1+, represents character progression)\n';
+    }
+
+    if (showQuests) {
+        instructions += '- A main quest can be created when the current main objective changes\n';
+        instructions += '- Optional quests can be created for smaller matters that need to be resolved\n';
+    }
+
+    instructions += '- Characters should be removed as soon as they leave the scene\n';
+    instructions += '- Your list of characters must never include {{user}}\n';
     instructions += '- Use "null" for main quest if none active\n';
 
     if (showStats) {
@@ -514,18 +531,11 @@ function generateMarkdownTrackerInstructions(includeHtmlPrompt = true, includeCo
         }
     }
 
-    if (shouldSendAttributes) {
-        instructions += '- Attributes are numeric values (typically 1-20)\n';
-        instructions += '- Level is a numeric value representing progression\n';
-    }
-
-    if (showQuests) {
-        instructions += '- "## Main" for the main quest, "## Optional" for side quests\n';
-    }
-
     if (enableItemSkillLinks) {
-        instructions += '- Items granting skills: add [grants: Skill Name] after description\n';
-        instructions += '- Skills from items: add [from: Item Name] after description\n';
+        instructions += '- Items granting skills must be placed in the inventory section\n';
+        instructions += '- Skills granted by items must be placed in the skills section\n';
+        instructions += '- Items that grant skills: add [grants: Skill Name] after description\n';
+        instructions += '- Skills granted by items: add [from: Item Name] after description\n';
         if (deleteSkillWithItem) {
             instructions += '- Remove skills when their source item is removed\n';
         }
@@ -542,6 +552,11 @@ function generateMarkdownTrackerInstructions(includeHtmlPrompt = true, includeCo
     if (includeAttributes && shouldSendAttributes && extensionSettings.lastDiceRoll) {
         const roll = extensionSettings.lastDiceRoll;
         instructions += `${userName} rolled ${roll.total} on ${roll.formula}. Determine success/failure based on attributes.\n\n`;
+    }
+
+    if (isChatStart) {
+        // Initialize user's inventory and skills
+        instructions += 'Make sure to initialize {{user}}\'s (the protagonist) inventory and skills, based on their description.\n';
     }
 
     // HTML prompt
