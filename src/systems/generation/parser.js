@@ -13,6 +13,7 @@ import {
 import { saveChatData } from '../../core/persistence.js';
 import { validateTrackerData } from '../../types/trackerData.js';
 import { handleItemRemoved } from '../rendering/skills.js';
+import { markdownToJson, extractMarkdownBlock } from '../../utils/markdownFormat.js';
 
 /**
  * Helper to strip enclosing brackets from text and remove placeholder brackets
@@ -249,11 +250,14 @@ export function parseJSONTrackerData(jsonData) {
         
         const itemsArray = normalizeArray(jsonData.inventory.items);
         const onPersonArray = normalizeArray(jsonData.inventory.onPerson);
-        const simplifiedItems = itemsArray.length > 0 ? itemsArray : onPersonArray;
-        const onPersonItems = onPersonArray.length > 0 ? onPersonArray : itemsArray;
+        const simplifiedArray = normalizeArray(jsonData.inventory.simplified);
+        
+        const allItems = [...simplifiedArray, ...itemsArray];
+        const simplifiedItems = allItems.length > 0 ? allItems : onPersonArray;
+        const onPersonItems = onPersonArray.length > 0 ? onPersonArray : allItems;
         
         tracker.inventory = {
-            onPerson: onPersonItems,
+            onPerson: extensionSettings.useSimplifiedInventory ? [] : onPersonItems,
             stored: jsonData.inventory.stored && typeof jsonData.inventory.stored === 'object' 
                 ? jsonData.inventory.stored : {},
             assets: normalizeArray(jsonData.inventory.assets),
@@ -361,18 +365,49 @@ export function parseJSONTrackerData(jsonData) {
 }
 
 /**
- * Main entry point for parsing responses - tries JSON first, falls back to text
+ * Main entry point for parsing responses - tries JSON first, then markdown, falls back to text
  * @param {string} responseText - The raw AI response
- * @returns {boolean} Whether JSON parsing was successful
+ * @returns {boolean} Whether parsing was successful
  */
 export function tryParseJSONResponse(responseText) {
+    // Try JSON first (works regardless of format setting)
     const jsonData = extractJSONFromCodeBlock(responseText);
     if (jsonData) {
         return parseJSONTrackerData(jsonData);
     }
     
-    debugLog('[RPG Parser] No valid JSON found, falling back to text parsing');
+    // Try markdown format if enabled
+    if (extensionSettings.useMarkdownFormat) {
+        const markdownData = tryParseMarkdownResponse(responseText);
+        if (markdownData) {
+            debugLog('[RPG Parser] Successfully parsed markdown format');
+            return parseJSONTrackerData(markdownData);
+        }
+    }
+    
+    debugLog('[RPG Parser] No valid JSON or markdown found, falling back to text parsing');
     return false;
+}
+
+/**
+ * Attempts to parse markdown format tracker data from response
+ * @param {string} responseText - The raw AI response
+ * @returns {Object|null} Parsed tracker data or null
+ */
+function tryParseMarkdownResponse(responseText) {
+    const markdownContent = extractMarkdownBlock(responseText);
+    if (markdownContent) {
+        debugLog('[RPG Parser] Found markdown block, attempting to parse');
+        try {
+            const data = markdownToJson(markdownContent);
+            if (data && Object.keys(data).length > 0) {
+                return data;
+            }
+        } catch (e) {
+            debugLog('[RPG Parser] Markdown parse failed:', e.message);
+        }
+    }
+    return null;
 }
 
 /**

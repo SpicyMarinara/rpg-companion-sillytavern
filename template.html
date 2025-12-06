@@ -283,6 +283,14 @@
                     <small data-i18n-key="template.settingsModal.advanced.generationModeNote">Together: Adds RPG tracking to main roleplay. Separate: Generates RPG data separately (manual or auto).</small>
                 </div>
 
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-markdown-format" />
+                    <span data-i18n-key="template.settingsModal.advanced.useMarkdownFormat">Use Token-Efficient Markdown Format</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.useMarkdownFormatNote">
+                    Uses markdown instead of JSON for tracker data. More token-efficient (~30-40% fewer tokens) but may be less reliable with some models.
+                </small>
+
                 <div class="rpg-setting-row">
                     <label for="rpg-update-depth" data-i18n-key="template.settingsModal.advanced.contextMessages">Context Messages:</label>
                     <input type="number" id="rpg-update-depth" min="1" max="20" value="4" class="rpg-input" />
@@ -391,7 +399,7 @@
                         </button>
                     </div>
                     <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.customMessageInterceptionPromptNote">
-                        Customize the instructions sent to the AI when rewriting user messages. Leave empty to use the default guidance. The AI receives this prompt, the current RPG state JSON, and the recent messages you specify above.
+                        Customize the instructions sent to the AI when rewriting user messages. Leave empty to use the default guidance. The AI receives this prompt, the current RPG state, and the recent messages you specify above.
                     </small>
                 </div>
 

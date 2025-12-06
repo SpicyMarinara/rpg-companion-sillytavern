@@ -7,6 +7,7 @@ import { getContext } from '../../../../../../extensions.js';
 import { chat, characters, this_chid } from '../../../../../../../script.js';
 import { selected_group, getGroupMembers, getGroupChat } from '../../../../../../group-chats.js';
 import { extensionSettings, committedTrackerData } from '../../core/state.js';
+import { jsonToMarkdown, generateMarkdownSchema } from '../../utils/markdownFormat.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -24,10 +25,22 @@ export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, an
 export const DEFAULT_JSON_TRACKER_PROMPT = `At the start of every reply, output a JSON object inside a markdown code fence (with \`\`\`json). This tracks {{user}}'s stats, inventory, skills, and scene information. Follow the exact schema shown below. Use concrete values - no placeholders or brackets. Update stats realistically based on actions and time (0% change for minutes, 1-5% normally, 5%+ only for major events). Items and skills have "name" and "description" fields. Items can grant skills via "grantsSkill", and skills show their source via "grantedBy".`;
 
 /**
- * Default message interception prompt text
+ * Default markdown tracker instruction prompt text (token-efficient format)
+ * Use {{user}} as placeholder for the user's name (will be replaced at runtime)
+ */
+export const DEFAULT_MARKDOWN_TRACKER_PROMPT = `At the start of every reply, output tracker data using the markdown format shown below (inside \`\`\`markdown fences). This tracks {{user}}'s stats, inventory, skills, and scene information. Use concrete values - no placeholders. Update stats realistically (0% for minutes, 1-5% normally, 5%+ for major events). Format: "# Section" for main sections, "## Subsection" for categories, "Key: Value" for fields, "- Item: Description" for lists.`;
+
+/**
+ * Default message interception prompt text (JSON format)
  * Guides the LLM to rewrite the user's message based on current RPG state and recent chat
  */
-export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (JSON). You must validate the feasibility of the user's intended thoughts, actions and speech for {{user}} to take against {{user}}'s JSON state; if the draft contradicts said state (e.g. having good ideas while 'Intelligence' is low, or running while having a 'Leg Injury', or clearly enunciating when having a 'Lisp'), you are required to override the draft, rewriting the message to make it more realistic, instead adhering exactly to the user's desires. Be careful not apply speech modifications to narration or thoughts (e.g. a 'Lisp' would only be reflected in spoken words, not in thoughts or narration). Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Never include information that was not already present in the original draft. Never narrate the consequences of {{user}}'s actions, only what they are. You are not contributing to the narrative, you are editing what the next message is going to be. Return ONLY the modified message text. Make sure to format your message appropriately, using the correct punctuation and signs, whether it's speech, thoughts, or plain narrative text.`;
+export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (JSON). You must validate the feasibility of the user's intended thoughts, actions and speech for {{user}} to take against {{user}}'s JSON state; if the draft contradicts said state (e.g. having good ideas while 'Intelligence' is low, or running while having a 'Leg Injury', or clearly enunciating when having a 'Lisp'), you are required to override the draft, rewriting the message to make it more realistic, instead adhering exactly to the user's desires. Be careful not apply speech modifications to narration or thoughts (e.g. a 'Lisp' would only be reflected in spoken words, not in thoughts or narration). Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Keep to the draft's length and spirit as much as possible. Never include information that was not already present in the original draft. Never narrate the consequences of {{user}}'s actions, only what they are. Return ONLY the modified message text. Make sure to format your message appropriately, using the correct punctuation and signs, whether it's speech, thoughts, or plain narrative text.`;
+
+/**
+ * Default message interception prompt text (Markdown format)
+ * Guides the LLM to rewrite the user's message based on current RPG state and recent chat
+ */
+export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (markdown). You must validate the feasibility of the user's intended thoughts, actions and speech for {{user}} to take against {{user}}'s markdown state; if the draft contradicts said state (e.g. having good ideas while 'Intelligence' is low, or running while having a 'Leg Injury', or clearly enunciating when having a 'Lisp'), you are required to override the draft, rewriting the message to make it more realistic, instead adhering exactly to the user's desires. Be careful not apply speech modifications to narration or thoughts (e.g. a 'Lisp' would only be reflected in spoken words, not in thoughts or narration). Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Keep to the draft's length and spirit as much as possible. Never include information that was not already present in the original draft. Never narrate the consequences of {{user}}'s actions, only what they are. Return ONLY the modified message text. Make sure to format your message appropriately, using the correct punctuation and signs, whether it's speech, thoughts, or plain narrative text.`;
 
 /**
  * Gets character card information for current chat (handles both single and group chats)
@@ -133,6 +146,11 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         return instructions;
     }
 
+    // Use markdown format if enabled (more token-efficient)
+    if (extensionSettings.useMarkdownFormat) {
+        return generateMarkdownTrackerInstructions(includeHtmlPrompt, includeContinuation, includeAttributes);
+    }
+
     // JSON instruction header
     const jsonPrompt = (extensionSettings.customTrackerPrompt || DEFAULT_JSON_TRACKER_PROMPT).replace(/\{\{user\}\}/g, userName);
     instructions += `\n${jsonPrompt}\n\n`;
@@ -148,7 +166,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         const enabledStats = trackerConfig?.userStats?.customStats?.filter(s => s?.enabled && s?.name) || [];
         if (enabledStats.length > 0) {
             let statsJson = '  "stats": {\n';
-            statsJson += enabledStats.map(s => `    "${s.name}": 75`).join(',\n');
+            statsJson += enabledStats.map(s => `    "${s.name}": "[0-100]"`).join(',\n');
             statsJson += '\n  }';
             sections.push(statsJson);
         }
@@ -159,7 +177,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             let statusJson = '  "status": {\n';
             const statusParts = [];
             if (statusConfig.showMoodEmoji) {
-                statusParts.push(`    "mood": "😊"`);
+                statusParts.push(`    "mood": "[emoji]"`);
             }
             const customFields = statusConfig.customFields || [];
             if (customFields.length > 0) {
@@ -177,7 +195,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             const skillCategories = trackerConfig?.userStats?.skillsSection?.customFields || [];
             const enabledCategories = skillCategories.filter(cat => cat.enabled !== false);
             if (enabledCategories.length > 0) {
-                const skillLines = enabledCategories.map(cat => `    "${cat.name}": "Skill 1, Skill 2"`).join(',\n');
+                const skillLines = enabledCategories.map(cat => `    "${cat.name}": "[skill], [skill]"`).join(',\n');
                 sections.push(`  "skills": {\n${skillLines}\n  }`);
             } else {
                 sections.push(`  "skills": "None"`);
@@ -196,13 +214,13 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         
         if (enabledAttributes.length > 0) {
             let attrsJson = '  "attributes": {\n';
-            const attrParts = enabledAttributes.map(attr => `    "${attr.name}": 10`);
+            const attrParts = enabledAttributes.map(attr => `    "${attr.name}": "[number]"`);
             attrsJson += attrParts.join(',\n');
             attrsJson += '\n  }';
             sections.push(attrsJson);
             
             // Add level
-            sections.push(`  "level": 1`);
+            sections.push(`  "level": "[number]"`);
         }
     }
 
@@ -210,16 +228,16 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     if (showInfoBox) {
         const widgets = trackerConfig?.infoBox?.widgets || {};
         const infoParts = [];
-        if (widgets.date?.enabled) infoParts.push(`    "date": "Monday, March 15, 1242"`);
-        if (widgets.time?.enabled) infoParts.push(`    "time": "14:00 → 15:30"`);
-        if (widgets.weather?.enabled) infoParts.push(`    "weather": "☀️ Sunny"`);
+        if (widgets.date?.enabled) infoParts.push(`    "date": "[weekday, month day, year]"`);
+        if (widgets.time?.enabled) infoParts.push(`    "time": "[HH:MM → HH:MM]"`);
+        if (widgets.weather?.enabled) infoParts.push(`    "weather": "[emoji] [description]"`);
         if (widgets.temperature?.enabled) {
             const unit = widgets.temperature.unit === 'F' ? '°F' : '°C';
-            infoParts.push(`    "temperature": "22${unit}"`);
+            infoParts.push(`    "temperature": "[number]${unit}"`);
         }
-        if (widgets.location?.enabled) infoParts.push(`    "location": "Forest Clearing"`);
+        if (widgets.location?.enabled) infoParts.push(`    "location": "[location name]"`);
         if (widgets.recentEvents?.enabled) {
-            infoParts.push(`    "recentEvents": ["Event 1", "Event 2"]`);
+            infoParts.push(`    "recentEvents": ["[event]", "[event]"]`);
         }
         
         if (infoParts.length > 0) {
@@ -230,7 +248,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     // Characters section
     if (showCharacters) {
         const charConfig = trackerConfig?.presentCharacters || {};
-        let charExample = `    {\n      "name": "Character Name",\n      "emoji": "🧑"`;
+        let charExample = `    {\n      "name": "[character name]",\n      "emoji": "[emoji]"`;
         
         if (charConfig.relationshipFields?.length > 0) {
             const allowedRelationships = charConfig.relationshipFields.join(' | ');
@@ -247,12 +265,12 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         const charStatsConfig = charConfig.characterStats;
         const enabledCharStats = charStatsConfig?.enabled && charStatsConfig?.customStats?.filter(s => s?.enabled && s?.name) || [];
         if (enabledCharStats.length > 0) {
-            const statsJson = enabledCharStats.map(s => `        "${s.name}": 75`).join(',\n');
+            const statsJson = enabledCharStats.map(s => `        "${s.name}": "[0-100]"`).join(',\n');
             charExample += `,\n      "stats": {\n${statsJson}\n      }`;
         }
         
         if (charConfig.thoughts?.enabled) {
-            charExample += `,\n      "thoughts": "Character's inner thoughts in first person..."`;
+            charExample += `,\n      "thoughts": "[character's inner thoughts in first person]"`;
         }
         
         charExample += '\n    }';
@@ -264,15 +282,15 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         let invSection = '  "inventory": {\n';
         
         const exampleItem = enableItemSkillLinks 
-            ? '{ "name": "Item Name", "description": "Description", "grantsSkill": "Skill Name" }'
-            : '{ "name": "Item Name", "description": "Description" }';
+            ? '{ "name": "[item name]", "description": "[description]", "grantsSkill": "[skill name]" }'
+            : '{ "name": "[item name]", "description": "[description]" }';
         
         if (extensionSettings.useSimplifiedInventory) {
             invSection += `    "items": [${exampleItem}]\n`;
         } else {
             invSection += `    "onPerson": [${exampleItem}],\n`;
-            invSection += `    "stored": {\n      "Location Name": [${exampleItem}]\n    },\n`;
-            invSection += `    "assets": [{ "name": "Property/Vehicle", "description": "Description" }]\n`;
+            invSection += `    "stored": {\n      "[location name]": [${exampleItem}]\n    },\n`;
+            invSection += `    "assets": [{ "name": "[property/vehicle]", "description": "[description]" }]\n`;
         }
         
         invSection += '  }';
@@ -289,9 +307,9 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             let skillsSection = '  "skills": {\n';
             const categoryExamples = enabledCategories.map(cat => {
                 const catName = cat.name;
-                let skillExample = '{ "name": "Ability Name", "description": "What this ability does" }';
+                let skillExample = '{ "name": "[ability name]", "description": "[what this ability does]" }';
                 if (enableItemSkillLinks) {
-                    skillExample = '{ "name": "Ability", "description": "Description", "grantedBy": "Item Name" }';
+                    skillExample = '{ "name": "[ability]", "description": "[description]", "grantedBy": "[item name]" }';
                 }
                 return `    "${catName}": [${skillExample}]`;
             });
@@ -304,8 +322,8 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     // Quests section
     if (showQuests) {
         let questsSection = '  "quests": {\n';
-        questsSection += '    "main": { "name": "Main Quest Title", "description": "Primary objective" },\n';
-        questsSection += '    "optional": [{ "name": "Side Quest", "description": "Optional objective" }]\n';
+        questsSection += '    "main": { "name": "[quest title]", "description": "[primary objective]" },\n';
+        questsSection += '    "optional": [{ "name": "[quest title]", "description": "[optional objective]" }]\n';
         questsSection += '  }';
         sections.push(questsSection);
     }
@@ -394,6 +412,136 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
                 instructions += `${userName} rolled ${roll.total} on ${roll.formula}. Determine success/failure based on attributes.\n\n`;
             }
         }
+    }
+
+    // HTML prompt
+    if (extensionSettings.enableHtmlPrompt && includeHtmlPrompt) {
+        const htmlPrompt = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+        instructions += htmlPrompt;
+    }
+
+    return instructions;
+}
+
+/**
+ * Generates markdown-format tracker instructions (more token-efficient than JSON)
+ * @param {boolean} includeHtmlPrompt - Whether to include HTML prompt
+ * @param {boolean} includeContinuation - Whether to include continuation instructions
+ * @param {boolean} includeAttributes - Whether to include attributes section
+ * @returns {string} Formatted markdown instruction text for the AI
+ */
+function generateMarkdownTrackerInstructions(includeHtmlPrompt = true, includeContinuation = true, includeAttributes = true) {
+    const userName = getContext().name1;
+    const trackerConfig = extensionSettings.trackerConfig;
+    let instructions = '';
+
+    const showStats = extensionSettings.showUserStats;
+    const showInfoBox = extensionSettings.showInfoBox;
+    const showCharacters = extensionSettings.showCharacterThoughts;
+    const showInventory = extensionSettings.showInventory;
+    const showSkills = extensionSettings.showSkills;
+    const showQuests = extensionSettings.showQuests;
+    const enableItemSkillLinks = extensionSettings.enableItemSkillLinks;
+    const deleteSkillWithItem = extensionSettings.deleteSkillWithItem;
+
+    // Determine if attributes should be sent (same logic as JSON version)
+    const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes;
+    const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
+    const shouldSendAttributes = includeAttributes && showRPGAttributes && (alwaysSendAttributes || extensionSettings.lastDiceRoll);
+
+    // Markdown instruction header
+    const mdPrompt = (extensionSettings.customTrackerPrompt || DEFAULT_MARKDOWN_TRACKER_PROMPT).replace(/\{\{user\}\}/g, userName);
+    instructions += `\n${mdPrompt}\n\n`;
+
+    // Generate markdown schema example
+    const schemaOptions = {
+        includeStats: showStats,
+        includeAttributes: shouldSendAttributes,
+        includeInfoBox: showInfoBox,
+        includeCharacters: showCharacters,
+        includeInventory: showInventory,
+        includeSkills: showSkills,
+        includeQuests: showQuests,
+        enableItemSkillLinks: enableItemSkillLinks,
+        useSimplifiedInventory: extensionSettings.useSimplifiedInventory
+    };
+    
+    const markdownSchema = generateMarkdownSchema(trackerConfig, schemaOptions);
+    instructions += '```markdown\n';
+    instructions += markdownSchema;
+    instructions += '\n```\n\n';
+
+    // Add notes about the format
+    instructions += 'Format rules:\n';
+    instructions += '- Use # for main sections (Stats, Status, InfoBox, Characters, Inventory, Skills, Quests)\n';
+    instructions += '- Use ## for subsections (character names, inventory categories, skill categories)\n';
+    instructions += '- Use "Key: Value" for fields\n';
+    instructions += '- Use "- Item: Description" for list items\n';
+    instructions += '- Stats are percentages (0-100)\n';
+    instructions += '- Use actual values, not placeholders like [Location]\n';
+    instructions += '- Items, equipment and possessions should be placed in the inventory section\n';
+    instructions += '- Characters should be removed as soon as they leave the scene\n';
+    instructions += `- Your list of characters must never include ${userName}\n`;
+    instructions += '- Empty sections can be omitted\n';
+    instructions += '- Use "null" for main quest if none active\n';
+
+    if (showStats) {
+        const customStats = trackerConfig?.userStats?.customStats || [];
+        const statsWithDesc = customStats.filter(s => s?.enabled && s?.description);
+        if (statsWithDesc.length > 0) {
+            instructions += '- Stat meanings:\n';
+            statsWithDesc.forEach(stat => {
+                instructions += `  • "${stat.name}": ${stat.description}\n`;
+            });
+        }
+    }
+
+    if (showSkills) {
+        const skillsLabel = trackerConfig?.userStats?.skillsSection?.label || 'Skills';
+        if (skillsLabel !== 'Skills') {
+            instructions += `- The "Skills" section represents "${skillsLabel}" in this context\n`;
+        }
+        
+        const skillCategories = trackerConfig?.userStats?.skillsSection?.customFields || [];
+        const categoriesWithDesc = skillCategories.filter(cat => 
+            typeof cat === 'object' && cat.description && cat.enabled !== false
+        );
+        if (categoriesWithDesc.length > 0) {
+            instructions += `- ${skillsLabel} categories:\n`;
+            categoriesWithDesc.forEach(cat => {
+                instructions += `  • "${cat.name}": ${cat.description}\n`;
+            });
+        }
+    }
+
+    if (shouldSendAttributes) {
+        instructions += '- Attributes are numeric values (typically 1-20)\n';
+        instructions += '- Level is a numeric value representing progression\n';
+    }
+
+    if (showQuests) {
+        instructions += '- "## Main" for the main quest, "## Optional" for side quests\n';
+    }
+
+    if (enableItemSkillLinks) {
+        instructions += '- Items granting skills: add [grants: Skill Name] after description\n';
+        instructions += '- Skills from items: add [from: Item Name] after description\n';
+        if (deleteSkillWithItem) {
+            instructions += '- Remove skills when their source item is removed\n';
+        }
+    }
+
+    instructions += '\n';
+
+    // Continuation instruction
+    if (includeContinuation) {
+        instructions += `After the markdown block, continue the story naturally. The tracker data should reflect and influence the narrative.\n\n`;
+    }
+
+    // Dice roll handling
+    if (includeAttributes && shouldSendAttributes && extensionSettings.lastDiceRoll) {
+        const roll = extensionSettings.lastDiceRoll;
+        instructions += `${userName} rolled ${roll.total} on ${roll.formula}. Determine success/failure based on attributes.\n\n`;
     }
 
     // HTML prompt
@@ -530,6 +678,10 @@ export function generateContextualSummary() {
     }
     
     if (Object.keys(currentState).length > 0) {
+        // Use markdown format if enabled
+        if (extensionSettings.useMarkdownFormat) {
+            return jsonToMarkdown(currentState);
+        }
         return JSON.stringify(currentState, null, 2);
     }
     
@@ -544,9 +696,11 @@ export function generateContextualSummary() {
  */
 export function generateRPGPromptText() {
     const trackerConfig = extensionSettings.trackerConfig;
+    const useMarkdown = extensionSettings.useMarkdownFormat;
+    const formatName = useMarkdown ? 'markdown' : 'JSON';
     let promptText = '';
 
-    promptText += `Here are the previous trackers in JSON format that you should consider when responding:\n`;
+    promptText += `Here are the previous trackers in ${formatName} format that you should consider when responding:\n`;
     promptText += `<previous>\n`;
 
     // Build previous state as JSON
@@ -645,11 +799,17 @@ export function generateRPGPromptText() {
         }
     }
     
-    // Output as JSON if we have any data, otherwise indicate first update
+    // Output in appropriate format if we have any data, otherwise indicate first update
     if (Object.keys(previousState).length > 0) {
-        promptText += '```json\n';
-        promptText += JSON.stringify(previousState, null, 2);
-        promptText += '\n```\n';
+        if (useMarkdown) {
+            promptText += '```markdown\n';
+            promptText += jsonToMarkdown(previousState);
+            promptText += '\n```\n';
+        } else {
+            promptText += '```json\n';
+            promptText += JSON.stringify(previousState, null, 2);
+            promptText += '\n```\n';
+        }
     } else {
         promptText += 'None - this is the first update.\n';
     }

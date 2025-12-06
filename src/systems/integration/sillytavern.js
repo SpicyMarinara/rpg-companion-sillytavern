@@ -29,7 +29,7 @@ import { saveChatData, loadChatData } from '../../core/persistence.js';
 // Generation & Parsing
 import { tryParseJSONResponse } from '../generation/parser.js';
 import { updateRPGData } from '../generation/apiClient.js';
-import { generateContextualSummary, DEFAULT_MESSAGE_INTERCEPTION_PROMPT } from '../generation/promptBuilder.js';
+import { generateContextualSummary, DEFAULT_MESSAGE_INTERCEPTION_PROMPT, DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN } from '../generation/promptBuilder.js';
 
 // Rendering
 import { renderUserStats } from '../rendering/userStats.js';
@@ -129,9 +129,12 @@ async function interceptAndModifyUserMessage() {
         })
         .join('\n');
 
-    const basePrompt =
-        (extensionSettings.customMessageInterceptionPrompt || '').trim() ||
-        DEFAULT_MESSAGE_INTERCEPTION_PROMPT;
+    const useMarkdown = extensionSettings.useMarkdownFormat;
+    const defaultPrompt = useMarkdown ? DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN : DEFAULT_MESSAGE_INTERCEPTION_PROMPT;
+    const basePrompt = (extensionSettings.customMessageInterceptionPrompt || '').trim() || defaultPrompt;
+    
+    const formatName = useMarkdown ? 'markdown' : 'JSON';
+    const fenceType = useMarkdown ? 'markdown' : 'json';
 
     const promptMessages = [
         {
@@ -144,7 +147,7 @@ async function interceptAndModifyUserMessage() {
         },
         {
             role: 'system',
-            content: `Current RPG state (JSON):\n${stateJson ? `\`\`\`json\n${stateJson}\n\`\`\`` : 'None'}`
+            content: `Current RPG state (${formatName}):\n${stateJson ? `\`\`\`${fenceType}\n${stateJson}\n\`\`\`` : 'None'}`
         },
         {
             role: 'system',

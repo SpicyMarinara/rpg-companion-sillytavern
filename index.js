@@ -78,7 +78,13 @@ import { setupClassicStatsButtons } from './src/systems/features/classicStats.js
 import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/systems/features/htmlCleaning.js';
 import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
 import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
-import { DEFAULT_HTML_PROMPT, DEFAULT_JSON_TRACKER_PROMPT, DEFAULT_MESSAGE_INTERCEPTION_PROMPT } from './src/systems/generation/promptBuilder.js';
+import { 
+    DEFAULT_HTML_PROMPT, 
+    DEFAULT_JSON_TRACKER_PROMPT, 
+    DEFAULT_MARKDOWN_TRACKER_PROMPT,
+    DEFAULT_MESSAGE_INTERCEPTION_PROMPT,
+    DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN
+} from './src/systems/generation/promptBuilder.js';
 
 // Integration modules
 import {
@@ -349,6 +355,25 @@ async function initUI() {
         updateGenerationModeUI();
     });
 
+    $('#rpg-toggle-markdown-format').on('change', function() {
+        extensionSettings.useMarkdownFormat = $(this).prop('checked');
+        saveSettings();
+        
+        // Update displayed defaults if user hasn't customized them
+        if (!extensionSettings.customTrackerPrompt) {
+            const trackerDefault = extensionSettings.useMarkdownFormat 
+                ? DEFAULT_MARKDOWN_TRACKER_PROMPT 
+                : DEFAULT_JSON_TRACKER_PROMPT;
+            $('#rpg-custom-tracker-prompt').val(trackerDefault);
+        }
+        if (!extensionSettings.customMessageInterceptionPrompt) {
+            const interceptionDefault = extensionSettings.useMarkdownFormat 
+                ? DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN 
+                : DEFAULT_MESSAGE_INTERCEPTION_PROMPT;
+            $('#rpg-custom-message-interception-prompt').val(interceptionDefault);
+        }
+    });
+
     $('#rpg-use-separate-preset').on('change', function() {
         extensionSettings.useSeparatePreset = $(this).prop('checked');
         saveSettings();
@@ -466,7 +491,10 @@ async function initUI() {
 
     $('#rpg-restore-default-message-interception-prompt').on('click', function() {
         extensionSettings.customMessageInterceptionPrompt = '';
-        $('#rpg-custom-message-interception-prompt').val(DEFAULT_MESSAGE_INTERCEPTION_PROMPT);
+        const interceptionDefault = extensionSettings.useMarkdownFormat 
+            ? DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN 
+            : DEFAULT_MESSAGE_INTERCEPTION_PROMPT;
+        $('#rpg-custom-message-interception-prompt').val(interceptionDefault);
         saveSettings();
         toastr.success('Message interception prompt restored to default');
     });
@@ -479,7 +507,10 @@ async function initUI() {
 
     $('#rpg-restore-default-tracker-prompt').on('click', function() {
         extensionSettings.customTrackerPrompt = '';
-        $('#rpg-custom-tracker-prompt').val(DEFAULT_JSON_TRACKER_PROMPT);
+        const trackerDefault = extensionSettings.useMarkdownFormat 
+            ? DEFAULT_MARKDOWN_TRACKER_PROMPT 
+            : DEFAULT_JSON_TRACKER_PROMPT;
+        $('#rpg-custom-tracker-prompt').val(trackerDefault);
         saveSettings();
         toastr.success('Tracker prompt restored to default');
     });
@@ -591,9 +622,18 @@ async function initUI() {
     updateInterceptionToggleVisibility();
 
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
-    $('#rpg-custom-tracker-prompt').val(extensionSettings.customTrackerPrompt || DEFAULT_JSON_TRACKER_PROMPT);
+    
+    // Show correct default based on format setting
+    const trackerDefault = extensionSettings.useMarkdownFormat 
+        ? DEFAULT_MARKDOWN_TRACKER_PROMPT 
+        : DEFAULT_JSON_TRACKER_PROMPT;
+    $('#rpg-custom-tracker-prompt').val(extensionSettings.customTrackerPrompt || trackerDefault);
+    
+    const interceptionDefault = extensionSettings.useMarkdownFormat 
+        ? DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN 
+        : DEFAULT_MESSAGE_INTERCEPTION_PROMPT;
     $('#rpg-custom-message-interception-prompt').val(
-        extensionSettings.customMessageInterceptionPrompt || DEFAULT_MESSAGE_INTERCEPTION_PROMPT
+        extensionSettings.customMessageInterceptionPrompt || interceptionDefault
     );
     $('#rpg-message-interception-depth').val(
         extensionSettings.messageInterceptionContextDepth || extensionSettings.updateDepth || 4
@@ -609,6 +649,7 @@ async function initUI() {
     $('#rpg-custom-text').val(extensionSettings.customColors.text);
     $('#rpg-custom-highlight').val(extensionSettings.customColors.highlight);
     $('#rpg-generation-mode').val(extensionSettings.generationMode);
+    $('#rpg-toggle-markdown-format').prop('checked', extensionSettings.useMarkdownFormat);
     $('#rpg-skip-guided-mode').val(extensionSettings.skipInjectionsForGuided);
 
     updatePanelVisibility();

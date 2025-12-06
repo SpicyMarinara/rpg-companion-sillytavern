@@ -20,7 +20,7 @@ import {
 } from './promptBuilder.js';
 
 /**
- * Gets tracker instructions (always uses JSON format)
+ * Gets tracker instructions (uses JSON or markdown based on settings)
  * @param {boolean} includeHtmlPrompt 
  * @param {boolean} includeContinuation 
  * @returns {string}
@@ -137,13 +137,17 @@ export function onGenerationStarted(type, data) {
             setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         }
     } else if (extensionSettings.generationMode === 'separate') {
-        const currentStateJSON = generateContextualSummary();
+        const currentState = generateContextualSummary();
 
-        if (currentStateJSON) {
-            const wrappedContext = `\nHere is {{user}}'s current state in JSON format. This is merely informative, it's not your job to update it:
+        if (currentState) {
+            const useMarkdown = extensionSettings.useMarkdownFormat;
+            const formatName = useMarkdown ? 'markdown' : 'JSON';
+            const fenceType = useMarkdown ? 'markdown' : 'json';
+            
+            const wrappedContext = `\nHere is {{user}}'s current state in ${formatName} format. This is merely informative, it's not your job to update it:
 <context>
-\`\`\`json
-${currentStateJSON}
+\`\`\`${fenceType}
+${currentState}
 \`\`\`
 </context>\n\n`;
 

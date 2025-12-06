@@ -54,6 +54,8 @@
     "template.settingsModal.advanced.generationModeOptions.together": "同時生成",
     "template.settingsModal.advanced.generationModeOptions.separate": "單獨生成",
     "template.settingsModal.advanced.generationModeNote": "同時生成：將 RPG 追蹤添加到主要提示詞中一同生成。單獨生成：分開生成 RPG 數據。（就是手動或自動的差別）。",
+    "template.settingsModal.advanced.useMarkdownFormat": "使用高效 Markdown 格式",
+    "template.settingsModal.advanced.useMarkdownFormatNote": "使用 Markdown 代替 JSON 格式傳輸追蹤數據。可節省約 30-40% 的 Token，但某些模型可能解析不太穩定。",
     "template.settingsModal.advanced.contextMessages": "上下文訊息：",
     "template.settingsModal.advanced.contextMessagesNote": "包含的最近訊息數量（僅限單獨生成模式）",
     "template.settingsModal.advanced.memoryBatchSize": "記憶批次大小：",
