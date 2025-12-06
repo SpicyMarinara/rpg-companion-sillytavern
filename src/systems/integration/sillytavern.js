@@ -22,7 +22,9 @@ import {
     isPlotProgression,
     setLastActionWasSwipe,
     setIsPlotProgression,
-    setLastGeneratedData
+    setLastGeneratedData,
+    setCommittedTrackerData,
+    createFreshTrackerData
 } from '../../core/state.js';
 import { saveChatData, loadChatData } from '../../core/persistence.js';
 
@@ -276,6 +278,7 @@ export function onCharacterChanged() {
 /**
  * Event handler for when a message is swiped.
  * Loads the RPG data for the swipe the user navigated to.
+ * Special handling for first message (greeting) - reinitializes state.
  */
 export function onMessageSwiped(messageIndex) {
     if (!extensionSettings.enabled) {
@@ -289,6 +292,47 @@ export function onMessageSwiped(messageIndex) {
     }
 
     const currentSwipeId = message.swipe_id || 0;
+
+    // Special case: first message swiped (greeting change)
+    if (messageIndex === 0 && extensionSettings.generationMode === 'separate') {
+        console.log('[RPG Companion] First message swiped (greeting change) - reinitializing state');
+        
+        const freshData = createFreshTrackerData();
+        setLastGeneratedData(freshData);
+        setCommittedTrackerData(JSON.parse(JSON.stringify(freshData)));
+        
+        const greetingContent = message.swipes?.[currentSwipeId] || message.mes || '';
+        let foundExistingData = false;
+        
+        if (greetingContent) {
+            foundExistingData = tryParseJSONResponse(greetingContent);
+            if (foundExistingData) {
+                console.log('[RPG Companion] Found RPG data in greeting');
+            }
+        }
+        
+        saveChatData();
+        
+        // Re-render all panels
+        renderUserStats();
+        renderInfoBox();
+        renderThoughts();
+        renderInventory();
+        renderSkills();
+        renderQuests();
+
+        // Update chat thought overlays
+        updateChatThoughts();
+        
+        if (!foundExistingData && extensionSettings.autoUpdate) {
+            console.log('[RPG Companion] Triggering RPG generation for new greeting');
+            setTimeout(async () => {
+                await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
+            }, 500);
+        }
+        
+        return;
+    }
 
     // Only set flag to true if this swipe will trigger a NEW generation
     // Check if the swipe already exists (has content in the swipes array)
@@ -315,6 +359,7 @@ export function onMessageSwiped(messageIndex) {
     renderInfoBox();
     renderThoughts();
     renderInventory();
+    renderSkills();
     renderQuests();
 
     // Update chat thought overlays
