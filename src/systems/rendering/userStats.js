@@ -55,13 +55,15 @@ export function buildUserStatsText() {
         text += `${stats.conditions || 'None'}\n`;
     }
 
-    // Add inventory summary
+    // Add inventory summary only if inventory is enabled
+    if (extensionSettings.showInventory) {
     const inventorySummary = buildInventorySummary(stats.inventory);
     text += inventorySummary;
+    }
 
-    // Add skills if enabled
-    if (config.skillsSection.enabled && stats.skills) {
-        text += `\n${config.skillsSection.label}: ${stats.skills}`;
+    // Add skills if enabled AND not shown in separate tab
+    if (config.skillsSection.enabled && !extensionSettings.showSkills) {
+        text += `\n${config.skillsSection.label}: ${extensionSettings.userStats?.skills || 'None'}`;
     }
 
     return text.trim();
@@ -80,19 +82,19 @@ export function renderUserStats() {
     const stats = extensionSettings.userStats;
     const config = extensionSettings.trackerConfig?.userStats || {
         customStats: [
-            { id: 'health', name: 'Health', enabled: true },
-            { id: 'satiety', name: 'Satiety', enabled: true },
-            { id: 'energy', name: 'Energy', enabled: true },
-            { id: 'hygiene', name: 'Hygiene', enabled: true },
-            { id: 'arousal', name: 'Arousal', enabled: true }
+            { id: 'health', name: 'Health', description: '', enabled: true },
+            { id: 'satiety', name: 'Satiety', description: '', enabled: true },
+            { id: 'energy', name: 'Energy', description: '', enabled: true },
+            { id: 'hygiene', name: 'Hygiene', description: '', enabled: true },
+            { id: 'arousal', name: 'Arousal', description: '', enabled: true }
         ],
         rpgAttributes: [
-            { id: 'str', name: 'STR', enabled: true },
-            { id: 'dex', name: 'DEX', enabled: true },
-            { id: 'con', name: 'CON', enabled: true },
-            { id: 'int', name: 'INT', enabled: true },
-            { id: 'wis', name: 'WIS', enabled: true },
-            { id: 'cha', name: 'CHA', enabled: true }
+            { id: 'str', name: 'STR', description: '', enabled: true },
+            { id: 'dex', name: 'DEX', description: '', enabled: true },
+            { id: 'con', name: 'CON', description: '', enabled: true },
+            { id: 'int', name: 'INT', description: '', enabled: true },
+            { id: 'wis', name: 'WIS', description: '', enabled: true },
+            { id: 'cha', name: 'CHA', description: '', enabled: true }
         ],
         statusSection: { enabled: true, showMoodEmoji: true, customFields: ['Conditions'] },
         skillsSection: { enabled: false, label: 'Skills' }
@@ -165,8 +167,8 @@ export function renderUserStats() {
         html += '</div>';
     }
 
-    // Skills section (conditionally rendered)
-    if (config.skillsSection.enabled) {
+    // Skills section (conditionally rendered) - only if NOT shown in separate tab
+    if (config.skillsSection.enabled && !extensionSettings.showSkills) {
         const skillsValue = stats.skills || 'None';
         html += `
             <div class="rpg-skills-section">
@@ -185,12 +187,12 @@ export function renderUserStats() {
     if (showRPGAttributes) {
         // Use attributes from config, with fallback to defaults if not configured
         const rpgAttributes = (config.rpgAttributes && config.rpgAttributes.length > 0) ? config.rpgAttributes : [
-            { id: 'str', name: 'STR', enabled: true },
-            { id: 'dex', name: 'DEX', enabled: true },
-            { id: 'con', name: 'CON', enabled: true },
-            { id: 'int', name: 'INT', enabled: true },
-            { id: 'wis', name: 'WIS', enabled: true },
-            { id: 'cha', name: 'CHA', enabled: true }
+            { id: 'str', name: 'STR', description: '', enabled: true },
+            { id: 'dex', name: 'DEX', description: '', enabled: true },
+            { id: 'con', name: 'CON', description: '', enabled: true },
+            { id: 'int', name: 'INT', description: '', enabled: true },
+            { id: 'wis', name: 'WIS', description: '', enabled: true },
+            { id: 'cha', name: 'CHA', description: '', enabled: true }
         ];
         const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
 
@@ -315,23 +317,19 @@ export function renderUserStats() {
         const field = $(this).data('field');
         const value = $(this).text().trim().replace(':', '');
 
-        if (!extensionSettings.statNames) {
-            extensionSettings.statNames = {
-                health: 'Health',
-                satiety: 'Satiety',
-                energy: 'Energy',
-                hygiene: 'Hygiene',
-                arousal: 'Arousal'
-            };
+        // Update the stat name in customStats array (new format)
+        const config = extensionSettings.trackerConfig?.userStats;
+        if (config && config.customStats) {
+            const stat = config.customStats.find(s => s.id === field);
+            if (stat && value) {
+                stat.name = value;
+                saveSettings();
+                saveChatData();
+
+                // Re-render to update the display
+                renderUserStats();
+            }
         }
-
-        extensionSettings.statNames[field] = value || extensionSettings.statNames[field];
-
-        saveSettings();
-        saveChatData();
-
-        // Re-render to update the display
-        renderUserStats();
     });
 
     // Add event listener for level editing

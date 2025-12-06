@@ -13,15 +13,25 @@ export let extensionSettings = {
     enabled: true,
     autoUpdate: true,
     updateDepth: 4, // How many messages to include in the context
+    messageInterceptionContextDepth: 4, // How many recent messages to send when intercepting user messages
     generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
     useSeparatePreset: false, // Use 'RPG Companion Trackers' preset for tracker generation instead of main API model
     showUserStats: true,
     showInfoBox: true,
     showCharacterThoughts: true,
     showInventory: true, // Show inventory section (v2 system)
+    useSimplifiedInventory: false, // Use simplified single-list inventory instead of categorized (On Person/Stored/Assets)
+    showSkills: false, // Show skills as separate section (moves skills from Status to own tab)
+    enableItemSkillLinks: false, // Enable linking items to skills (item grants skill, removing item removes skill)
+    deleteSkillWithItem: false, // When true, deleting an item also deletes linked skills. When false (default), just unlinks.
+    showQuests: true, // Show quests section
     showThoughtsInChat: true, // Show thoughts overlay in chat
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
+    customTrackerPrompt: '', // Custom tracker instruction prompt (empty = use default)
+    enableMessageInterception: false, // Enable intercepting user messages with LLM rewrite
+    messageInterceptionActive: true, // Runtime toggle to allow/skip interception
+    customMessageInterceptionPrompt: '', // Custom prompt for message interception (empty = default)
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
     enablePlotButtons: true, // Show plot progression buttons above chat input
     panelPosition: 'right', // 'left', 'right', or 'top'
@@ -47,42 +57,74 @@ export let extensionSettings = {
         arousal: 0,
         mood: '😐',
         conditions: 'None',
-        /** @type {InventoryV2} */
+        /** @type {InventoryV2} Legacy string-based inventory */
         inventory: {
             version: 2,
             onPerson: "None",
             stored: {},
             assets: "None"
-        }
+        },
+        skills: "None" // Legacy single-string skills (for Status section)
     },
-    statNames: {
-        health: 'Health',
-        satiety: 'Satiety',
-        energy: 'Energy',
-        hygiene: 'Hygiene',
-        arousal: 'Arousal'
+    /**
+     * Structured inventory v3 - items as objects with name, description, and skill links
+     * @type {{onPerson: Array<{name: string, description: string, grantsSkill?: string}>, stored: Object<string, Array>, assets: Array}}
+     */
+    inventoryV3: {
+        onPerson: [],  // Array of { name, description, grantsSkill? }
+        stored: {},    // { locationName: [{ name, description, grantsSkill? }] }
+        assets: []     // Array of { name, description }
     },
+    /**
+     * Structured skills v2 - abilities as objects with name, description, and item links
+     * Key is the skill category name from config
+     * @type {Object<string, Array<{name: string, description: string, grantedBy?: string}>>}
+     */
+    skillsV2: {
+        // Example: "Combat": [{ name: "Sword Fighting", description: "Blade proficiency", grantedBy: "Iron Sword" }]
+    },
+    /**
+     * Structured info box data (from JSON parsing)
+     */
+    infoBoxData: {},
+    /**
+     * Structured characters data (from JSON parsing)
+     */
+    charactersData: [],
+    /**
+     * Structured quests v2 (from JSON parsing)
+     */
+    questsV2: {
+        main: null,
+        optional: []
+    },
+    // Legacy fields kept for backwards compatibility
+    skills: { list: [], categories: {} },
+    itemSkillLinks: {},
+    skillAbilityLinks: {},
+    skillsData: {},
     // Tracker customization configuration
     trackerConfig: {
         userStats: {
             // Array of custom stats (allows add/remove/rename)
             customStats: [
-                { id: 'health', name: 'Health', enabled: true },
-                { id: 'satiety', name: 'Satiety', enabled: true },
-                { id: 'energy', name: 'Energy', enabled: true },
-                { id: 'hygiene', name: 'Hygiene', enabled: true },
-                { id: 'arousal', name: 'Arousal', enabled: true }
+                { id: 'health', name: 'Health', description: '', enabled: true },
+                { id: 'satiety', name: 'Satiety', description: '', enabled: true },
+                { id: 'energy', name: 'Energy', description: '', enabled: true },
+                { id: 'hygiene', name: 'Hygiene', description: '', enabled: true },
+                { id: 'arousal', name: 'Arousal', description: '', enabled: true }
             ],
             // RPG Attributes (customizable D&D-style attributes)
             showRPGAttributes: true,
             alwaysSendAttributes: false, // If true, always send attributes; if false, only send with dice rolls
+            allowAIUpdateAttributes: true, // If true, allow AI to update attributes from JSON response; if false, attributes are read-only
             rpgAttributes: [
-                { id: 'str', name: 'STR', enabled: true },
-                { id: 'dex', name: 'DEX', enabled: true },
-                { id: 'con', name: 'CON', enabled: true },
-                { id: 'int', name: 'INT', enabled: true },
-                { id: 'wis', name: 'WIS', enabled: true },
-                { id: 'cha', name: 'CHA', enabled: true }
+                { id: 'str', name: 'STR', description: '', enabled: true },
+                { id: 'dex', name: 'DEX', description: '', enabled: true },
+                { id: 'con', name: 'CON', description: '', enabled: true },
+                { id: 'int', name: 'INT', description: '', enabled: true },
+                { id: 'wis', name: 'WIS', description: '', enabled: true },
+                { id: 'cha', name: 'CHA', description: '', enabled: true }
             ],
             // Status section config
             statusSection: {
@@ -90,11 +132,14 @@ export let extensionSettings = {
                 showMoodEmoji: true,
                 customFields: ['Conditions'] // User can edit what to track
             },
-            // Optional skills field
+            // Skills section config - array of skill categories
             skillsSection: {
                 enabled: false,
-                label: 'Skills', // User-editable
-                customFields: [] // Array of skill names
+                label: 'Skills', // User-editable section label
+                customFields: [
+                    // Each skill category has id, name, description, enabled
+                    // Example: { id: 'combat', name: 'Combat', description: 'Fighting and weapon abilities', enabled: true }
+                ]
             }
         },
         infoBox: {
@@ -136,8 +181,8 @@ export let extensionSettings = {
             characterStats: {
                 enabled: false,
                 customStats: [
-                    { id: 'health', name: 'Health', enabled: true },
-                    { id: 'arousal', name: 'Arousal', enabled: true }
+                    { id: 'health', name: 'Health', description: '', enabled: true },
+                    { id: 'arousal', name: 'Arousal', description: '', enabled: true }
                 ]
             }
         }
@@ -227,13 +272,6 @@ export function addDebugLog(message, data = null) {
 }
 
 /**
- * Feature flags for gradual rollout of new features
- */
-export const FEATURE_FLAGS = {
-    useNewInventory: true // Enable v2 inventory system with categorized storage
-};
-
-/**
  * Fallback avatar image (base64-encoded SVG with "?" icon)
  * Using base64 to avoid quote-encoding issues in HTML attributes
  */
@@ -247,6 +285,7 @@ export let $userStatsContainer = null;
 export let $infoBoxContainer = null;
 export let $thoughtsContainer = null;
 export let $inventoryContainer = null;
+export let $skillsContainer = null;
 export let $questsContainer = null;
 
 /**
@@ -314,6 +353,10 @@ export function setThoughtsContainer($element) {
 
 export function setInventoryContainer($element) {
     $inventoryContainer = $element;
+}
+
+export function setSkillsContainer($element) {
+    $skillsContainer = $element;
 }
 
 export function setQuestsContainer($element) {

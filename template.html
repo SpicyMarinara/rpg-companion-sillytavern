@@ -48,10 +48,21 @@
                 <!-- Divider after Thoughts -->
                 <div id="rpg-divider-thoughts" class="rpg-divider"></div>
 
+                <!-- Skills Section -->
+                <div id="rpg-skills" class="rpg-section rpg-skills-section">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+
+                <!-- Divider after Skills -->
+                <div id="rpg-divider-skills" class="rpg-divider"></div>
+
                 <!-- Inventory Section -->
                 <div id="rpg-inventory" class="rpg-section rpg-inventory-section">
                     <!-- Content will be populated by JavaScript -->
                 </div>
+
+                <!-- Divider after Inventory -->
+                <div id="rpg-divider-inventory" class="rpg-divider"></div>
 
                 <!-- Quests Section -->
                 <div id="rpg-quests" class="rpg-section rpg-quests-section">
@@ -182,6 +193,43 @@
                     <span data-i18n-key="template.settingsModal.display.showInventory">Show Inventory</span>
                 </label>
 
+                <label class="checkbox_label" style="margin-left: 24px;">
+                    <input type="checkbox" id="rpg-toggle-simplified-inventory" />
+                    <span data-i18n-key="template.settingsModal.display.useSimplifiedInventory">Use Simplified Inventory</span>
+                </label>
+                <small style="display: block; margin-left: 48px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.useSimplifiedInventoryNote">
+                    Single flat list instead of On Person / Stored / Assets categories
+                </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-skills" />
+                    <span data-i18n-key="template.settingsModal.display.showSkills">Show Skills Section</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.showSkillsNote">
+                    Displays skills as a separate tab instead of within Status. Configure skills in Edit Trackers.
+                </small>
+
+                <label class="checkbox_label" style="margin-left: 24px;">
+                    <input type="checkbox" id="rpg-toggle-item-skill-links" />
+                    <span data-i18n-key="template.settingsModal.display.enableItemSkillLinks">Enable Item-Skill Links</span>
+                </label>
+                <small style="display: block; margin-left: 48px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.enableItemSkillLinksNote">
+                    Items can grant skills. Removing an item unlinks or removes the skill.
+                </small>
+
+                <label class="checkbox_label" style="margin-left: 48px;">
+                    <input type="checkbox" id="rpg-toggle-delete-skill-with-item" />
+                    <span data-i18n-key="template.settingsModal.display.deleteSkillWithItem">Delete skill when item removed</span>
+                </label>
+                <small style="display: block; margin-left: 72px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.deleteSkillWithItemNote">
+                    When disabled, removing an item just unlinks the skill. When enabled, the skill is deleted.
+                </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-quests" />
+                    <span data-i18n-key="template.settingsModal.display.showQuests">Show Quests</span>
+                </label>
+
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-thoughts-in-chat" />
                     <span data-i18n-key="template.settingsModal.display.showThoughtsInChat">Show Thoughts in Chat</span>
@@ -241,6 +289,20 @@
                     <small data-i18n-key="template.settingsModal.advanced.contextMessagesNote">Number of recent messages to include (Separate mode only)</small>
                 </div>
 
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-message-interception" />
+                    <span data-i18n-key="template.settingsModal.advanced.enableMessageInterception">Intercept & rewrite user messages with AI</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.enableMessageInterceptionNote">
+                    When enabled, user messages are sent to the AI along with current RPG state and recent chat, then rewritten in-place.
+                </small>
+
+                <div class="rpg-setting-row">
+                    <label for="rpg-message-interception-depth" data-i18n-key="template.settingsModal.advanced.messageInterceptionDepth">Interception Context Messages:</label>
+                    <input type="number" id="rpg-message-interception-depth" min="1" max="20" value="4" class="rpg-input" />
+                    <small data-i18n-key="template.settingsModal.advanced.messageInterceptionDepthNote">How many recent messages to send with the interception prompt.</small>
+                </div>
+
                 <div class="rpg-setting-row">
                     <label for="rpg-memory-messages" data-i18n-key="template.settingsModal.advanced.memoryBatchSize">Memory Batch Size:</label>
                     <input type="number" id="rpg-memory-messages" min="4" max="50" value="16" class="rpg-input" />
@@ -267,6 +329,28 @@
                     When set, the extension will not inject tracker prompts, examples, or HTML instructions according to the selected mode when a guided generation (via `instruct` or `quiet_prompt`) is detected. Useful when using GuidedGenerations or similar extensions.
                 </small>
 
+                <!-- Custom Tracker Prompt Editor -->
+                <div class="rpg-setting-row" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rpg-border);">
+                    <label for="rpg-custom-tracker-prompt" style="display: block; margin-bottom: 8px; font-weight: 600;" data-i18n-key="template.settingsModal.advanced.customTrackerPromptTitle">
+                        <i class="fa-solid fa-scroll" aria-hidden="true"></i> Custom Tracker Prompt:
+                    </label>
+
+                    <textarea id="rpg-custom-tracker-prompt"
+                              style="width: 100%; min-height: 150px; padding: 10px; border-radius: 4px;
+                                     border: 1px solid var(--SmartThemeBorderColor); background: var(--SmartThemeBlurTintColor);
+                                     color: var(--SmartThemeBodyColor); font-family: 'Courier New', monospace; font-size: 12px;
+                                     resize: vertical; line-height: 1.5;"
+                              placeholder=""></textarea>
+                    <div style="margin-top: 8px; display: flex; gap: 8px;">
+                        <button id="rpg-restore-default-tracker-prompt" class="menu_button" style="flex: 1;">
+                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> <span data-i18n-key="template.settingsModal.advanced.restoreDefaultTrackerPrompt">Restore Default</span>
+                        </button>
+                    </div>
+                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.customTrackerPromptNote">
+                        Customize the instructions sent to the AI for generating tracker data. Use {{user}} as a placeholder for the user's name. This is the main prompt that tells the AI how to format and update the RPG trackers.
+                    </small>
+                </div>
+
                 <!-- Custom HTML Prompt Editor -->
                 <div class="rpg-setting-row" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rpg-border);">
                     <label for="rpg-custom-html-prompt" style="display: block; margin-bottom: 8px; font-weight: 600;" data-i18n-key="template.settingsModal.advanced.customHtmlPromptTitle">
@@ -286,6 +370,28 @@
                     </div>
                     <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.customHtmlPromptNote">
                         Customize the HTML prompt injected when "Enable Immersive HTML" is enabled. The default prompt is shown above - you can edit it directly or replace it entirely. Click "Restore Default" to reset. This affects all generation modes (together, separate, and plot progression).
+                    </small>
+                </div>
+
+                <!-- Custom Message Interception Prompt Editor -->
+                <div class="rpg-setting-row" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rpg-border);">
+                    <label for="rpg-custom-message-interception-prompt" style="display: block; margin-bottom: 8px; font-weight: 600;" data-i18n-key="template.settingsModal.advanced.customMessageInterceptionPromptTitle">
+                        <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Custom Message Interception Prompt:
+                    </label>
+
+                    <textarea id="rpg-custom-message-interception-prompt"
+                              style="width: 100%; min-height: 120px; padding: 10px; border-radius: 4px;
+                                     border: 1px solid var(--SmartThemeBorderColor); background: var(--SmartThemeBlurTintColor);
+                                     color: var(--SmartThemeBodyColor); font-family: 'Courier New', monospace; font-size: 12px;
+                                     resize: vertical; line-height: 1.5;"
+                              placeholder=""></textarea>
+                    <div style="margin-top: 8px; display: flex; gap: 8px;">
+                        <button id="rpg-restore-default-message-interception-prompt" class="menu_button" style="flex: 1;">
+                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> <span data-i18n-key="template.settingsModal.advanced.restoreDefaultMessageInterceptionPrompt">Restore Default</span>
+                        </button>
+                    </div>
+                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.customMessageInterceptionPromptNote">
+                        Customize the instructions sent to the AI when rewriting user messages. Leave empty to use the default guidance. The AI receives this prompt, the current RPG state JSON, and the recent messages you specify above.
                     </small>
                 </div>
 

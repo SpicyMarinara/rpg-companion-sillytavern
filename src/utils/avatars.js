@@ -14,9 +14,7 @@ import { getThumbnailUrl } from '../../../../../../script.js';
  * @returns {string|null} Thumbnail URL or null if unavailable/error
  */
 export function getSafeThumbnailUrl(type, filename) {
-    // Return null if no filename provided
     if (!filename || filename === 'none') {
-        // console.log(`[RPG Companion] No valid filename provided for ${type} thumbnail`);
         return null;
     }
 
@@ -24,13 +22,11 @@ export function getSafeThumbnailUrl(type, filename) {
         // Attempt to get thumbnail URL from SillyTavern API
         const url = getThumbnailUrl(type, filename);
 
-        // Validate that we got a string back
         if (typeof url !== 'string' || url.trim() === '') {
             console.warn(`[RPG Companion] getThumbnailUrl returned invalid result for ${type}:`, filename);
             return null;
         }
 
-        // console.log(`[RPG Companion] Successfully generated ${type} thumbnail URL for: ${filename}`);
         return url;
     } catch (error) {
         // Log detailed error information for debugging
