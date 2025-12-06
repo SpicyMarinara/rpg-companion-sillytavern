@@ -295,6 +295,14 @@ function stripLegacyTrackerFieldsFromSettings() {
 }
 
 function buildTrackerDataFromLegacy(source) {
+    const hasLegacyData = source.userStats || source.classicStats || source.quests || 
+        source.questsV2 || source.infoBoxData || source.charactersData || 
+        source.inventoryV3 || source.skillsV2 || source.skillsData;
+    
+    if (!hasLegacyData) {
+        return null; 
+    }
+    
     const tracker = createFreshTrackerData();
     const trackerConfig = extensionSettings.trackerConfig;
 
