@@ -6,10 +6,9 @@
 import { getContext } from '../../../../../../extensions.js';
 import {
     extensionSettings,
-    lastGeneratedData,
-    committedTrackerData,
-    $infoBoxContainer,
-    $thoughtsContainer,
+    setLastGeneratedData,
+    setCommittedTrackerData,
+    createFreshTrackerData,
     setPendingDiceRoll,
     getPendingDiceRoll
 } from '../../core/state.js';
@@ -17,6 +16,7 @@ import { saveSettings, saveChatData } from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { updateChatThoughts } from '../rendering/thoughts.js';
 import { renderQuests } from '../rendering/quests.js';
+import { renderSkills } from '../rendering/skills.js';
 import {
     rollDice as rollDiceCore,
     clearDiceRoll as clearDiceRollCore,
@@ -351,15 +351,9 @@ export function setupSettingsPopup() {
 
     // Clear cache button
     $('#rpg-clear-cache').on('click', function() {
-        // Clear the data
-        lastGeneratedData.userStats = null;
-        lastGeneratedData.infoBox = null;
-        lastGeneratedData.characterThoughts = null;
-
-        // Clear committed tracker data (used for generation context)
-        committedTrackerData.userStats = null;
-        committedTrackerData.infoBox = null;
-        committedTrackerData.characterThoughts = null;
+        // Reset to fresh empty tracker data (syncLegacyViewFromTracker is called automatically)
+        setLastGeneratedData(createFreshTrackerData());
+        setCommittedTrackerData(createFreshTrackerData());
 
         // Clear all message swipe data
         const chat = getContext().chat;
@@ -368,61 +362,21 @@ export function setupSettingsPopup() {
                 const message = chat[i];
                 if (message.extra && message.extra.rpg_companion_swipes) {
                     delete message.extra.rpg_companion_swipes;
-                    // console.log('[RPG Companion] Cleared swipe data from message at index', i);
                 }
             }
         }
 
-        // Clear the UI
-        if ($infoBoxContainer) {
-            $infoBoxContainer.empty();
-        }
-        if ($thoughtsContainer) {
-            $thoughtsContainer.empty();
-        }
-
-        // Reset stats to defaults and re-render
-        extensionSettings.userStats = {
-            health: 100,
-            satiety: 100,
-            energy: 100,
-            hygiene: 100,
-            arousal: 0,
-            mood: '😐',
-            conditions: 'None',
-            inventory: 'None'
-        };
-
-        // Reset classic stats (attributes) to defaults
-        extensionSettings.classicStats = {
-            str: 10,
-            dex: 10,
-            con: 10,
-            int: 10,
-            wis: 10,
-            cha: 10
-        };
-
         // Clear dice roll
         extensionSettings.lastDiceRoll = null;
 
-        // Clear quests
-        extensionSettings.quests = {
-            main: "None",
-            optional: []
-        };
-
-        // Save everything
+        // Save and re-render
         saveChatData();
         saveSettings();
-
-        // Re-render user stats and dice display
         renderUserStats();
         updateDiceDisplayCore();
-        updateChatThoughts(); // Clear the thought bubble in chat
-        renderQuests(); // Clear and re-render quests UI
-
-        // console.log('[RPG Companion] Chat cache cleared');
+        updateChatThoughts();
+        renderQuests()
+        renderSkills();
     });
 
     return settingsModal;

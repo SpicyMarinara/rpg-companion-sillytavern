@@ -3,13 +3,11 @@
  * Handles all user interactions with the inventory v2 system
  */
 
-import { extensionSettings, lastGeneratedData, committedTrackerData } from '../../core/state.js';
-import { saveSettings, saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
-import { buildInventorySummary } from '../generation/promptBuilder.js';
-import { buildUserStatsText } from '../rendering/userStats.js';
+import { extensionSettings, lastGeneratedData } from '../../core/state.js';
+import { saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
 import { renderInventory, getLocationId } from '../rendering/inventory.js';
-import { parseItems, serializeItems } from '../../utils/itemParser.js';
 import { sanitizeLocationName, sanitizeItemName } from '../../utils/security.js';
+import { handleItemRemoved, navigateToLinkedSkills } from '../rendering/skills.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -30,31 +28,17 @@ let collapsedLocations = [];
  * Tracks which inline forms are currently open
  * @type {Object}
  */
-let openForms = {
+const openForms = {
     addLocation: false,
     addItemOnPerson: false,
     addItemStored: {}, // { [locationName]: true/false }
-    addItemAssets: false
+    addItemAssets: false,
+    addItemSimplified: false
 };
 
 /**
- * Updates lastGeneratedData.userStats AND committedTrackerData.userStats to include
- * current inventory in text format.
- * This ensures manual edits are immediately visible to AI in next generation.
- */
-function updateLastGeneratedDataInventory() {
-    // Rebuild the userStats text format using custom stat names
-    const statsText = buildUserStatsText();
-
-    // Update BOTH lastGeneratedData AND committedTrackerData
-    // This makes manual edits immediately visible to AI
-    lastGeneratedData.userStats = statsText;
-    committedTrackerData.userStats = statsText;
-}
-
-/**
  * Shows the inline form for adding a new item.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function showAddItemForm(field, location) {
@@ -76,6 +60,8 @@ export function showAddItemForm(field, location) {
             openForms.addItemOnPerson = true;
         } else if (field === 'assets') {
             openForms.addItemAssets = true;
+        } else if (field === 'simplified') {
+            openForms.addItemSimplified = true;
         }
     }
 
@@ -88,7 +74,7 @@ export function showAddItemForm(field, location) {
 
 /**
  * Hides the inline form for adding a new item.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function hideAddItemForm(field, location) {
@@ -111,6 +97,8 @@ export function hideAddItemForm(field, location) {
             openForms.addItemOnPerson = false;
         } else if (field === 'assets') {
             openForms.addItemAssets = false;
+        } else if (field === 'simplified') {
+            openForms.addItemSimplified = false;
         }
     }
 
@@ -123,21 +111,25 @@ export function hideAddItemForm(field, location) {
 
 /**
  * Adds a new item to the inventory.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function saveAddItem(field, location) {
-    const inventory = extensionSettings.userStats.inventory;
     let inputId;
+    let descInputId;
 
     if (field === 'stored') {
         inputId = `.rpg-location-item-input[data-location="${location}"]`;
+        descInputId = `.rpg-location-item-desc-input[data-location="${location}"]`;
     } else {
         inputId = `#rpg-new-item-${field}`;
+        descInputId = `#rpg-new-item-desc-${field}`;
     }
 
     const input = $(inputId);
+    const descInput = $(descInputId);
     const rawItemName = input.val().trim();
+    const itemDescription = descInput?.val()?.trim() || '';
 
     if (!rawItemName) {
         hideAddItemForm(field, location);
@@ -152,27 +144,28 @@ export function saveAddItem(field, location) {
         return;
     }
 
-    // Get current items, add new one, serialize back
-    let currentString;
-    if (field === 'stored') {
-        currentString = inventory.stored[location] || 'None';
-    } else {
-        currentString = inventory[field] || 'None';
+    // Ensure inventory structure exists
+    if (!lastGeneratedData.inventory) {
+        lastGeneratedData.inventory = { onPerson: [], stored: {}, assets: [], simplified: [] };
+    }
+    const inv = lastGeneratedData.inventory;
+    const newItem = { name: itemName, description: itemDescription };
+    
+    if (field === 'simplified') {
+        if (!inv.simplified) inv.simplified = [];
+        inv.simplified.push(newItem);
+    } else if (field === 'stored') {
+        if (!inv.stored) inv.stored = {};
+        if (!inv.stored[location]) inv.stored[location] = [];
+        inv.stored[location].push(newItem);
+    } else if (field === 'onPerson') {
+        if (!inv.onPerson) inv.onPerson = [];
+        inv.onPerson.push(newItem);
+    } else if (field === 'assets') {
+        if (!inv.assets) inv.assets = [];
+        inv.assets.push(newItem);
     }
 
-    const items = parseItems(currentString);
-    items.push(itemName);
-    const newString = serializeItems(items);
-
-    // Save back to inventory
-    if (field === 'stored') {
-        inventory.stored[location] = newString;
-    } else {
-        inventory[field] = newString;
-    }
-
-    updateLastGeneratedDataInventory();
-    saveSettings();
     saveChatData();
     updateMessageSwipeData();
 
@@ -183,49 +176,39 @@ export function saveAddItem(field, location) {
 
 /**
  * Removes an item from the inventory.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'stored', 'assets', 'simplified')
  * @param {number} itemIndex - Index of item to remove
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function removeItem(field, itemIndex, location) {
-    const inventory = extensionSettings.userStats.inventory;
-
-    // console.log('[RPG Companion] DEBUG removeItem called:', { field, itemIndex, location });
-
-    // Get current items, remove the one at index, serialize back
-    let currentString;
-    if (field === 'stored') {
-        currentString = inventory.stored[location] || 'None';
-    } else {
-        currentString = inventory[field] || 'None';
+    const inv = lastGeneratedData.inventory;
+    if (!inv) return;
+    
+    let structuredArray = null;
+    let removedItemName = null;
+    
+    if (field === 'simplified' && inv.simplified) {
+        structuredArray = inv.simplified;
+    } else if (field === 'stored' && inv.stored?.[location]) {
+        structuredArray = inv.stored[location];
+    } else if (field === 'onPerson' && inv.onPerson) {
+        structuredArray = inv.onPerson;
+    } else if (field === 'assets' && inv.assets) {
+        structuredArray = inv.assets;
+    }
+    
+    if (structuredArray && structuredArray[itemIndex]) {
+        removedItemName = structuredArray[itemIndex].name;
+        structuredArray.splice(itemIndex, 1);
+    }
+    
+    // Check if this item was linked to a skill and handle removal
+    if (removedItemName && extensionSettings.enableItemSkillLinks) {
+        handleItemRemoved(removedItemName);
     }
 
-    // console.log('[RPG Companion] DEBUG currentString before removal:', currentString);
-
-    const items = parseItems(currentString);
-    // console.log('[RPG Companion] DEBUG items array before removal:', items);
-
-    items.splice(itemIndex, 1); // Remove item at index
-    // console.log('[RPG Companion] DEBUG items array after removal:', items);
-
-    const newString = serializeItems(items);
-    // console.log('[RPG Companion] DEBUG newString after removal:', newString);
-
-    // Save back to inventory
-    if (field === 'stored') {
-        inventory.stored[location] = newString;
-    } else {
-        inventory[field] = newString;
-    }
-
-    // console.log('[RPG Companion] DEBUG inventory after save:', inventory);
-
-    updateLastGeneratedDataInventory();
-    saveSettings();
     saveChatData();
     updateMessageSwipeData();
-
-    // Re-render
     renderInventory();
 }/**
  * Shows the inline form for adding a new storage location.
@@ -259,7 +242,6 @@ export function hideAddLocationForm() {
  * Saves a new storage location from the inline form.
  */
 export function saveAddLocation() {
-    const inventory = extensionSettings.userStats.inventory;
     const input = $('#rpg-new-location-name');
     const rawLocationName = input.val().trim();
 
@@ -276,17 +258,23 @@ export function saveAddLocation() {
         return;
     }
 
+    // Ensure inventory structure exists
+    if (!lastGeneratedData.inventory) {
+        lastGeneratedData.inventory = { onPerson: [], stored: {}, assets: [], simplified: [] };
+    }
+    if (!lastGeneratedData.inventory.stored) {
+        lastGeneratedData.inventory.stored = {};
+    }
+
     // Check for duplicate
-    if (inventory.stored[locationName]) {
+    if (lastGeneratedData.inventory.stored[locationName]) {
         alert(`Storage location "${locationName}" already exists.`);
         return;
     }
 
-    // Create new location with default "None"
-    inventory.stored[locationName] = 'None';
+    // Create new location as empty array
+    lastGeneratedData.inventory.stored[locationName] = [];
 
-    updateLastGeneratedDataInventory();
-    saveSettings();
     saveChatData();
     updateMessageSwipeData();
 
@@ -300,15 +288,11 @@ export function saveAddLocation() {
  * @param {string} locationName - Name of location to remove
  */
 export function showRemoveConfirmation(locationName) {
-    // console.log('[RPG Companion] DEBUG showRemoveConfirmation called for:', locationName);
     const confirmId = `rpg-remove-confirm-${getLocationId(locationName)}`;
-    // console.log('[RPG Companion] DEBUG confirmId:', confirmId);
     const confirmUI = $(`#${confirmId}`);
-    // console.log('[RPG Companion] DEBUG confirmUI element found:', confirmUI.length);
 
     if (confirmUI.length > 0) {
         confirmUI.show();
-        // console.log('[RPG Companion] DEBUG confirmation shown');
     } else {
         console.warn('[RPG Companion] DEBUG confirmation element not found!');
     }
@@ -332,12 +316,9 @@ export function hideRemoveConfirmation(locationName) {
  * @param {string} locationName - Name of location to remove
  */
 export function confirmRemoveLocation(locationName) {
-    // console.log('[RPG Companion] DEBUG confirmRemoveLocation called for:', locationName);
-    const inventory = extensionSettings.userStats.inventory;
-    // console.log('[RPG Companion] DEBUG inventory.stored before deletion:', inventory.stored);
-
-    delete inventory.stored[locationName];
-    // console.log('[RPG Companion] DEBUG inventory.stored after deletion:', inventory.stored);
+    if (lastGeneratedData.inventory?.stored) {
+        delete lastGeneratedData.inventory.stored[locationName];
+    }
 
     // Remove from collapsed list if present
     const index = collapsedLocations.indexOf(locationName);
@@ -345,13 +326,8 @@ export function confirmRemoveLocation(locationName) {
         collapsedLocations.splice(index, 1);
     }
 
-    updateLastGeneratedDataInventory();
-    saveSettings();
     saveChatData();
     updateMessageSwipeData();
-
-    // Re-render inventory UI
-    // console.log('[RPG Companion] DEBUG calling renderInventory()');
     renderInventory();
 }/**
  * Toggles the collapsed state of a storage location section.
@@ -468,6 +444,16 @@ export function initInventoryEventListeners() {
         removeItem(field, itemIndex, location);
     });
 
+    // Go to linked skills button (on inventory items)
+    $(document).on('click', '.rpg-item-skill-link[data-action="goto-linked-skills"]', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const itemName = $(this).data('item');
+        if (itemName) {
+            navigateToLinkedSkills(itemName);
+        }
+    });
+
     // Add location button - shows inline form
     $(document).on('click', '.rpg-inventory-add-btn[data-action="add-location"]', function(e) {
         e.preventDefault();
@@ -536,8 +522,6 @@ export function initInventoryEventListeners() {
         const view = $(this).data('view');
         switchViewMode(field, view);
     });
-
-    // console.log('[RPG Companion] Inventory event listeners initialized');
 }
 
 /**
@@ -560,7 +544,6 @@ export function restoreFormStates() {
     // Restore add location form
     if (openForms.addLocation) {
         const form = $('#rpg-add-location-form');
-        const input = $('#rpg-new-location-name');
         if (form.length > 0) {
             form.show();
             // Don't refocus to avoid disrupting user interaction
@@ -570,7 +553,6 @@ export function restoreFormStates() {
     // Restore add item on person form
     if (openForms.addItemOnPerson) {
         const form = $('#rpg-add-item-form-onPerson');
-        const input = $('#rpg-new-item-onPerson');
         if (form.length > 0) {
             form.show();
         }
@@ -579,7 +561,14 @@ export function restoreFormStates() {
     // Restore add item assets form
     if (openForms.addItemAssets) {
         const form = $('#rpg-add-item-form-assets');
-        const input = $('#rpg-new-item-assets');
+        if (form.length > 0) {
+            form.show();
+        }
+    }
+
+    // Restore add item simplified form
+    if (openForms.addItemSimplified) {
+        const form = $('#rpg-add-item-form-simplified');
         if (form.length > 0) {
             form.show();
         }
@@ -588,13 +577,13 @@ export function restoreFormStates() {
     // Restore add item stored forms (for each location)
     // Clean up orphaned states for deleted locations (Bug #3 fix)
     if (openForms.addItemStored && typeof openForms.addItemStored === 'object') {
-        const inventory = extensionSettings.userStats.inventory;
+        const inv = lastGeneratedData.inventory;
         const locationsToDelete = [];
 
         for (const location in openForms.addItemStored) {
             if (openForms.addItemStored[location]) {
                 // Check if location still exists in inventory
-                if (inventory?.stored && inventory.stored.hasOwnProperty(location)) {
+                if (inv?.stored && inv.stored.hasOwnProperty(location)) {
                     // Location exists, restore form
                     const locationId = location.replace(/\s+/g, '-');
                     const form = $(`#rpg-add-item-form-stored-${locationId}`);

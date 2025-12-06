@@ -4,10 +4,10 @@
  */
 
 import {
-    extensionSettings,
+    lastGeneratedData,
     $userStatsContainer
 } from '../../core/state.js';
-import { saveSettings, saveChatData } from '../../core/persistence.js';
+import { saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
 
 /**
  * Sets up event listeners for classic stat +/- buttons using delegation.
@@ -18,25 +18,31 @@ export function setupClassicStatsButtons() {
 
     // Delegated event listener for increase buttons
     $userStatsContainer.on('click', '.rpg-stat-increase', function() {
-        const stat = $(this).data('stat');
-        if (extensionSettings.classicStats[stat] < 100) {
-            extensionSettings.classicStats[stat]++;
-            saveSettings();
+        const attrName = $(this).data('attr-name');
+        if (!attrName) return;
+        
+        if (!lastGeneratedData.attributes) lastGeneratedData.attributes = {};
+        const current = lastGeneratedData.attributes[attrName] ?? 10;
+        if (current < 100) {
+            lastGeneratedData.attributes[attrName] = current + 1;
             saveChatData();
-            // Update only the specific stat value, not the entire stats panel
-            $(this).closest('.rpg-classic-stat').find('.rpg-classic-stat-value').text(extensionSettings.classicStats[stat]);
+            updateMessageSwipeData();
+            $(this).closest('.rpg-classic-stat').find('.rpg-classic-stat-value').text(lastGeneratedData.attributes[attrName]);
         }
     });
 
     // Delegated event listener for decrease buttons
     $userStatsContainer.on('click', '.rpg-stat-decrease', function() {
-        const stat = $(this).data('stat');
-        if (extensionSettings.classicStats[stat] > 1) {
-            extensionSettings.classicStats[stat]--;
-            saveSettings();
+        const attrName = $(this).data('attr-name');
+        if (!attrName) return;
+        
+        if (!lastGeneratedData.attributes) lastGeneratedData.attributes = {};
+        const current = lastGeneratedData.attributes[attrName] ?? 10;
+        if (current > 1) {
+            lastGeneratedData.attributes[attrName] = current - 1;
             saveChatData();
-            // Update only the specific stat value, not the entire stats panel
-            $(this).closest('.rpg-classic-stat').find('.rpg-classic-stat-value').text(extensionSettings.classicStats[stat]);
+            updateMessageSwipeData();
+            $(this).closest('.rpg-classic-stat').find('.rpg-classic-stat-value').text(lastGeneratedData.attributes[attrName]);
         }
     });
 }

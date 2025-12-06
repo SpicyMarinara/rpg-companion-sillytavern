@@ -1,0 +1,14 @@
+{
+  "name": "rpg-companion-sillytavern",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint src/ index.js",
+    "lint:fix": "eslint src/ index.js --fix"
+  },
+  "devDependencies": {
+    "eslint": "^9.15.0",
+    "globals": "^15.12.0"
+  }
+}

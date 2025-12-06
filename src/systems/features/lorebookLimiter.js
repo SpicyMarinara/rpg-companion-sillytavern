@@ -3,11 +3,10 @@
  * Adds maximum activation limit to SillyTavern's World Info system
  */
 
-import { eventSource, event_types } from '../../../../../../../script.js';
+import { eventSource } from '../../../../../../../script.js';
 
 let maxActivations = 0; // 0 = unlimited
 let settingsInitialized = false;
-let activatedEntriesThisGeneration = [];
 
 /**
  * Initialize the lorebook limiter
@@ -135,11 +134,6 @@ function injectMaxActivationsUI() {
  */
 function patchWorldInfoActivation() {
     console.log('[Lorebook Limiter] Setting up activation limiter...');
-
-    // We need to intercept at the module level
-    // Use a Proxy on the module loader
-    const originalDefine = window.define;
-    const originalRequire = window.require;
 
     // Try multiple approaches to hook into the WI system
     const attemptPatch = () => {

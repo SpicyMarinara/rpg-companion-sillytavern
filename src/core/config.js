@@ -3,9 +3,6 @@
  * Extension metadata and configuration constants
  */
 
-// Type imports
-/** @typedef {import('../types/inventory.js').InventoryV2} InventoryV2 */
-
 export const extensionName = 'third-party/rpg-companion-sillytavern';
 
 /**
@@ -25,6 +22,7 @@ export const defaultSettings = {
     enabled: true,
     autoUpdate: true,
     updateDepth: 4, // How many messages to include in the context
+    messageInterceptionContextDepth: 4, // How many recent messages to send when intercepting user messages
     generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
     useSeparatePreset: false, // Use 'RPG Companion Trackers' preset for tracker generation instead of main API model
     showUserStats: true,
@@ -34,6 +32,8 @@ export const defaultSettings = {
     showThoughtsInChat: true, // Show thoughts overlay in chat
     alwaysShowThoughtBubble: false, // Auto-expand thought bubble without clicking icon
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
+    enableMessageInterception: false, // Enable intercepting user messages with LLM rewrite
+    messageInterceptionActive: true, // Runtime toggle to allow/skip interception
     // Controls when the extension skips injecting tracker instructions/examples/HTML
     // into generations that appear to be user-injected instructions. Valid values:
     //  - 'none'          -> never skip (legacy behavior: always inject)
@@ -42,6 +42,7 @@ export const defaultSettings = {
     // This setting helps compatibility with other extensions like GuidedGenerations.
     skipInjectionsForGuided: 'none',
     enablePlotButtons: true, // Show plot progression buttons above chat input
+    useMarkdownFormat: false, // Use token-efficient markdown format instead of JSON for LLM communication
     panelPosition: 'right', // 'left', 'right', or 'top'
     theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom
     customColors: {
@@ -57,32 +58,83 @@ export const defaultSettings = {
         top: 'calc(var(--topBarBlockSize) + 60px)',
         right: '12px'
     }, // Saved position for mobile FAB button
-    userStats: {
-        health: 100,
-        satiety: 100,
-        energy: 100,
-        hygiene: 100,
-        arousal: 0,
-        mood: '😐',
-        conditions: 'None',
-        /** @type {InventoryV2} */
-        inventory: {
-            version: 2,
-            onPerson: "None",
-            stored: {},
-            assets: "None"
+    trackerConfig: {
+        userStats: {
+            customStats: [
+                { id: 'health', name: 'Health', description: '', enabled: true, default: 100 },
+                { id: 'satiety', name: 'Satiety', description: '', enabled: true, default: 100 },
+                { id: 'energy', name: 'Energy', description: '', enabled: true, default: 100 },
+                { id: 'hygiene', name: 'Hygiene', description: '', enabled: true, default: 100 },
+                { id: 'arousal', name: 'Arousal', description: '', enabled: true, default: 0 }
+            ],
+            showRPGAttributes: true,
+            alwaysSendAttributes: false,
+            allowAIUpdateAttributes: true,
+            rpgAttributes: [
+                { id: 'str', name: 'STR', description: '', enabled: true },
+                { id: 'dex', name: 'DEX', description: '', enabled: true },
+                { id: 'con', name: 'CON', description: '', enabled: true },
+                { id: 'int', name: 'INT', description: '', enabled: true },
+                { id: 'wis', name: 'WIS', description: '', enabled: true },
+                { id: 'cha', name: 'CHA', description: '', enabled: true }
+            ],
+            statusSection: {
+                enabled: true,
+                showMoodEmoji: true,
+                customFields: ['Conditions']
+            },
+            skillsSection: {
+                enabled: false,
+                label: 'Skills',
+                customFields: []
+            }
+        },
+        infoBox: {
+            widgets: {
+                date: { enabled: true, format: 'Weekday, Month, Year' },
+                weather: { enabled: true },
+                temperature: { enabled: true, unit: 'C' },
+                time: { enabled: true },
+                location: { enabled: true },
+                recentEvents: { enabled: true }
+            }
+        },
+        presentCharacters: {
+            showEmoji: true,
+            showName: true,
+            relationshipFields: ['Lover', 'Friend', 'Ally', 'Enemy', 'Neutral'],
+            relationshipEmojis: {
+                'Lover': '❤️',
+                'Friend': '⭐',
+                'Ally': '🤝',
+                'Enemy': '⚔️',
+                'Neutral': '⚖️'
+            },
+            customFields: [
+                { id: 'appearance', name: 'Appearance', enabled: true, description: 'Visible physical appearance (clothing, hair, notable features)' },
+                { id: 'demeanor', name: 'Demeanor', enabled: true, description: 'Observable demeanor or emotional state' }
+            ],
+            thoughts: {
+                enabled: true,
+                name: 'Thoughts',
+                description: 'Internal monologue (in first person POV, up to three sentences long)'
+            },
+            characterStats: {
+                enabled: false,
+                customStats: [
+                    { id: 'health', name: 'Health', description: '', enabled: true, default: 100 },
+                    { id: 'arousal', name: 'Arousal', description: '', enabled: true, default: 0 }
+                ]
+            }
         }
     },
-    classicStats: {
-        str: 10,
-        dex: 10,
-        con: 10,
-        int: 10,
-        wis: 10,
-        cha: 10
+    collapsedInventoryLocations: [],
+    inventoryViewModes: {
+        onPerson: 'list',
+        stored: 'list',
+        assets: 'list'
     },
     lastDiceRoll: null, // Store last dice roll result
-    collapsedInventoryLocations: [], // Array of collapsed storage location names
     debugMode: false, // Enable debug logging visible in UI (for mobile debugging)
     memoryMessagesToProcess: 16 // Number of messages to process per batch in memory recollection
 };

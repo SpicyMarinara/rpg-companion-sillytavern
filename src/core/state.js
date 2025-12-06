@@ -3,117 +3,97 @@
  * Centralizes all extension state variables
  */
 
-// Type imports
-/** @typedef {import('../types/inventory.js').InventoryV2} InventoryV2 */
+import { createEmptyTrackerData } from '../types/trackerData.js';
 
 /**
- * Extension settings - persisted to SillyTavern settings
+ * Extension settings - persisted to SillyTavern settings.
+ * Holds configuration and UI preferences only (no tracker payloads).
  */
 export let extensionSettings = {
     enabled: true,
     autoUpdate: true,
-    updateDepth: 4, // How many messages to include in the context
-    generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
-    useSeparatePreset: false, // Use 'RPG Companion Trackers' preset for tracker generation instead of main API model
+    updateDepth: 4,
+    messageInterceptionContextDepth: 4,
+    generationMode: 'together',
+    useSeparatePreset: false,
     showUserStats: true,
     showInfoBox: true,
     showCharacterThoughts: true,
-    showInventory: true, // Show inventory section (v2 system)
-    showThoughtsInChat: true, // Show thoughts overlay in chat
-    enableHtmlPrompt: false, // Enable immersive HTML prompt injection
-    customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
-    skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
-    enablePlotButtons: true, // Show plot progression buttons above chat input
-    panelPosition: 'right', // 'left', 'right', or 'top'
-    theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom
+    showInventory: true,
+    useSimplifiedInventory: false,
+    showSkills: false,
+    enableItemSkillLinks: false,
+    deleteSkillWithItem: false,
+    showQuests: true,
+    showThoughtsInChat: true,
+    enableHtmlPrompt: false,
+    customHtmlPrompt: '',
+    customTrackerPrompt: '',
+    enableMessageInterception: false,
+    messageInterceptionActive: true,
+    customMessageInterceptionPrompt: '',
+    skipInjectionsForGuided: 'none',
+    enablePlotButtons: true,
+    panelPosition: 'right',
+    theme: 'default',
     customColors: {
         bg: '#1a1a2e',
         accent: '#16213e',
         text: '#eaeaea',
         highlight: '#e94560'
     },
-    statBarColorLow: '#cc3333', // Color for low stat values (red)
-    statBarColorHigh: '#33cc66', // Color for high stat values (green)
-    enableAnimations: true, // Enable smooth animations for stats and content updates
+    statBarColorLow: '#cc3333',
+    statBarColorHigh: '#33cc66',
+    enableAnimations: true,
     mobileFabPosition: {
         top: 'calc(var(--topBarBlockSize) + 60px)',
         right: '12px'
-    }, // Saved position for mobile FAB button
-    userStats: {
-        health: 100,
-        satiety: 100,
-        energy: 100,
-        hygiene: 100,
-        arousal: 0,
-        mood: '😐',
-        conditions: 'None',
-        /** @type {InventoryV2} */
-        inventory: {
-            version: 2,
-            onPerson: "None",
-            stored: {},
-            assets: "None"
-        }
     },
-    statNames: {
-        health: 'Health',
-        satiety: 'Satiety',
-        energy: 'Energy',
-        hygiene: 'Hygiene',
-        arousal: 'Arousal'
-    },
-    // Tracker customization configuration
     trackerConfig: {
         userStats: {
-            // Array of custom stats (allows add/remove/rename)
             customStats: [
-                { id: 'health', name: 'Health', enabled: true },
-                { id: 'satiety', name: 'Satiety', enabled: true },
-                { id: 'energy', name: 'Energy', enabled: true },
-                { id: 'hygiene', name: 'Hygiene', enabled: true },
-                { id: 'arousal', name: 'Arousal', enabled: true }
+                { id: 'health', name: 'Health', description: '', enabled: true, default: 100 },
+                { id: 'satiety', name: 'Satiety', description: '', enabled: true, default: 100 },
+                { id: 'energy', name: 'Energy', description: '', enabled: true, default: 100 },
+                { id: 'hygiene', name: 'Hygiene', description: '', enabled: true, default: 100 },
+                { id: 'arousal', name: 'Arousal', description: '', enabled: true, default: 0 }
             ],
-            // RPG Attributes (customizable D&D-style attributes)
             showRPGAttributes: true,
-            alwaysSendAttributes: false, // If true, always send attributes; if false, only send with dice rolls
+            alwaysSendAttributes: false,
+            allowAIUpdateAttributes: true,
             rpgAttributes: [
-                { id: 'str', name: 'STR', enabled: true },
-                { id: 'dex', name: 'DEX', enabled: true },
-                { id: 'con', name: 'CON', enabled: true },
-                { id: 'int', name: 'INT', enabled: true },
-                { id: 'wis', name: 'WIS', enabled: true },
-                { id: 'cha', name: 'CHA', enabled: true }
+                { id: 'str', name: 'STR', description: '', enabled: true },
+                { id: 'dex', name: 'DEX', description: '', enabled: true },
+                { id: 'con', name: 'CON', description: '', enabled: true },
+                { id: 'int', name: 'INT', description: '', enabled: true },
+                { id: 'wis', name: 'WIS', description: '', enabled: true },
+                { id: 'cha', name: 'CHA', description: '', enabled: true }
             ],
-            // Status section config
             statusSection: {
                 enabled: true,
                 showMoodEmoji: true,
-                customFields: ['Conditions'] // User can edit what to track
+                customFields: ['Conditions']
             },
-            // Optional skills field
             skillsSection: {
                 enabled: false,
-                label: 'Skills', // User-editable
-                customFields: [] // Array of skill names
+                label: 'Skills',
+                customFields: []
             }
         },
         infoBox: {
             widgets: {
-                date: { enabled: true, format: 'Weekday, Month, Year' }, // Format options in UI
+                date: { enabled: true, format: 'Weekday, Month, Year' },
                 weather: { enabled: true },
-                temperature: { enabled: true, unit: 'C' }, // 'C' or 'F'
+                temperature: { enabled: true, unit: 'C' },
                 time: { enabled: true },
                 location: { enabled: true },
                 recentEvents: { enabled: true }
             }
         },
         presentCharacters: {
-            // Fixed fields (always shown)
             showEmoji: true,
             showName: true,
-            // Relationship fields (shown after name, separated by /)
             relationshipFields: ['Lover', 'Friend', 'Ally', 'Enemy', 'Neutral'],
-            // Relationship to emoji mapping (shown on character portraits)
             relationshipEmojis: {
                 'Lover': '❤️',
                 'Friend': '⭐',
@@ -121,70 +101,48 @@ export let extensionSettings = {
                 'Enemy': '⚔️',
                 'Neutral': '⚖️'
             },
-            // Custom fields (appearance, demeanor, etc. - shown after relationship, separated by |)
             customFields: [
                 { id: 'appearance', name: 'Appearance', enabled: true, description: 'Visible physical appearance (clothing, hair, notable features)' },
                 { id: 'demeanor', name: 'Demeanor', enabled: true, description: 'Observable demeanor or emotional state' }
             ],
-            // Thoughts configuration (separate line)
             thoughts: {
                 enabled: true,
                 name: 'Thoughts',
                 description: 'Internal monologue (in first person POV, up to three sentences long)'
             },
-            // Character stats toggle (optional feature)
             characterStats: {
                 enabled: false,
                 customStats: [
-                    { id: 'health', name: 'Health', enabled: true },
-                    { id: 'arousal', name: 'Arousal', enabled: true }
+                    { id: 'health', name: 'Health', description: '', enabled: true, default: 100 },
+                    { id: 'arousal', name: 'Arousal', description: '', enabled: true, default: 0 }
                 ]
             }
         }
     },
-    quests: {
-        main: "None",        // Current main quest title
-        optional: []         // Array of optional quest titles
-    },
-    level: 1, // User's character level
-    classicStats: {
-        str: 10,
-        dex: 10,
-        con: 10,
-        int: 10,
-        wis: 10,
-        cha: 10
-    },
-    lastDiceRoll: null, // Store last dice roll result
-    collapsedInventoryLocations: [], // Array of collapsed storage location names
+    collapsedInventoryLocations: [],
     inventoryViewModes: {
-        onPerson: 'list', // 'list' or 'grid' view mode for On Person section
-        stored: 'list',   // 'list' or 'grid' view mode for Stored section
-        assets: 'list'    // 'list' or 'grid' view mode for Assets section
+        onPerson: 'list',
+        stored: 'list',
+        assets: 'list'
     },
-    debugMode: false, // Enable debug logging visible in UI (for mobile debugging)
-    memoryMessagesToProcess: 16 // Number of messages to process per batch in memory recollection
+    lastDiceRoll: null,
+    debugMode: false,
+    memoryMessagesToProcess: 16
 };
 
-/**
- * Last generated data from AI response
- */
-export let lastGeneratedData = {
-    userStats: null,
-    infoBox: null,
-    characterThoughts: null,
-    html: null
-};
+export function createFreshTrackerData() {
+    return createEmptyTrackerData(extensionSettings.trackerConfig);
+}
 
 /**
- * Tracks the "committed" tracker data that should be used as source for next generation
- * This gets updated when user sends a new message or first time generation
+ * Last generated tracker data (structured) - source for UI display
  */
-export let committedTrackerData = {
-    userStats: null,
-    infoBox: null,
-    characterThoughts: null
-};
+export let lastGeneratedData = createFreshTrackerData();
+
+/**
+ * Committed tracker data used as the next-generation source of truth
+ */
+export let committedTrackerData = createFreshTrackerData();
 
 /**
  * Tracks whether the last action was a swipe (for separate mode)
@@ -210,7 +168,7 @@ export let pendingDiceRoll = null;
 /**
  * Debug logs array for troubleshooting
  */
-export let debugLogs = [];
+export const debugLogs = [];
 
 /**
  * Add a debug log entry
@@ -227,13 +185,6 @@ export function addDebugLog(message, data = null) {
 }
 
 /**
- * Feature flags for gradual rollout of new features
- */
-export const FEATURE_FLAGS = {
-    useNewInventory: true // Enable v2 inventory system with categorized storage
-};
-
-/**
  * Fallback avatar image (base64-encoded SVG with "?" icon)
  * Using base64 to avoid quote-encoding issues in HTML attributes
  */
@@ -247,6 +198,7 @@ export let $userStatsContainer = null;
 export let $infoBoxContainer = null;
 export let $thoughtsContainer = null;
 export let $inventoryContainer = null;
+export let $skillsContainer = null;
 export let $questsContainer = null;
 
 /**
@@ -314,6 +266,10 @@ export function setThoughtsContainer($element) {
 
 export function setInventoryContainer($element) {
     $inventoryContainer = $element;
+}
+
+export function setSkillsContainer($element) {
+    $skillsContainer = $element;
 }
 
 export function setQuestsContainer($element) {
