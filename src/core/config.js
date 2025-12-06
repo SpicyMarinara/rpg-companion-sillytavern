@@ -61,11 +61,11 @@ export const defaultSettings = {
     trackerConfig: {
         userStats: {
             customStats: [
-                { id: 'health', name: 'Health', description: '', enabled: true },
-                { id: 'satiety', name: 'Satiety', description: '', enabled: true },
-                { id: 'energy', name: 'Energy', description: '', enabled: true },
-                { id: 'hygiene', name: 'Hygiene', description: '', enabled: true },
-                { id: 'arousal', name: 'Arousal', description: '', enabled: true }
+                { id: 'health', name: 'Health', description: '', enabled: true, default: 100 },
+                { id: 'satiety', name: 'Satiety', description: '', enabled: true, default: 100 },
+                { id: 'energy', name: 'Energy', description: '', enabled: true, default: 100 },
+                { id: 'hygiene', name: 'Hygiene', description: '', enabled: true, default: 100 },
+                { id: 'arousal', name: 'Arousal', description: '', enabled: true, default: 0 }
             ],
             showRPGAttributes: true,
             alwaysSendAttributes: false,
@@ -122,8 +122,8 @@ export const defaultSettings = {
             characterStats: {
                 enabled: false,
                 customStats: [
-                    { id: 'health', name: 'Health', description: '', enabled: true },
-                    { id: 'arousal', name: 'Arousal', description: '', enabled: true }
+                    { id: 'health', name: 'Health', description: '', enabled: true, default: 100 },
+                    { id: 'arousal', name: 'Arousal', description: '', enabled: true, default: 0 }
                 ]
             }
         }

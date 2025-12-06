@@ -3737,8 +3737,21 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Items with description field (stats, attrs, skills) */
 .rpg-editor-item-with-desc,
+.rpg-editor-item-with-default,
 .rpg-editor-skill-item {
     flex-wrap: wrap;
+}
+
+.rpg-stat-default {
+    width: 60px;
+    flex-shrink: 0;
+    padding: 0.375em 0.5em;
+    background: var(--rpg-bg);
+    border: 1px solid var(--rpg-border);
+    border-radius: 0.25em;
+    color: var(--rpg-text);
+    font-size: 0.95em;
+    text-align: center;
 }
 
 .rpg-skill-name,

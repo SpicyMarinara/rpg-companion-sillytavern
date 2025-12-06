@@ -573,7 +573,7 @@ export function generateContextualSummary() {
             currentState.stats = {};
             descriptions.stats = {};
             for (const stat of customStats) {
-                currentState.stats[stat.name] = tracker.stats?.[stat.name] ?? 100;
+                currentState.stats[stat.name] = tracker.stats?.[stat.name] ?? (stat.default ?? 100);
                 if (stat.description) {
                     descriptions.stats[stat.name] = stat.description;
                 }
@@ -713,7 +713,7 @@ export function generateRPGPromptText() {
         if (customStats.length > 0) {
             previousState.stats = {};
             for (const stat of customStats) {
-                previousState.stats[stat.name] = tracker.stats?.[stat.name] ?? 100;
+                previousState.stats[stat.name] = tracker.stats?.[stat.name] ?? (stat.default ?? 100);
             }
         }
         

@@ -123,11 +123,11 @@ function resetToDefaults() {
     extensionSettings.trackerConfig = {
         userStats: {
             customStats: [
-                { id: 'health', name: 'Health', enabled: true },
-                { id: 'satiety', name: 'Satiety', enabled: true },
-                { id: 'energy', name: 'Energy', enabled: true },
-                { id: 'hygiene', name: 'Hygiene', enabled: true },
-                { id: 'arousal', name: 'Arousal', enabled: true }
+                { id: 'health', name: 'Health', enabled: true, default: 100 },
+                { id: 'satiety', name: 'Satiety', enabled: true, default: 100 },
+                { id: 'energy', name: 'Energy', enabled: true, default: 100 },
+                { id: 'hygiene', name: 'Hygiene', enabled: true, default: 100 },
+                { id: 'arousal', name: 'Arousal', enabled: true, default: 0 }
             ],
             showRPGAttributes: true,
             rpgAttributes: [
@@ -212,10 +212,12 @@ function renderUserStatsTab() {
 
     config.customStats.forEach((stat, index) => {
         const statDesc = stat.description || '';
+        const statDefault = stat.default ?? 100;
         html += `
-            <div class="rpg-editor-stat-item rpg-editor-item-with-desc" data-index="${index}">
+            <div class="rpg-editor-stat-item rpg-editor-item-with-default" data-index="${index}">
                 <input type="checkbox" ${stat.enabled ? 'checked' : ''} class="rpg-stat-toggle" data-index="${index}">
                 <input type="text" value="${stat.name}" class="rpg-stat-name" data-index="${index}" placeholder="Stat Name">
+                <input type="number" value="${statDefault}" class="rpg-stat-default" data-index="${index}" min="0" max="100" title="Default value (0-100)">
                 <input type="text" value="${statDesc}" class="rpg-stat-desc" data-index="${index}" placeholder="Description for AI">
                 <button class="rpg-stat-remove" data-index="${index}" title="Remove stat"><i class="fa-solid fa-trash"></i></button>
             </div>
@@ -359,15 +361,17 @@ function setupUserStatsListeners() {
             id: newId,
             name: 'New Stat',
             description: '',
-            enabled: true
+            enabled: true,
+            default: 100
         });
-        // Initialize value in tracker data
-        const statName = extensionSettings.trackerConfig.userStats.customStats[extensionSettings.trackerConfig.userStats.customStats.length - 1].name;
+        const newStat = extensionSettings.trackerConfig.userStats.customStats[extensionSettings.trackerConfig.userStats.customStats.length - 1];
+        const statName = newStat.name;
+        const statDefault = newStat.default ?? 100;
         if (lastGeneratedData.stats && lastGeneratedData.stats[statName] === undefined) {
-            lastGeneratedData.stats[statName] = 100;
+            lastGeneratedData.stats[statName] = statDefault;
         }
         if (committedTrackerData.stats && committedTrackerData.stats[statName] === undefined) {
-            committedTrackerData.stats[statName] = 100;
+            committedTrackerData.stats[statName] = statDefault;
         }
         renderUserStatsTab();
     });
@@ -395,6 +399,14 @@ function setupUserStatsListeners() {
     $('.rpg-stat-desc').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats[index].description = $(this).val();
+    });
+
+    // Update stat default value
+    $('.rpg-stat-default').off('change').on('change', function() {
+        const index = $(this).data('index');
+        const value = Math.max(0, Math.min(100, parseInt($(this).val()) || 100));
+        $(this).val(value);
+        extensionSettings.trackerConfig.userStats.customStats[index].default = value;
     });
 
     // Add attribute

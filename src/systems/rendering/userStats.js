@@ -32,11 +32,11 @@ export function renderUserStats() {
     const tracker = lastGeneratedData || committedTrackerData || {};
     const config = extensionSettings.trackerConfig?.userStats || {
         customStats: [
-            { id: 'health', name: 'Health', description: '', enabled: true },
-            { id: 'satiety', name: 'Satiety', description: '', enabled: true },
-            { id: 'energy', name: 'Energy', description: '', enabled: true },
-            { id: 'hygiene', name: 'Hygiene', description: '', enabled: true },
-            { id: 'arousal', name: 'Arousal', description: '', enabled: true }
+            { id: 'health', name: 'Health', description: '', enabled: true, default: 100 },
+            { id: 'satiety', name: 'Satiety', description: '', enabled: true, default: 100 },
+            { id: 'energy', name: 'Energy', description: '', enabled: true, default: 100 },
+            { id: 'hygiene', name: 'Hygiene', description: '', enabled: true, default: 100 },
+            { id: 'arousal', name: 'Arousal', description: '', enabled: true, default: 0 }
         ],
         rpgAttributes: [
             { id: 'str', name: 'STR', description: '', enabled: true },

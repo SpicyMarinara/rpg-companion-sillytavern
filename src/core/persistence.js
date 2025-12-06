@@ -308,7 +308,7 @@ function buildTrackerDataFromLegacy(source) {
         for (const stat of trackerConfig.userStats.customStats) {
             if (!stat?.enabled || !stat.name) continue;
             const raw = legacyStats[stat.id];
-            tracker.stats[stat.name] = typeof raw === 'number' ? clampPercent(raw) : 100;
+            tracker.stats[stat.name] = typeof raw === 'number' ? clampPercent(raw) : (stat.default ?? 100);
         }
     }
 
@@ -676,12 +676,19 @@ function migrateStatsAndSkillsFormat() {
     
     const userStats = extensionSettings.trackerConfig.userStats;
     
-    // Migrate customStats - add description if missing
+    // Migrate customStats - add description and default if missing
     if (userStats.customStats) {
         for (const stat of userStats.customStats) {
-            if (stat && typeof stat === 'object' && stat.description === undefined) {
-                stat.description = '';
-                migrated = true;
+            if (stat && typeof stat === 'object') {
+                if (stat.description === undefined) {
+                    stat.description = '';
+                    migrated = true;
+                }
+                if (stat.default === undefined) {
+                    // Arousal defaults to 0, everything else to 100
+                    stat.default = (stat.id === 'arousal' || stat.name?.toLowerCase() === 'arousal') ? 0 : 100;
+                    migrated = true;
+                }
             }
         }
     }
@@ -724,12 +731,18 @@ function migrateStatsAndSkillsFormat() {
         }
     }
     
-    // Migrate character stats - add description if missing
+    // Migrate character stats - add description and default if missing
     if (extensionSettings.trackerConfig?.presentCharacters?.characterStats?.customStats) {
         for (const stat of extensionSettings.trackerConfig.presentCharacters.characterStats.customStats) {
-            if (stat && typeof stat === 'object' && stat.description === undefined) {
-                stat.description = '';
-                migrated = true;
+            if (stat && typeof stat === 'object') {
+                if (stat.description === undefined) {
+                    stat.description = '';
+                    migrated = true;
+                }
+                if (stat.default === undefined) {
+                    stat.default = (stat.id === 'arousal' || stat.name?.toLowerCase() === 'arousal') ? 0 : 100;
+                    migrated = true;
+                }
             }
         }
     }

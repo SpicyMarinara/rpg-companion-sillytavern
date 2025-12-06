@@ -115,7 +115,7 @@ export function createEmptyTrackerData(trackerConfig) {
         data.stats = {};
         for (const stat of trackerConfig.userStats.customStats) {
             if (stat?.enabled && stat.name) {
-                data.stats[stat.name] = 100;
+                data.stats[stat.name] = stat.default ?? 100;
             }
         }
     }
