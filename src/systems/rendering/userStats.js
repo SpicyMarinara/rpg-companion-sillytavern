@@ -18,68 +18,18 @@ import {
     updateMessageSwipeData
 } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
-import { buildInventorySummary } from '../generation/promptBuilder.js';
-
-/**
- * Builds the user stats text string using custom stat names
- * @returns {string} Formatted stats text for tracker
- */
-export function buildUserStatsText() {
-    const stats = extensionSettings.userStats;
-    const config = extensionSettings.trackerConfig?.userStats || {
-        customStats: [
-            { id: 'health', name: 'Health', enabled: true },
-            { id: 'satiety', name: 'Satiety', enabled: true },
-            { id: 'energy', name: 'Energy', enabled: true },
-            { id: 'hygiene', name: 'Hygiene', enabled: true },
-            { id: 'arousal', name: 'Arousal', enabled: true }
-        ],
-        statusSection: { enabled: true, showMoodEmoji: true, customFields: ['Conditions'] },
-        skillsSection: { enabled: false, label: 'Skills' }
-    };
-
-    let text = '';
-
-    // Add enabled custom stats
-    const enabledStats = config.customStats.filter(stat => stat && stat.enabled && stat.name && stat.id);
-    for (const stat of enabledStats) {
-        const value = stats[stat.id] !== undefined ? stats[stat.id] : 100;
-        text += `${stat.name}: ${value}%\n`;
-    }
-
-    // Add status section if enabled
-    if (config.statusSection.enabled) {
-        if (config.statusSection.showMoodEmoji) {
-            text += `${stats.mood}: `;
-        }
-        text += `${stats.conditions || 'None'}\n`;
-    }
-
-    // Add inventory summary only if inventory is enabled
-    if (extensionSettings.showInventory) {
-    const inventorySummary = buildInventorySummary(stats.inventory);
-    text += inventorySummary;
-    }
-
-    // Add skills if enabled AND not shown in separate tab
-    if (config.skillsSection.enabled && !extensionSettings.showSkills) {
-        text += `\n${config.skillsSection.label}: ${extensionSettings.userStats?.skills || 'None'}`;
-    }
-
-    return text.trim();
-}
 
 /**
  * Renders the user stats panel with health bars, mood, inventory, and classic stats.
  * Includes event listeners for editable fields.
-```
  */
 export function renderUserStats() {
     if (!extensionSettings.showUserStats || !$userStatsContainer) {
         return;
     }
 
-    const stats = extensionSettings.userStats;
+    // Get tracker data - prefer lastGeneratedData, fallback to committedTrackerData
+    const tracker = lastGeneratedData || committedTrackerData || {};
     const config = extensionSettings.trackerConfig?.userStats || {
         customStats: [
             { id: 'health', name: 'Health', description: '', enabled: true },
@@ -100,11 +50,6 @@ export function renderUserStats() {
         skillsSection: { enabled: false, label: 'Skills' }
     };
     const userName = getContext().name1;
-
-    // Initialize lastGeneratedData.userStats if it doesn't exist
-    if (!lastGeneratedData.userStats) {
-        lastGeneratedData.userStats = buildUserStatsText();
-    }
 
     // Get user portrait
     let userPortrait = FALLBACK_AVATAR_DATA_URI;
@@ -127,16 +72,16 @@ export function renderUserStats() {
             <span class="rpg-user-name">${userName}</span>
             <span style="opacity: 0.5;">|</span>
             <span class="rpg-level-label">LVL</span>
-            <span class="rpg-level-value rpg-editable" contenteditable="true" data-field="level" title="Click to edit level">${extensionSettings.level}</span>
+            <span class="rpg-level-value rpg-editable" contenteditable="true" data-field="level" title="Click to edit level">${tracker.level ?? 1}</span>
         </div>
     `;
 
-    // Dynamic stats grid - only show enabled stats
+    // Dynamic stats grid - only show enabled stats (keyed by name in tracker data)
     html += '<div class="rpg-stats-grid">';
-    const enabledStats = config.customStats.filter(stat => stat && stat.enabled && stat.name && stat.id);
+    const enabledStats = config.customStats.filter(stat => stat && stat.enabled && stat.name);
 
     for (const stat of enabledStats) {
-        const value = stats[stat.id] !== undefined ? stats[stat.id] : 100;
+        const value = tracker.stats?.[stat.name] ?? 100;
         html += `
             <div class="rpg-stat-row">
                 <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="${stat.id}" title="Click to edit stat name">${stat.name}:</span>
@@ -154,13 +99,15 @@ export function renderUserStats() {
         html += '<div class="rpg-mood">';
 
         if (config.statusSection.showMoodEmoji) {
-            html += `<div class="rpg-mood-emoji rpg-editable" contenteditable="true" data-field="mood" title="Click to edit emoji">${stats.mood}</div>`;
+            const mood = tracker.status?.mood || '😐';
+            html += `<div class="rpg-mood-emoji rpg-editable" contenteditable="true" data-field="mood" title="Click to edit emoji">${mood}</div>`;
         }
 
         // Render custom status fields
         if (config.statusSection.customFields && config.statusSection.customFields.length > 0) {
-            // For now, use first field as "conditions" for backward compatibility
-            const conditionsValue = stats.conditions || 'None';
+            const conditionsValue = tracker.status?.fields 
+                ? Object.values(tracker.status.fields).filter(Boolean).join(', ') || 'None'
+                : 'None';
             html += `<div class="rpg-mood-conditions rpg-editable" contenteditable="true" data-field="conditions" title="Click to edit conditions">${conditionsValue}</div>`;
         }
 
@@ -169,11 +116,15 @@ export function renderUserStats() {
 
     // Skills section (conditionally rendered) - only if NOT shown in separate tab
     if (config.skillsSection.enabled && !extensionSettings.showSkills) {
-        const skillsValue = stats.skills || 'None';
+        const skillNames = Object.values(tracker.skills || {})
+            .flat()
+            .map(s => s?.name)
+            .filter(Boolean)
+            .join(', ') || 'None';
         html += `
             <div class="rpg-skills-section">
                 <span class="rpg-skills-label">${config.skillsSection.label}:</span>
-                <div class="rpg-skills-value rpg-editable" contenteditable="true" data-field="skills" title="Click to edit skills">${skillsValue}</div>
+                <div class="rpg-skills-value rpg-editable" contenteditable="true" data-field="skills" title="Click to edit skills">${skillNames}</div>
             </div>
         `;
     }
@@ -204,14 +155,15 @@ export function renderUserStats() {
         `;
 
         enabledAttributes.forEach(attr => {
-            const value = extensionSettings.classicStats[attr.id] !== undefined ? extensionSettings.classicStats[attr.id] : 10;
+            // Attributes are keyed by name in tracker data
+            const value = tracker.attributes?.[attr.name] ?? 10;
             html += `
-                        <div class="rpg-classic-stat" data-stat="${attr.id}">
+                        <div class="rpg-classic-stat" data-stat="${attr.id}" data-attr-name="${attr.name}">
                             <span class="rpg-classic-stat-label">${attr.name}</span>
                             <div class="rpg-classic-stat-buttons">
-                                <button class="rpg-classic-stat-btn rpg-stat-decrease" data-stat="${attr.id}">−</button>
+                                <button class="rpg-classic-stat-btn rpg-stat-decrease" data-stat="${attr.id}" data-attr-name="${attr.name}">−</button>
                                 <span class="rpg-classic-stat-value">${value}</span>
-                                <button class="rpg-classic-stat-btn rpg-stat-increase" data-stat="${attr.id}">+</button>
+                                <button class="rpg-classic-stat-btn rpg-stat-increase" data-stat="${attr.id}" data-attr-name="${attr.name}">+</button>
                             </div>
                         </div>
             `;
@@ -231,83 +183,54 @@ export function renderUserStats() {
 
     // Add event listeners for editable stat values
     $('.rpg-editable-stat').on('blur', function() {
-        const field = $(this).data('field');
+        const statId = $(this).data('field');
         const textValue = $(this).text().replace('%', '').trim();
         let value = parseInt(textValue);
 
         // Validate and clamp value between 0 and 100
-        if (isNaN(value)) {
-            value = 0;
-        }
+        if (isNaN(value)) value = 0;
         value = Math.max(0, Math.min(100, value));
 
-        // Update the setting
-        extensionSettings.userStats[field] = value;
+        // Find stat name from config
+        const config = extensionSettings.trackerConfig?.userStats;
+        const stat = config?.customStats?.find(s => s.id === statId);
+        const statName = stat?.name || statId;
 
-        // Rebuild userStats text with custom stat names
-        const statsText = buildUserStatsText();
+        // Update tracker data (keyed by stat name)
+        if (!lastGeneratedData.stats) lastGeneratedData.stats = {};
+        lastGeneratedData.stats[statName] = value;
 
-        // Update BOTH lastGeneratedData AND committedTrackerData
-        // This makes manual edits immediately visible to AI
-        lastGeneratedData.userStats = statsText;
-        committedTrackerData.userStats = statsText;
-
-        saveSettings();
         saveChatData();
         updateMessageSwipeData();
-
-        // Re-render to update the bar
         renderUserStats();
     });
 
-    // Add event listeners for mood/conditions editing
+    // Add event listeners for mood editing
     $('.rpg-mood-emoji.rpg-editable').on('blur', function() {
-        const value = $(this).text().trim();
-        extensionSettings.userStats.mood = value || '😐';
+        const value = $(this).text().trim() || '😐';
 
-        // Rebuild userStats text with custom stat names
-        const statsText = buildUserStatsText();
+        if (!lastGeneratedData.status) lastGeneratedData.status = {};
+        lastGeneratedData.status.mood = value;
 
-        // Update BOTH lastGeneratedData AND committedTrackerData
-        // This makes manual edits immediately visible to AI
-        lastGeneratedData.userStats = statsText;
-        committedTrackerData.userStats = statsText;
-
-        saveSettings();
         saveChatData();
         updateMessageSwipeData();
     });
 
+    // Add event listeners for conditions editing
     $('.rpg-mood-conditions.rpg-editable').on('blur', function() {
-        const value = $(this).text().trim();
-        extensionSettings.userStats.conditions = value || 'None';
+        const value = $(this).text().trim() || 'None';
 
-        // Rebuild userStats text with custom stat names
-        const statsText = buildUserStatsText();
+        if (!lastGeneratedData.status) lastGeneratedData.status = {};
+        if (!lastGeneratedData.status.fields) lastGeneratedData.status.fields = {};
+        lastGeneratedData.status.fields.Conditions = value;
 
-        // Update BOTH lastGeneratedData AND committedTrackerData
-        // This makes manual edits immediately visible to AI
-        lastGeneratedData.userStats = statsText;
-        committedTrackerData.userStats = statsText;
-
-        saveSettings();
         saveChatData();
         updateMessageSwipeData();
     });
 
-    // Add event listener for skills editing
+    // Add event listener for skills editing (inline skills section)
     $('.rpg-skills-value.rpg-editable').on('blur', function() {
-        const value = $(this).text().trim();
-        extensionSettings.userStats.skills = value || 'None';
-
-        // Rebuild userStats text
-        const statsText = buildUserStatsText();
-
-        // Update BOTH lastGeneratedData AND committedTrackerData
-        lastGeneratedData.userStats = statsText;
-        committedTrackerData.userStats = statsText;
-
-        saveSettings();
+        // This is a simplified text edit - for complex skill editing, use the skills panel
         saveChatData();
         updateMessageSwipeData();
     });
@@ -335,18 +258,12 @@ export function renderUserStats() {
     // Add event listener for level editing
     $('.rpg-level-value.rpg-editable').on('blur', function() {
         let value = parseInt($(this).text().trim());
-        if (isNaN(value) || value < 1) {
-            value = 1;
-        }
-        // Set reasonable max level
+        if (isNaN(value) || value < 1) value = 1;
         value = Math.min(100, value);
 
-        extensionSettings.level = value;
-        saveSettings();
+        lastGeneratedData.level = value;
         saveChatData();
         updateMessageSwipeData();
-
-        // Re-render to update the display
         renderUserStats();
     });
 

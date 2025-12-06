@@ -13,7 +13,6 @@ import {
     lastActionWasSwipe
 } from '../../core/state.js';
 import { evaluateSuppression } from './suppression.js';
-import { parseUserStats } from './parser.js';
 import {
     generateJSONTrackerInstructions,
     generateContextualSummary,
@@ -59,15 +58,16 @@ export function onGenerationStarted(type, data) {
         setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
     }
 
-    if (extensionSettings.generationMode === 'separate' && !isGenerating) {
+    const isTogether = extensionSettings.generationMode === 'together';
+    const isSeparate = extensionSettings.generationMode === 'separate';
+
+    if (isSeparate && !isGenerating) {
         if (!lastActionWasSwipe) {
-            committedTrackerData.userStats = lastGeneratedData.userStats;
-            committedTrackerData.infoBox = lastGeneratedData.infoBox;
-            committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+            Object.assign(committedTrackerData, lastGeneratedData);
         }
     }
 
-    if (extensionSettings.generationMode === 'together') {
+    if (isTogether) {
         if (!lastActionWasSwipe) {
             console.log('[RPG Companion] 📝 TOGETHER MODE COMMIT: New message - committing from last assistant message');
 
@@ -84,9 +84,7 @@ export function onGenerationStarted(type, data) {
                         const swipeData = message.extra.rpg_companion_swipes[swipeId];
 
                         if (swipeData) {
-                            committedTrackerData.userStats = swipeData.userStats || null;
-                            committedTrackerData.infoBox = swipeData.infoBox || null;
-                            committedTrackerData.characterThoughts = swipeData.characterThoughts || null;
+                            Object.assign(committedTrackerData, swipeData);
                             foundAssistantMessage = true;
                             console.log('[RPG Companion] ✓ Committed tracker data from message swipe', swipeId);
                         }
@@ -97,9 +95,7 @@ export function onGenerationStarted(type, data) {
 
             // Fallback: if no stored data found, use lastGeneratedData (for first message)
             if (!foundAssistantMessage) {
-                committedTrackerData.userStats = lastGeneratedData.userStats;
-                committedTrackerData.infoBox = lastGeneratedData.infoBox;
-                committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+                Object.assign(committedTrackerData, lastGeneratedData);
                 console.log('[RPG Companion] ⚠ No stored message data found, using lastGeneratedData as fallback');
             }
         } else {
@@ -107,11 +103,7 @@ export function onGenerationStarted(type, data) {
         }
     }
 
-    if (committedTrackerData.userStats) {
-        parseUserStats(committedTrackerData.userStats);
-    }
-
-    if (extensionSettings.generationMode === 'together') {
+    if (isTogether) {
         const example = '';
         const instructions = getTrackerInstructions(false, true);
 

@@ -6,10 +6,9 @@
 import { getContext } from '../../../../../../extensions.js';
 import {
     extensionSettings,
-    lastGeneratedData,
-    committedTrackerData,
-    $infoBoxContainer,
-    $thoughtsContainer,
+    setLastGeneratedData,
+    setCommittedTrackerData,
+    createFreshTrackerData,
     setPendingDiceRoll,
     getPendingDiceRoll
 } from '../../core/state.js';
@@ -352,15 +351,9 @@ export function setupSettingsPopup() {
 
     // Clear cache button
     $('#rpg-clear-cache').on('click', function() {
-        // Clear the data
-        lastGeneratedData.userStats = null;
-        lastGeneratedData.infoBox = null;
-        lastGeneratedData.characterThoughts = null;
-
-        // Clear committed tracker data (used for generation context)
-        committedTrackerData.userStats = null;
-        committedTrackerData.infoBox = null;
-        committedTrackerData.characterThoughts = null;
+        // Reset to fresh empty tracker data (syncLegacyViewFromTracker is called automatically)
+        setLastGeneratedData(createFreshTrackerData());
+        setCommittedTrackerData(createFreshTrackerData());
 
         // Clear all message swipe data
         const chat = getContext().chat;
@@ -373,66 +366,16 @@ export function setupSettingsPopup() {
             }
         }
 
-        // Clear the UI
-        if ($infoBoxContainer) {
-            $infoBoxContainer.empty();
-        }
-        if ($thoughtsContainer) {
-            $thoughtsContainer.empty();
-        }
-
-        // Reset stats to defaults and re-render
-        extensionSettings.userStats = {
-            health: 100,
-            satiety: 100,
-            energy: 100,
-            hygiene: 100,
-            arousal: 0,
-            mood: '😐',
-            conditions: 'None',
-            inventory: {
-                version: 2,
-                onPerson: "None",
-                stored: {},
-                assets: "None"
-            },
-            skills: "None" // Legacy single-string skills (for Status section)
-        };
-
-        // Reset classic stats (attributes) to defaults
-        extensionSettings.classicStats = {
-            str: 10,
-            dex: 10,
-            con: 10,
-            int: 10,
-            wis: 10,
-            cha: 10
-        };
-
         // Clear dice roll
         extensionSettings.lastDiceRoll = null;
 
-        // Clear quests
-        extensionSettings.quests = {
-            main: "None",
-            optional: []
-        };
-
-        // Reset skills data
-        extensionSettings.skillsV2 = {};
-        extensionSettings.skillsData = {};
-        extensionSettings.skillAbilityLinks = {};
-        extensionSettings.skills = { list: [], categories: {} }; // Legacy skills object
-
-        // Save everything
+        // Save and re-render
         saveChatData();
         saveSettings();
-
-        // Re-render user stats and dice display
         renderUserStats();
         updateDiceDisplayCore();
-        updateChatThoughts(); // Clear the thought bubble in chat
-        renderQuests(); // Clear and re-render quests UI
+        updateChatThoughts();
+        renderQuests()
         renderSkills();
     });
 

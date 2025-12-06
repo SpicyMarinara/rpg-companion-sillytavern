@@ -16,8 +16,9 @@
 *.bak
 *.old
 
-# Node modules (if any)
+# Node (dev tooling only)
 node_modules/
+package-lock.json
 
 # Environment variables
 .env

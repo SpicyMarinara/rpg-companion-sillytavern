@@ -4,10 +4,11 @@
  * Each configured skill becomes a category, and abilities/items can be added within each
  */
 
-import { extensionSettings, $skillsContainer } from '../../core/state.js';
-import { saveSettings, saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
+import { extensionSettings, lastGeneratedData, committedTrackerData, $skillsContainer } from '../../core/state.js';
+import { saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
 import { i18n } from '../../core/i18n.js';
 import { parseItems } from '../../utils/itemParser.js';
+import { renderInventory } from './inventory.js';
 
 /**
  * Escapes HTML special characters to prevent XSS
@@ -22,13 +23,10 @@ function escapeHtml(text) {
 }
 
 /**
- * Serializes an array of items into a comma-separated string
- * @param {string[]} items - Array of items
- * @returns {string} Comma-separated string or 'None'
+ * Gets tracker data with fallback
  */
-function serializeItems(items) {
-    if (!items || items.length === 0) return 'None';
-    return items.join(', ');
+function getTrackerData() {
+    return lastGeneratedData || committedTrackerData || {};
 }
 
 /**
@@ -37,7 +35,6 @@ function serializeItems(items) {
  */
 export function getSkillCategories() {
     const categories = extensionSettings.trackerConfig?.userStats?.skillsSection?.customFields || [];
-    // Migration function handles string array → object array conversion on load
     const enabledConfigCategories = categories
         .filter(cat => cat && cat.enabled !== false && cat.name)
         .map(cat => cat.name);
@@ -46,34 +43,21 @@ export function getSkillCategories() {
         return enabledConfigCategories;
     }
 
-    // Fallback: if no config categories are defined, derive them from existing skills data
-    const structuredCategories = Object.keys(extensionSettings.skillsV2 || {});
-    if (structuredCategories.length > 0) {
-        return structuredCategories;
-    }
-
-    const legacyCategories = new Set([
-        ...Object.keys(extensionSettings.skills?.categories || {}),
-        ...Object.keys(extensionSettings.skillsData || {})
-    ].filter(Boolean));
-
-    return Array.from(legacyCategories);
+    // Fallback: derive from existing tracker data
+    const tracker = getTrackerData();
+    return Object.keys(tracker.skills || {});
 }
 
 /**
  * Gets the items/abilities for a specific skill category
- * Checks both skillsData (from parser) and skills.categories (manual entries)
  * @param {string} skillName - The skill category name
  * @returns {string} Comma-separated items string or 'None'
  */
 export function getSkillItems(skillName) {
-    // Check skillsData first (populated by parser)
-    if (extensionSettings.skillsData?.[skillName]) {
-        return extensionSettings.skillsData[skillName];
-    }
-    // Fall back to skills.categories (manual entries)
-    if (extensionSettings.skills?.categories?.[skillName]) {
-        return extensionSettings.skills.categories[skillName];
+    const tracker = getTrackerData();
+    const skills = tracker.skills?.[skillName];
+    if (Array.isArray(skills) && skills.length > 0) {
+        return skills.map(s => s?.name).filter(Boolean).join(', ') || 'None';
     }
     return 'None';
 }
@@ -84,22 +68,16 @@ export function getSkillItems(skillName) {
  * @param {string} itemsString - Comma-separated items string
  */
 export function setSkillItems(skillName, itemsString) {
-    // Initialize structures if needed
-    if (!extensionSettings.skillsData) {
-        extensionSettings.skillsData = {};
-    }
-    if (!extensionSettings.skills) {
-        extensionSettings.skills = { categories: {}, list: [] };
-    }
-    if (!extensionSettings.skills.categories) {
-        extensionSettings.skills.categories = {};
+    if (!lastGeneratedData.skills) {
+        lastGeneratedData.skills = {};
     }
     
-    // Store in both places for compatibility
-    extensionSettings.skillsData[skillName] = itemsString || 'None';
-    extensionSettings.skills.categories[skillName] = itemsString || 'None';
+    // Convert comma-separated string to structured array
+    const items = itemsString && itemsString !== 'None'
+        ? itemsString.split(',').map(s => s.trim()).filter(Boolean).map(name => ({ name, description: '' }))
+        : [];
     
-    saveSettings();
+    lastGeneratedData.skills[skillName] = items;
     saveChatData();
     updateMessageSwipeData();
 }
@@ -110,27 +88,19 @@ export function setSkillItems(skillName, itemsString) {
  * @param {string} item - The item to add
  */
 export function addSkillItem(skillName, item, description = '') {
-    // Check for structured data first
-    const skillsV2 = extensionSettings.skillsV2;
-    if (skillsV2 && skillsV2[skillName] !== undefined) {
-        if (!Array.isArray(skillsV2[skillName])) {
-            skillsV2[skillName] = [];
-        }
-        // Check if ability already exists
-        const exists = skillsV2[skillName].some(a => a.name === item);
-        if (!exists) {
-            skillsV2[skillName].push({ name: item, description: description, grantedBy: null });
-            saveSettings();
-            saveChatData();
-        }
-        return;
+    if (!lastGeneratedData.skills) {
+        lastGeneratedData.skills = {};
+    }
+    if (!Array.isArray(lastGeneratedData.skills[skillName])) {
+        lastGeneratedData.skills[skillName] = [];
     }
     
-    // Fall back to legacy format
-    const currentItems = parseItems(getSkillItems(skillName));
-    if (!currentItems.includes(item)) {
-        currentItems.push(item);
-        setSkillItems(skillName, serializeItems(currentItems));
+    // Check if ability already exists
+    const exists = lastGeneratedData.skills[skillName].some(a => a.name === item);
+    if (!exists) {
+        lastGeneratedData.skills[skillName].push({ name: item, description: description, grantedBy: null });
+        saveChatData();
+        updateMessageSwipeData();
     }
 }
 
@@ -140,42 +110,13 @@ export function addSkillItem(skillName, item, description = '') {
  * @param {number} index - Index of item to remove
  */
 export function removeSkillItem(skillName, index) {
-    // Check for structured data first
-    const skillsV2 = extensionSettings.skillsV2;
-    if (skillsV2 && skillsV2[skillName] !== undefined && Array.isArray(skillsV2[skillName])) {
-        if (index >= 0 && index < skillsV2[skillName].length) {
-            const removedAbility = skillsV2[skillName][index];
-            skillsV2[skillName].splice(index, 1);
-            
-            // Remove any skill-ability links
-            if (extensionSettings.skillAbilityLinks) {
-                const linkKey = `${skillName}::${removedAbility.name}`;
-                delete extensionSettings.skillAbilityLinks[linkKey];
-            }
-            
-            saveSettings();
-            saveChatData();
-        }
-        return;
-    }
+    const skills = lastGeneratedData.skills;
+    if (!skills || !Array.isArray(skills[skillName])) return;
     
-    // Fall back to legacy format
-    const currentItems = parseItems(getSkillItems(skillName));
-    if (index >= 0 && index < currentItems.length) {
-        const removedItem = currentItems[index];
-        currentItems.splice(index, 1);
-        setSkillItems(skillName, serializeItems(currentItems));
-        
-        // Handle item-skill link removal if enabled
-        if (extensionSettings.enableItemSkillLinks && extensionSettings.itemSkillLinks) {
-            // Check if this item was linked and remove the link
-            for (const [itemName, linkedSkill] of Object.entries(extensionSettings.itemSkillLinks)) {
-                if (linkedSkill === skillName && itemName === removedItem) {
-                    delete extensionSettings.itemSkillLinks[itemName];
-                    break;
-                }
-            }
-        }
+    if (index >= 0 && index < skills[skillName].length) {
+        skills[skillName].splice(index, 1);
+        saveChatData();
+        updateMessageSwipeData();
     }
 }
 
@@ -186,35 +127,26 @@ export function removeSkillItem(skillName, index) {
  * @param {string} newValue - New item value
  */
 export function updateSkillItem(skillName, index, newValue) {
-    // Check for structured data first
-    const skillsV2 = extensionSettings.skillsV2;
-    if (skillsV2 && skillsV2[skillName] && Array.isArray(skillsV2[skillName]) && skillsV2[skillName][index]) {
-        skillsV2[skillName][index].name = newValue;
-        saveSettings();
+    const skills = lastGeneratedData.skills;
+    if (skills && Array.isArray(skills[skillName]) && skills[skillName][index]) {
+        skills[skillName][index].name = newValue;
         saveChatData();
-        return;
-    }
-    
-    // Fall back to legacy format
-    const currentItems = parseItems(getSkillItems(skillName));
-    if (index >= 0 && index < currentItems.length) {
-        currentItems[index] = newValue;
-        setSkillItems(skillName, serializeItems(currentItems));
+        updateMessageSwipeData();
     }
 }
 
 /**
- * Updates a skill ability's description (structured format only)
+ * Updates a skill ability's description
  * @param {string} skillName - The skill category name
  * @param {number} index - Index of ability to update
  * @param {string} newDescription - New description
  */
 function updateStructuredSkillDescription(skillName, index, newDescription) {
-    const skillsV2 = extensionSettings.skillsV2;
-    if (skillsV2 && skillsV2[skillName] && Array.isArray(skillsV2[skillName]) && skillsV2[skillName][index]) {
-        skillsV2[skillName][index].description = newDescription;
-        saveSettings();
+    const skills = lastGeneratedData.skills;
+    if (skills && Array.isArray(skills[skillName]) && skills[skillName][index]) {
+        skills[skillName][index].description = newDescription;
         saveChatData();
+        updateMessageSwipeData();
     }
 }
 
@@ -227,32 +159,22 @@ function updateStructuredSkillDescription(skillName, index, newDescription) {
  */
 export function handleItemRemoved(itemName) {
     if (!extensionSettings.enableItemSkillLinks) return;
-    if (!extensionSettings.skillAbilityLinks) return;
-    
-    const itemNameLower = itemName.toLowerCase().trim();
-    const linksToRemove = [];
     
     // Find all skill abilities linked to this item
-    for (const [key, linkedItem] of Object.entries(extensionSettings.skillAbilityLinks)) {
-        if (linkedItem && linkedItem.toLowerCase().trim() === itemNameLower) {
-            linksToRemove.push(key);
-        }
-    }
+    const linkedAbilities = getAbilitiesLinkedToItem(itemName);
+    if (linkedAbilities.length === 0) return;
     
-    if (linksToRemove.length === 0) return;
-    
-    // Remove the links
-    for (const key of linksToRemove) {
-        delete extensionSettings.skillAbilityLinks[key];
-        
-        // If deleteSkillWithItem is enabled, also delete the skill ability itself
+    // Process each linked ability
+    for (const { skillName, abilityName } of linkedAbilities) {
         if (extensionSettings.deleteSkillWithItem) {
-            const [skillName, abilityName] = key.split('::');
+            // Delete the skill ability entirely
             deleteSkillAbility(skillName, abilityName);
+        } else {
+            // Just remove the grantedBy link
+            unlinkAbility(skillName, abilityName);
         }
     }
     
-    saveSettings();
     saveChatData();
     renderSkills();
 }
@@ -263,29 +185,16 @@ export function handleItemRemoved(itemName) {
  * @param {string} abilityName - The ability name to delete
  */
 function deleteSkillAbility(skillName, abilityName) {
-    // Delete from structured skills (skillsV2)
-    if (extensionSettings.skillsV2 && extensionSettings.skillsV2[skillName]) {
-        const abilities = extensionSettings.skillsV2[skillName];
-        if (Array.isArray(abilities)) {
-            const index = abilities.findIndex(a => 
-                (typeof a === 'string' ? a : a.name)?.toLowerCase().trim() === abilityName.toLowerCase().trim()
-            );
-            if (index !== -1) {
-                abilities.splice(index, 1);
-            }
-        }
-    }
+    const skills = lastGeneratedData.skills;
+    if (!skills || !Array.isArray(skills[skillName])) return;
     
-    // Delete from legacy skillsData
-    if (extensionSettings.skillsData && extensionSettings.skillsData[skillName]) {
-        const currentItems = parseItems(extensionSettings.skillsData[skillName]);
-        const index = currentItems.findIndex(item => 
-            item.toLowerCase().trim() === abilityName.toLowerCase().trim()
-        );
-        if (index !== -1) {
-            currentItems.splice(index, 1);
-            extensionSettings.skillsData[skillName] = currentItems.length > 0 ? currentItems.join(', ') : 'None';
-        }
+    const index = skills[skillName].findIndex(a => 
+        a?.name?.toLowerCase().trim() === abilityName.toLowerCase().trim()
+    );
+    if (index !== -1) {
+        skills[skillName].splice(index, 1);
+        saveChatData();
+        updateMessageSwipeData();
     }
 }
 
@@ -296,9 +205,12 @@ function deleteSkillAbility(skillName, abilityName) {
  * @returns {string|null} The linked item name or null
  */
 export function getLinkedItem(skillName, abilityName) {
-    if (!extensionSettings.skillAbilityLinks) return null;
-    const key = `${skillName}::${abilityName}`;
-    return extensionSettings.skillAbilityLinks[key] || null;
+    const tracker = getTrackerData();
+    const skills = tracker.skills?.[skillName];
+    if (!skills) return null;
+    
+    const ability = skills.find(s => s.name === abilityName);
+    return ability?.grantedBy || null;
 }
 
 /**
@@ -308,13 +220,21 @@ export function getLinkedItem(skillName, abilityName) {
  * @param {string} itemName - The inventory item name
  */
 export function linkAbilityToItem(skillName, abilityName, itemName) {
-    if (!extensionSettings.skillAbilityLinks) {
-        extensionSettings.skillAbilityLinks = {};
+    if (!lastGeneratedData.skills) lastGeneratedData.skills = {};
+    if (!lastGeneratedData.skills[skillName]) lastGeneratedData.skills[skillName] = [];
+    
+    const skills = lastGeneratedData.skills[skillName];
+    const ability = skills.find(s => s.name === abilityName);
+    
+    if (ability) {
+        ability.grantedBy = itemName;
     }
-    const key = `${skillName}::${abilityName}`;
-    extensionSettings.skillAbilityLinks[key] = itemName;
-    saveSettings();
+    
+    updateMessageSwipeData();
     saveChatData();
+
+    // Defer renderInventory to avoid circular import timing issues
+    setTimeout(() => renderInventory(), 0);
 }
 
 /**
@@ -323,16 +243,27 @@ export function linkAbilityToItem(skillName, abilityName, itemName) {
  * @param {string} abilityName - The ability name
  */
 export function unlinkAbility(skillName, abilityName) {
-    if (!extensionSettings.skillAbilityLinks) return;
-    const key = `${skillName}::${abilityName}`;
-    delete extensionSettings.skillAbilityLinks[key];
-    saveSettings();
+    const skills = lastGeneratedData.skills?.[skillName];
+    if (!skills) return;
+    
+    const ability = skills.find(s => s.name === abilityName);
+    if (ability) {
+        const linkedItemName = ability.grantedBy;
+        delete ability.grantedBy;
+        if (linkedItemName) {
+            clearGrantsSkillFromItem(linkedItemName);
+        }
+    }
+    
+    updateMessageSwipeData();
     saveChatData();
+
+    // Defer renderInventory to avoid circular import timing issues
+    setTimeout(() => renderInventory(), 0);
 }
 
 /**
  * Gets all skill abilities linked to a specific inventory item
- * Checks both manual skillAbilityLinks and structured skillsV2 with grantedBy
  * @param {string} itemName - The inventory item name
  * @returns {Array<{skillName: string, abilityName: string}>} Array of linked abilities
  */
@@ -341,31 +272,16 @@ export function getAbilitiesLinkedToItem(itemName) {
     const linked = [];
     const normalizedItemName = itemName.toLowerCase().trim();
     
-    // Check manual skillAbilityLinks
-    if (extensionSettings.skillAbilityLinks) {
-        for (const [key, linkedItem] of Object.entries(extensionSettings.skillAbilityLinks)) {
-            // Case-insensitive comparison
-            if (linkedItem && linkedItem.toLowerCase().trim() === normalizedItemName) {
-                const [skillName, abilityName] = key.split('::');
-                linked.push({ skillName, abilityName });
-            }
-        }
-    }
-    
-    // Check structured skillsV2 for abilities with grantedBy matching this item
-    const skillsV2 = extensionSettings.skillsV2;
-    if (skillsV2 && typeof skillsV2 === 'object') {
-        for (const [skillName, abilities] of Object.entries(skillsV2)) {
+    // Check tracker skills for abilities with grantedBy matching this item
+    const tracker = getTrackerData();
+    if (tracker.skills && typeof tracker.skills === 'object') {
+        for (const [skillName, abilities] of Object.entries(tracker.skills)) {
             if (!Array.isArray(abilities)) continue;
             for (const ability of abilities) {
                 if (!ability || typeof ability !== 'object') continue;
                 const grantedBy = (ability.grantedBy || '').toLowerCase().trim();
                 if (grantedBy === normalizedItemName) {
-                    // Avoid duplicates
-                    const exists = linked.some(l => l.skillName === skillName && l.abilityName === ability.name);
-                    if (!exists) {
-                        linked.push({ skillName, abilityName: ability.name });
-                    }
+                    linked.push({ skillName, abilityName: ability.name });
                 }
             }
         }
@@ -376,7 +292,6 @@ export function getAbilitiesLinkedToItem(itemName) {
 
 /**
  * Checks if an inventory item has any linked skills
- * Checks both manual skillAbilityLinks and structured grantsSkill property
  * @param {string} itemName - The inventory item name
  * @returns {boolean} True if item has linked skills
  */
@@ -387,7 +302,8 @@ export function itemHasLinkedSkills(itemName) {
     }
     
     // Check structured inventory for grantsSkill property
-    const inv = extensionSettings.inventoryV3;
+    const tracker = getTrackerData();
+    const inv = tracker.inventory;
     if (!inv || !itemName) return false;
     
     const normalizedName = itemName.toLowerCase().trim();
@@ -419,6 +335,38 @@ export function itemHasLinkedSkills(itemName) {
     }
     
     return false;
+}
+
+/**
+ * Clears the grantsSkill property from an inventory item
+ * @param {string} itemName - The item name to clear grantsSkill from
+ */
+function clearGrantsSkillFromItem(itemName) {
+    const inv = lastGeneratedData.inventory;
+    if (!inv || !itemName) return;
+    
+    const normalizedName = itemName.toLowerCase().trim();
+    
+    const clearFromItems = (items) => {
+        if (!Array.isArray(items)) return;
+        for (const item of items) {
+            if (!item || typeof item !== 'object') continue;
+            const name = (item.name || '').toLowerCase().trim();
+            if (name === normalizedName && item.grantsSkill) {
+                delete item.grantsSkill;
+            }
+        }
+    };
+    
+    clearFromItems(inv.onPerson);
+    clearFromItems(inv.simplified);
+    clearFromItems(inv.assets);
+    
+    if (inv.stored && typeof inv.stored === 'object') {
+        for (const items of Object.values(inv.stored)) {
+            clearFromItems(items);
+        }
+    }
 }
 
 /**
@@ -519,69 +467,41 @@ export function navigateToLinkedSkills(itemName) {
 }
 
 /**
- * Gets all inventory items (from all categories) for linking dropdown
- * Supports both legacy (v2) and structured (v3) inventory formats
+ * Gets all inventory items from current inventory state
  * @returns {string[]} Array of item names
  */
 function getAllInventoryItems() {
     const items = [];
+    const tracker = getTrackerData();
+    const inv = tracker.inventory;
+    if (!inv) return items;
     
-    // Check structured inventory (v3) first
-    const inv3 = extensionSettings.inventoryV3;
-    if (inv3) {
-        // On Person
-        if (inv3.onPerson && Array.isArray(inv3.onPerson)) {
-            items.push(...inv3.onPerson.map(i => typeof i === 'string' ? i : i.name).filter(Boolean));
-        }
-        // Stored
-        if (inv3.stored && typeof inv3.stored === 'object') {
-            for (const locationItems of Object.values(inv3.stored)) {
-                if (Array.isArray(locationItems)) {
-                    items.push(...locationItems.map(i => typeof i === 'string' ? i : i.name).filter(Boolean));
-                }
+    // On Person
+    if (Array.isArray(inv.onPerson)) {
+        items.push(...inv.onPerson.map(i => i?.name).filter(Boolean));
+    }
+    // Stored
+    if (inv.stored && typeof inv.stored === 'object') {
+        for (const locationItems of Object.values(inv.stored)) {
+            if (Array.isArray(locationItems)) {
+                items.push(...locationItems.map(i => i?.name).filter(Boolean));
             }
-        }
-        // Assets
-        if (inv3.assets && Array.isArray(inv3.assets)) {
-            items.push(...inv3.assets.map(i => typeof i === 'string' ? i : i.name).filter(Boolean));
         }
     }
-    
-    // Fall back to legacy inventory if no v3 items found
-    if (items.length === 0) {
-        const inventory = extensionSettings.userStats?.inventory;
-        if (inventory) {
-            // On Person
-            if (inventory.onPerson && inventory.onPerson.toLowerCase() !== 'none') {
-                items.push(...parseItems(inventory.onPerson));
-            }
-            
-            // Stored locations
-            if (inventory.stored && typeof inventory.stored === 'object') {
-                for (const locationItems of Object.values(inventory.stored)) {
-                    if (locationItems && locationItems.toLowerCase() !== 'none') {
-                        items.push(...parseItems(locationItems));
-                    }
-                }
-            }
-            
-            // Assets
-            if (inventory.assets && inventory.assets.toLowerCase() !== 'none') {
-                items.push(...parseItems(inventory.assets));
-            }
-            
-            // Simplified inventory
-            if (inventory.items && inventory.items.toLowerCase() !== 'none') {
-                items.push(...parseItems(inventory.items));
-            }
-        }
+    // Assets
+    if (Array.isArray(inv.assets)) {
+        items.push(...inv.assets.map(i => i?.name).filter(Boolean));
+    }
+    // Simplified
+    if (Array.isArray(inv.simplified)) {
+        items.push(...inv.simplified.map(i => i?.name).filter(Boolean));
     }
     
     return [...new Set(items)];
 }
 
 // Track open add forms
-let openAddForms = {};
+const openAddForms = {};
 
 /**
  * Shows the add item form for a skill category
@@ -632,9 +552,8 @@ function renderStructuredSkillAbility(skillName, ability, index, viewMode) {
         ? { name: ability, description: '', grantedBy: null }
         : { name: ability?.name || 'Unknown', description: ability?.description || '', grantedBy: ability?.grantedBy || null };
     
-    // Check for linked item - first from ability.grantedBy, then from skillAbilityLinks
-    const linkedItem = normalizedAbility.grantedBy || 
-        (extensionSettings.enableItemSkillLinks ? getLinkedItem(skillName, normalizedAbility.name) : null);
+    // Check for linked item from ability.grantedBy
+    const linkedItem = normalizedAbility.grantedBy;
     const itemClass = viewMode === 'grid' ? 'rpg-item-card' : 'rpg-item-row';
     const hasLink = !!linkedItem;
     
@@ -751,14 +670,15 @@ function renderSkillAbilityItem(skillName, abilityName, index, viewMode) {
 }
 
 /**
- * Checks if we have structured skills data (v2 format)
+ * Gets structured skills data for a category
  * @param {string} skillName - The skill category name
  * @returns {Array|null} Structured abilities array or null
  */
 function getStructuredSkillAbilities(skillName) {
-    const skillsV2 = extensionSettings.skillsV2;
-    if (skillsV2 && skillsV2[skillName] && Array.isArray(skillsV2[skillName])) {
-        return skillsV2[skillName];
+    const tracker = getTrackerData();
+    const skills = tracker.skills;
+    if (skills && Array.isArray(skills[skillName])) {
+        return skills[skillName];
     }
     return null;
 }
@@ -781,15 +701,13 @@ function renderSkillCategory(skillName, viewMode) {
     let itemsHtml = '';
     if (items.length === 0) {
         itemsHtml = `<div class="rpg-skill-items-empty" data-i18n-key="skills.noAbilities">${i18n.getTranslation('skills.noAbilities')}</div>`;
-    } else {
-        if (isStructured) {
+    } else if (isStructured) {
             // Render structured abilities with name + description
             itemsHtml = items.map((ability, index) => renderStructuredSkillAbility(skillName, ability, index, viewMode)).join('');
         } else {
             // Render legacy string-based abilities
             itemsHtml = items.map((item, index) => renderSkillAbilityItem(skillName, item, index, viewMode)).join('');
         }
-    }
     
     const listViewClass = viewMode === 'list' ? 'rpg-item-list-view' : 'rpg-item-grid-view';
     

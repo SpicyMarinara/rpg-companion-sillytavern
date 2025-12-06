@@ -1,5 +1,5 @@
 //- No-op in case this is running outside of SillyTavern
-// eslint-disable-next-line no-unused-vars
+ 
 const { extension_settings: _extension_settings } = typeof self.SillyTavern !== 'undefined' ? self.SillyTavern.getContext() : { extension_settings: {} };
 
 class Internationalization {

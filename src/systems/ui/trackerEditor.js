@@ -3,7 +3,7 @@
  * Provides UI for customizing tracker configurations
  */
 import { i18n } from '../../core/i18n.js';
-import { extensionSettings } from '../../core/state.js';
+import { extensionSettings, committedTrackerData, lastGeneratedData } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
@@ -113,6 +113,7 @@ function applyTrackerConfig() {
     renderUserStats();
     renderInfoBox();
     renderThoughts();
+    renderSkills();
 }
 
 /**
@@ -360,9 +361,13 @@ function setupUserStatsListeners() {
             description: '',
             enabled: true
         });
-        // Initialize value if doesn't exist
-        if (extensionSettings.userStats[newId] === undefined) {
-            extensionSettings.userStats[newId] = 100;
+        // Initialize value in tracker data
+        const statName = extensionSettings.trackerConfig.userStats.customStats[extensionSettings.trackerConfig.userStats.customStats.length - 1].name;
+        if (lastGeneratedData.stats && lastGeneratedData.stats[statName] === undefined) {
+            lastGeneratedData.stats[statName] = 100;
+        }
+        if (committedTrackerData.stats && committedTrackerData.stats[statName] === undefined) {
+            committedTrackerData.stats[statName] = 100;
         }
         renderUserStatsTab();
     });
@@ -412,9 +417,13 @@ function setupUserStatsListeners() {
             description: '',
             enabled: true
         });
-        // Initialize value in classicStats if doesn't exist
-        if (extensionSettings.classicStats[newId] === undefined) {
-            extensionSettings.classicStats[newId] = 10;
+        // Initialize value in tracker data
+        const attrName = extensionSettings.trackerConfig.userStats.rpgAttributes[extensionSettings.trackerConfig.userStats.rpgAttributes.length - 1].name;
+        if (lastGeneratedData.attributes && lastGeneratedData.attributes[attrName] === undefined) {
+            lastGeneratedData.attributes[attrName] = 10;
+        }
+        if (committedTrackerData.attributes && committedTrackerData.attributes[attrName] === undefined) {
+            committedTrackerData.attributes[attrName] = 10;
         }
         renderUserStatsTab();
     });

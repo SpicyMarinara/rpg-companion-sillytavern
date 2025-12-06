@@ -71,6 +71,7 @@
  * @property {TrackerItem[]} onPerson - Items carried/worn
  * @property {Object.<string, TrackerItem[]>} stored - Items stored at locations
  * @property {TrackerItem[]} assets - Major possessions (vehicles, property)
+ * @property {TrackerItem[]} [simplified] - Optional single-list simplified inventory
  */
 
 /**
@@ -107,17 +108,30 @@ export const TRACKER_DATA_VERSION = 3;
  * @returns {TrackerData}
  */
 export function createEmptyTrackerData(trackerConfig) {
-    const data = {};
+    const data = { version: TRACKER_DATA_VERSION };
     
     // Stats based on config
     if (trackerConfig?.userStats?.customStats) {
         data.stats = {};
         for (const stat of trackerConfig.userStats.customStats) {
-            if (stat.enabled) {
+            if (stat?.enabled && stat.name) {
                 data.stats[stat.name] = 100;
             }
         }
     }
+    
+    // Attributes based on config
+    if (trackerConfig?.userStats?.rpgAttributes) {
+        data.attributes = {};
+        for (const attr of trackerConfig.userStats.rpgAttributes) {
+            if (attr?.enabled && attr.name) {
+                data.attributes[attr.name] = 10;
+            }
+        }
+    }
+    
+    // Level defaults to 1
+    data.level = 1;
     
     // Status
     data.status = { mood: '😐', fields: {} };
@@ -134,14 +148,18 @@ export function createEmptyTrackerData(trackerConfig) {
     data.inventory = {
         onPerson: [],
         stored: {},
-        assets: []
+        assets: [],
+        simplified: []
     };
     
     // Skills based on config categories
     data.skills = {};
     if (trackerConfig?.userStats?.skillsSection?.customFields) {
         for (const category of trackerConfig.userStats.skillsSection.customFields) {
-            data.skills[category] = [];
+            const categoryName = typeof category === 'string' ? category : category?.name;
+            if (categoryName) {
+                data.skills[categoryName] = [];
+            }
         }
     }
     

@@ -4,9 +4,12 @@
  * Uses the same structure and styling as items/skills
  */
 
-import { extensionSettings, $questsContainer } from '../../core/state.js';
-import { saveSettings, saveChatData } from '../../core/persistence.js';
+import { extensionSettings, lastGeneratedData, committedTrackerData, $questsContainer } from '../../core/state.js';
+import { saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
 import { i18n } from '../../core/i18n.js';
+
+// Track open add forms state
+const openAddForms = {};
 
 /**
  * HTML escape helper
@@ -20,22 +23,28 @@ function escapeHtml(text) {
 }
 
 /**
- * Gets the main quest (migration handles legacy format conversion)
- * @returns {{name: string, description: string}|null}
+ * Gets tracker data with fallback
  */
-function getMainQuest() {
-    if (extensionSettings.questsV2?.main) {
-        return extensionSettings.questsV2.main;
-    }
-    return null;
+function getTrackerData() {
+    return lastGeneratedData || committedTrackerData || {};
 }
 
 /**
- * Gets optional quests (migration handles legacy format conversion)
+ * Gets the main quest
+ * @returns {{name: string, description: string}|null}
+ */
+function getMainQuest() {
+    const tracker = getTrackerData();
+    return tracker.quests?.main || null;
+}
+
+/**
+ * Gets optional quests
  * @returns {Array<{name: string, description: string}>}
  */
 function getOptionalQuests() {
-    return extensionSettings.questsV2?.optional || [];
+    const tracker = getTrackerData();
+    return tracker.quests?.optional || [];
 }
 
 /**
@@ -87,11 +96,17 @@ export function renderMainQuestView() {
         `;
     }
 
+    // Disable add button if main quest already exists
+    const addBtnDisabled = hasQuest ? 'disabled' : '';
+    const addBtnTitle = hasQuest 
+        ? i18n.getTranslation('quests.main.alreadyExists') || 'Main quest already set'
+        : i18n.getTranslation('quests.main.addQuestTitle');
+
     return `
         <div class="rpg-quest-section">
             <div class="rpg-quest-header">
                 <h3 class="rpg-quest-section-title" data-i18n-key="quests.main.title">${i18n.getTranslation('quests.main.title')}</h3>
-                <button class="rpg-inventory-add-btn" data-action="add-quest" data-field="main" title="${i18n.getTranslation('quests.main.addQuestTitle')}">
+                <button class="rpg-inventory-add-btn" data-action="add-quest" data-field="main" title="${addBtnTitle}" ${addBtnDisabled}>
                     <i class="fa-solid fa-plus"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
                 </button>
             </div>
@@ -173,9 +188,6 @@ export function renderOptionalQuestsView() {
     `;
 }
 
-// Track open add forms (matching items/skills pattern)
-let openAddForms = {};
-
 /**
  * Main render function for quests
  */
@@ -242,23 +254,22 @@ function attachQuestEventHandlers() {
         const questTitle = nameInput.val().trim();
 
         if (questTitle) {
-            // Ensure structured format exists
-            if (!extensionSettings.questsV2) {
-                extensionSettings.questsV2 = { main: null, optional: [] };
+            if (!lastGeneratedData.quests) {
+                lastGeneratedData.quests = { main: null, optional: [] };
             }
             
             if (field === 'main') {
-                extensionSettings.questsV2.main = { name: questTitle, description: '' };
+                lastGeneratedData.quests.main = { name: questTitle, description: '' };
             } else {
-                if (!extensionSettings.questsV2.optional) {
-                    extensionSettings.questsV2.optional = [];
+                if (!lastGeneratedData.quests.optional) {
+                    lastGeneratedData.quests.optional = [];
                 }
-                extensionSettings.questsV2.optional.push({ name: questTitle, description: '' });
+                lastGeneratedData.quests.optional.push({ name: questTitle, description: '' });
             }
             
             openAddForms[field] = false;
-            saveSettings();
             saveChatData();
+            updateMessageSwipeData();
             renderQuests();
         }
     });
@@ -268,21 +279,19 @@ function attachQuestEventHandlers() {
         const field = $(this).data('field');
         const index = $(this).data('index');
 
+        if (!lastGeneratedData.quests) return;
+
         if (field === 'main') {
-            if (extensionSettings.questsV2) {
-                extensionSettings.questsV2.main = null;
-            }
-        } else {
-            if (extensionSettings.questsV2?.optional) {
-                extensionSettings.questsV2.optional.splice(index, 1);
-            }
+            lastGeneratedData.quests.main = null;
+        } else if (lastGeneratedData.quests.optional) {
+            lastGeneratedData.quests.optional.splice(index, 1);
         }
-        saveSettings();
         saveChatData();
+        updateMessageSwipeData();
         renderQuests();
     });
 
-    // Inline editing for quests (name and description) - matching items/skills pattern
+    // Inline editing for quests (name and description)
     $questsContainer.off('blur', '.rpg-item-name.rpg-editable, .rpg-item-description.rpg-editable')
         .on('blur', '.rpg-item-name.rpg-editable, .rpg-item-description.rpg-editable', function() {
         const $this = $(this);
@@ -291,27 +300,24 @@ function attachQuestEventHandlers() {
         const prop = $this.data('prop') || 'name';
         const newValue = $this.text().trim();
 
-        // Ensure structured format exists
-        if (!extensionSettings.questsV2) {
-            extensionSettings.questsV2 = { main: null, optional: [] };
+        if (!lastGeneratedData.quests) {
+            lastGeneratedData.quests = { main: null, optional: [] };
         }
 
         if (field === 'main') {
-            // Update main quest
-            if (!extensionSettings.questsV2.main) {
-                extensionSettings.questsV2.main = { name: '', description: '' };
+            if (!lastGeneratedData.quests.main) {
+                lastGeneratedData.quests.main = { name: '', description: '' };
             }
-            extensionSettings.questsV2.main[prop] = newValue;
+            lastGeneratedData.quests.main[prop] = newValue;
         } else if (field === 'optional' && index !== undefined) {
-            // Update optional quest
-            if (!extensionSettings.questsV2.optional[index]) {
-                extensionSettings.questsV2.optional[index] = { name: '', description: '' };
+            if (!lastGeneratedData.quests.optional[index]) {
+                lastGeneratedData.quests.optional[index] = { name: '', description: '' };
             }
-            extensionSettings.questsV2.optional[index][prop] = newValue;
+            lastGeneratedData.quests.optional[index][prop] = newValue;
         }
         
-        saveSettings();
         saveChatData();
+        updateMessageSwipeData();
     });
 
     // Enter key to save in forms (matching items/skills pattern)

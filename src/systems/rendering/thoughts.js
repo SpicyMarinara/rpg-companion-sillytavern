@@ -3,7 +3,6 @@
  * Handles rendering of character thoughts panel and floating thought bubbles in chat
  */
 
-import { getContext } from '../../../../../../extensions.js';
 import { this_chid, characters } from '../../../../../../../script.js';
 import { selected_group, getGroupMembers } from '../../../../../../group-chats.js';
 import {
@@ -14,7 +13,7 @@ import {
     FALLBACK_AVATAR_DATA_URI,
     addDebugLog
 } from '../../core/state.js';
-import { saveChatData } from '../../core/persistence.js';
+import { saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 
 /**
@@ -123,14 +122,14 @@ export function renderThoughts() {
     const relationshipFields = config?.relationshipFields || [];
     const hasRelationshipEnabled = relationshipFields.length > 0;
     
-    // Convert structured character data to text format for the original fancy renderer
-    // Use nullish coalescing so an empty string from the latest response clears UI
-    let characterThoughtsData = lastGeneratedData.characterThoughts ?? committedTrackerData.characterThoughts ?? '';
+    // Get structured character data - prefer lastGeneratedData, fall back to committedTrackerData
+    const structuredChars = lastGeneratedData.characters || committedTrackerData.characters || [];
+    let characterThoughtsData = '';
     
-    // If we have structured data, convert it to text format
-    if (extensionSettings.charactersData && Array.isArray(extensionSettings.charactersData) && extensionSettings.charactersData.length > 0) {
+    // Convert structured data to text format for the fancy renderer
+    if (Array.isArray(structuredChars) && structuredChars.length > 0) {
         const lines = [];
-        for (const char of extensionSettings.charactersData) {
+        for (const char of structuredChars) {
             // Character name line
             lines.push(`- ${char.name || 'Unknown'}`);
             
@@ -189,7 +188,7 @@ export function renderThoughts() {
     // Pre-process: normalize the format to handle cases where "- char" appears mid-line
     // This handles: "Thoughts: ... - char 2" by splitting it into separate lines
     const normalizedLines = [];
-    for (let line of lines) {
+    for (const line of lines) {
         // Check if line contains "- [name]" pattern after some content (not at start)
         // Match pattern like "some text - CharName" where there's content before the dash
         const midLineCharMatch = line.match(/^(.+?)\s+-\s+([A-Z][a-zA-Z\s]+)$/);
@@ -413,7 +412,7 @@ export function renderThoughts() {
                 // Get relationship badge - only if relationships are enabled in config
                 let relationshipBadge = '⚖️'; // Default emoji
                 let relationshipText = 'Neutral'; // Default text for tooltip
-                let relationshipFieldName = 'Relationship';
+                const relationshipFieldName = 'Relationship';
 
                 if (hasRelationshipEnabled) {
                     // In the new format, relationship is always stored in char.Relationship
@@ -526,226 +525,60 @@ export function renderThoughts() {
 
 /**
  * Updates a specific character field in Present Characters data and re-renders.
- * Works with the new multi-line format.
  *
  * @param {string} characterName - Name of the character to update
- * @param {string} field - Field to update (emoji, name, custom field name, Relationship, stat name)
+ * @param {string} field - Field to update (emoji, name, custom field name, Relationship, stat name, thoughts)
  * @param {string} value - New value for the field
  */
 export function updateCharacterField(characterName, field, value) {
-    // Initialize if it doesn't exist
-    if (!lastGeneratedData.characterThoughts) {
-        lastGeneratedData.characterThoughts = 'Present Characters\n---\n';
+    if (!lastGeneratedData.characters) {
+        lastGeneratedData.characters = [];
     }
 
-    const lines = lastGeneratedData.characterThoughts.split('\n');
     const presentCharsConfig = extensionSettings.trackerConfig?.presentCharacters;
-    const enabledFields = presentCharsConfig?.customFields?.filter(f => f && f.enabled && f.name) || [];
     const characterStats = presentCharsConfig?.characterStats;
     const enabledCharStats = characterStats?.enabled && characterStats?.customStats?.filter(s => s && s.enabled && s.name) || [];
+    const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
 
-    let characterFound = false;
-    let inTargetCharacter = false;
-    let characterStartIndex = -1;
-    let characterEndIndex = -1;
-
-    // Find the character block
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-
-        if (line.startsWith('- ')) {
-            const name = line.substring(2).trim();
-            if (name.toLowerCase() === characterName.toLowerCase()) {
-                characterFound = true;
-                inTargetCharacter = true;
-                characterStartIndex = i;
-            } else if (inTargetCharacter) {
-                characterEndIndex = i;
-                break;
-            }
-        }
+    // Find the character
+    let char = lastGeneratedData.characters.find(c => c.name?.toLowerCase() === characterName.toLowerCase());
+    
+    if (!char) {
+        // Create new character
+        char = { name: characterName, emoji: '😊', fields: {}, stats: {}, relationship: 'Neutral', thoughts: '' };
+        lastGeneratedData.characters.push(char);
     }
 
-    if (characterFound && characterEndIndex === -1) {
-        characterEndIndex = lines.length;
-    }
-
-    if (characterFound) {
-        // Check if we're updating a character stat
-        const isStatField = enabledCharStats.findIndex(s => s.name === field) !== -1;
-        let statsLineExists = false;
-        let statsLineIndex = -1;
-
-        // Get the configured thoughts field name
-        const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
-        const isThoughtsField = field.toLowerCase() === 'thoughts' || field === thoughtsFieldName;
-
-        // First pass: check if Stats line exists and update other fields
-        for (let i = characterStartIndex; i < characterEndIndex; i++) {
-            const line = lines[i].trim();
-
-            if (line.startsWith('Stats:')) {
-                statsLineExists = true;
-                statsLineIndex = i;
-            }
-
-            if (field === 'name' && line.startsWith('- ')) {
-                lines[i] = `- ${value}`;
-            }
-            else if (field === 'emoji' && line.startsWith('Details:')) {
-                const parts = line.substring(line.indexOf(':') + 1).split('|').map(p => p.trim());
-                parts[0] = value;
-                lines[i] = `Details: ${parts.join(' | ')}`;
-            }
-            else if (line.startsWith('Details:')) {
-                const fieldIndex = enabledFields.findIndex(f => f.name === field);
-                if (fieldIndex !== -1) {
-                    const parts = line.substring(line.indexOf(':') + 1).split('|').map(p => p.trim());
-                    if (parts.length > fieldIndex + 1) {
-                        parts[fieldIndex + 1] = value;
-                        lines[i] = `Details: ${parts.join(' | ')}`;
-                    }
-                }
-            }
-            else if (field === 'Relationship' && line.startsWith('Relationship:')) {
-                const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
-                const relationshipValue = emojiToRelationship[value] || value;
-                lines[i] = `Relationship: ${relationshipValue}`;
-            }
-            else if (isThoughtsField && line.startsWith(thoughtsFieldName + ':')) {
-                // Update thoughts field
-                lines[i] = `${thoughtsFieldName}: ${value}`;
-                console.log('[RPG Companion] Updated thoughts:', lines[i]);
-            }
-        }
-
-        // Handle stat updates
-        if (isStatField) {
-            // Clean the value: remove % if present, parse as integer, clamp 0-100
-            let cleanValue = value.replace('%', '').trim();
-            let numValue = parseInt(cleanValue);
-            if (isNaN(numValue)) {
-                numValue = 0;
-            }
-            numValue = Math.max(0, Math.min(100, numValue));
-
-            console.log('[RPG Companion] Updating stat:', { field, rawValue: value, cleanValue, numValue });
-
-            if (statsLineExists) {
-                // Update existing Stats line
-                const line = lines[statsLineIndex];
-                const statsContent = line.substring(line.indexOf(':') + 1).trim();
-                const statParts = statsContent.split('|').map(p => p.trim());
-
-                let statFound = false;
-                for (let j = 0; j < statParts.length; j++) {
-                    if (statParts[j].startsWith(field + ':')) {
-                        statParts[j] = `${field}: ${numValue}%`;
-                        statFound = true;
-                        console.log('[RPG Companion] Updated stat part:', statParts[j]);
-                        break;
-                    }
-                }
-
-                // If stat wasn't found in existing parts, add it
-                if (!statFound) {
-                    statParts.push(`${field}: ${numValue}%`);
-                    console.log('[RPG Companion] Added new stat to existing line:', `${field}: ${numValue}%`);
-                }
-
-                lines[statsLineIndex] = `Stats: ${statParts.join(' | ')}`;
-                console.log('[RPG Companion] Updated stats line:', lines[statsLineIndex]);
-            } else {
-                // Create new Stats line with all enabled stats (defaulting to 0% except the one being edited)
-                const statsParts = enabledCharStats.map(s => {
-                    if (s.name === field) {
-                        return `${s.name}: ${numValue}%`;
-                    }
-                    return `${s.name}: 0%`;
-                });
-                const newStatsLine = `Stats: ${statsParts.join(' | ')}`;
-
-                // Insert before Thoughts line or at end of character block
-                let insertIndex = characterEndIndex;
-                for (let i = characterStartIndex; i < characterEndIndex; i++) {
-                    const line = lines[i].trim();
-                    const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
-                    if (line.startsWith(thoughtsFieldName + ':')) {
-                        insertIndex = i;
-                        break;
-                    }
-                }
-
-                lines.splice(insertIndex, 0, newStatsLine);
-                console.log('[RPG Companion] Created new stats line:', newStatsLine);
-                characterEndIndex++; // Adjust end index since we inserted a line
-            }
-        }
+    // Update the appropriate field
+    if (field === 'name') {
+        char.name = value;
+    } else if (field === 'emoji') {
+        char.emoji = value;
+    } else if (field === 'Relationship') {
+        const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
+        char.relationship = emojiToRelationship[value] || value;
+    } else if (field.toLowerCase() === 'thoughts' || field === thoughtsFieldName) {
+        char.thoughts = value;
+    } else if (enabledCharStats.some(s => s.name === field)) {
+        // It's a stat field
+        if (!char.stats) char.stats = {};
+        let numValue = parseInt(String(value).replace('%', '').trim());
+        if (isNaN(numValue)) numValue = 0;
+        char.stats[field] = Math.max(0, Math.min(100, numValue));
     } else {
-        // Create new character block
-        const dividerIndex = lines.findIndex(line => line.includes('---'));
-        if (dividerIndex >= 0) {
-            const newCharacterLines = [`- ${characterName}`];
-
-            let detailsParts = [field === 'emoji' ? value : '😊'];
-            for (let i = 0; i < enabledFields.length; i++) {
-                detailsParts.push(field === enabledFields[i].name ? value : '');
-            }
-            newCharacterLines.push(`Details: ${detailsParts.join(' | ')}`);
-
-            if (presentCharsConfig?.relationshipFields?.length > 0) {
-                const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
-                const relationshipValue = field === 'Relationship' ? (emojiToRelationship[value] || value) : 'Neutral';
-                newCharacterLines.push(`Relationship: ${relationshipValue}`);
-            }
-
-            if (enabledCharStats.length > 0) {
-                const statsParts = enabledCharStats.map(s => {
-                    if (field === s.name) {
-                        // Clean the value: remove % if present, parse as integer, clamp 0-100
-                        let cleanValue = value.replace('%', '').trim();
-                        let numValue = parseInt(cleanValue);
-                        if (isNaN(numValue)) {
-                            numValue = 0;
-                        }
-                        numValue = Math.max(0, Math.min(100, numValue));
-                        return `${s.name}: ${numValue}%`;
-                    }
-                    return `${s.name}: 0%`;
-                });
-                newCharacterLines.push(`Stats: ${statsParts.join(' | ')}`);
-            }
-
-            lines.splice(dividerIndex + 1, 0, ...newCharacterLines);
-        }
+        // It's a custom field
+        if (!char.fields) char.fields = {};
+        char.fields[field] = value;
     }
 
-    lastGeneratedData.characterThoughts = lines.join('\n');
-    committedTrackerData.characterThoughts = lines.join('\n');
+    console.log('[RPG Companion] Updated character:', char.name, field, value);
 
-    console.log('[RPG Companion] Updated characterThoughts data:', lastGeneratedData.characterThoughts);
-
-    const chat = getContext().chat;
-    if (chat && chat.length > 0) {
-        for (let i = chat.length - 1; i >= 0; i--) {
-            const message = chat[i];
-            if (!message.is_user) {
-                if (message.extra && message.extra.rpg_companion_swipes) {
-                    const swipeId = message.swipe_id || 0;
-                    if (message.extra.rpg_companion_swipes[swipeId]) {
-                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = lines.join('\n');
-                    }
-                }
-                break;
-            }
-        }
-    }
-
+    // Update swipe data
+    updateMessageSwipeData();
     saveChatData();
     renderThoughts();
 
-    const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
-    if (field === thoughtsFieldName) {
+    if (field.toLowerCase() === 'thoughts' || field === thoughtsFieldName) {
         setTimeout(() => updateChatThoughts(), 100);
     } else {
         updateChatThoughts();
@@ -754,104 +587,30 @@ export function updateCharacterField(characterName, field, value) {
 
 /**
  * Removes a character from Present Characters data and re-renders.
- * Works with both structured (charactersData) and text (characterThoughts) formats.
  *
  * @param {string} characterName - Name of the character to remove
  */
 export function removeCharacter(characterName) {
     console.log('[RPG Companion] Removing character:', characterName);
 
-    // Remove from structured data if it exists
-    if (extensionSettings.charactersData && Array.isArray(extensionSettings.charactersData)) {
-        const initialLength = extensionSettings.charactersData.length;
-        extensionSettings.charactersData = extensionSettings.charactersData.filter(
-            char => char.name && char.name.toLowerCase() !== characterName.toLowerCase()
-        );
-        if (extensionSettings.charactersData.length < initialLength) {
-            console.log('[RPG Companion] Removed character from structured data');
-        }
-    }
-
-    // Remove from text format
-    if (!lastGeneratedData.characterThoughts) {
-        console.log('[RPG Companion] No characterThoughts data to remove from');
+    if (!lastGeneratedData.characters || !Array.isArray(lastGeneratedData.characters)) {
+        console.log('[RPG Companion] No characters data to remove from');
         return;
     }
 
-    const lines = lastGeneratedData.characterThoughts.split('\n');
-    
-    let characterFound = false;
-    let inTargetCharacter = false;
-    let characterEndIndex = -1;
-    const linesToRemove = [];
+    const initialLength = lastGeneratedData.characters.length;
+    lastGeneratedData.characters = lastGeneratedData.characters.filter(
+        char => char.name?.toLowerCase() !== characterName.toLowerCase()
+    );
 
-    // Find the character block
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-
-        if (line.startsWith('- ')) {
-            const name = line.substring(2).trim();
-            if (name.toLowerCase() === characterName.toLowerCase()) {
-                characterFound = true;
-                inTargetCharacter = true;
-                linesToRemove.push(i);
-            } else if (inTargetCharacter) {
-                characterEndIndex = i;
-                break;
-            }
-        } else if (inTargetCharacter) {
-            // Include all lines until the next character or end of file
-            linesToRemove.push(i);
-            // Check if this is a character name line (next character)
-            if (line.startsWith('- ')) {
-                characterEndIndex = i;
-                break;
-            }
-        }
-    }
-
-    if (characterFound && characterEndIndex === -1) {
-        characterEndIndex = lines.length;
-    }
-
-    if (characterFound && linesToRemove.length > 0) {
-        // Remove lines in reverse order to maintain indices
-        for (let i = linesToRemove.length - 1; i >= 0; i--) {
-            lines.splice(linesToRemove[i], 1);
-        }
-
-        // Clean up any trailing empty lines after removal
-        while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
-            lines.pop();
-        }
-
-        lastGeneratedData.characterThoughts = lines.join('\n');
-        committedTrackerData.characterThoughts = lines.join('\n');
-
-        console.log('[RPG Companion] Removed character from text format');
-
-        // Update chat swipe data
-        const chat = getContext().chat;
-        if (chat && chat.length > 0) {
-            for (let i = chat.length - 1; i >= 0; i--) {
-                const message = chat[i];
-                if (!message.is_user) {
-                    if (message.extra && message.extra.rpg_companion_swipes) {
-                        const swipeId = message.swipe_id || 0;
-                        if (message.extra.rpg_companion_swipes[swipeId]) {
-                            message.extra.rpg_companion_swipes[swipeId].characterThoughts = lines.join('\n');
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
+    if (lastGeneratedData.characters.length < initialLength) {
+        console.log('[RPG Companion] Removed character:', characterName);
+        updateMessageSwipeData();
         saveChatData();
         renderThoughts();
         updateChatThoughts();
     } else {
-        console.log('[RPG Companion] Character not found in text format:', characterName);
+        console.log('[RPG Companion] Character not found:', characterName);
     }
 }
 
@@ -867,71 +626,25 @@ export function updateChatThoughts() {
     $(window).off('resize.thoughtPanel');
     $(document).off('click.thoughtPanel');
 
-    if (!extensionSettings.enabled || !extensionSettings.showThoughtsInChat || !lastGeneratedData.characterThoughts) {
+    const characters = lastGeneratedData.characters || committedTrackerData.characters || [];
+    if (!extensionSettings.enabled || !extensionSettings.showThoughtsInChat || characters.length === 0) {
         return;
     }
 
-    // Parse the Present Characters data to get thoughts
-    const lines = lastGeneratedData.characterThoughts.split('\n');
-    const thoughtsArray = []; // Array of {name, emoji, thought}
-    const thoughtsConfig = extensionSettings.trackerConfig?.presentCharacters?.thoughts;
-    const thoughtsLabel = thoughtsConfig?.name || 'Thoughts';
-
-    // Parse new format to build character map and thoughts
-    let currentCharName = null;
-    let currentCharEmoji = null;
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-
-        if (!line ||
-            line.includes('Present Characters') ||
-            line.includes('---') ||
-            line.startsWith('```') ||
-            line.trim() === '- …' ||
-            line.includes('(Repeat the format')) {
-            continue;
-        }
-
-        // Check if this is a character name line (starts with "- ")
-        if (line.startsWith('- ')) {
-            const name = line.substring(2).trim();
-            if (name && name.toLowerCase() !== 'unavailable') {
-                currentCharName = name;
-                currentCharEmoji = null; // Reset emoji for new character
-            } else {
-                currentCharName = null;
-                currentCharEmoji = null;
-            }
-        }
-        // Check if this is a Details line (contains the emoji)
-        else if (line.startsWith('Details:') && currentCharName) {
-            const detailsContent = line.substring(line.indexOf(':') + 1).trim();
-            const parts = detailsContent.split('|').map(p => p.trim());
-
-            // First part is the emoji
-            if (parts.length > 0) {
-                currentCharEmoji = parts[0];
-            }
-        }
-        // Check if this is a Thoughts line
-        else if (line.startsWith(thoughtsLabel + ':') && currentCharName && currentCharEmoji) {
-            const thoughtContent = line.substring(thoughtsLabel.length + 1).trim();
-
-            // The thought content is just the text (no emoji prefix in new format)
-            if (thoughtContent) {
-                thoughtsArray.push({
-                    name: currentCharName.toLowerCase(),
-                    emoji: currentCharEmoji,
-                    thought: thoughtContent
-                });
-            }
+    // Build thoughts array from structured character data
+    const thoughtsArray = [];
+    for (const char of characters) {
+        if (char.name && char.thoughts) {
+            thoughtsArray.push({
+                name: char.name.toLowerCase(),
+                emoji: char.emoji || '😶',
+                thought: char.thoughts
+            });
         }
     }
 
     debugLog('[RPG Thoughts] Parsed thoughts:', thoughtsArray);
 
-    // If no thoughts parsed, return
     if (thoughtsArray.length === 0) {
         return;
     }

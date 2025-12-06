@@ -5817,9 +5817,16 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     min-width: fit-content;
 }
 
-.rpg-inventory-add-btn:hover {
+.rpg-inventory-add-btn:hover:not(:disabled) {
     background: rgba(var(--rpg-highlight-rgb, 233, 69, 96), 0.1);
     border-color: var(--rpg-highlight);
+}
+
+.rpg-inventory-add-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: var(--SmartThemeBorderColor);
+    color: var(--SmartThemeBodyColor);
 }
 
 .rpg-inventory-remove-btn {

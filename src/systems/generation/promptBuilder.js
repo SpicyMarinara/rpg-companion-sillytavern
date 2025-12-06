@@ -6,7 +6,7 @@
 import { getContext } from '../../../../../../extensions.js';
 import { chat, characters, this_chid } from '../../../../../../../script.js';
 import { selected_group, getGroupMembers, getGroupChat } from '../../../../../../group-chats.js';
-import { extensionSettings } from '../../core/state.js';
+import { extensionSettings, committedTrackerData } from '../../core/state.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -27,7 +27,7 @@ export const DEFAULT_JSON_TRACKER_PROMPT = `At the start of every reply, output 
  * Default message interception prompt text
  * Guides the LLM to rewrite the user's message based on current RPG state and recent chat
  */
-export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (JSON). You must validate the feasibility of the user's intended actions for {{user}} to take against the JSON state; if the draft contradicts said state (e.g. acting smart while 'Intelligence' is low, or running while having a 'Leg Injury'), you are required to override the core intent, rewriting the action to portray immediate failure, struggle, or an involuntary reaction instead of the user's desired success. Even further, if the intended course of action is physically impossible via the state or represents a thought process that is conceptually alien to the character's nature or current state, you are mandated to completely overwrite the user's intent. Be careful not to confuse communicated intent (e.g. walk towards some direction, or throw a punch) with intended speech. Intent must always be overwritten with intent (e.g. if user wanted for {{user}} to run, but they have a leg injury, your correction will make them limp). Speech must always be overwritten with speech (e.g. if user means for {{user}} to speak eloquently, but they're not smart enough, you'd dumb down their choice of words or speech patterns). Never replace intent with failed speech (e.g. user communicates that {{user}} will throw a punch, or make a gesture, but you incorrectly decide that they will make muffled noises instead, as they are gagged). Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Never include information that was not already present in the original draft. Never narrate the consequences of {{user}}'s actions, only what they are. Return ONLY the modified message text.`;
+export const DEFAULT_MESSAGE_INTERCEPTION_PROMPT = `Act as an uncompromising Immersive Copy Editor who rewrites the user's draft to strictly adhere to {{user}}'s persona and RPG state (JSON). You must validate the feasibility of the user's intended thoughts, actions and speech for {{user}} to take against {{user}}'s JSON state; if the draft contradicts said state (e.g. having good ideas while 'Intelligence' is low, or running while having a 'Leg Injury', or clearly enunciating when having a 'Lisp'), you are required to override the draft, rewriting the message to make it more realistic, instead adhering exactly to the user's desires. Be careful not apply speech modifications to narration or thoughts (e.g. a 'Lisp' would only be reflected in spoken words, not in thoughts or narration). Aggressively rephrase vocabulary and syntax to match the character's specific cognitive capacity and tone. Keep the output concise and devoid of fluff; do not expand the narrative beyond the necessary state-enforced correction. Never include information that was not already present in the original draft. Never narrate the consequences of {{user}}'s actions, only what they are. You are not contributing to the narrative, you are editing what the next message is going to be. Return ONLY the modified message text. Make sure to format your message appropriately, using the correct punctuation and signs, whether it's speech, thoughts, or plain narrative text.`;
 
 /**
  * Gets character card information for current chat (handles both single and group chats)
@@ -101,83 +101,7 @@ export async function getCharacterCardsInfo() {
  * // v2 input: { onPerson: "Sword", stored: { Home: "Gold" }, assets: "Horse", version: 2 }
  * // Returns: "On Person: Sword\nStored - Home: Gold\nAssets: Horse"
  */
-export function buildInventorySummary(inventory) {
-    // Handle legacy v1 string format
-    if (typeof inventory === 'string') {
-        return `Inventory: ${inventory}`;
-    }
-
-    // Handle v2 object format
-    if (inventory && typeof inventory === 'object' && inventory.version === 2) {
-        // Check for simplified inventory mode
-        if (inventory.simplified || extensionSettings.useSimplifiedInventory) {
-            const items = inventory.items || inventory.onPerson || 'None';
-            return `Inventory: ${items}`;
-        }
-
-        // Full categorized format
-        let summary = '';
-
-        // Add On Person section
-        if (inventory.onPerson && inventory.onPerson !== 'None') {
-            summary += `On Person: ${inventory.onPerson}\n`;
-        }
-
-        // Add Stored sections for each location
-        if (inventory.stored && Object.keys(inventory.stored).length > 0) {
-            for (const [location, items] of Object.entries(inventory.stored)) {
-                if (items && items !== 'None') {
-                    summary += `Stored - ${location}: ${items}\n`;
-                }
-            }
-        }
-
-        // Add Assets section
-        if (inventory.assets && inventory.assets !== 'None') {
-            summary += `Assets: ${inventory.assets}`;
-        }
-
-        return summary.trim();
-    }
-
-    // Fallback for unknown format
-    return 'None';
-}
-
-/**
- * Builds a dynamic attributes string based on configured RPG attributes.
- * Uses custom attribute names and values from classicStats.
- *
- * @returns {string} Formatted attributes string (e.g., "STR 10, DEX 12, INT 15, LVL 5")
- */
-function buildAttributesString() {
-    const trackerConfig = extensionSettings.trackerConfig;
-    const classicStats = extensionSettings.classicStats;
-    const userStatsConfig = trackerConfig?.userStats;
-
-    // Get enabled attributes from config
-    const rpgAttributes = userStatsConfig?.rpgAttributes || [
-        { id: 'str', name: 'STR', description: '', enabled: true },
-        { id: 'dex', name: 'DEX', description: '', enabled: true },
-        { id: 'con', name: 'CON', description: '', enabled: true },
-        { id: 'int', name: 'INT', description: '', enabled: true },
-        { id: 'wis', name: 'WIS', description: '', enabled: true },
-        { id: 'cha', name: 'CHA', description: '', enabled: true }
-    ];
-
-    const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
-
-    // Build attributes string dynamically
-    const attributeParts = enabledAttributes.map(attr => {
-        const value = classicStats[attr.id] !== undefined ? classicStats[attr.id] : 10;
-        return `${attr.name} ${value}`;
-    });
-
-    // Add level at the end
-    attributeParts.push(`LVL ${extensionSettings.level}`);
-
-    return attributeParts.join(', ');
-}
+// buildInventorySummary removed; structured inventory is used directly
 
 /**
  * Generates JSON-based tracker instructions.
@@ -217,7 +141,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     instructions += '```json\n';
     instructions += '{\n';
 
-    let sections = [];
+    const sections = [];
 
     // Stats section
     if (showStats) {
@@ -235,11 +159,11 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             let statusJson = '  "status": {\n';
             const statusParts = [];
             if (statusConfig.showMoodEmoji) {
-                statusParts.push('    "mood": "😊"');
+                statusParts.push(`    "mood": "😊"`);
             }
             const customFields = statusConfig.customFields || [];
             if (customFields.length > 0) {
-                const fieldsJson = customFields.map(f => `      "${f}": "[${f} description]"`).join(',\n');
+                const fieldsJson = customFields.map(f => `      "${f}": "[${f} value]"`).join(',\n');
                 statusParts.push(`    "fields": {\n${fieldsJson}\n    }`);
             }
             statusJson += statusParts.join(',\n');
@@ -250,39 +174,35 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         // Skills section
         const skillsSectionEnabled = trackerConfig?.userStats?.skillsSection?.enabled || false;
         if (skillsSectionEnabled && !extensionSettings.showSkills) {
-            sections.push(`  "skills": "Skill1, Skill2, Skill3"`);
+            const skillCategories = trackerConfig?.userStats?.skillsSection?.customFields || [];
+            const enabledCategories = skillCategories.filter(cat => cat.enabled !== false);
+            if (enabledCategories.length > 0) {
+                const skillLines = enabledCategories.map(cat => `    "${cat.name}": "Skill 1, Skill 2"`).join(',\n');
+                sections.push(`  "skills": {\n${skillLines}\n  }`);
+            } else {
+                sections.push(`  "skills": "None"`);
+            }
         }
     }
 
-    // Attributes section (if RPG attributes are enabled and should be included)
+    // Attributes section
     const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes;
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-    const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
+    const shouldSendAttributes = showRPGAttributes && (alwaysSendAttributes || extensionSettings.lastDiceRoll);
     
-    if (showRPGAttributes && shouldSendAttributes) {
-        const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [
-            { id: 'str', name: 'STR', description: '', enabled: true },
-            { id: 'dex', name: 'DEX', description: '', enabled: true },
-            { id: 'con', name: 'CON', description: '', enabled: true },
-            { id: 'int', name: 'INT', description: '', enabled: true },
-            { id: 'wis', name: 'WIS', description: '', enabled: true },
-            { id: 'cha', name: 'CHA', description: '', enabled: true }
-        ];
+    if (shouldSendAttributes) {
+        const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [];
         const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
         
         if (enabledAttributes.length > 0) {
             let attrsJson = '  "attributes": {\n';
-            const attrParts = enabledAttributes.map(attr => {
-                const value = extensionSettings.classicStats?.[attr.id] ?? 10;
-                return `    "${attr.name}": ${value}`;
-            });
+            const attrParts = enabledAttributes.map(attr => `    "${attr.name}": 10`);
             attrsJson += attrParts.join(',\n');
             attrsJson += '\n  }';
             sections.push(attrsJson);
             
             // Add level
-            const currentLevel = extensionSettings.level ?? 1;
-            sections.push(`  "level": ${currentLevel}`);
+            sections.push(`  "level": 1`);
         }
     }
 
@@ -290,15 +210,17 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     if (showInfoBox) {
         const widgets = trackerConfig?.infoBox?.widgets || {};
         const infoParts = [];
-        if (widgets.date?.enabled) infoParts.push('    "date": "Monday, March 15, 1242"');
-        if (widgets.time?.enabled) infoParts.push('    "time": "14:00 → 15:30"');
-        if (widgets.weather?.enabled) infoParts.push('    "weather": "☀️ Sunny"');
+        if (widgets.date?.enabled) infoParts.push(`    "date": "Monday, March 15, 1242"`);
+        if (widgets.time?.enabled) infoParts.push(`    "time": "14:00 → 15:30"`);
+        if (widgets.weather?.enabled) infoParts.push(`    "weather": "☀️ Sunny"`);
         if (widgets.temperature?.enabled) {
             const unit = widgets.temperature.unit === 'F' ? '°F' : '°C';
             infoParts.push(`    "temperature": "22${unit}"`);
         }
-        if (widgets.location?.enabled) infoParts.push('    "location": "Forest Clearing"');
-        if (widgets.recentEvents?.enabled) infoParts.push('    "recentEvents": ["Event 1", "Event 2"]');
+        if (widgets.location?.enabled) infoParts.push(`    "location": "Forest Clearing"`);
+        if (widgets.recentEvents?.enabled) {
+            infoParts.push(`    "recentEvents": ["Event 1", "Event 2"]`);
+        }
         
         if (infoParts.length > 0) {
             sections.push('  "infoBox": {\n' + infoParts.join(',\n') + '\n  }');
@@ -308,10 +230,9 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     // Characters section
     if (showCharacters) {
         const charConfig = trackerConfig?.presentCharacters || {};
-        let charExample = '    {\n      "name": "Character Name",\n      "emoji": "🧑"';
+        let charExample = `    {\n      "name": "Character Name",\n      "emoji": "🧑"`;
         
         if (charConfig.relationshipFields?.length > 0) {
-            // Show allowed relationship values as explanation
             const allowedRelationships = charConfig.relationshipFields.join(' | ');
             charExample += `,\n      "relationship": "(${allowedRelationships})"`;
         }
@@ -322,7 +243,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
             charExample += `,\n      "fields": {\n${fieldsJson}\n      }`;
         }
         
-        // Character stats (Health, Arousal, etc.)
+        // Character stats
         const charStatsConfig = charConfig.characterStats;
         const enabledCharStats = charStatsConfig?.enabled && charStatsConfig?.customStats?.filter(s => s?.enabled && s?.name) || [];
         if (enabledCharStats.length > 0) {
@@ -331,7 +252,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         }
         
         if (charConfig.thoughts?.enabled) {
-            charExample += ',\n      "thoughts": "Character\'s inner thoughts in first person..."';
+            charExample += `,\n      "thoughts": "Character's inner thoughts in first person..."`;
         }
         
         charExample += '\n    }';
@@ -342,22 +263,16 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
     if (showInventory) {
         let invSection = '  "inventory": {\n';
         
+        const exampleItem = enableItemSkillLinks 
+            ? '{ "name": "Item Name", "description": "Description", "grantsSkill": "Skill Name" }'
+            : '{ "name": "Item Name", "description": "Description" }';
+        
         if (extensionSettings.useSimplifiedInventory) {
-            // Simplified: single list
-            let itemExample = '{ "name": "Item Name", "description": "What it is" }';
-            if (enableItemSkillLinks) {
-                itemExample = '{ "name": "Iron Sword", "description": "A sturdy blade", "grantsSkill": "Sword Fighting" }';
-            }
-            invSection += `    "items": [${itemExample}]\n`;
+            invSection += `    "items": [${exampleItem}]\n`;
         } else {
-            // Full categorized inventory
-            let itemExample = '{ "name": "Item", "description": "Description" }';
-            if (enableItemSkillLinks) {
-                itemExample = '{ "name": "Iron Sword", "description": "A sturdy blade", "grantsSkill": "Sword Fighting" }';
-            }
-            invSection += `    "onPerson": [${itemExample}],\n`;
-            invSection += '    "stored": { "Location Name": [{ "name": "Stored Item", "description": "Description" }] },\n';
-            invSection += '    "assets": [{ "name": "Property/Vehicle", "description": "Description" }]\n';
+            invSection += `    "onPerson": [${exampleItem}],\n`;
+            invSection += `    "stored": {\n      "Location Name": [${exampleItem}]\n    },\n`;
+            invSection += `    "assets": [{ "name": "Property/Vehicle", "description": "Description" }]\n`;
         }
         
         invSection += '  }';
@@ -414,7 +329,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
         instructions += '- Optional quests can be created for smaller matters that need to be resolved\n';
     }
 
-    instructions += '- Items should be placeed in the inventory section, not the skills section\n';
+    instructions += '- Items, equipment and possessions should be placeed in the inventory section\n';
     instructions += '- Characters should be removed as soon as they leave the scene\n';
     instructions += '- Your list of characters must never include {{user}}\n';
     instructions += '- Empty arrays [] for sections with no items\n';
@@ -468,28 +383,15 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
 
     // Attributes
     if (includeAttributes) {
+        const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes;
         const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-        const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
+        const shouldSendAttributes = showRPGAttributes && (alwaysSendAttributes || extensionSettings.lastDiceRoll);
 
         if (shouldSendAttributes) {
-            const attributesString = buildAttributesString();
-            instructions += `${userName}'s attributes: ${attributesString}\n`;
-            
-            // Add attribute descriptions if any have descriptions
-            const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [];
-            const attrsWithDesc = rpgAttributes.filter(a => a?.enabled && a?.description);
-            if (attrsWithDesc.length > 0) {
-                instructions += 'Attribute meanings:\n';
-                attrsWithDesc.forEach(attr => {
-                    instructions += `  • ${attr.name}: ${attr.description}\n`;
-                });
-            }
-
+            // Attributes are already included in the JSON schema above; no extra text needed.
             if (extensionSettings.lastDiceRoll) {
                 const roll = extensionSettings.lastDiceRoll;
                 instructions += `${userName} rolled ${roll.total} on ${roll.formula}. Determine success/failure based on attributes.\n\n`;
-            } else {
-                instructions += '\n';
             }
         }
     }
@@ -511,7 +413,7 @@ export function generateJSONTrackerInstructions(includeHtmlPrompt = true, includ
  * @returns {string} JSON string of current state, or empty string if no data
  */
 export function generateContextualSummary() {
-    // Build current state as JSON (similar to previousState in generateRPGPromptText)
+    const tracker = committedTrackerData;
     const currentState = {};
     const trackerConfig = extensionSettings.trackerConfig;
     const descriptions = {};
@@ -523,7 +425,7 @@ export function generateContextualSummary() {
             currentState.stats = {};
             descriptions.stats = {};
             for (const stat of customStats) {
-                currentState.stats[stat.name] = extensionSettings.userStats[stat.id] ?? 100;
+                currentState.stats[stat.name] = tracker.stats?.[stat.name] ?? 100;
                 if (stat.description) {
                     descriptions.stats[stat.name] = stat.description;
                 }
@@ -534,41 +436,31 @@ export function generateContextualSummary() {
         const statusConfig = trackerConfig?.userStats?.statusSection;
         if (statusConfig?.enabled) {
             currentState.status = {
-                mood: extensionSettings.userStats.mood || '😐',
+                mood: tracker.status?.mood || '😐',
                 fields: {}
             };
             const customFields = statusConfig.customFields || [];
             for (const field of customFields) {
-                currentState.status.fields[field] = extensionSettings.userStats.conditions || 'None';
+                currentState.status.fields[field] = tracker.status?.fields?.[field] ?? 'None';
             }
         }
 
-        // Skills section
+        // Skills section (inline when separate tab off)
         const skillsSectionEnabled = trackerConfig?.userStats?.skillsSection?.enabled || false;
         if (skillsSectionEnabled && !extensionSettings.showSkills) {
-            currentState.skills = extensionSettings.userStats?.skills || 'None';
+            currentState.skills = tracker.skills || {};
         }
     }
     
     // InfoBox
-    if (extensionSettings.showInfoBox && extensionSettings.infoBoxData) {
-        currentState.infoBox = extensionSettings.infoBoxData;
+    if (extensionSettings.showInfoBox && tracker.infoBox) {
+        currentState.infoBox = tracker.infoBox;
     }
     
-    // Characters - format to match schema
-    if (extensionSettings.showCharacterThoughts && extensionSettings.charactersData?.length > 0) {
-        // Ensure characters match the expected schema format
-        currentState.characters = extensionSettings.charactersData.map(char => {
-            const formatted = { name: char.name };
-            if (char.relationship) formatted.relationship = char.relationship;
-            if (char.emoji) formatted.emoji = char.emoji;
-            if (char.fields && Object.keys(char.fields).length > 0) formatted.fields = char.fields;
-            if (char.stats && Object.keys(char.stats).length > 0) formatted.stats = char.stats;
-            if (char.thoughts) formatted.thoughts = char.thoughts;
-            return formatted;
-        });
+    // Characters
+    if (extensionSettings.showCharacterThoughts && tracker.characters?.length > 0) {
+        currentState.characters = tracker.characters.map(char => ({ ...char }));
         
-        // Add character field descriptions
         const charConfig = trackerConfig?.presentCharacters;
         if (charConfig?.customFields?.length > 0) {
             descriptions.characterFields = {};
@@ -579,12 +471,9 @@ export function generateContextualSummary() {
             }
         }
         
-        // Add character stats descriptions
         const charStatsConfig = charConfig?.characterStats;
         if (charStatsConfig?.enabled && charStatsConfig?.customStats?.length > 0) {
-            if (!descriptions.characterStats) {
-                descriptions.characterStats = {};
-            }
+            descriptions.characterStats = descriptions.characterStats || {};
             for (const stat of charStatsConfig.customStats) {
                 if (stat.enabled && stat.description) {
                     descriptions.characterStats[stat.name] = stat.description;
@@ -593,36 +482,16 @@ export function generateContextualSummary() {
         }
     }
     
-    // Inventory - format to match schema (use "items" for simplified mode)
-    if (extensionSettings.showInventory && extensionSettings.inventoryV3) {
-        const inv = extensionSettings.inventoryV3;
-        if (extensionSettings.useSimplifiedInventory) {
-            // Simplified mode uses "items" key
-            const items = inv.simplified || inv.onPerson || [];
-            if (items.length > 0) {
-                currentState.inventory = { items };
-            }
-        } else {
-            // Full categorized mode
-            if (inv.onPerson?.length > 0 || Object.keys(inv.stored || {}).length > 0 || inv.assets?.length > 0) {
-                currentState.inventory = {
-                    onPerson: inv.onPerson || [],
-                    stored: inv.stored || {},
-                    assets: inv.assets || []
-                };
-            }
-        }
+    // Inventory
+    if (extensionSettings.showInventory && tracker.inventory) {
+        currentState.inventory = tracker.inventory;
     }
     
-    // Skills
-    if (extensionSettings.showSkills && extensionSettings.skillsV2) {
-        currentState.skills = extensionSettings.skillsV2;
-        
-        // Add skill category descriptions
+    // Skills (separate tab)
+    if (extensionSettings.showSkills && tracker.skills) {
+        currentState.skills = tracker.skills;
         const skillCategories = trackerConfig?.userStats?.skillsSection?.customFields || [];
-        const categoriesWithDesc = skillCategories.filter(cat => 
-            typeof cat === 'object' && cat.enabled !== false && cat.description
-        );
+        const categoriesWithDesc = skillCategories.filter(cat => typeof cat === 'object' && cat.enabled !== false && cat.description);
         if (categoriesWithDesc.length > 0) {
             descriptions.skillCategories = {};
             for (const cat of categoriesWithDesc) {
@@ -632,48 +501,34 @@ export function generateContextualSummary() {
     }
     
     // Quests
-    if (extensionSettings.showQuests && extensionSettings.questsV2) {
-        currentState.quests = extensionSettings.questsV2;
+    if (extensionSettings.showQuests && tracker.quests) {
+        currentState.quests = tracker.quests;
     }
     
-    // Attributes and level (if RPG attributes are enabled and should be included)
+    // Attributes / Level
     const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes;
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-    const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
-    
-    if (showRPGAttributes && shouldSendAttributes) {
-        const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [
-            { id: 'str', name: 'STR', description: '', enabled: true },
-            { id: 'dex', name: 'DEX', description: '', enabled: true },
-            { id: 'con', name: 'CON', description: '', enabled: true },
-            { id: 'int', name: 'INT', description: '', enabled: true },
-            { id: 'wis', name: 'WIS', description: '', enabled: true },
-            { id: 'cha', name: 'CHA', description: '', enabled: true }
-        ];
+    const shouldSendAttributes = showRPGAttributes && (alwaysSendAttributes || extensionSettings.lastDiceRoll);
+    if (shouldSendAttributes) {
+        const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [];
         const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
-        
         if (enabledAttributes.length > 0) {
             currentState.attributes = {};
-            descriptions.attributes = {};
             for (const attr of enabledAttributes) {
-                const value = extensionSettings.classicStats?.[attr.id] ?? 10;
-                currentState.attributes[attr.name] = value;
+                currentState.attributes[attr.name] = tracker.attributes?.[attr.name] ?? 10;
                 if (attr.description) {
+                    descriptions.attributes = descriptions.attributes || {};
                     descriptions.attributes[attr.name] = attr.description;
                 }
             }
-            
-            // Add level
-            currentState.level = extensionSettings.level ?? 1;
         }
+        currentState.level = tracker.level ?? 1;
     }
     
-    // Add descriptions metadata if any exist
     if (Object.keys(descriptions).length > 0) {
         currentState._descriptions = descriptions;
     }
     
-    // Return JSON string if we have any data, otherwise empty string
     if (Object.keys(currentState).length > 0) {
         return JSON.stringify(currentState, null, 2);
     }
@@ -696,6 +551,7 @@ export function generateRPGPromptText() {
 
     // Build previous state as JSON
     const previousState = {};
+    const tracker = committedTrackerData;
     
     // Stats
     if (extensionSettings.showUserStats) {
@@ -703,7 +559,7 @@ export function generateRPGPromptText() {
         if (customStats.length > 0) {
             previousState.stats = {};
             for (const stat of customStats) {
-                previousState.stats[stat.name] = extensionSettings.userStats[stat.id] ?? 100;
+                previousState.stats[stat.name] = tracker.stats?.[stat.name] ?? 100;
             }
         }
         
@@ -711,44 +567,35 @@ export function generateRPGPromptText() {
         const statusConfig = extensionSettings.trackerConfig?.userStats?.statusSection;
         if (statusConfig?.enabled) {
             previousState.status = {
-                mood: extensionSettings.userStats.mood || '😐',
+                mood: tracker.status?.mood || '😐',
                 fields: {}
             };
             const customFields = statusConfig.customFields || [];
             for (const field of customFields) {
-                previousState.status.fields[field] = extensionSettings.userStats.conditions || 'None';
+                previousState.status.fields[field] = tracker.status?.fields?.[field] ?? 'None';
             }
         }
 
         // Skills
         const skillsSectionEnabled = trackerConfig?.userStats?.skillsSection?.enabled || false;
         if (skillsSectionEnabled && !extensionSettings.showSkills) {
-            previousState.skills = extensionSettings.userStats.skills;
+            previousState.skills = tracker.skills || {};
         }
     }
     
     // InfoBox
-    if (extensionSettings.showInfoBox && extensionSettings.infoBoxData) {
-        previousState.infoBox = extensionSettings.infoBoxData;
+    if (extensionSettings.showInfoBox && tracker.infoBox) {
+        previousState.infoBox = tracker.infoBox;
     }
     
     // Characters - format to match schema
-    if (extensionSettings.showCharacterThoughts && extensionSettings.charactersData?.length > 0) {
-        // Ensure characters match the expected schema format
-        previousState.characters = extensionSettings.charactersData.map(char => {
-            const formatted = { name: char.name };
-            if (char.relationship) formatted.relationship = char.relationship;
-            if (char.emoji) formatted.emoji = char.emoji;
-            if (char.fields && Object.keys(char.fields).length > 0) formatted.fields = char.fields;
-            if (char.stats && Object.keys(char.stats).length > 0) formatted.stats = char.stats;
-            if (char.thoughts) formatted.thoughts = char.thoughts;
-            return formatted;
-        });
+    if (extensionSettings.showCharacterThoughts && tracker.characters?.length > 0) {
+        previousState.characters = tracker.characters.map(char => ({ ...char }));
     }
     
     // Inventory - format to match schema (use "items" for simplified mode)
-    if (extensionSettings.showInventory && extensionSettings.inventoryV3) {
-        const inv = extensionSettings.inventoryV3;
+    if (extensionSettings.showInventory && tracker.inventory) {
+        const inv = tracker.inventory;
         if (extensionSettings.useSimplifiedInventory) {
             // Simplified mode uses "items" key
             const items = inv.simplified || inv.onPerson || [];
@@ -768,40 +615,33 @@ export function generateRPGPromptText() {
     }
     
     // Skills
-    if (extensionSettings.showSkills && extensionSettings.skillsV2) {
-        previousState.skills = extensionSettings.skillsV2;
+    if (extensionSettings.showSkills && tracker.skills) {
+        previousState.skills = tracker.skills;
     }
     
     // Quests
-    if (extensionSettings.showQuests && extensionSettings.questsV2) {
-        previousState.quests = extensionSettings.questsV2;
+    if (extensionSettings.showQuests && tracker.quests) {
+        previousState.quests = tracker.quests;
     }
     
     // Attributes and level (if RPG attributes are enabled and should be included)
     const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes;
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-    const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
+    const shouldSendAttributes = showRPGAttributes && (alwaysSendAttributes || extensionSettings.lastDiceRoll);
     
-    if (showRPGAttributes && shouldSendAttributes) {
-        const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [
-            { id: 'str', name: 'STR', description: '', enabled: true },
-            { id: 'dex', name: 'DEX', description: '', enabled: true },
-            { id: 'con', name: 'CON', description: '', enabled: true },
-            { id: 'int', name: 'INT', description: '', enabled: true },
-            { id: 'wis', name: 'WIS', description: '', enabled: true },
-            { id: 'cha', name: 'CHA', description: '', enabled: true }
-        ];
+    if (shouldSendAttributes) {
+        const rpgAttributes = trackerConfig?.userStats?.rpgAttributes || [];
         const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
         
         if (enabledAttributes.length > 0) {
             previousState.attributes = {};
             for (const attr of enabledAttributes) {
-                const value = extensionSettings.classicStats?.[attr.id] ?? 10;
+                const value = tracker.attributes?.[attr.name] ?? 10;
                 previousState.attributes[attr.name] = value;
             }
             
             // Add level
-            previousState.level = extensionSettings.level ?? 1;
+            previousState.level = tracker.level ?? 1;
         }
     }
     

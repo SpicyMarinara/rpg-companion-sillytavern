@@ -21,12 +21,13 @@ import {
     lastActionWasSwipe,
     isPlotProgression,
     setLastActionWasSwipe,
-    setIsPlotProgression
+    setIsPlotProgression,
+    setLastGeneratedData
 } from '../../core/state.js';
 import { saveChatData, loadChatData } from '../../core/persistence.js';
 
 // Generation & Parsing
-import { parseResponse, parseUserStats, parseSkills, tryParseJSONResponse } from '../generation/parser.js';
+import { tryParseJSONResponse } from '../generation/parser.js';
 import { updateRPGData } from '../generation/apiClient.js';
 import { generateContextualSummary, DEFAULT_MESSAGE_INTERCEPTION_PROMPT } from '../generation/promptBuilder.js';
 
@@ -56,15 +57,13 @@ export function commitTrackerData() {
     for (let i = chat.length - 1; i >= 0; i--) {
         const message = chat[i];
         if (!message.is_user) {
-            // Found last assistant message - commit its tracker data
-            if (message.extra && message.extra.rpg_companion_swipes) {
+            // Found last assistant message - commit its structured tracker data
+            if (message.extra?.rpg_companion_swipes) {
                 const swipeId = message.swipe_id || 0;
                 const swipeData = message.extra.rpg_companion_swipes[swipeId];
 
                 if (swipeData) {
-                    committedTrackerData.userStats = swipeData.userStats || null;
-                    committedTrackerData.infoBox = swipeData.infoBox || null;
-                    committedTrackerData.characterThoughts = swipeData.characterThoughts || null;
+                    Object.assign(committedTrackerData, JSON.parse(JSON.stringify(swipeData)));
                 }
             }
             break;
@@ -93,14 +92,9 @@ export async function onMessageSent() {
 
     // In separate mode with auto-update disabled, commit displayed tracker when user sends a message
     if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
-        // Commit whatever is currently displayed in lastGeneratedData
-        if (lastGeneratedData.userStats || lastGeneratedData.infoBox || lastGeneratedData.characterThoughts) {
-            committedTrackerData.userStats = lastGeneratedData.userStats;
-            committedTrackerData.infoBox = lastGeneratedData.infoBox;
-            committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
-
-            saveChatData();
-        }
+        // Commit structured lastGeneratedData to committedTrackerData
+        Object.assign(committedTrackerData, JSON.parse(JSON.stringify(lastGeneratedData)));
+        saveChatData();
     }
 }
 
@@ -176,10 +170,15 @@ async function interceptAndModifyUserMessage() {
         return;
     }
 
-    // Update chat history and DOM
+    // Update chat history
     lastMessage.mes = cleaned;
+    
+    // Update DOM if the message element exists
     const messageId = chatHistory.length - 1;
-    updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
+    const messageElement = document.querySelector(`#chat .mes[mesid="${messageId}"]`);
+    if (messageElement) {
+        updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
+    }
 }
 
 /**
@@ -197,13 +196,18 @@ export async function onMessageReceived(data) {
         if (lastMessage && !lastMessage.is_user) {
             const responseText = lastMessage.mes;
 
-            // Try JSON parsing first if structured data mode is enabled
+            // Parse JSON response
             const jsonParsed = tryParseJSONResponse(responseText);
             
             if (jsonParsed) {
                 console.log('[RPG Companion] JSON parsing successful in together mode');
-                // JSON data is already applied to extensionSettings by the parser
-                // Just need to render and save
+                // Store swipe data
+                if (!lastMessage.extra) lastMessage.extra = {};
+                if (!lastMessage.extra.rpg_companion_swipes) lastMessage.extra.rpg_companion_swipes = {};
+                const currentSwipeId = lastMessage.swipe_id || 0;
+                lastMessage.extra.rpg_companion_swipes[currentSwipeId] = JSON.parse(JSON.stringify(lastGeneratedData));
+                
+                // Render and save
                 renderUserStats();
                 renderInfoBox();
                 renderThoughts();
@@ -211,87 +215,9 @@ export async function onMessageReceived(data) {
                 renderQuests();
                 renderSkills();
                 saveChatData();
-                return; // Skip legacy text parsing
+            } else {
+                console.warn('[RPG Companion] JSON parsing failed in together mode');
             }
-
-            // JSON parsing failed - fall back to legacy text-based parsing
-            console.warn('[RPG Companion] JSON parsing failed in together mode, attempting legacy text parsing...');
-            const parsedData = parseResponse(responseText);
-
-            // Legacy text parsing does not produce structured characters; clear old state to avoid stale UI/state
-            extensionSettings.charactersData = [];
-            const parsedCharacterThoughts = parsedData.characterThoughts || '';
-
-            // Update stored data
-            if (parsedData.userStats) {
-                lastGeneratedData.userStats = parsedData.userStats;
-                parseUserStats(parsedData.userStats);
-            }
-            if (parsedData.skills) {
-                parseSkills(parsedData.skills);
-            }
-            if (parsedData.infoBox) {
-                lastGeneratedData.infoBox = parsedData.infoBox;
-            }
-
-            // Response omitted characters section - clear any previous thoughts to reflect removal
-            lastGeneratedData.characterThoughts = parsedCharacterThoughts;
-
-            // Store RPG data for this specific swipe in the message's extra field
-            if (!lastMessage.extra) {
-                lastMessage.extra = {};
-            }
-            if (!lastMessage.extra.rpg_companion_swipes) {
-                lastMessage.extra.rpg_companion_swipes = {};
-            }
-
-            const currentSwipeId = lastMessage.swipe_id || 0;
-            lastMessage.extra.rpg_companion_swipes[currentSwipeId] = {
-                userStats: parsedData.userStats,
-                infoBox: parsedData.infoBox,
-                characterThoughts: parsedCharacterThoughts
-            };
-
-            // If there's no committed data yet (first time generating), automatically commit
-            if (!committedTrackerData.userStats && !committedTrackerData.infoBox && !committedTrackerData.characterThoughts) {
-                committedTrackerData.userStats = parsedData.userStats;
-                committedTrackerData.infoBox = parsedData.infoBox;
-                committedTrackerData.characterThoughts = parsedCharacterThoughts;
-            }
-
-            // Remove the tracker code blocks from the visible message
-            let cleanedMessage = responseText;
-            // Remove all code blocks that contain tracker data
-            cleanedMessage = cleanedMessage.replace(/```[^`]*?Stats\s*\n\s*---[^`]*?```\s*/gi, '');
-            cleanedMessage = cleanedMessage.replace(/```[^`]*?Info Box\s*\n\s*---[^`]*?```\s*/gi, '');
-            cleanedMessage = cleanedMessage.replace(/```[^`]*?Present Characters\s*\n\s*---[^`]*?```\s*/gi, '');
-            // Remove any stray "---" dividers that might appear after the code blocks
-            cleanedMessage = cleanedMessage.replace(/^\s*---\s*$/gm, '');
-            // Clean up multiple consecutive newlines
-            cleanedMessage = cleanedMessage.replace(/\n{3,}/g, '\n\n');
-
-            // Update the message in chat history
-            lastMessage.mes = cleanedMessage.trim();
-
-            // Update the swipe text as well
-            if (lastMessage.swipes && lastMessage.swipes[currentSwipeId] !== undefined) {
-                lastMessage.swipes[currentSwipeId] = cleanedMessage.trim();
-            }
-
-            // Render the updated data FIRST (before cleaning DOM)
-            renderUserStats();
-            renderInfoBox();
-            renderThoughts();
-            renderInventory();
-            renderQuests();
-
-            // Then update the DOM to reflect the cleaned message
-            // Using updateMessageBlock to perform macro substitutions + regex formatting
-            const messageId = chat.length - 1;
-            updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
-
-            // Save to chat metadata
-            saveChatData();
         }
     } else if (extensionSettings.generationMode === 'separate' && extensionSettings.autoUpdate) {
         // In separate mode with auto-update, trigger update after message
@@ -375,18 +301,10 @@ export function onMessageSwiped(messageIndex) {
     // Load RPG data for this swipe into lastGeneratedData (for display only)
     // This updates what the user sees, but does NOT commit it
     // Committed data will be updated when/if the user replies to this swipe
-    if (message.extra && message.extra.rpg_companion_swipes && message.extra.rpg_companion_swipes[currentSwipeId]) {
+    if (message.extra?.rpg_companion_swipes?.[currentSwipeId]) {
         const swipeData = message.extra.rpg_companion_swipes[currentSwipeId];
-
-        // Update display data
-        lastGeneratedData.userStats = swipeData.userStats || null;
-        lastGeneratedData.infoBox = swipeData.infoBox || null;
-        lastGeneratedData.characterThoughts = swipeData.characterThoughts || null;
-
-        // Parse user stats if available
-        if (swipeData.userStats) {
-            parseUserStats(swipeData.userStats);
-        }
+        // Copy structured swipe data to lastGeneratedData
+        setLastGeneratedData(JSON.parse(JSON.stringify(swipeData)));
     }
 
     // Re-render the panels (display only - committedTrackerData unchanged)

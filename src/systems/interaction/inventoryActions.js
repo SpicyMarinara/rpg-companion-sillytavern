@@ -3,11 +3,9 @@
  * Handles all user interactions with the inventory v2 system
  */
 
-import { extensionSettings, lastGeneratedData, committedTrackerData } from '../../core/state.js';
-import { saveSettings, saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
-import { buildUserStatsText } from '../rendering/userStats.js';
+import { extensionSettings, lastGeneratedData } from '../../core/state.js';
+import { saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
 import { renderInventory, getLocationId } from '../rendering/inventory.js';
-import { parseItems, serializeItems } from '../../utils/itemParser.js';
 import { sanitizeLocationName, sanitizeItemName } from '../../utils/security.js';
 import { handleItemRemoved, navigateToLinkedSkills } from '../rendering/skills.js';
 
@@ -30,28 +28,13 @@ let collapsedLocations = [];
  * Tracks which inline forms are currently open
  * @type {Object}
  */
-let openForms = {
+const openForms = {
     addLocation: false,
     addItemOnPerson: false,
     addItemStored: {}, // { [locationName]: true/false }
     addItemAssets: false,
     addItemSimplified: false
 };
-
-/**
- * Updates lastGeneratedData.userStats AND committedTrackerData.userStats to include
- * current inventory in text format.
- * This ensures manual edits are immediately visible to AI in next generation.
- */
-function updateLastGeneratedDataInventory() {
-    // Rebuild the userStats text format using custom stat names
-    const statsText = buildUserStatsText();
-
-    // Update BOTH lastGeneratedData AND committedTrackerData
-    // This makes manual edits immediately visible to AI
-    lastGeneratedData.userStats = statsText;
-    committedTrackerData.userStats = statsText;
-}
 
 /**
  * Shows the inline form for adding a new item.
@@ -132,7 +115,6 @@ export function hideAddItemForm(field, location) {
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function saveAddItem(field, location) {
-    const inventory = extensionSettings.userStats.inventory;
     let inputId;
     let descInputId;
 
@@ -162,62 +144,28 @@ export function saveAddItem(field, location) {
         return;
     }
 
-    // Update structured inventory (inventoryV3) if it exists
-    if (extensionSettings.inventoryV3) {
-        const newItem = { name: itemName, description: itemDescription };
-        
-        if (field === 'simplified') {
-            if (!extensionSettings.inventoryV3.simplified) {
-                extensionSettings.inventoryV3.simplified = [];
-            }
-            extensionSettings.inventoryV3.simplified.push(newItem);
-        } else if (field === 'stored') {
-            if (!extensionSettings.inventoryV3.stored) {
-                extensionSettings.inventoryV3.stored = {};
-            }
-            if (!extensionSettings.inventoryV3.stored[location]) {
-                extensionSettings.inventoryV3.stored[location] = [];
-            }
-            extensionSettings.inventoryV3.stored[location].push(newItem);
-        } else if (field === 'onPerson') {
-            if (!extensionSettings.inventoryV3.onPerson) {
-                extensionSettings.inventoryV3.onPerson = [];
-            }
-            extensionSettings.inventoryV3.onPerson.push(newItem);
-        } else if (field === 'assets') {
-            if (!extensionSettings.inventoryV3.assets) {
-                extensionSettings.inventoryV3.assets = [];
-            }
-            extensionSettings.inventoryV3.assets.push(newItem);
-        }
+    // Ensure inventory structure exists
+    if (!lastGeneratedData.inventory) {
+        lastGeneratedData.inventory = { onPerson: [], stored: {}, assets: [], simplified: [] };
     }
-
-    // Also update legacy inventory format for backwards compatibility
-    let currentString;
+    const inv = lastGeneratedData.inventory;
+    const newItem = { name: itemName, description: itemDescription };
+    
     if (field === 'simplified') {
-        currentString = inventory.items || inventory.onPerson || 'None';
+        if (!inv.simplified) inv.simplified = [];
+        inv.simplified.push(newItem);
     } else if (field === 'stored') {
-        currentString = inventory.stored[location] || 'None';
-    } else {
-        currentString = inventory[field] || 'None';
+        if (!inv.stored) inv.stored = {};
+        if (!inv.stored[location]) inv.stored[location] = [];
+        inv.stored[location].push(newItem);
+    } else if (field === 'onPerson') {
+        if (!inv.onPerson) inv.onPerson = [];
+        inv.onPerson.push(newItem);
+    } else if (field === 'assets') {
+        if (!inv.assets) inv.assets = [];
+        inv.assets.push(newItem);
     }
 
-    const items = parseItems(currentString);
-    items.push(itemName);
-    const newString = serializeItems(items);
-
-    // Save back to inventory
-    if (field === 'simplified') {
-        inventory.items = newString;
-        inventory.onPerson = newString;
-    } else if (field === 'stored') {
-        inventory.stored[location] = newString;
-    } else {
-        inventory[field] = newString;
-    }
-
-    updateLastGeneratedDataInventory();
-    saveSettings();
     saveChatData();
     updateMessageSwipeData();
 
@@ -233,71 +181,34 @@ export function saveAddItem(field, location) {
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function removeItem(field, itemIndex, location) {
-    const inventory = extensionSettings.userStats.inventory;
+    const inv = lastGeneratedData.inventory;
+    if (!inv) return;
+    
+    let structuredArray = null;
     let removedItemName = null;
-
-    // Remove from structured inventory (inventoryV3) if it exists
-    if (extensionSettings.inventoryV3) {
-        let structuredArray = null;
-        
-        if (field === 'simplified' && extensionSettings.inventoryV3.simplified) {
-            structuredArray = extensionSettings.inventoryV3.simplified;
-        } else if (field === 'stored' && extensionSettings.inventoryV3.stored?.[location]) {
-            structuredArray = extensionSettings.inventoryV3.stored[location];
-        } else if (field === 'onPerson' && extensionSettings.inventoryV3.onPerson) {
-            structuredArray = extensionSettings.inventoryV3.onPerson;
-        } else if (field === 'assets' && extensionSettings.inventoryV3.assets) {
-            structuredArray = extensionSettings.inventoryV3.assets;
-        }
-        
-        if (structuredArray && structuredArray[itemIndex]) {
-            removedItemName = structuredArray[itemIndex].name;
-            structuredArray.splice(itemIndex, 1);
-        }
+    
+    if (field === 'simplified' && inv.simplified) {
+        structuredArray = inv.simplified;
+    } else if (field === 'stored' && inv.stored?.[location]) {
+        structuredArray = inv.stored[location];
+    } else if (field === 'onPerson' && inv.onPerson) {
+        structuredArray = inv.onPerson;
+    } else if (field === 'assets' && inv.assets) {
+        structuredArray = inv.assets;
     }
-
-    // Get current items from legacy format
-    let currentString;
-    if (field === 'simplified') {
-        currentString = inventory.items || inventory.onPerson || 'None';
-    } else if (field === 'stored') {
-        currentString = inventory.stored[location] || 'None';
-    } else {
-        currentString = inventory[field] || 'None';
+    
+    if (structuredArray && structuredArray[itemIndex]) {
+        removedItemName = structuredArray[itemIndex].name;
+        structuredArray.splice(itemIndex, 1);
     }
-
-    const items = parseItems(currentString);
-
-    // Get the item name before removing (for item-skill link check) - use structured name if available
-    if (!removedItemName) {
-        removedItemName = items[itemIndex];
-    }
-
-    items.splice(itemIndex, 1); // Remove item at index
     
     // Check if this item was linked to a skill and handle removal
     if (removedItemName && extensionSettings.enableItemSkillLinks) {
         handleItemRemoved(removedItemName);
     }
 
-    const newString = serializeItems(items);
-
-    // Save back to legacy inventory
-    if (field === 'simplified') {
-        inventory.items = newString;
-        inventory.onPerson = newString;
-    } else if (field === 'stored') {
-        inventory.stored[location] = newString;
-    } else {
-        inventory[field] = newString;
-    }
-
-    updateLastGeneratedDataInventory();
-    saveSettings();
     saveChatData();
     updateMessageSwipeData();
-
-    // Re-render
     renderInventory();
 }/**
  * Shows the inline form for adding a new storage location.
@@ -331,7 +242,6 @@ export function hideAddLocationForm() {
  * Saves a new storage location from the inline form.
  */
 export function saveAddLocation() {
-    const inventory = extensionSettings.userStats.inventory;
     const input = $('#rpg-new-location-name');
     const rawLocationName = input.val().trim();
 
@@ -348,17 +258,23 @@ export function saveAddLocation() {
         return;
     }
 
+    // Ensure inventory structure exists
+    if (!lastGeneratedData.inventory) {
+        lastGeneratedData.inventory = { onPerson: [], stored: {}, assets: [], simplified: [] };
+    }
+    if (!lastGeneratedData.inventory.stored) {
+        lastGeneratedData.inventory.stored = {};
+    }
+
     // Check for duplicate
-    if (inventory.stored[locationName]) {
+    if (lastGeneratedData.inventory.stored[locationName]) {
         alert(`Storage location "${locationName}" already exists.`);
         return;
     }
 
-    // Create new location with default "None"
-    inventory.stored[locationName] = 'None';
+    // Create new location as empty array
+    lastGeneratedData.inventory.stored[locationName] = [];
 
-    updateLastGeneratedDataInventory();
-    saveSettings();
     saveChatData();
     updateMessageSwipeData();
 
@@ -400,9 +316,9 @@ export function hideRemoveConfirmation(locationName) {
  * @param {string} locationName - Name of location to remove
  */
 export function confirmRemoveLocation(locationName) {
-    const inventory = extensionSettings.userStats.inventory;
-
-    delete inventory.stored[locationName];
+    if (lastGeneratedData.inventory?.stored) {
+        delete lastGeneratedData.inventory.stored[locationName];
+    }
 
     // Remove from collapsed list if present
     const index = collapsedLocations.indexOf(locationName);
@@ -410,8 +326,6 @@ export function confirmRemoveLocation(locationName) {
         collapsedLocations.splice(index, 1);
     }
 
-    updateLastGeneratedDataInventory();
-    saveSettings();
     saveChatData();
     updateMessageSwipeData();
     renderInventory();
@@ -663,13 +577,13 @@ export function restoreFormStates() {
     // Restore add item stored forms (for each location)
     // Clean up orphaned states for deleted locations (Bug #3 fix)
     if (openForms.addItemStored && typeof openForms.addItemStored === 'object') {
-        const inventory = extensionSettings.userStats.inventory;
+        const inv = lastGeneratedData.inventory;
         const locationsToDelete = [];
 
         for (const location in openForms.addItemStored) {
             if (openForms.addItemStored[location]) {
                 // Check if location still exists in inventory
-                if (inventory?.stored && inventory.stored.hasOwnProperty(location)) {
+                if (inv?.stored && inv.stored.hasOwnProperty(location)) {
                     // Location exists, restore form
                     const locationId = location.replace(/\s+/g, '-');
                     const form = $(`#rpg-add-item-form-stored-${locationId}`);

@@ -392,22 +392,22 @@ async function initUI() {
         extensionSettings.showQuests = $(this).prop('checked');
         saveSettings();
         updateSectionVisibility();
-        renderQuests();
         if (window.innerWidth > 1000) {
             removeDesktopTabs();
             setupDesktopTabs();
         }
+        renderQuests();
     });
 
     $('#rpg-toggle-skills').on('change', function() {
         extensionSettings.showSkills = $(this).prop('checked');
         saveSettings();
         updateSectionVisibility();
-        renderSkills();
         if (window.innerWidth > 1000) {
             removeDesktopTabs();
             setupDesktopTabs();
         }
+        renderSkills();
     });
 
     $('#rpg-toggle-item-skill-links').on('change', function() {

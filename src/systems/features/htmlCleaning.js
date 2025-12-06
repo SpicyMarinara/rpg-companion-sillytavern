@@ -80,7 +80,7 @@ export async function ensureHtmlCleaningRegex(st_extension_settings, saveSetting
         const regexScript = {
             id: uuidv4(),
             scriptName: scriptName,
-            findRegex: '/\\s?<(?!\\!--)(?:\"[^\"]*\"|\'[^\']*\'|[^\'\">])*>/g',
+            findRegex: '/\\s?<(?!\\!--)(?:"[^"]*"|\'[^\']*\'|[^\'">])*>/g',
             replaceString: '',
             trimStrings: [],
             placement: [2], // 2 = Input (affects outgoing prompt)

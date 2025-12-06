@@ -11,12 +11,51 @@ import {
     committedTrackerData,
     updateExtensionSettings,
     setLastGeneratedData,
-    setCommittedTrackerData
+    setCommittedTrackerData,
+    createFreshTrackerData
 } from './state.js';
 import { migrateInventory } from '../utils/migration.js';
-import { validateStoredInventory, cleanItemString } from '../utils/security.js';
+import { parseItems } from '../utils/itemParser.js';
+import { TRACKER_DATA_VERSION } from '../types/trackerData.js';
+import { defaultSettings } from './config.js';
 
 const extensionName = 'third-party/rpg-companion-sillytavern';
+
+/**
+ * Deep merges source into target, ensuring all default fields exist.
+ * - Primitives/arrays in target are preserved
+ * - Missing fields are filled from source (defaults)
+ * - Objects are recursively merged
+ * @param {Object} target - The saved/loaded settings
+ * @param {Object} source - The default settings
+ * @returns {Object} The merged object
+ */
+function deepMergeDefaults(target, source) {
+    if (!source || typeof source !== 'object') return target;
+    if (!target || typeof target !== 'object') return JSON.parse(JSON.stringify(source));
+    
+    const result = { ...target };
+    
+    for (const key of Object.keys(source)) {
+        if (!(key in result)) {
+            // Missing field - use default
+            result[key] = JSON.parse(JSON.stringify(source[key]));
+        } else if (
+            source[key] !== null &&
+            typeof source[key] === 'object' &&
+            !Array.isArray(source[key]) &&
+            result[key] !== null &&
+            typeof result[key] === 'object' &&
+            !Array.isArray(result[key])
+        ) {
+            // Both are objects (not arrays) - recurse
+            result[key] = deepMergeDefaults(result[key], source[key]);
+        }
+        // Otherwise keep the target value (user's saved value)
+    }
+    
+    return result;
+}
 
 /**
  * Validates extension settings structure
@@ -28,20 +67,10 @@ function validateSettings(settings) {
         return false;
     }
 
-    // Check for required top-level properties
     if (typeof settings.enabled !== 'boolean' ||
         typeof settings.autoUpdate !== 'boolean' ||
-        !settings.userStats || typeof settings.userStats !== 'object') {
+        typeof settings.showUserStats !== 'boolean') {
         console.warn('[RPG Companion] Settings validation failed: missing required properties');
-        return false;
-    }
-
-    // Validate userStats structure
-    const stats = settings.userStats;
-    if (typeof stats.health !== 'number' ||
-        typeof stats.satiety !== 'number' ||
-        typeof stats.energy !== 'number') {
-        console.warn('[RPG Companion] Settings validation failed: invalid userStats structure');
         return false;
     }
 
@@ -57,7 +86,6 @@ export function loadSettings() {
         const context = getContext();
         const extension_settings = context.extension_settings || context.extensionSettings;
 
-        // Validate extension_settings structure
         if (!extension_settings || typeof extension_settings !== 'object') {
             console.warn('[RPG Companion] extension_settings is not available, using default settings');
             return;
@@ -66,51 +94,38 @@ export function loadSettings() {
         if (extension_settings[extensionName]) {
             const savedSettings = extension_settings[extensionName];
 
-            // Validate loaded settings
             if (!validateSettings(savedSettings)) {
                 console.warn('[RPG Companion] Loaded settings failed validation, using defaults');
-                console.warn('[RPG Companion] Invalid settings:', savedSettings);
-                // Save valid defaults to replace corrupt data
                 saveSettings();
-                return;
+            } else {
+                // Deep merge saved settings with defaults to ensure all fields exist
+                const mergedSettings = deepMergeDefaults(savedSettings, defaultSettings);
+                updateExtensionSettings(mergedSettings);
             }
 
-            updateExtensionSettings(savedSettings);
+            // If legacy tracker payloads are present in saved settings, migrate them into committed tracker data
+            const legacyTracker = migrateLegacyTrackerFromSettings(extensionSettings);
+            if (legacyTracker) {
+                setCommittedTrackerData(legacyTracker);
+                setLastGeneratedData(createFreshTrackerData());
+                stripLegacyTrackerFieldsFromSettings();
+                saveSettings(); // Persist cleaned settings
+            }
         }
 
-        // Migrate inventory from v1 (string) to v2 (object) format if needed
-        const migrationResult = migrateInventory(extensionSettings.userStats.inventory);
-        if (migrationResult.migrated) {
-            console.log(`[RPG Companion] Inventory migrated from ${migrationResult.source} to v2 format`);
-            extensionSettings.userStats.inventory = migrationResult.inventory;
-            saveSettings(); // Persist migrated inventory
-        }
-
-        // Migrate to trackerConfig if it doesn't exist
-        if (!extensionSettings.trackerConfig) {
-            console.log('[RPG Companion] Migrating to trackerConfig format');
-            migrateToTrackerConfig();
-            saveSettings(); // Persist migration
+        // Run legacy migrations (these handle structural changes, not missing fields)
+        if (migrateToTrackerConfig()) {
+            saveSettings();
         }
         
-        // Migrate to new stats/skills format with descriptions
         if (migrateStatsAndSkillsFormat()) {
-            saveSettings(); // Persist migration
-        }
-        
-        // Migrate quests from legacy format to structured format
-        if (migrateQuestsFormat()) {
-            saveSettings(); // Persist migration
+            saveSettings();
         }
     } catch (error) {
         console.error('[RPG Companion] Error loading settings:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);
         console.warn('[RPG Companion] Using default settings due to load error');
-        // Settings will remain at defaults from state.js
     }
-
-    // Validate inventory structure (Bug #3 fix)
-    validateInventoryStructure(extensionSettings.userStats.inventory, 'settings');
 }
 
 /**
@@ -125,6 +140,7 @@ export function saveSettings() {
         return;
     }
 
+    stripLegacyTrackerFieldsFromSettings();
     extension_settings[extensionName] = extensionSettings;
     saveSettingsDebounced();
 }
@@ -133,27 +149,34 @@ export function saveSettings() {
  * Saves RPG data to the current chat's metadata.
  */
 export function saveChatData() {
-    if (!chat_metadata) {
-        return;
+    const context = getContext();
+    const hasActiveChat = chat_metadata && context.chat && context.chat.length > 0;
+
+    // Rebuild structured tracker data from any legacy-view edits before saving
+    const rebuilt = buildTrackerDataFromLegacy(extensionSettings);
+
+    if (rebuilt) {
+        setCommittedTrackerData(rebuilt);
     }
 
-    chat_metadata.rpg_companion = {
-        userStats: extensionSettings.userStats,
-        classicStats: extensionSettings.classicStats,
-        quests: extensionSettings.quests,
-        lastGeneratedData: lastGeneratedData,
-        committedTrackerData: committedTrackerData,
-        // Structured data (JSON format)
-        inventoryV3: extensionSettings.inventoryV3,
-        skillsV2: extensionSettings.skillsV2,
-        skillAbilityLinks: extensionSettings.skillAbilityLinks,
-        infoBoxData: extensionSettings.infoBoxData,
-        charactersData: extensionSettings.charactersData,
-        questsV2: extensionSettings.questsV2,
+    const dataToSave = {
+        trackerVersion: TRACKER_DATA_VERSION,
+        committedTrackerData: JSON.parse(JSON.stringify(committedTrackerData)),
+        lastGeneratedData: JSON.parse(JSON.stringify(lastGeneratedData)),
         timestamp: Date.now()
     };
 
-    saveChatDebounced();
+    if (hasActiveChat) {
+        chat_metadata.rpg_companion = dataToSave;
+        saveChatDebounced();
+        if (extensionSettings._pendingTrackerData) {
+            delete extensionSettings._pendingTrackerData;
+            saveSettingsDebounced();
+        }
+    } else {
+        extensionSettings._pendingTrackerData = dataToSave;
+        saveSettingsDebounced();
+    }
 }
 
 /**
@@ -170,7 +193,7 @@ export function updateMessageSwipeData() {
     for (let i = chat.length - 1; i >= 0; i--) {
         const message = chat[i];
         if (!message.is_user) {
-            // Found last assistant message - update its swipe data
+            // Found last assistant message - update its swipe data with structured tracker
             if (!message.extra) {
                 message.extra = {};
             }
@@ -179,11 +202,7 @@ export function updateMessageSwipeData() {
             }
 
             const swipeId = message.swipe_id || 0;
-            message.extra.rpg_companion_swipes[swipeId] = {
-                userStats: lastGeneratedData.userStats,
-                infoBox: lastGeneratedData.infoBox,
-                characterThoughts: lastGeneratedData.characterThoughts
-            };
+            message.extra.rpg_companion_swipes[swipeId] = JSON.parse(JSON.stringify(lastGeneratedData));
             break;
         }
     }
@@ -192,149 +211,286 @@ export function updateMessageSwipeData() {
 /**
  * Loads RPG data from the current chat's metadata.
  * Automatically migrates v1 inventory to v2 format if needed.
+ * Also restores any pending data saved before chat was active.
  */
 export function loadChatData() {
+    // Check for pending data from before chat was active
+    const pendingData = extensionSettings._pendingTrackerData;
+    
     if (!chat_metadata || !chat_metadata.rpg_companion) {
-        // Reset to defaults if no data exists (new chat)
-        updateExtensionSettings({
-            userStats: {
-                health: 100,
-                satiety: 100,
-                energy: 100,
-                hygiene: 100,
-                arousal: 0,
-                mood: '😐',
-                conditions: 'None',
-                // Use v2 inventory format for defaults
-                inventory: {
-                    version: 2,
-                    onPerson: "None",
-                    stored: {},
-                    assets: "None"
-                },
-                skills: "None" // Legacy single-string skills (for Status section)
-            },
-            quests: {
-                main: "None",
-                optional: []
-            },
-            // Reset structured data fields
-            inventoryV3: {
-                onPerson: [],
-                stored: {},
-                assets: [],
-                simplified: []
-            },
-            skillsV2: {},
-            skillsData: {},
-            skillAbilityLinks: {},
-            skills: { list: [], categories: {} },
-            charactersData: [],
-            infoBoxData: null,
-            questsV2: {
-                main: null,
-                optional: []
-            }
-        });
-        setLastGeneratedData({
-            userStats: null,
-            infoBox: null,
-            characterThoughts: null,
-            html: null
-        });
-        setCommittedTrackerData({
-            userStats: null,
-            infoBox: null,
-            characterThoughts: null
-        });
+        if (pendingData && pendingData.lastGeneratedData) {
+            setCommittedTrackerData(pendingData.committedTrackerData || createFreshTrackerData());
+            setLastGeneratedData(pendingData.lastGeneratedData);
+            delete extensionSettings._pendingTrackerData;
+            saveSettingsDebounced();
+            saveChatData();
+            return;
+        }
+        setCommittedTrackerData(createFreshTrackerData());
+        setLastGeneratedData(createFreshTrackerData());
         return;
     }
 
     const savedData = chat_metadata.rpg_companion;
 
-    // Restore stats
-    if (savedData.userStats) {
-        extensionSettings.userStats = { ...savedData.userStats };
+    if (savedData.trackerVersion === TRACKER_DATA_VERSION &&
+        savedData.committedTrackerData) {
+        setCommittedTrackerData(savedData.committedTrackerData);
+        setLastGeneratedData(savedData.lastGeneratedData || createFreshTrackerData());
+
+        if (pendingData) {
+            delete extensionSettings._pendingTrackerData;
+            saveSettingsDebounced();
+        }
+        return;
     }
 
-    // Restore classic stats
-    if (savedData.classicStats) {
-        extensionSettings.classicStats = { ...savedData.classicStats };
+    // Legacy chat payloads → migrate into structured tracker data
+    const migratedCommitted = migrateLegacyTrackerFromChat(savedData);
+    setCommittedTrackerData(migratedCommitted || createFreshTrackerData());
+    setLastGeneratedData(createFreshTrackerData());
+    saveChatData(); // Persist upgraded format
+}
+
+function migrateLegacyTrackerFromSettings(settings) {
+    if (!settings) return null;
+    const hasLegacy =
+        settings.userStats ||
+        settings.inventoryV3 ||
+        settings.skillsV2 ||
+        settings.skills ||
+        settings.skillsData ||
+        settings.infoBoxData ||
+        settings.charactersData ||
+        settings.quests ||
+        settings.questsV2;
+
+    if (!hasLegacy) {
+        return null;
     }
 
-    // Restore quests
-    if (savedData.quests) {
-        extensionSettings.quests = { ...savedData.quests };
-    } else {
-        // Initialize with defaults if not present
-        extensionSettings.quests = {
-            main: "None",
-            optional: []
+    return buildTrackerDataFromLegacy(settings);
+}
+
+function migrateLegacyTrackerFromChat(chatPayload) {
+    if (!chatPayload) return null;
+    // If legacy committed tracker exists in text form, prefer structured rebuild
+    return buildTrackerDataFromLegacy(chatPayload);
+}
+
+function stripLegacyTrackerFieldsFromSettings() {
+    delete extensionSettings.userStats;
+    delete extensionSettings.inventoryV3;
+    delete extensionSettings.skillsV2;
+    delete extensionSettings.skillsData;
+    delete extensionSettings.skills;
+    delete extensionSettings.itemSkillLinks;
+    delete extensionSettings.skillAbilityLinks;
+    delete extensionSettings.infoBoxData;
+    delete extensionSettings.charactersData;
+    delete extensionSettings.quests;
+    delete extensionSettings.questsV2;
+    delete extensionSettings.classicStats;
+    delete extensionSettings.level;
+}
+
+function buildTrackerDataFromLegacy(source) {
+    const tracker = createFreshTrackerData();
+    const trackerConfig = extensionSettings.trackerConfig;
+
+    const legacyStats = source.userStats || {};
+    const legacyAttributes = source.classicStats || {};
+    const legacyQuests = source.quests || {};
+    const legacyQuestsV2 = source.questsV2 || {};
+
+    // Stats
+    if (trackerConfig?.userStats?.customStats) {
+        for (const stat of trackerConfig.userStats.customStats) {
+            if (!stat?.enabled || !stat.name) continue;
+            const raw = legacyStats[stat.id];
+            tracker.stats[stat.name] = typeof raw === 'number' ? clampPercent(raw) : 100;
+        }
+    }
+
+    // Status
+    if (trackerConfig?.userStats?.statusSection?.enabled) {
+        if (trackerConfig.userStats.statusSection.showMoodEmoji) {
+            tracker.status.mood = legacyStats.mood || '😐';
+        }
+        const customFields = trackerConfig.userStats.statusSection.customFields || [];
+        for (const field of customFields) {
+            const value = legacyStats[field] ?? legacyStats.conditions ?? '';
+            tracker.status.fields[field] = value || '';
+        }
+    }
+
+    // Attributes
+    if (trackerConfig?.userStats?.rpgAttributes) {
+        tracker.attributes = {};
+        for (const attr of trackerConfig.userStats.rpgAttributes) {
+            if (!attr?.enabled || !attr.name) continue;
+            const val = legacyAttributes[attr.id];
+            tracker.attributes[attr.name] = typeof val === 'number' ? val : 10;
+        }
+    }
+
+    // Level
+    tracker.level = typeof source.level === 'number' ? source.level : 1;
+
+    // Info box
+    if (source.infoBoxData && typeof source.infoBoxData === 'object') {
+        tracker.infoBox = { ...source.infoBoxData };
+    }
+
+    // Characters
+    if (Array.isArray(source.charactersData)) {
+        tracker.characters = [...source.charactersData];
+    }
+
+    // Inventory
+    tracker.inventory = normalizeInventory(source);
+
+    // Skills
+    tracker.skills = normalizeSkills(source);
+
+    // Quests
+    tracker.quests = normalizeQuests(legacyQuestsV2, legacyQuests);
+
+    return tracker;
+}
+
+function normalizeInventory(source) {
+    if (source.inventoryV3) {
+        const inv = source.inventoryV3;
+        return {
+            onPerson: normalizeItemList(inv.onPerson),
+            stored: normalizeStored(inv.stored),
+            assets: normalizeItemList(inv.assets),
+            simplified: normalizeItemList(inv.simplified || inv.items)
         };
     }
 
-    // Restore last generated data (sanitize null values in infoBox)
-    if (savedData.lastGeneratedData) {
-        const sanitizedData = { ...savedData.lastGeneratedData };
-        if (sanitizedData.infoBox && typeof sanitizedData.infoBox === 'string') {
-            // Remove lines that contain "null" values
-            sanitizedData.infoBox = sanitizedData.infoBox
-                .split('\n')
-                .filter(line => !line.match(/:\s*null\s*$/i) && !line.match(/:\s*undefined\s*$/i))
-                .join('\n');
+    const legacyInventory = source.userStats?.inventory;
+    if (legacyInventory) {
+        const migration = migrateInventory(legacyInventory);
+        const inv = migration.inventory;
+        return {
+            onPerson: normalizeItemList(inv.onPerson),
+            stored: normalizeStored(inv.stored),
+            assets: normalizeItemList(inv.assets),
+            simplified: normalizeItemList(inv.items)
+        };
+    }
+
+    return { onPerson: [], stored: {}, assets: [], simplified: [] };
+}
+
+function normalizeSkills(source) {
+    if (source.skillsV2 && typeof source.skillsV2 === 'object') {
+        const result = {};
+        for (const [category, list] of Object.entries(source.skillsV2)) {
+            result[category] = normalizeSkillList(list);
         }
-        setLastGeneratedData(sanitizedData);
+        return result;
     }
 
-    // Restore committed tracker data (sanitize null values in infoBox)
-    if (savedData.committedTrackerData) {
-        const sanitizedData = { ...savedData.committedTrackerData };
-        if (sanitizedData.infoBox && typeof sanitizedData.infoBox === 'string') {
-            // Remove lines that contain "null" values
-            sanitizedData.infoBox = sanitizedData.infoBox
-                .split('\n')
-                .filter(line => !line.match(/:\s*null\s*$/i) && !line.match(/:\s*undefined\s*$/i))
-                .join('\n');
+    if (source.skillsData) {
+        const result = {};
+        for (const [category, items] of Object.entries(source.skillsData)) {
+            result[category] = normalizeSkillList(parseItems(items));
         }
-        setCommittedTrackerData(sanitizedData);
+        return result;
     }
 
-    // Restore structured data (JSON format)
-    if (savedData.inventoryV3) {
-        extensionSettings.inventoryV3 = savedData.inventoryV3;
-    }
-    if (savedData.skillsV2) {
-        extensionSettings.skillsV2 = savedData.skillsV2;
-    }
-    if (savedData.skillAbilityLinks) {
-        extensionSettings.skillAbilityLinks = savedData.skillAbilityLinks;
-    }
-    if (savedData.infoBoxData) {
-        extensionSettings.infoBoxData = savedData.infoBoxData;
-    }
-    if (savedData.charactersData) {
-        extensionSettings.charactersData = savedData.charactersData;
-    }
-    if (savedData.questsV2) {
-        extensionSettings.questsV2 = savedData.questsV2;
-    }
-
-    // Migrate quests from legacy format to structured format if needed
-    if (migrateQuestsFormat()) {
-        saveChatData(); // Persist migrated quests to chat metadata
-    }
-
-    // Migrate inventory from v1 (string) to v2 (object) format if needed
-    if (extensionSettings.userStats.inventory) {
-        const migrationResult = migrateInventory(extensionSettings.userStats.inventory);
-        if (migrationResult.migrated) {
-            console.log(`[RPG Companion] Chat inventory migrated from ${migrationResult.source} to v2 format`);
-            extensionSettings.userStats.inventory = migrationResult.inventory;
-            saveChatData(); // Persist migrated inventory to chat metadata
+    if (source.skills?.categories) {
+        const result = {};
+        for (const [category, items] of Object.entries(source.skills.categories)) {
+            result[category] = normalizeSkillList(parseItems(items));
         }
+        return result;
     }
 
-    validateInventoryStructure(extensionSettings.userStats.inventory, 'chat');
+    return {};
+}
+
+function normalizeQuests(questsV2, legacyQuests) {
+    if (questsV2 && typeof questsV2 === 'object') {
+        return {
+            main: questsV2.main || null,
+            optional: Array.isArray(questsV2.optional) ? questsV2.optional : []
+        };
+    }
+
+    const optional = Array.isArray(legacyQuests.optional)
+        ? legacyQuests.optional.filter(Boolean).map(name => ({ name, description: '' }))
+        : [];
+
+    const mainQuestName = typeof legacyQuests.main === 'string' && legacyQuests.main !== 'None'
+        ? legacyQuests.main
+        : null;
+
+    return {
+        main: mainQuestName ? { name: mainQuestName, description: '' } : null,
+        optional
+    };
+}
+
+function normalizeItemList(items) {
+    if (Array.isArray(items)) {
+        return items.map(item => {
+            if (typeof item === 'string') {
+                return { name: item, description: '' };
+            }
+            if (item && typeof item === 'object') {
+                return {
+                    name: item.name || '',
+                    description: item.description || '',
+                    grantsSkill: item.grantsSkill
+                };
+            }
+            return { name: '', description: '' };
+        }).filter(item => item.name);
+    }
+
+    if (typeof items === 'string') {
+        return parseItems(items).map(name => ({ name, description: '' }));
+    }
+
+    return [];
+}
+
+function normalizeStored(stored) {
+    if (!stored || typeof stored !== 'object') {
+        return {};
+    }
+    const result = {};
+    for (const [location, list] of Object.entries(stored)) {
+        result[location] = normalizeItemList(list);
+    }
+    return result;
+}
+
+function normalizeSkillList(list) {
+    if (Array.isArray(list)) {
+        return list.map(skill => {
+            if (typeof skill === 'string') {
+                return { name: skill, description: '' };
+            }
+            return {
+                name: skill?.name || '',
+                description: skill?.description || '',
+                grantedBy: skill?.grantedBy
+            };
+        }).filter(skill => skill.name);
+    }
+    if (typeof list === 'string') {
+        return parseItems(list).map(name => ({ name, description: '' }));
+    }
+    return [];
+}
+
+function clampPercent(value) {
+    return Math.max(0, Math.min(100, value));
 }
 
 /**
@@ -345,89 +501,19 @@ export function loadChatData() {
  * @param {string} source - Source of load ('settings' or 'chat') for logging
  * @private
  */
-function validateInventoryStructure(inventory, source) {
-    if (!inventory || typeof inventory !== 'object') {
-        console.error(`[RPG Companion] Invalid inventory from ${source}, resetting to defaults`);
-        extensionSettings.userStats.inventory = {
-            version: 2,
-            onPerson: "None",
-            stored: {},
-            assets: "None"
-        };
-        saveSettings();
-        return;
-    }
-
-    let needsSave = false;
-
-    // Ensure v2 structure
-    if (inventory.version !== 2) {
-        console.warn(`[RPG Companion] Inventory from ${source} missing version, setting to 2`);
-        inventory.version = 2;
-        needsSave = true;
-    }
-
-    // Validate onPerson field
-    if (typeof inventory.onPerson !== 'string') {
-        console.warn(`[RPG Companion] Invalid onPerson from ${source}, resetting to "None"`);
-        inventory.onPerson = "None";
-        needsSave = true;
-    } else {
-        // Clean items in onPerson (removes corrupted/dangerous items)
-        const cleanedOnPerson = cleanItemString(inventory.onPerson);
-        if (cleanedOnPerson !== inventory.onPerson) {
-            console.warn(`[RPG Companion] Cleaned corrupted items from onPerson inventory (${source})`);
-            inventory.onPerson = cleanedOnPerson;
-            needsSave = true;
-        }
-    }
-
-    if (!inventory.stored || typeof inventory.stored !== 'object' || Array.isArray(inventory.stored)) {
-        console.error(`[RPG Companion] Corrupted stored inventory from ${source}, resetting to empty object`);
-        inventory.stored = {};
-        needsSave = true;
-    } else {
-        // Validate stored object keys/values
-        const cleanedStored = validateStoredInventory(inventory.stored);
-        if (JSON.stringify(cleanedStored) !== JSON.stringify(inventory.stored)) {
-            console.warn(`[RPG Companion] Cleaned dangerous/invalid stored locations from ${source}`);
-            inventory.stored = cleanedStored;
-            needsSave = true;
-        }
-    }
-
-    // Validate assets field
-    if (typeof inventory.assets !== 'string') {
-        console.warn(`[RPG Companion] Invalid assets from ${source}, resetting to "None"`);
-        inventory.assets = "None";
-        needsSave = true;
-    } else {
-        // Clean items in assets (removes corrupted/dangerous items)
-        const cleanedAssets = cleanItemString(inventory.assets);
-        if (cleanedAssets !== inventory.assets) {
-            console.warn(`[RPG Companion] Cleaned corrupted items from assets inventory (${source})`);
-            inventory.assets = cleanedAssets;
-            needsSave = true;
-        }
-    }
-
-    // Persist repairs if needed
-    if (needsSave) {
-        console.log(`[RPG Companion] Repaired inventory structure from ${source}, saving...`);
-        saveSettings();
-        if (source === 'chat') {
-            saveChatData();
-        }
-    }
-}
+// Legacy inventory validation removed; tracker data now stored in structured form
 
 /**
  * Migrates old settings format to new trackerConfig format
  * Converts statNames to customStats array and sets up default config
+ * @returns {boolean} True if any migration was performed
  */
 function migrateToTrackerConfig() {
-    // Initialize trackerConfig if it doesn't exist
+    let migrated = false;
+
+    // Initialize trackerConfig if it doesn't exist (shouldn't happen with deepMergeDefaults, but safety check)
     if (!extensionSettings.trackerConfig) {
+        migrated = true;
         extensionSettings.trackerConfig = {
             userStats: {
                 customStats: [],
@@ -487,34 +573,11 @@ function migrateToTrackerConfig() {
             name: extensionSettings.statNames[id] || id.charAt(0).toUpperCase() + id.slice(1),
             enabled: true
         }));
+        migrated = true;
         console.log('[RPG Companion] Migrated statNames to customStats array');
     }
 
-    // Ensure all stats have corresponding values in userStats
-    if (extensionSettings.userStats) {
-        for (const stat of extensionSettings.trackerConfig.userStats.customStats) {
-            if (extensionSettings.userStats[stat.id] === undefined) {
-                extensionSettings.userStats[stat.id] = stat.id === 'arousal' ? 0 : 100;
-            }
-        }
-    }
-
-    // Migrate old showRPGAttributes boolean to rpgAttributes array
-    if (extensionSettings.trackerConfig.userStats.showRPGAttributes !== undefined) {
-        const shouldShow = extensionSettings.trackerConfig.userStats.showRPGAttributes;
-        extensionSettings.trackerConfig.userStats.rpgAttributes = [
-            { id: 'str', name: 'STR', description: '', enabled: shouldShow },
-            { id: 'dex', name: 'DEX', description: '', enabled: shouldShow },
-            { id: 'con', name: 'CON', description: '', enabled: shouldShow },
-            { id: 'int', name: 'INT', description: '', enabled: shouldShow },
-            { id: 'wis', name: 'WIS', description: '', enabled: shouldShow },
-            { id: 'cha', name: 'CHA', description: '', enabled: shouldShow }
-        ];
-        delete extensionSettings.trackerConfig.userStats.showRPGAttributes;
-        console.log('[RPG Companion] Migrated showRPGAttributes to rpgAttributes array');
-    }
-
-    // Ensure rpgAttributes exists even if no migration was needed
+    // Ensure rpgAttributes array exists (old configs may not have it)
     if (!extensionSettings.trackerConfig.userStats.rpgAttributes) {
         extensionSettings.trackerConfig.userStats.rpgAttributes = [
             { id: 'str', name: 'STR', description: '', enabled: true },
@@ -524,20 +587,8 @@ function migrateToTrackerConfig() {
             { id: 'wis', name: 'WIS', description: '', enabled: true },
             { id: 'cha', name: 'CHA', description: '', enabled: true }
         ];
-    }
-
-    // Ensure showRPGAttributes exists (defaults to true)
-    if (extensionSettings.trackerConfig.userStats.showRPGAttributes === undefined) {
-        extensionSettings.trackerConfig.userStats.showRPGAttributes = true;
-    }
-
-    // Ensure all rpgAttributes have corresponding values in classicStats
-    if (extensionSettings.classicStats) {
-        for (const attr of extensionSettings.trackerConfig.userStats.rpgAttributes) {
-            if (extensionSettings.classicStats[attr.id] === undefined) {
-                extensionSettings.classicStats[attr.id] = 10;
-            }
-        }
+        migrated = true;
+        console.log('[RPG Companion] Created default rpgAttributes array');
     }
 
     // Migrate old presentCharacters structure to new format
@@ -602,8 +653,11 @@ function migrateToTrackerConfig() {
                 name: 'Thoughts',
                 description: 'Internal monologue (in first person POV, up to three sentences long)'
             };
+            migrated = true;
         }
     }
+
+    return migrated;
 }
 
 /**
@@ -682,63 +736,6 @@ function migrateStatsAndSkillsFormat() {
     
     if (migrated) {
         console.log('[RPG Companion] Stats/skills format migration complete');
-    }
-    
-    return migrated;
-}
-
-/**
- * Migrates quests from legacy format to structured format (questsV2).
- * Legacy format: quests.main (string), quests.optional (string array)
- * New format: questsV2.main ({name, description}), questsV2.optional (array of {name, description})
- * @returns {boolean} true if any migration was performed
- */
-function migrateQuestsFormat() {
-    let migrated = false;
-    
-    // Initialize questsV2 if it doesn't exist
-    if (!extensionSettings.questsV2) {
-        extensionSettings.questsV2 = {
-            main: null,
-            optional: []
-        };
-    }
-    
-    // Migrate main quest if it exists in legacy format but not in new format
-    // Check if legacy format has data AND new format is empty/null
-    if (extensionSettings.quests?.main && 
-        extensionSettings.quests.main !== 'None' && 
-        extensionSettings.quests.main !== '' &&
-        (!extensionSettings.questsV2.main || !extensionSettings.questsV2.main.name)) {
-        extensionSettings.questsV2.main = {
-            name: extensionSettings.quests.main,
-            description: extensionSettings.quests?.mainDescription || ''
-        };
-        migrated = true;
-        console.log('[RPG Companion] Migrated main quest to structured format:', extensionSettings.quests.main);
-    }
-    
-    // Migrate optional quests if they exist in legacy format but not in new format
-    // Check if legacy format has data AND new format is empty
-    if (extensionSettings.quests?.optional && 
-        Array.isArray(extensionSettings.quests.optional) && 
-        extensionSettings.quests.optional.length > 0 &&
-        (!extensionSettings.questsV2.optional || extensionSettings.questsV2.optional.length === 0)) {
-        const descriptions = extensionSettings.quests?.optionalDescriptions || [];
-        extensionSettings.questsV2.optional = extensionSettings.quests.optional
-            .filter(title => title && title !== 'None' && title !== '')
-            .map((title, i) => ({
-                name: title,
-                description: descriptions[i] || ''
-            }));
-        if (extensionSettings.questsV2.optional.length > 0) {
-            migrated = true;
-            console.log('[RPG Companion] Migrated optional quests to structured format:', extensionSettings.questsV2.optional.length, 'quests');
-        }
-    }
-    
-    if (migrated) {
-        console.log('[RPG Companion] Quests format migration complete');
     }
     
     return migrated;

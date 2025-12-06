@@ -8,14 +8,13 @@ import { executeSlashCommandsOnChatInput } from '../../../../../../../scripts/sl
 import {
     extensionSettings,
     lastGeneratedData,
-    committedTrackerData,
     isGenerating,
     setIsGenerating,
     setLastActionWasSwipe
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
 import { generateSeparateUpdatePrompt } from './promptBuilder.js';
-import { parseResponse, parseUserStats, parseSkills, tryParseJSONResponse } from './parser.js';
+import { tryParseJSONResponse } from './parser.js';
 import { renderQuests } from '../rendering/quests.js';
 import { renderSkills } from '../rendering/skills.js';
 import { i18n } from '../../core/i18n.js';
@@ -118,86 +117,29 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         });
 
         if (response) {
-            const jsonParsed = tryParseJSONResponse(response);
+            const success = tryParseJSONResponse(response);
             
-            if (jsonParsed) {
-                // JSON parsing succeeded - render all sections
-                console.log('[RPG Companion] JSON parsing successful');
+            if (!success) {
+                console.warn('[RPG Companion] JSON parsing failed; skipping tracker update.');
+            } else {
+                // JSON parsing succeeded - lastGeneratedData is already updated by parser
+                // Store structured tracker data in swipe
+                const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
+                if (lastMessage && !lastMessage.is_user) {
+                    if (!lastMessage.extra) lastMessage.extra = {};
+                    if (!lastMessage.extra.rpg_companion_swipes) lastMessage.extra.rpg_companion_swipes = {};
+                    const currentSwipeId = lastMessage.swipe_id || 0;
+                    lastMessage.extra.rpg_companion_swipes[currentSwipeId] = JSON.parse(JSON.stringify(lastGeneratedData));
+                }
+
+                // Render the updated data
                 renderUserStats();
                 renderInfoBox();
                 renderThoughts();
                 renderInventory();
                 renderQuests();
                 renderSkills();
-                saveChatData();
-            } else {
-                console.warn('[RPG Companion] JSON parsing failed, attempting legacy text parsing...');
-                const parsedData = parseResponse(response);
 
-                extensionSettings.charactersData = [];
-                const parsedCharacterThoughts = parsedData.characterThoughts || '';
-
-                const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
-                if (lastMessage && !lastMessage.is_user) {
-                if (!lastMessage.extra) {
-                    lastMessage.extra = {};
-                }
-                if (!lastMessage.extra.rpg_companion_swipes) {
-                    lastMessage.extra.rpg_companion_swipes = {};
-                }
-
-                const currentSwipeId = lastMessage.swipe_id || 0;
-                    lastMessage.extra.rpg_companion_swipes[currentSwipeId] = {
-                        userStats: parsedData.userStats,
-                        infoBox: parsedData.infoBox,
-                        characterThoughts: parsedCharacterThoughts
-                    };
-
-                    if (parsedData.userStats) {
-                    lastGeneratedData.userStats = parsedData.userStats;
-                    parseUserStats(parsedData.userStats);
-                }
-                if (parsedData.skills) {
-                    parseSkills(parsedData.skills);
-                }
-                if (parsedData.infoBox) {
-                    lastGeneratedData.infoBox = parsedData.infoBox;
-                }
-                    lastGeneratedData.characterThoughts = parsedCharacterThoughts;
-
-                    const hasAnyCommittedContent = (
-                        (committedTrackerData.userStats && committedTrackerData.userStats.trim() !== '') ||
-                        (committedTrackerData.infoBox && committedTrackerData.infoBox.trim() !== '' && committedTrackerData.infoBox !== 'Info Box\n---\n') ||
-                        (committedTrackerData.characterThoughts && committedTrackerData.characterThoughts.trim() !== '' && committedTrackerData.characterThoughts !== 'Present Characters\n---\n')
-                    );
-
-                    if (!hasAnyCommittedContent) {
-                        committedTrackerData.userStats = parsedData.userStats;
-                        committedTrackerData.infoBox = parsedData.infoBox;
-                        committedTrackerData.characterThoughts = parsedCharacterThoughts;
-                    }
-
-                // Render the updated data
-                renderUserStats();
-                renderInfoBox();
-                lastGeneratedData.characterThoughts = parsedCharacterThoughts;
-                renderThoughts();
-                renderInventory();
-                renderQuests();
-            } else {
-                // No assistant message to attach to - just update display
-                if (parsedData.userStats) {
-                    parseUserStats(parsedData.userStats);
-                }
-                renderUserStats();
-                renderInfoBox();
-                lastGeneratedData.characterThoughts = parsedCharacterThoughts;
-                renderThoughts();
-                renderInventory();
-                renderQuests();
-            }
-
-                // Save to chat metadata
                 saveChatData();
             }
         }

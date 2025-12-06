@@ -3,8 +3,15 @@
  * Handles UI rendering for inventory v2 system
  */
 
-import { extensionSettings, $inventoryContainer } from '../../core/state.js';
+import { extensionSettings, lastGeneratedData, committedTrackerData, $inventoryContainer } from '../../core/state.js';
 import { getInventoryRenderOptions, restoreFormStates } from '../interaction/inventoryActions.js';
+
+/**
+ * Gets tracker data with fallback
+ */
+function getTrackerData() {
+    return lastGeneratedData || committedTrackerData || {};
+}
 import { updateInventoryItem } from '../interaction/inventoryEdit.js';
 import { parseItems } from '../../utils/itemParser.js';
 import { i18n } from '../../core/i18n.js';
@@ -70,23 +77,24 @@ export function renderInventorySubTabs(activeTab = 'onPerson') {
  * @returns {string} Item description or empty string
  */
 function getItemDescription(field, index, location = null) {
-    const inv3 = extensionSettings.inventoryV3;
-    if (!inv3) return '';
+    const tracker = getTrackerData();
+    const inv = tracker.inventory;
+    if (!inv) return '';
     
     let items;
     if (field === 'onPerson') {
-        items = inv3.onPerson;
+        items = inv.onPerson;
     } else if (field === 'assets') {
-        items = inv3.assets;
+        items = inv.assets;
     } else if (field === 'stored' && location) {
-        items = inv3.stored?.[location];
+        items = inv.stored?.[location];
     } else if (field === 'simplified') {
-        items = inv3.simplified;
+        items = inv.simplified;
     }
     
     if (!items || !Array.isArray(items) || !items[index]) return '';
     const item = items[index];
-    return (typeof item === 'object' ? item.description : '') || '';
+    return item?.description || '';
 }
 
 /**
@@ -101,8 +109,7 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
     let itemsHtml = '';
     if (items.length === 0) {
         itemsHtml = `<div class="rpg-inventory-empty" data-i18n-key="inventory.onPerson.empty">${i18n.getTranslation('inventory.onPerson.empty')}</div>`;
-    } else {
-        if (viewMode === 'grid') {
+    } else if (viewMode === 'grid') {
             // Grid view: card-style items
             itemsHtml = items.map((item, index) => {
                 const desc = getItemDescription('onPerson', index);
@@ -137,7 +144,6 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
                 </div>
             `}).join('');
         }
-    }
 
     const listViewClass = viewMode === 'list' ? 'rpg-item-list-view' : 'rpg-item-grid-view';
 
@@ -237,8 +243,7 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
             let itemsHtml = '';
             if (items.length === 0) {
                 itemsHtml = `<div class="rpg-inventory-empty" data-i18n-key="inventory.stored.noItems">${i18n.getTranslation('inventory.stored.noItems')}</div>`;
-            } else {
-                if (viewMode === 'grid') {
+            } else if (viewMode === 'grid') {
                     // Grid view: card-style items
                     itemsHtml = items.map((item, index) => {
                         const desc = getItemDescription('stored', index, location);
@@ -273,7 +278,6 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
                         </div>
                     `}).join('');
                 }
-            }
 
             const listViewClass = viewMode === 'list' ? 'rpg-item-list-view' : 'rpg-item-grid-view';
 
@@ -347,8 +351,7 @@ export function renderAssetsView(assets, viewMode = 'list') {
     let itemsHtml = '';
     if (items.length === 0) {
         itemsHtml = `<div class="rpg-inventory-empty" data-i18n-key="inventory.assets.empty">${i18n.getTranslation('inventory.assets.empty')}</div>`;
-    } else {
-        if (viewMode === 'grid') {
+    } else if (viewMode === 'grid') {
             // Grid view: card-style items
             itemsHtml = items.map((item, index) => {
                 const desc = getItemDescription('assets', index);
@@ -383,7 +386,6 @@ export function renderAssetsView(assets, viewMode = 'list') {
                 </div>
             `}).join('');
         }
-    }
 
     const listViewClass = viewMode === 'list' ? 'rpg-item-list-view' : 'rpg-item-grid-view';
 
@@ -514,12 +516,42 @@ export function updateInventoryDisplay(containerId, options = {}) {
         return;
     }
 
-    const inventory = extensionSettings.userStats.inventory;
+    const tracker = getTrackerData();
+    const inventory = buildLegacyInventoryView(tracker.inventory);
     const html = generateInventoryHTML(inventory, options);
     container.innerHTML = html;
 
     // Restore form states after re-rendering
     restoreFormStates();
+}
+
+/**
+ * Builds a legacy inventory view from structured inventory data
+ * @param {Object} inv - Structured inventory object
+ * @returns {Object} Legacy inventory format for rendering
+ */
+function buildLegacyInventoryView(inv) {
+    if (!inv) return { onPerson: 'None', stored: {}, assets: 'None', items: 'None', version: 2 };
+    
+    const itemsToString = (items) => {
+        if (!Array.isArray(items) || items.length === 0) return 'None';
+        return items.map(i => i?.name).filter(Boolean).join(', ') || 'None';
+    };
+    
+    const storedStrings = {};
+    if (inv.stored) {
+        for (const [loc, items] of Object.entries(inv.stored)) {
+            storedStrings[loc] = itemsToString(items);
+        }
+    }
+    
+    return {
+        version: 2,
+        onPerson: itemsToString(inv.onPerson),
+        stored: storedStrings,
+        assets: itemsToString(inv.assets),
+        items: itemsToString(inv.simplified)
+    };
 }
 
 /**
@@ -535,8 +567,7 @@ export function renderSimplifiedInventoryView(itemsString, viewMode = 'list') {
     let itemsHtml = '';
     if (items.length === 0) {
         itemsHtml = `<div class="rpg-inventory-empty" data-i18n-key="inventory.simplified.empty">${i18n.getTranslation('inventory.simplified.empty')}</div>`;
-    } else {
-        if (viewMode === 'grid') {
+    } else if (viewMode === 'grid') {
             // Grid view: card-style items (same as onPerson)
             itemsHtml = items.map((item, index) => {
                 const desc = getItemDescription('simplified', index);
@@ -571,7 +602,6 @@ export function renderSimplifiedInventoryView(itemsString, viewMode = 'list') {
                 </div>
             `}).join('');
         }
-    }
 
     const listViewClass = viewMode === 'list' ? 'rpg-item-list-view' : 'rpg-item-grid-view';
 
@@ -619,16 +649,6 @@ export function renderSimplifiedInventoryView(itemsString, viewMode = 'list') {
  * Checks if we have structured inventory data (v3 format)
  * @returns {boolean}
  */
-function hasStructuredInventory() {
-    const inv = extensionSettings.inventoryV3;
-    return inv && (
-        (inv.onPerson && inv.onPerson.length > 0) ||
-        (inv.assets && inv.assets.length > 0) ||
-        (inv.stored && Object.keys(inv.stored).length > 0) ||
-        (inv.simplified && inv.simplified.length > 0)
-    );
-}
-
 /**
  * Main inventory rendering function (matches pattern of other render functions)
  * Gets data from state/settings and updates DOM directly.
@@ -641,28 +661,8 @@ export function renderInventory() {
     }
 
     let html;
-
-    // Convert structured inventory (v3) to legacy format if present
-    // This ensures we always use the original renderer
-    let inventory = extensionSettings.userStats.inventory;
-    if (hasStructuredInventory()) {
-        const inv = extensionSettings.inventoryV3;
-        // Convert structured items to comma-separated strings
-        const itemsToString = (items) => {
-            if (!items || items.length === 0) return 'None';
-            return items.map(i => typeof i === 'string' ? i : i.name).join(', ');
-        };
-        inventory = {
-            version: 2,
-            onPerson: itemsToString(inv.onPerson),
-            stored: Object.fromEntries(
-                Object.entries(inv.stored || {}).map(([k, v]) => [k, itemsToString(v)])
-            ),
-            assets: itemsToString(inv.assets),
-            // For simplified mode
-            items: itemsToString(inv.simplified)
-        };
-    }
+    const tracker = getTrackerData();
+    const inventory = buildLegacyInventoryView(tracker.inventory);
     
     // Check if we should render simplified inventory
     if (extensionSettings.useSimplifiedInventory) {
@@ -700,13 +700,13 @@ export function renderInventory() {
 
 /**
  * Updates an item's description in structured inventory
- * @param {string} field - 'onPerson', 'stored', or 'assets'
+ * @param {string} field - 'onPerson', 'stored', 'assets', or 'simplified'
  * @param {number} index - Item index
  * @param {string} newDescription - New description
  * @param {string} [location] - Location for stored items
  */
 function updateStructuredItemDescription(field, index, newDescription, location) {
-    const inv = extensionSettings.inventoryV3;
+    const inv = lastGeneratedData.inventory;
     if (!inv) return;
     
     let item;
@@ -714,16 +714,17 @@ function updateStructuredItemDescription(field, index, newDescription, location)
         item = inv.onPerson[index];
     } else if (field === 'assets' && inv.assets?.[index]) {
         item = inv.assets[index];
+    } else if (field === 'simplified' && inv.simplified?.[index]) {
+        item = inv.simplified[index];
     } else if (field === 'stored' && location && inv.stored?.[location]?.[index]) {
         item = inv.stored[location][index];
     }
     
     if (item) {
         item.description = newDescription;
-        // Save changes
-        import('../../core/persistence.js').then(({ saveSettings, saveChatData }) => {
-            saveSettings();
+        import('../../core/persistence.js').then(({ saveChatData, updateMessageSwipeData }) => {
             saveChatData();
+            updateMessageSwipeData();
         });
     }
 }
