@@ -68,6 +68,21 @@ function deepClone(obj) {
 }
 
 /**
+ * Strips optional markdown-style code fences (```json or '''json) around config text.
+ * @param {string} rawText - Text captured from creator notes
+ * @returns {string} Unwrapped text ready for JSON parsing
+ */
+function unwrapConfigText(rawText) {
+    const trimmed = rawText.trim();
+    const fenceRegex = /^(```|''')(?:json|javascript|js)?\s*\n?([\s\S]*?)\n?\1$/i;
+    const fenceMatch = trimmed.match(fenceRegex);
+    if (fenceMatch) {
+        return fenceMatch[2].trim();
+    }
+    return trimmed;
+}
+
+/**
  * Gets a unique identifier for a character
  * @param {Object} context - SillyTavern context
  * @returns {string|null} Character identifier or null
@@ -138,7 +153,7 @@ function loadConfigFromCreatorNotes(context) {
         return false;
     }
 
-    const configText = match[1].trim();
+    const configText = unwrapConfigText(match[1]);
     
     try {
         const config = JSON.parse(configText);
@@ -154,9 +169,9 @@ function loadConfigFromCreatorNotes(context) {
 /**
  * Handles character change - saves previous config and loads new one.
  * Called when CHAT_CHANGED event fires.
- * @param {Function} [reloadUI] - Optional callback to reload the UI after config is applied
+ * @returns {boolean} True if config was loaded
  */
-export function onCharacterConfigChange(reloadUI) {
+export function onCharacterConfigChange() {
     const context = getContext();
     const currentCharacterKey = getCharacterKey(context);
 
@@ -174,21 +189,19 @@ export function onCharacterConfigChange(reloadUI) {
 
     if (currentCharacterKey === null) {
         console.log('[RPG Companion] No character selected, skipping config load');
-        return;
+        return false;
     }
 
     // Only load character-specific config if per-character config is enabled
     if (extensionSettings.perCharacterConfig) {
         // Try loading from memory first, fall back to creator notes
-        if (!loadCharacterConfigFromMemory(currentCharacterKey)) {
-            loadConfigFromCreatorNotes(context);
+        if (loadCharacterConfigFromMemory(currentCharacterKey)) {
+            return true;
         }
+        return loadConfigFromCreatorNotes(context);
     }
 
-    // Reload the UI if callback provided
-    if (typeof reloadUI === 'function') {
-        reloadUI();
-    }
+    return false;
 }
 
 /**

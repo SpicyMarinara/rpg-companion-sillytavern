@@ -45,6 +45,9 @@ import { renderQuests } from '../rendering/quests.js';
 // Utils
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 
+// UI sync (imported from index to update settings UI after config load)
+import { syncSettingsUI } from '../../../index.js';
+
 /**
  * Commits the tracker data from the last assistant message to be used as source for next generation.
  * This should be called when the user has replied to a message, ensuring all swipes of the next
@@ -179,8 +182,11 @@ export function onCharacterChanged() {
     $(window).off('resize.thoughtPanel');
     $(document).off('click.thoughtPanel');
 
-    // Load RPG Companion config
-    onCharacterConfigChange();
+    // Load RPG Companion config and sync settings UI if config was loaded
+    const configLoaded = onCharacterConfigChange();
+    if (configLoaded) {
+        syncSettingsUI();
+    }
 
     // Load chat-specific data when switching chats
     loadChatData();

@@ -183,6 +183,66 @@ function updateInterceptionToggleVisibility() {
 }
 
 /**
+ * Syncs settings UI controls with the current extensionSettings state.
+ * Call this after loading settings from character config or other sources.
+ */
+export function syncSettingsUI() {
+    $('#rpg-toggle-auto-update').prop('checked', extensionSettings.autoUpdate);
+    $('#rpg-position-select').val(extensionSettings.panelPosition);
+    $('#rpg-update-depth').val(extensionSettings.updateDepth);
+    $('#rpg-memory-messages').val(extensionSettings.memoryMessagesToProcess || 16);
+    $('#rpg-use-separate-preset').prop('checked', extensionSettings.useSeparatePreset);
+    $('#rpg-toggle-user-stats').prop('checked', extensionSettings.showUserStats);
+    $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
+    $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
+    $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
+    $('#rpg-toggle-simplified-inventory').prop('checked', extensionSettings.useSimplifiedInventory);
+    $('#rpg-toggle-skills').prop('checked', extensionSettings.showSkills);
+    $('#rpg-toggle-item-skill-links').prop('checked', extensionSettings.enableItemSkillLinks);
+    $('#rpg-toggle-delete-skill-with-item').prop('checked', extensionSettings.deleteSkillWithItem);
+    $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
+    $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
+    $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
+    $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
+    $('#rpg-toggle-message-interception').prop('checked', extensionSettings.enableMessageInterception);
+    $('#rpg-toggle-secret-prompt').prop('checked', extensionSettings.enableSecretPrompt);
+    $('#rpg-secret-prompt-text').val(extensionSettings.secretPromptText || '');
+    $('#rpg-toggle-per-character-config').prop('checked', extensionSettings.perCharacterConfig);
+    updateInterceptionToggleVisibility();
+
+    $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
+    
+    const trackerDefault = extensionSettings.useMarkdownFormat 
+        ? DEFAULT_MARKDOWN_TRACKER_PROMPT 
+        : DEFAULT_JSON_TRACKER_PROMPT;
+    $('#rpg-custom-tracker-prompt').val(extensionSettings.customTrackerPrompt || trackerDefault);
+    
+    const interceptionDefault = extensionSettings.useMarkdownFormat 
+        ? DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN 
+        : DEFAULT_MESSAGE_INTERCEPTION_PROMPT;
+    $('#rpg-custom-message-interception-prompt').val(
+        extensionSettings.customMessageInterceptionPrompt || interceptionDefault
+    );
+    $('#rpg-message-interception-depth').val(
+        extensionSettings.messageInterceptionContextDepth || extensionSettings.updateDepth || 4
+    );
+
+    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
+    $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
+    $('#rpg-toggle-debug-mode').prop('checked', extensionSettings.debugMode);
+    $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
+    $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
+    $('#rpg-theme-select').val(extensionSettings.theme);
+    $('#rpg-custom-bg').val(extensionSettings.customColors.bg);
+    $('#rpg-custom-accent').val(extensionSettings.customColors.accent);
+    $('#rpg-custom-text').val(extensionSettings.customColors.text);
+    $('#rpg-custom-highlight').val(extensionSettings.customColors.highlight);
+    $('#rpg-generation-mode').val(extensionSettings.generationMode);
+    $('#rpg-toggle-markdown-format').prop('checked', extensionSettings.useMarkdownFormat);
+    $('#rpg-skip-guided-mode').val(extensionSettings.skipInjectionsForGuided);
+}
+
+/**
  * Ensures the extension buttons wrapper exists above the send form.
  */
 function ensureExtensionButtonsWrapper() {
@@ -624,59 +684,7 @@ async function initUI() {
         }
     });
 
-    $('#rpg-toggle-auto-update').prop('checked', extensionSettings.autoUpdate);
-    $('#rpg-position-select').val(extensionSettings.panelPosition);
-    $('#rpg-update-depth').val(extensionSettings.updateDepth);
-    $('#rpg-memory-messages').val(extensionSettings.memoryMessagesToProcess || 16);
-    $('#rpg-use-separate-preset').prop('checked', extensionSettings.useSeparatePreset);
-    $('#rpg-toggle-user-stats').prop('checked', extensionSettings.showUserStats);
-    $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
-    $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
-    $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
-    $('#rpg-toggle-simplified-inventory').prop('checked', extensionSettings.useSimplifiedInventory);
-    $('#rpg-toggle-skills').prop('checked', extensionSettings.showSkills);
-    $('#rpg-toggle-item-skill-links').prop('checked', extensionSettings.enableItemSkillLinks);
-    $('#rpg-toggle-delete-skill-with-item').prop('checked', extensionSettings.deleteSkillWithItem);
-    $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
-    $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
-    $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
-    $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
-    $('#rpg-toggle-message-interception').prop('checked', extensionSettings.enableMessageInterception);
-    $('#rpg-toggle-secret-prompt').prop('checked', extensionSettings.enableSecretPrompt);
-    $('#rpg-secret-prompt-text').val(extensionSettings.secretPromptText || '');
-    $('#rpg-toggle-per-character-config').prop('checked', extensionSettings.perCharacterConfig);
-    updateInterceptionToggleVisibility();
-
-    $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
-    
-    // Show correct default based on format setting
-    const trackerDefault = extensionSettings.useMarkdownFormat 
-        ? DEFAULT_MARKDOWN_TRACKER_PROMPT 
-        : DEFAULT_JSON_TRACKER_PROMPT;
-    $('#rpg-custom-tracker-prompt').val(extensionSettings.customTrackerPrompt || trackerDefault);
-    
-    const interceptionDefault = extensionSettings.useMarkdownFormat 
-        ? DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN 
-        : DEFAULT_MESSAGE_INTERCEPTION_PROMPT;
-    $('#rpg-custom-message-interception-prompt').val(
-        extensionSettings.customMessageInterceptionPrompt || interceptionDefault
-    );
-    $('#rpg-message-interception-depth').val(
-        extensionSettings.messageInterceptionContextDepth || extensionSettings.updateDepth || 4
-    );
-
-    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
-    $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
-    $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
-    $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
-    $('#rpg-theme-select').val(extensionSettings.theme);
-    $('#rpg-custom-bg').val(extensionSettings.customColors.bg);
-    $('#rpg-custom-accent').val(extensionSettings.customColors.accent);
-    $('#rpg-custom-text').val(extensionSettings.customColors.text);
-    $('#rpg-custom-highlight').val(extensionSettings.customColors.highlight);
-    $('#rpg-generation-mode').val(extensionSettings.generationMode);
-    $('#rpg-toggle-markdown-format').prop('checked', extensionSettings.useMarkdownFormat);
-    $('#rpg-skip-guided-mode').val(extensionSettings.skipInjectionsForGuided);
+    syncSettingsUI();
 
     updatePanelVisibility();
     updateSectionVisibility();
