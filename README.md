@@ -99,6 +99,8 @@ The AI can now intercept user messages and rewrite them based on your persona an
 ### Character Card Integration
 RPG Companion can now read a state JSON from the character's Creator's Notes to automatically configure trackers and settings for that character. This allows character creators to bundle specialized RPG Companion configurations directly with their cards - custom stats, attributes, skills, and message rewriting and hidden message settings—for a perfectly tailored experience.
 
+Just place a JSON within <rpg_companion> tags with keys for what you want to configure, like [these ones](https://github.com/Subarashimo/rpg-companion-sillytavern/blob/7d3251da54b6cba6cfe1377dfe438385fedbe436/src/core/state.js#L12).
+
 ## ⚙️ Settings
 
 ### Main Panel Controls
