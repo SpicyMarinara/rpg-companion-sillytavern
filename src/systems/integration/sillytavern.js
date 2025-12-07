@@ -99,7 +99,7 @@ export async function onMessageSent() {
     // Optionally attach a secret prompt (hidden HTML comment) after interception
     if (extensionSettings.enableSecretPrompt) {
         try {
-            attachSecretPromptToUserMessage();
+            await attachSecretPromptToUserMessage();
         } catch (error) {
             console.error('[RPG Companion] Secret prompt attachment failed:', error);
         }

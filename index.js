@@ -207,6 +207,9 @@ export function syncSettingsUI() {
     $('#rpg-toggle-message-interception').prop('checked', extensionSettings.enableMessageInterception);
     $('#rpg-toggle-secret-prompt').prop('checked', extensionSettings.enableSecretPrompt);
     $('#rpg-secret-prompt-text').val(extensionSettings.secretPromptText || '');
+    $('#rpg-alt-secret-prompt-text').val(extensionSettings.altSecretPromptText || '');
+    $('#rpg-secret-prompt-llm-instructions').val(extensionSettings.secretPromptLLMInstructions || '');
+    $('#rpg-secret-prompt-context-depth').val(extensionSettings.secretPromptContextDepth || 4);
     $('#rpg-toggle-per-character-config').prop('checked', extensionSettings.perCharacterConfig);
     updateInterceptionToggleVisibility();
 
@@ -565,6 +568,24 @@ async function initUI() {
     $('#rpg-secret-prompt-text').on('input', function() {
         extensionSettings.secretPromptText = $(this).val();
         saveSettings();
+    });
+
+    $('#rpg-alt-secret-prompt-text').on('input', function() {
+        extensionSettings.altSecretPromptText = $(this).val();
+        saveSettings();
+    });
+
+    $('#rpg-secret-prompt-llm-instructions').on('input', function() {
+        extensionSettings.secretPromptLLMInstructions = $(this).val();
+        saveSettings();
+    });
+
+    $('#rpg-secret-prompt-context-depth').on('change', function() {
+        const value = parseInt(String($(this).val()));
+        if (!Number.isNaN(value)) {
+            extensionSettings.secretPromptContextDepth = value;
+            saveSettings();
+        }
     });
 
     $('#rpg-custom-message-interception-prompt').on('input', function() {
