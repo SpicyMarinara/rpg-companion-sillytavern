@@ -96,6 +96,9 @@ The AI can now intercept user messages and rewrite them based on your persona an
 - **Hidden Message Injection**: Inject a secret (invisible) prompt into your messages before they're sent
 - **Character Removal**: Present characters can now be removed from the tracker
 
+### Character Card Integration
+RPG Companion can now read a state JSON from the character's Creator's Notes to automatically configure trackers and settings for that character. This allows character creators to bundle specialized RPG Companion configurations directly with their cards - custom stats, attributes, skills, and message rewriting and hidden message settings—for a perfectly tailored experience.
+
 ## ⚙️ Settings
 
 ### Main Panel Controls
