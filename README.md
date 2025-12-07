@@ -60,6 +60,42 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 2. ~~Make all trackers and fields customizable~~ ✅ Done!
 3. ~~Kill myself~~
 
+## 🌟 Subarashimo Update
+
+A major update bringing powerful new features and extensive customization options:
+
+### Message Rewriting Mode
+The AI can now intercept user messages and rewrite them based on your persona and current state. If your character is described as clumsy and you write "Punch him in the face", the AI might rewrite it to "Clumsily flail and stumble". This enforces realistic behavior based on who you're playing - imagine the possibilities in more immersive roleplays where you no longer have absolute control over your persona's actions.
+
+### Enhanced State Management
+- **JSON State Format**: State is now stored and prompted in JSON, which LLMs understand exceptionally well. Markdown format still supported via settings
+- **Per-Character Configuration**: Trackers and settings can now be saved and restored on a per-character basis (toggleable)
+
+### Skills Overhaul
+- Skills have been expanded into first-class citizens with their own dedicated panel, just like the inventory
+- Items can be linked to skills they grant (e.g., a "Sword of Flames" grants the "Fire Strike" skill)
+- Skills now support descriptions
+- Toggleable in settings
+
+### Inventory Simplification
+- Inventory has been streamlined into a single unified catch-all where all items on the character are recorded
+- Items now support descriptions
+- Toggleable in settings
+
+### Quest Improvements
+- Quests now support descriptions
+- The quests section can be toggled on and off
+
+### RPG Attributes & Custom Stats
+- Custom stats and RPG attributes can now have explanations to help the AI better understand them
+- RPG attributes can be configured to be updatable by the AI
+- Configurable default stat values
+
+### Additional Features
+- **Customizable Tracker Prompt**: Configure how the tracker prompt is sent to the AI
+- **Hidden Message Injection**: Inject a secret (invisible) prompt into your messages before they're sent
+- **Character Removal**: Present characters can now be removed from the tracker
+
 ## ⚙️ Settings
 
 ### Main Panel Controls
