@@ -272,6 +272,52 @@
             </div>
 
             <div class="rpg-settings-group">
+                <h4 data-i18n-key="template.settingsModal.subarashimoTitle"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Subarashimo Options</h4>
+
+                <label class="checkbox_label" style="margin-top: 15px;">
+                    <input type="checkbox" id="rpg-toggle-per-character-config" />
+                    <span data-i18n-key="template.settingsModal.subarashimo.perCharacterConfig">Per-Character Config</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.subarashimo.perCharacterConfigNote">
+                    When enabled, settings are stored per character. Switching characters will save and restore their individual settings. It also supports loading settings from a &lt;rpg_companion&gt; tag in Creator Notes.
+                </small>
+                
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-message-interception" />
+                    <span data-i18n-key="template.settingsModal.subarashimo.enableMessageInterception">Intercept & rewrite user messages with AI</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.subarashimo.enableMessageInterceptionNote">
+                    When enabled, user messages are sent to the AI along with current RPG state and recent chat, then rewritten in-place.
+                </small>
+
+                <div class="rpg-setting-row">
+                    <label for="rpg-message-interception-depth" data-i18n-key="template.settingsModal.subarashimo.messageInterceptionDepth">Interception Context Messages:</label>
+                    <input type="number" id="rpg-message-interception-depth" min="1" max="20" value="4" class="rpg-input" />
+                    <small data-i18n-key="template.settingsModal.subarashimo.messageInterceptionDepthNote">How many recent messages to send with the interception prompt.</small>
+                </div>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-secret-prompt" />
+                    <span data-i18n-key="template.settingsModal.subarashimo.enableSecretPrompt">Enable Secret Prompt</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.subarashimo.enableSecretPromptNote">
+                    When enabled, the secret prompt text will be invisibly appended to your messages (as an HTML comment). Supports SillyTavern macros.
+                </small>
+
+                <div class="rpg-setting-row" style="margin-top: 10px;">
+                    <label for="rpg-secret-prompt-text" data-i18n-key="template.settingsModal.subarashimo.secretPromptTextLabel">Secret Prompt Text:</label>
+                    <textarea id="rpg-secret-prompt-text"
+                              style="width: 100%; min-height: 60px; padding: 10px; border-radius: 4px;
+                                     border: 1px solid var(--SmartThemeBorderColor); background: var(--SmartThemeBlurTintColor);
+                                     color: var(--SmartThemeBodyColor); font-family: inherit; font-size: 12px;
+                                     resize: vertical; line-height: 1.5;"
+                              placeholder="Enter the secret prompt text..."
+                              data-i18n-placeholder-key="template.settingsModal.subarashimo.secretPromptTextPlaceholder"></textarea>
+                    <small data-i18n-key="template.settingsModal.subarashimo.secretPromptTextNote">This text will be appended as a hidden HTML comment. Can be auto-populated from &lt;rpg_companion&gt; config in Creator Notes. Supports macros like {{user}}, {{char}}, etc.</small>
+                </div>
+            </div>
+
+            <div class="rpg-settings-group">
                 <h4 data-i18n-key="template.settingsModal.advancedTitle"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Advanced</h4>
 
                 <div class="rpg-setting-row">
@@ -295,20 +341,6 @@
                     <label for="rpg-update-depth" data-i18n-key="template.settingsModal.advanced.contextMessages">Context Messages:</label>
                     <input type="number" id="rpg-update-depth" min="1" max="20" value="4" class="rpg-input" />
                     <small data-i18n-key="template.settingsModal.advanced.contextMessagesNote">Number of recent messages to include (Separate mode only)</small>
-                </div>
-
-                <label class="checkbox_label">
-                    <input type="checkbox" id="rpg-toggle-message-interception" />
-                    <span data-i18n-key="template.settingsModal.advanced.enableMessageInterception">Intercept & rewrite user messages with AI</span>
-                </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.enableMessageInterceptionNote">
-                    When enabled, user messages are sent to the AI along with current RPG state and recent chat, then rewritten in-place.
-                </small>
-
-                <div class="rpg-setting-row">
-                    <label for="rpg-message-interception-depth" data-i18n-key="template.settingsModal.advanced.messageInterceptionDepth">Interception Context Messages:</label>
-                    <input type="number" id="rpg-message-interception-depth" min="1" max="20" value="4" class="rpg-input" />
-                    <small data-i18n-key="template.settingsModal.advanced.messageInterceptionDepthNote">How many recent messages to send with the interception prompt.</small>
                 </div>
 
                 <div class="rpg-setting-row">

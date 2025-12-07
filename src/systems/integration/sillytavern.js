@@ -8,9 +8,7 @@ import {
     chat,
     user_avatar,
     setExtensionPrompt,
-    extension_prompt_types,
-    updateMessageBlock,
-    generateRaw
+    extension_prompt_types
 } from '../../../../../../../script.js';
 
 // Core modules
@@ -31,7 +29,10 @@ import { saveChatData, loadChatData } from '../../core/persistence.js';
 // Generation & Parsing
 import { tryParseJSONResponse } from '../generation/parser.js';
 import { updateRPGData } from '../generation/apiClient.js';
-import { generateContextualSummary, DEFAULT_MESSAGE_INTERCEPTION_PROMPT, DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN } from '../generation/promptBuilder.js';
+
+// Features
+import { interceptAndModifyUserMessage, attachSecretPromptToUserMessage } from '../features/messageModification.js';
+import { onCharacterConfigChange } from '../features/characterConfig.js';
 
 // Rendering
 import { renderUserStats } from '../rendering/userStats.js';
@@ -92,97 +93,20 @@ export async function onMessageSent() {
         }
     }
 
+    // Optionally attach a secret prompt (hidden HTML comment) after interception
+    if (extensionSettings.enableSecretPrompt) {
+        try {
+            attachSecretPromptToUserMessage();
+        } catch (error) {
+            console.error('[RPG Companion] Secret prompt attachment failed:', error);
+        }
+    }
+
     // In separate mode with auto-update disabled, commit displayed tracker when user sends a message
     if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
         // Commit structured lastGeneratedData to committedTrackerData
         Object.assign(committedTrackerData, JSON.parse(JSON.stringify(lastGeneratedData)));
         saveChatData();
-    }
-}
-
-/**
- * Intercepts the last user message, asks the LLM to rewrite it using RPG state and recent chat,
- * and updates the chat/DOM with the modified content.
- */
-async function interceptAndModifyUserMessage() {
-    const context = getContext();
-    const chatHistory = context.chat || chat;
-
-    if (!chatHistory || chatHistory.length === 0) {
-        return;
-    }
-
-    const lastMessage = chatHistory[chatHistory.length - 1];
-    if (!lastMessage || !lastMessage.is_user) {
-        return; // Only rewrite user messages
-    }
-
-    const originalText = lastMessage.mes || '';
-    const stateJson = generateContextualSummary();
-    const depth = extensionSettings.messageInterceptionContextDepth || extensionSettings.updateDepth || 4;
-    const startIndex = Math.max(0, chatHistory.length - 1 - depth);
-    const recentMessages = chatHistory.slice(startIndex, chatHistory.length - 1);
-
-    const recentContext = recentMessages
-        .map((m) => {
-            const role = m.is_system ? 'system' : m.is_user ? '{{user}}' : '{{char}}';
-            const content = (m.mes || '').replace(/\s+/g, ' ').trim();
-            return `- ${role}: ${content}`;
-        })
-        .join('\n');
-
-    const useMarkdown = extensionSettings.useMarkdownFormat;
-    const defaultPrompt = useMarkdown ? DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN : DEFAULT_MESSAGE_INTERCEPTION_PROMPT;
-    const basePrompt = (extensionSettings.customMessageInterceptionPrompt || '').trim() || defaultPrompt;
-    
-    const formatName = useMarkdown ? 'markdown' : 'JSON';
-    const fenceType = useMarkdown ? 'markdown' : 'json';
-
-    const promptMessages = [
-        {
-            role: 'system',
-            content: basePrompt
-        },
-        {
-            role: 'system',
-            content: `{{user}}'s persona definition:\n{{persona}}`
-        },
-        {
-            role: 'system',
-            content: `Current RPG state (${formatName}):\n${stateJson ? `\`\`\`${fenceType}\n${stateJson}\n\`\`\`` : 'None'}`
-        },
-        {
-            role: 'system',
-            content: `Recent messages (newest last):\n${recentContext || 'None'}`
-        },
-        {
-            role: 'user',
-            content: `User draft message:\n${originalText}\n\nReturn only the modified message text.`
-        }
-    ];
-
-    const response = await generateRaw({
-        prompt: promptMessages,
-        quietToLoud: false
-    });
-
-    if (!response || typeof response !== 'string') {
-        return;
-    }
-
-    const cleaned = response.trim();
-    if (!cleaned) {
-        return;
-    }
-
-    // Update chat history
-    lastMessage.mes = cleaned;
-    
-    // Update DOM if the message element exists
-    const messageId = chatHistory.length - 1;
-    const messageElement = document.querySelector(`#chat .mes[mesid="${messageId}"]`);
-    if (messageElement) {
-        updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
     }
 }
 
@@ -254,6 +178,9 @@ export function onCharacterChanged() {
     $('#chat').off('scroll.thoughtPanel');
     $(window).off('resize.thoughtPanel');
     $(document).off('click.thoughtPanel');
+
+    // Load RPG Companion config
+    onCharacterConfigChange();
 
     // Load chat-specific data when switching chats
     loadChatData();

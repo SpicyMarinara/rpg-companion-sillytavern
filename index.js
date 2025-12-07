@@ -196,31 +196,31 @@ function ensureExtensionButtonsWrapper() {
 function renderInterceptionToggle() {
     ensureExtensionButtonsWrapper();
 
-    if ($('#rpg-interception-toggle').length === 0) {
-        const buttonHtml = `
-            <button id="rpg-interception-toggle" class="menu_button interactable" style="
-                background-color: #e94560;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-size: 13px;
-                cursor: pointer;
-                margin: 0 4px;
-                display: inline-block;
-            " tabindex="0" role="button">
-                <i class="fa-solid fa-bolt"></i> Interception: On
-            </button>
-        `;
-        $('#extension-buttons-wrapper').append(buttonHtml);
+    $('#rpg-interception-toggle').remove();
 
-        $('#rpg-interception-toggle').on('click', () => {
-            const active = extensionSettings.messageInterceptionActive !== false;
-            extensionSettings.messageInterceptionActive = !active;
-            saveSettings();
-            updateInterceptionToggleState();
-        });
-    }
+    const buttonHtml = `
+        <button id="rpg-interception-toggle" class="menu_button interactable" style="
+            background-color: #e94560;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            margin: 0 4px;
+            display: inline-block;
+        " tabindex="0" role="button">
+            <i class="fa-solid fa-bolt"></i> Interception: On
+        </button>
+    `;
+    $('#extension-buttons-wrapper').append(buttonHtml);
+
+    $('#rpg-interception-toggle').on('click', () => {
+        const active = extensionSettings.messageInterceptionActive !== false;
+        extensionSettings.messageInterceptionActive = !active;
+        saveSettings();
+        updateInterceptionToggleState();
+    });
 
     updateInterceptionToggleVisibility();
 }
@@ -484,6 +484,21 @@ async function initUI() {
         updateInterceptionToggleVisibility();
     });
 
+    $('#rpg-toggle-secret-prompt').on('change', function() {
+        extensionSettings.enableSecretPrompt = $(this).prop('checked');
+        saveSettings();
+    });
+
+    $('#rpg-toggle-per-character-config').on('change', function() {
+        extensionSettings.perCharacterConfig = $(this).prop('checked');
+        saveSettings();
+    });
+
+    $('#rpg-secret-prompt-text').on('input', function() {
+        extensionSettings.secretPromptText = $(this).val();
+        saveSettings();
+    });
+
     $('#rpg-custom-message-interception-prompt').on('input', function() {
         extensionSettings.customMessageInterceptionPrompt = $(this).val().trim();
         saveSettings();
@@ -619,6 +634,9 @@ async function initUI() {
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
     $('#rpg-toggle-message-interception').prop('checked', extensionSettings.enableMessageInterception);
+    $('#rpg-toggle-secret-prompt').prop('checked', extensionSettings.enableSecretPrompt);
+    $('#rpg-secret-prompt-text').val(extensionSettings.secretPromptText || '');
+    $('#rpg-toggle-per-character-config').prop('checked', extensionSettings.perCharacterConfig);
     updateInterceptionToggleVisibility();
 
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
