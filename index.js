@@ -95,7 +95,7 @@ import {
     updatePersonaAvatar,
     clearExtensionPrompts
 } from './src/systems/integration/sillytavern.js';
-import { initCharacterConfigs } from './src/systems/features/characterConfig.js';
+import { initCharacterConfigs, clearCharacterConfigs } from './src/systems/features/characterConfig.js';
 
 // Old state variable declarations removed - now imported from core modules
 // (extensionSettings, lastGeneratedData, committedTrackerData, etc. are now in src/core/state.js)
@@ -493,6 +493,13 @@ async function initUI() {
     $('#rpg-toggle-per-character-config').on('change', function() {
         extensionSettings.perCharacterConfig = $(this).prop('checked');
         saveSettings();
+    });
+
+    $('#rpg-clear-character-configs').on('click', function() {
+        if (confirm('Are you sure you want to clear all stored character configurations? This cannot be undone.')) {
+            clearCharacterConfigs();
+            toastr.success('All stored character configurations have been cleared.');
+        }
     });
 
     $('#rpg-secret-prompt-text').on('input', function() {

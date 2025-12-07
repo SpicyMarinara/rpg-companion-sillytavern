@@ -192,12 +192,20 @@ export function onCharacterConfigChange(reloadUI) {
 }
 
 /**
- * Clears all stored character configs from memory
+ * Clears all stored character configs from memory and storage
  */
 export function clearCharacterConfigs() {
     characterConfigs.clear();
     lastCharacterId = null;
-    console.log('[RPG Companion] Cleared all character configs from memory');
+    
+    // Also clear from storage
+    const storage = getStorage();
+    for (const key of Object.keys(storage)) {
+        delete storage[key];
+    }
+    saveSettingsDebounced();
+    
+    console.log('[RPG Companion] Cleared all character configs');
 }
 
 /**

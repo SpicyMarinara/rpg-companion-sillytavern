@@ -61,6 +61,7 @@
     "template.settingsModal.subarashimo.secretPromptTextNote": "This text will be appended as a hidden HTML comment in all your messages. Supports macros like {{user}}, {{char}}, etc.",
     "template.settingsModal.subarashimo.perCharacterConfig": "Per-Character Config",
     "template.settingsModal.subarashimo.perCharacterConfigNote": "When enabled, settings are stored per character. Switching characters will save and restore their individual settings. It also supports loading settings from a <rpg_companion> tag in Creator Notes.",
+    "template.settingsModal.subarashimo.clearCharacterConfigs": "Clear Stored Character Configs",
     "template.settingsModal.advancedTitle": "Advanced",
     "template.settingsModal.advanced.generationMode": "Generation Mode:",
     "template.settingsModal.advanced.generationModeOptions.together": "Together with Main Generation",

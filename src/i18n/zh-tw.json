@@ -61,6 +61,7 @@
     "template.settingsModal.subarashimo.secretPromptTextNote": "此文字將作為隱藏的 HTML 註解附加。可從創作者備註中的 <rpg_companion> 配置自動填充。支援 {{user}}、{{char}} 等巨集。",
     "template.settingsModal.subarashimo.perCharacterConfig": "角色專屬設定",
     "template.settingsModal.subarashimo.perCharacterConfigNote": "啟用後，設定將按角色儲存。切換角色時會保存並恢復各自的設定。也支援從角色創作者備註中的 <rpg_companion> 標籤載入設定。",
+    "template.settingsModal.subarashimo.clearCharacterConfigs": "清除已儲存的角色設定",
     "template.settingsModal.advancedTitle": "進階",
     "template.settingsModal.advanced.generationMode": "生成模式：",
     "template.settingsModal.advanced.generationModeOptions.together": "同時生成",
