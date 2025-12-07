@@ -722,7 +722,7 @@ export function extractMarkdownBlock(response) {
     const rawMatch = response.match(rawPattern);
     if (rawMatch) {
         // Find the extent of the markdown block
-        let mdContent = rawMatch[1];
+        const mdContent = rawMatch[1];
         
         // Continue parsing until we hit non-markdown content
         const lines = response.substring(response.indexOf(rawMatch[1])).split('\n');

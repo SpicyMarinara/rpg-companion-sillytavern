@@ -287,7 +287,7 @@
                     <span data-i18n-key="template.settingsModal.subarashimo.enableMessageInterception">Intercept & rewrite user messages with AI</span>
                 </label>
                 <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.subarashimo.enableMessageInterceptionNote">
-                    When enabled, user messages are sent to the AI along with current RPG state and recent chat, then rewritten in-place.
+                    When enabled, your messages are sent to the AI along with current RPG state and the last few messages, then rewritten in-place to better fit the context.
                 </small>
 
                 <div class="rpg-setting-row">
@@ -313,7 +313,7 @@
                                      resize: vertical; line-height: 1.5;"
                               placeholder="Enter the secret prompt text..."
                               data-i18n-placeholder-key="template.settingsModal.subarashimo.secretPromptTextPlaceholder"></textarea>
-                    <small data-i18n-key="template.settingsModal.subarashimo.secretPromptTextNote">This text will be appended as a hidden HTML comment. Can be auto-populated from &lt;rpg_companion&gt; config in Creator Notes. Supports macros like {{user}}, {{char}}, etc.</small>
+                    <small data-i18n-key="template.settingsModal.subarashimo.secretPromptTextNote">This text will be appended as a hidden HTML comment in all your messages. Can be auto-populated from &lt;rpg_companion&gt; config in Creator Notes. Supports macros like {{user}}, {{char}}, etc.</small>
                 </div>
             </div>
 

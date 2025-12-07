@@ -5,7 +5,10 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
+import { saveSettingsDebounced } from '../../../../../../../script.js';
 import { extensionSettings } from '../../core/state.js';
+
+const STORAGE_KEY = 'rpg_companion_character_configs';
 
 /**
  * In-memory storage for per-character configs.
@@ -13,6 +16,16 @@ import { extensionSettings } from '../../core/state.js';
  * Value: partial extensionSettings object
  */
 const characterConfigs = new Map();
+
+/**
+ * Gets the storage object from SillyTavern's extension_settings
+ */
+function getStorage() {
+    const context = getContext();
+    const ext = context.extension_settings || context.extensionSettings;
+    if (!ext[STORAGE_KEY]) ext[STORAGE_KEY] = {};
+    return ext[STORAGE_KEY];
+}
 
 /**
  * Tracks the last character ID to detect character changes
@@ -75,7 +88,14 @@ function getCharacterKey(context) {
 function saveCharacterConfig(characterKey) {
     if (!characterKey) return;
 
-    characterConfigs.set(characterKey, deepClone(extensionSettings));
+    const config = deepClone(extensionSettings);
+    characterConfigs.set(characterKey, config);
+    
+    // Persist to storage
+    const storage = getStorage();
+    storage[characterKey] = config;
+    saveSettingsDebounced();
+    
     console.log('[RPG Companion] Saved config for character:', characterKey);
 }
 
@@ -178,4 +198,16 @@ export function clearCharacterConfigs() {
     characterConfigs.clear();
     lastCharacterId = null;
     console.log('[RPG Companion] Cleared all character configs from memory');
+}
+
+/**
+ * Initializes character configs from persistent storage.
+ * Call this once on extension load.
+ */
+export function initCharacterConfigs() {
+    const storage = getStorage();
+    for (const [key, config] of Object.entries(storage)) {
+        characterConfigs.set(key, config);
+    }
+    console.log('[RPG Companion] Loaded', characterConfigs.size, 'character configs from storage');
 }

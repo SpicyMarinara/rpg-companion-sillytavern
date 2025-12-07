@@ -95,6 +95,7 @@ import {
     updatePersonaAvatar,
     clearExtensionPrompts
 } from './src/systems/integration/sillytavern.js';
+import { initCharacterConfigs } from './src/systems/features/characterConfig.js';
 
 // Old state variable declarations removed - now imported from core modules
 // (extensionSettings, lastGeneratedData, committedTrackerData, etc. are now in src/core/state.js)
@@ -788,6 +789,9 @@ jQuery(async () => {
         } catch (error) {
             console.error('[RPG Companion] Settings load failed, continuing with defaults:', error);
         }
+
+        // Load persisted character configs into memory
+        initCharacterConfigs();
 
         await i18n.init();
         i18n.addEventListener('languageChanged', updateDynamicLabels);
