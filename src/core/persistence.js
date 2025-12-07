@@ -18,6 +18,7 @@ import { migrateInventory } from '../utils/migration.js';
 import { parseItems } from '../utils/itemParser.js';
 import { TRACKER_DATA_VERSION } from '../types/trackerData.js';
 import { defaultSettings } from './config.js';
+import { updateCurrentCharacterConfig } from '../systems/features/characterConfig.js';
 
 const extensionName = 'third-party/rpg-companion-sillytavern';
 
@@ -143,6 +144,7 @@ export function saveSettings() {
     stripLegacyTrackerFieldsFromSettings();
     extension_settings[extensionName] = extensionSettings;
     saveSettingsDebounced();
+    updateCurrentCharacterConfig();
 }
 
 /**

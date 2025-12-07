@@ -205,6 +205,24 @@ export function onCharacterConfigChange() {
 }
 
 /**
+ * Updates the current character's config with the current extensionSettings.
+ * Call this whenever settings are modified to keep per-character configs in sync.
+ */
+export function updateCurrentCharacterConfig() {
+    if (!extensionSettings.perCharacterConfig) return;
+
+    const context = getContext();
+    const currentCharacterKey = getCharacterKey(context);
+    
+    if (!currentCharacterKey) {
+        console.log('[RPG Companion] No character selected, skipping config update');
+        return;
+    }
+
+    saveCharacterConfig(currentCharacterKey);
+}
+
+/**
  * Clears all stored character configs from memory and storage
  */
 export function clearCharacterConfigs() {
