@@ -1,6 +1,6 @@
 /**
  * Message Modification Features
- * Handles interception and secret prompt attachment to user messages
+ * Handles interception and smart trigger functionality for user messages
  */
 
 import { getContext } from '../../../../../../extensions.js';
@@ -8,7 +8,9 @@ import {
     chat,
     updateMessageBlock,
     generateRaw,
-    substituteParams
+    substituteParams,
+    setExtensionPrompt,
+    extension_prompt_types
 } from '../../../../../../../script.js';
 
 // Core modules
@@ -20,6 +22,9 @@ import {
     DEFAULT_MESSAGE_INTERCEPTION_PROMPT,
     DEFAULT_MESSAGE_INTERCEPTION_PROMPT_MARKDOWN
 } from '../generation/promptBuilder.js';
+
+/** Extension prompt identifier for smart trigger */
+const SMART_TRIGGER_PROMPT_ID = 'rpg-companion-smart-trigger';
 
 /**
  * Intercepts the last user message, asks the LLM to rewrite it using RPG state and recent chat,
@@ -108,23 +113,40 @@ export async function interceptAndModifyUserMessage() {
 }
 
 /**
- * Asks the LLM whether the secret prompt should be injected based on context.
- * @returns {Promise<boolean>} - true if the secret prompt should be injected
+ * Clears the Smart Trigger extension prompt.
+ * Should be called after generation ends.
  */
-async function shouldInjectSecretPrompt() {
+export function clearSmartTriggerPrompt() {
+    setExtensionPrompt(SMART_TRIGGER_PROMPT_ID, '', extension_prompt_types.IN_CHAT, 0, false);
+    console.log('[RPG Companion] Smart Trigger - Cleared extension prompt');
+}
+
+/**
+ * Executes the Smart Trigger feature.
+ * Sends the smart trigger instructions to the LLM with context, then injects
+ * the LLM's response as a temporary system message via extension prompt.
+ * The message is sent to the LLM but not persisted in chat history.
+ */
+export async function executeSmartTrigger() {
     const context = getContext();
     const chatHistory = context.chat || chat;
 
-    const llmInstructions = extensionSettings.secretPromptLLMInstructions;
-    
-    // If no LLM instructions configured, always inject
-    if (!llmInstructions || !llmInstructions.trim()) {
-        return true;
+    if (!chatHistory || chatHistory.length === 0) {
+        return;
     }
 
-    const depth = extensionSettings.secretPromptContextDepth || 4;
-    const startIndex = Math.max(0, chatHistory.length - 1 - depth);
-    const recentMessages = chatHistory.slice(startIndex, chatHistory.length - 1);
+    // Get the smart trigger text from settings
+    const smartTriggerText = extensionSettings.smartTriggerText;
+    if (!smartTriggerText || !smartTriggerText.trim()) {
+        console.log('[RPG Companion] Smart Trigger - No trigger text configured');
+        return;
+    }
+
+    // Build context from recent messages
+    const depth = extensionSettings.smartTriggerContextDepth || 4;
+    const endIndex = chatHistory.length;
+    const startIndex = Math.max(0, endIndex - depth);
+    const recentMessages = chatHistory.slice(startIndex, endIndex);
 
     const recentContext = recentMessages
         .map((m) => {
@@ -134,22 +156,21 @@ async function shouldInjectSecretPrompt() {
         })
         .join('\n');
 
-    const lastMessage = chatHistory[chatHistory.length - 1];
-    const userMessage = lastMessage?.mes || '';
+    // Evaluate SillyTavern macros in the trigger text
+    const evaluatedTrigger = substituteParams(smartTriggerText.trim());
 
     const promptMessages = [
         {
             role: 'system',
-            content: `You are a decision-making assistant. Based on the context provided, you must answer the following question: ${llmInstructions}
-            You must respond with ONLY "YES" or "NO" - nothing else.`
-        },
-        {
-            role: 'system',
-            content: `Recent conversation context:\n${recentContext || 'None'}`
+            content: 'You are an assistant tasked with executing the user\'s instructions based on the recent messages.'
         },
         {
             role: 'user',
-            content: `Current {{user}} message:\n${userMessage}`
+            content: evaluatedTrigger
+        },
+        {
+            role: 'user',
+            content: `Recent messages (newest last):\n${recentContext || 'None'}`
         }
     ];
 
@@ -160,77 +181,28 @@ async function shouldInjectSecretPrompt() {
         });
 
         if (!response || typeof response !== 'string') {
-            console.log('[RPG Companion] Secret Prompt LLM - No response, defaulting to inject');
-            return true;
+            console.log('[RPG Companion] Smart Trigger - No response from LLM');
+            return;
         }
 
-        const cleaned = response.trim().toUpperCase();
-        const shouldInject = cleaned.includes('YES');
-        console.log(`[RPG Companion] Secret Prompt LLM decision: ${cleaned} -> ${shouldInject ? 'INJECT' : 'SKIP'}`);
-        return shouldInject;
+        const triggerOutput = response.trim();
+        if (!triggerOutput) {
+            console.log('[RPG Companion] Smart Trigger - Empty response from LLM');
+            return;
+        }
+
+        setExtensionPrompt(
+            SMART_TRIGGER_PROMPT_ID,
+            triggerOutput,
+            extension_prompt_types.IN_CHAT,
+            1,  // Before the last user message
+            true, // scan for world info
+            extension_prompt_types.ROLE_SYSTEM
+        );
+
+        console.log('[RPG Companion] Smart Trigger - Injected extension prompt:', triggerOutput);
+
     } catch (error) {
-        console.error('[RPG Companion] Secret Prompt LLM error:', error);
-        return true; // Default to inject on error
-    }
-}
-
-/**
- * Attaches a secret prompt to the last user message as an HTML comment.
- * Uses the secretPromptText from settings, or altSecretPromptText if LLM returns NO.
- * If LLM instructions are configured, asks the LLM first whether to use primary or alt prompt.
- */
-export async function attachSecretPromptToUserMessage() {
-    const context = getContext();
-    const chatHistory = context.chat || chat;
-
-    if (!chatHistory || chatHistory.length === 0) {
-        return;
-    }
-
-    const lastMessage = chatHistory[chatHistory.length - 1];
-    if (!lastMessage || !lastMessage.is_user) {
-        return; // Only modify user messages
-    }
-
-    // Get the secret prompt texts from settings
-    const secretPromptText = extensionSettings.secretPromptText;
-    const altSecretPromptText = extensionSettings.altSecretPromptText;
-
-    if (!secretPromptText || !secretPromptText.trim()) {
-        console.log('[RPG Companion] Secret Prompt - No secret prompt text configured');
-        return;
-    }
-
-    // Check with LLM if we should use primary prompt (if LLM instructions are configured)
-    const usePrimary = await shouldInjectSecretPrompt();
-    
-    let promptToUse;
-    if (usePrimary) {
-        promptToUse = secretPromptText;
-        console.log('[RPG Companion] Secret Prompt - Using primary prompt');
-    } else if (altSecretPromptText && altSecretPromptText.trim()) {
-        // LLM said NO - use alt prompt
-        promptToUse = altSecretPromptText;
-        console.log('[RPG Companion] Secret Prompt - LLM returned NO, using alt prompt');
-    } else {
-        // LLM said NO and no alt prompt configured
-        console.log('[RPG Companion] Secret Prompt - LLM returned NO, no alt prompt configured, skipping');
-        return;
-    }
-
-    // Evaluate SillyTavern macros and wrap in HTML comment
-    const evaluated = substituteParams(promptToUse.trim());
-    const secretPrompt = `<!-- ${evaluated} -->`;
-
-    // Append to message
-    lastMessage.mes = (lastMessage.mes || '') + '\n' + secretPrompt;
-
-    console.log('[RPG Companion] Secret prompt attached:', secretPrompt);
-
-    // Update DOM if the message element exists
-    const messageId = chatHistory.length - 1;
-    const messageElement = document.querySelector(`#chat .mes[mesid="${messageId}"]`);
-    if (messageElement) {
-        updateMessageBlock(messageId, lastMessage, { rerenderMessage: true });
+        console.error('[RPG Companion] Smart Trigger error:', error);
     }
 }

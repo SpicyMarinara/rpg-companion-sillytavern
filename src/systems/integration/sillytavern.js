@@ -31,7 +31,7 @@ import { tryParseJSONResponse } from '../generation/parser.js';
 import { updateRPGData } from '../generation/apiClient.js';
 
 // Features
-import { interceptAndModifyUserMessage, attachSecretPromptToUserMessage } from '../features/messageModification.js';
+import { interceptAndModifyUserMessage, executeSmartTrigger, clearSmartTriggerPrompt } from '../features/messageModification.js';
 import { onCharacterConfigChange } from '../features/characterConfig.js';
 
 // Rendering
@@ -96,12 +96,12 @@ export async function onMessageSent() {
         }
     }
 
-    // Optionally attach a secret prompt (hidden HTML comment) after interception
-    if (extensionSettings.enableSecretPrompt) {
+    // Optionally execute Smart Trigger (LLM-generated system message before user message)
+    if (extensionSettings.enableSmartTrigger) {
         try {
-            await attachSecretPromptToUserMessage();
+            await executeSmartTrigger();
         } catch (error) {
-            console.error('[RPG Companion] Secret prompt attachment failed:', error);
+            console.error('[RPG Companion] Smart Trigger execution failed:', error);
         }
     }
 
@@ -110,6 +110,17 @@ export async function onMessageSent() {
         // Commit structured lastGeneratedData to committedTrackerData
         Object.assign(committedTrackerData, JSON.parse(JSON.stringify(lastGeneratedData)));
         saveChatData();
+    }
+}
+
+/**
+ * Event handler for when generation ends (success or failure).
+ * Clears temporary prompts like Smart Trigger.
+ */
+export function onGenerationEnded() {
+    // Clear Smart Trigger prompt after generation completes
+    if (extensionSettings.enableSmartTrigger) {
+        clearSmartTriggerPrompt();
     }
 }
 

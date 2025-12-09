@@ -92,6 +92,7 @@ import {
     onMessageReceived,
     onCharacterChanged,
     onMessageSwiped,
+    onGenerationEnded,
     updatePersonaAvatar,
     clearExtensionPrompts
 } from './src/systems/integration/sillytavern.js';
@@ -225,11 +226,9 @@ export function syncSettingsUI() {
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
     $('#rpg-toggle-message-interception').prop('checked', extensionSettings.enableMessageInterception);
-    $('#rpg-toggle-secret-prompt').prop('checked', extensionSettings.enableSecretPrompt);
-    $('#rpg-secret-prompt-text').val(extensionSettings.secretPromptText || '');
-    $('#rpg-alt-secret-prompt-text').val(extensionSettings.altSecretPromptText || '');
-    $('#rpg-secret-prompt-llm-instructions').val(extensionSettings.secretPromptLLMInstructions || '');
-    $('#rpg-secret-prompt-context-depth').val(extensionSettings.secretPromptContextDepth || 4);
+    $('#rpg-toggle-smart-trigger').prop('checked', extensionSettings.enableSmartTrigger);
+    $('#rpg-smart-trigger-text').val(extensionSettings.smartTriggerText || '');
+    $('#rpg-smart-trigger-context-depth').val(extensionSettings.smartTriggerContextDepth || 4);
     $('#rpg-toggle-per-character-config').prop('checked', extensionSettings.perCharacterConfig);
     $('#rpg-panel-title').val(extensionSettings.panelTitle || '');
     updateInterceptionToggleVisibility();
@@ -569,8 +568,8 @@ async function initUI() {
         updateInterceptionToggleVisibility();
     });
 
-    $('#rpg-toggle-secret-prompt').on('change', function() {
-        extensionSettings.enableSecretPrompt = $(this).prop('checked');
+    $('#rpg-toggle-smart-trigger').on('change', function() {
+        extensionSettings.enableSmartTrigger = $(this).prop('checked');
         saveSettings();
     });
 
@@ -592,25 +591,15 @@ async function initUI() {
         }
     });
 
-    $('#rpg-secret-prompt-text').on('input', function() {
-        extensionSettings.secretPromptText = $(this).val();
+    $('#rpg-smart-trigger-text').on('input', function() {
+        extensionSettings.smartTriggerText = $(this).val();
         saveSettings();
     });
 
-    $('#rpg-alt-secret-prompt-text').on('input', function() {
-        extensionSettings.altSecretPromptText = $(this).val();
-        saveSettings();
-    });
-
-    $('#rpg-secret-prompt-llm-instructions').on('input', function() {
-        extensionSettings.secretPromptLLMInstructions = $(this).val();
-        saveSettings();
-    });
-
-    $('#rpg-secret-prompt-context-depth').on('change', function() {
+    $('#rpg-smart-trigger-context-depth').on('change', function() {
         const value = parseInt(String($(this).val()));
         if (!Number.isNaN(value)) {
-            extensionSettings.secretPromptContextDepth = value;
+            extensionSettings.smartTriggerContextDepth = value;
             saveSettings();
         }
     });
@@ -908,6 +897,7 @@ jQuery(async () => {
                 [event_types.MESSAGE_SENT]: onMessageSent,
                 [event_types.GENERATION_STARTED]: onGenerationStarted,
                 [event_types.MESSAGE_RECEIVED]: onMessageReceived,
+                [event_types.GENERATION_ENDED]: onGenerationEnded,
                 [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar],
                 [event_types.MESSAGE_SWIPED]: onMessageSwiped,
                 [event_types.USER_MESSAGE_RENDERED]: updatePersonaAvatar,

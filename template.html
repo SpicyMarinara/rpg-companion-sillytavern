@@ -279,7 +279,7 @@
                     <input type="text" id="rpg-panel-title" class="rpg-input text_pole" style="width: 100%;"
                            placeholder="RPG Companion"
                            data-i18n-placeholder-key="template.settingsModal.subarashimo.panelTitlePlaceholder" />
-                    <small data-i18n-key="template.settingsModal.subarashimo.panelTitleNote">Custom name displayed at the top of the panel. Leave empty to use default.</small>
+                    <small data-i18n-key="template.settingsModal.subarashimo.panelTitleNote">Custom name displayed at the top of the panel.</small>
                 </div>
 
                 <label class="checkbox_label" style="margin-top: 15px;">
@@ -308,53 +308,29 @@
                 </div>
 
                 <label class="checkbox_label">
-                    <input type="checkbox" id="rpg-toggle-secret-prompt" />
-                    <span data-i18n-key="template.settingsModal.subarashimo.enableSecretPrompt">Enable Secret Prompt</span>
+                    <input type="checkbox" id="rpg-toggle-smart-trigger" />
+                    <span data-i18n-key="template.settingsModal.subarashimo.enableSmartTrigger">Enable Smart Trigger</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.subarashimo.enableSecretPromptNote">
-                    When enabled, the secret prompt text will be invisibly appended to your messages (as an HTML comment). Supports SillyTavern macros.
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.subarashimo.enableSmartTriggerNote">
+                    When enabled, sends your instructions to the AI and inserts the response as a temporary system message before your message. Useful for triggering lorebook entries or other actions.
                 </small>
 
                 <div class="rpg-setting-row" style="margin-top: 10px;">
-                    <label for="rpg-secret-prompt-text" data-i18n-key="template.settingsModal.subarashimo.secretPromptTextLabel">Secret Prompt Text:</label>
-                    <textarea id="rpg-secret-prompt-text"
-                              style="width: 100%; min-height: 60px; padding: 10px; border-radius: 4px;
+                    <label for="rpg-smart-trigger-text" data-i18n-key="template.settingsModal.subarashimo.smartTriggerTextLabel">Smart Trigger Instructions:</label>
+                    <textarea id="rpg-smart-trigger-text"
+                              style="width: 100%; min-height: 80px; padding: 10px; border-radius: 4px;
                                      border: 1px solid var(--SmartThemeBorderColor); background: var(--SmartThemeBlurTintColor);
                                      color: var(--SmartThemeBodyColor); font-family: inherit; font-size: 12px;
                                      resize: vertical; line-height: 1.5;"
-                              placeholder="Enter the secret prompt text..."
-                              data-i18n-placeholder-key="template.settingsModal.subarashimo.secretPromptTextPlaceholder"></textarea>
-                    <small data-i18n-key="template.settingsModal.subarashimo.secretPromptTextNote">This text will be appended as a hidden HTML comment in all your messages. Can be auto-populated from &lt;rpg_companion&gt; config in Creator Notes. Supports macros like {{user}}, {{char}}, etc.</small>
-                </div>
-
-                <div class="rpg-setting-row" style="margin-top: 10px;">
-                    <label for="rpg-alt-secret-prompt-text" data-i18n-key="template.settingsModal.subarashimo.altSecretPromptTextLabel">Alt. Secret Prompt:</label>
-                    <textarea id="rpg-alt-secret-prompt-text"
-                              style="width: 100%; min-height: 60px; padding: 10px; border-radius: 4px;
-                                     border: 1px solid var(--SmartThemeBorderColor); background: var(--SmartThemeBlurTintColor);
-                                     color: var(--SmartThemeBodyColor); font-family: inherit; font-size: 12px;
-                                     resize: vertical; line-height: 1.5;"
-                              placeholder="Optional: Alternative secret prompt when LLM returns NO..."
-                              data-i18n-placeholder-key="template.settingsModal.subarashimo.altSecretPromptTextPlaceholder"></textarea>
-                    <small data-i18n-key="template.settingsModal.subarashimo.altSecretPromptTextNote">If set, this will be used instead when the LLM question returns NO. Leave empty to skip injection entirely.</small>
-                </div>
-
-                <div class="rpg-setting-row" style="margin-top: 10px;">
-                    <label for="rpg-secret-prompt-llm-instructions" data-i18n-key="template.settingsModal.subarashimo.secretPromptLLMInstructionsLabel">Secret Prompt LLM Question:</label>
-                    <textarea id="rpg-secret-prompt-llm-instructions"
-                              style="width: 100%; min-height: 60px; padding: 10px; border-radius: 4px;
-                                     border: 1px solid var(--SmartThemeBorderColor); background: var(--SmartThemeBlurTintColor);
-                                     color: var(--SmartThemeBodyColor); font-family: 'Courier New', monospace; font-size: 12px;
-                                     resize: vertical; line-height: 1.5;"
-                              placeholder="Optional: LLM instructions to decide if secret prompt should be injected..."
-                              data-i18n-placeholder-key="template.settingsModal.subarashimo.secretPromptLLMInstructionsPlaceholder"></textarea>
-                    <small data-i18n-key="template.settingsModal.subarashimo.secretPromptLLMInstructionsNote">If set, an LLM will decide whether to inject the secret prompt based on these instructions. Leave empty to always inject.</small>
+                              placeholder="Enter instructions for the LLM..."
+                              data-i18n-placeholder-key="template.settingsModal.subarashimo.smartTriggerTextPlaceholder"></textarea>
+                    <small data-i18n-key="template.settingsModal.subarashimo.smartTriggerTextNote">Instructions sent to the LLM. The response will be inserted as a system message. Supports macros like {{user}}, {{char}}, etc.</small>
                 </div>
 
                 <div class="rpg-setting-row">
-                    <label for="rpg-secret-prompt-context-depth" data-i18n-key="template.settingsModal.subarashimo.secretPromptContextDepth">Secret Context Messages:</label>
-                    <input type="number" id="rpg-secret-prompt-context-depth" min="1" max="20" value="4" class="rpg-input" />
-                    <small data-i18n-key="template.settingsModal.subarashimo.secretPromptContextDepthNote">How many recent messages to send to the LLM for deciding on secret prompt injection.</small>
+                    <label for="rpg-smart-trigger-context-depth" data-i18n-key="template.settingsModal.subarashimo.smartTriggerContextDepth">Context Messages:</label>
+                    <input type="number" id="rpg-smart-trigger-context-depth" min="1" max="20" value="4" class="rpg-input" />
+                    <small data-i18n-key="template.settingsModal.subarashimo.smartTriggerContextDepthNote">How many recent messages to include as context for the Smart Trigger.</small>
                 </div>
             </div>
 
