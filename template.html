@@ -274,6 +274,14 @@
             <div class="rpg-settings-group">
                 <h4 data-i18n-key="template.settingsModal.subarashimoTitle"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Subarashimo Options</h4>
 
+                <div class="rpg-setting-row" style="margin-top: 10px;">
+                    <label for="rpg-panel-title" data-i18n-key="template.settingsModal.subarashimo.panelTitleLabel">Panel Title:</label>
+                    <input type="text" id="rpg-panel-title" class="rpg-input text_pole" style="width: 100%;"
+                           placeholder="RPG Companion"
+                           data-i18n-placeholder-key="template.settingsModal.subarashimo.panelTitlePlaceholder" />
+                    <small data-i18n-key="template.settingsModal.subarashimo.panelTitleNote">Custom name displayed at the top of the panel. Leave empty to use default.</small>
+                </div>
+
                 <label class="checkbox_label" style="margin-top: 15px;">
                     <input type="checkbox" id="rpg-toggle-per-character-config" />
                     <span data-i18n-key="template.settingsModal.subarashimo.perCharacterConfig">Per-Character Config</span>

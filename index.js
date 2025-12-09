@@ -120,6 +120,23 @@ import { initCharacterConfigs, clearCharacterConfigs } from './src/systems/featu
 //  setupMobileKeyboardHandling, setupContentEditableScrolling)
 
 /**
+ * Updates the panel title based on the custom setting or defaults to i18n translation.
+ */
+function updatePanelTitle() {
+    const titleElement = $('#rpg-companion-panel .rpg-panel-header h3 span[data-i18n-key="template.mainPanel.title"]');
+    if (titleElement.length) {
+        const customTitle = extensionSettings.panelTitle;
+        if (customTitle && customTitle.trim()) {
+            titleElement.text(customTitle.trim());
+        } else {
+            // Use i18n translation or fallback to default
+            const defaultTitle = i18n.getTranslation('template.mainPanel.title', 'RPG Companion');
+            titleElement.text(defaultTitle);
+        }
+    }
+}
+
+/**
  * Updates UI elements that are dynamically generated and not covered by data-i18n-key.
  */
 function updateDynamicLabels() {
@@ -138,6 +155,9 @@ function updateDynamicLabels() {
 
     // Update inline interception toggle text if present
     updateInterceptionToggleState();
+
+    // Update panel title (respects custom title setting)
+    updatePanelTitle();
 }
 
 /**
@@ -211,6 +231,7 @@ export function syncSettingsUI() {
     $('#rpg-secret-prompt-llm-instructions').val(extensionSettings.secretPromptLLMInstructions || '');
     $('#rpg-secret-prompt-context-depth').val(extensionSettings.secretPromptContextDepth || 4);
     $('#rpg-toggle-per-character-config').prop('checked', extensionSettings.perCharacterConfig);
+    $('#rpg-panel-title').val(extensionSettings.panelTitle || '');
     updateInterceptionToggleVisibility();
 
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
@@ -558,6 +579,12 @@ async function initUI() {
         saveSettings();
     });
 
+    $('#rpg-panel-title').on('input', function() {
+        extensionSettings.panelTitle = $(this).val().trim();
+        saveSettings();
+        updatePanelTitle();
+    });
+
     $('#rpg-clear-character-configs').on('click', function() {
         if (confirm('Are you sure you want to clear all stored character configurations? This cannot be undone.')) {
             clearCharacterConfigs();
@@ -706,6 +733,7 @@ async function initUI() {
     });
 
     syncSettingsUI();
+    updatePanelTitle();
 
     updatePanelVisibility();
     updateSectionVisibility();

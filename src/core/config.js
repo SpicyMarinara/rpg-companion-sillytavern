@@ -21,6 +21,7 @@ export const extensionFolderPath = isUserExtension
 export const defaultSettings = {
     enabled: true,
     autoUpdate: true,
+    panelTitle: '', // Custom panel title (empty = use default "RPG Companion")
     updateDepth: 4, // How many messages to include in the context
     messageInterceptionContextDepth: 4, // How many recent messages to send when intercepting user messages
     generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
