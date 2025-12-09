@@ -93,11 +93,11 @@ The AI can now intercept user messages and rewrite them based on your persona an
 
 ### Additional Features
 - **Customizable Tracker Prompt**: Configure how the tracker prompt is sent to the AI
-- **Hidden Message Injection**: Inject a secret (invisible) prompt into your messages before they're sent
+- **Smart Trigger**: Send custom instructions to the LLM based on conversation context; the output is injected as a temporary system message before your message, influencing the AI's response without being visible in chat. Good for triggering lorebook entries in a smart way
 - **Character Removal**: Present characters can now be removed from the tracker
 
 ### Character Card Integration
-RPG Companion can now read a state JSON from the character's Creator's Notes to automatically configure trackers and settings for that character. This allows character creators to bundle specialized RPG Companion configurations directly with their cards - custom stats, attributes, skills, and message rewriting and hidden message settings—for a perfectly tailored experience.
+RPG Companion can now read a state JSON from the character's Creator's Notes to automatically configure trackers and settings for that character. This allows character creators to bundle specialized RPG Companion configurations directly with their cards - custom stats, attributes, skills, and message rewriting settings—for a perfectly tailored experience.
 
 Just place a JSON within <rpg_companion> tags with keys for what you want to configure, like [these ones](https://github.com/Subarashimo/rpg-companion-sillytavern/blob/7d3251da54b6cba6cfe1377dfe438385fedbe436/src/core/state.js#L12).
 
