@@ -5,7 +5,6 @@
 
 import { extensionSettings, $questsContainer } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
-import { i18n } from '../../core/i18n.js';
 
 /**
  * HTML escape helper
@@ -26,11 +25,11 @@ function escapeHtml(text) {
 export function renderQuestsSubTabs(activeTab = 'main') {
     return `
         <div class="rpg-quests-subtabs">
-            <button class="rpg-quests-subtab ${activeTab === 'main' ? 'active' : ''}" data-tab="main" data-i18n-key="quests.section.main">
-                ${i18n.getTranslation('quests.section.main')}
+            <button class="rpg-quests-subtab ${activeTab === 'main' ? 'active' : ''}" data-tab="main">
+                Main Quest
             </button>
-            <button class="rpg-quests-subtab ${activeTab === 'optional' ? 'active' : ''}" data-tab="optional" data-i18n-key="quests.section.optional">
-                ${i18n.getTranslation('quests.section.optional')}
+            <button class="rpg-quests-subtab ${activeTab === 'optional' ? 'active' : ''}" data-tab="optional">
+                Optional Quests
             </button>
         </div>
     `;
@@ -48,9 +47,9 @@ export function renderMainQuestView(mainQuest) {
     return `
         <div class="rpg-quest-section">
             <div class="rpg-quest-header">
-                <h3 class="rpg-quest-section-title" data-i18n-key="quests.main.title">${i18n.getTranslation('quests.main.title')}</h3>
-                ${!hasQuest ? `<button class="rpg-add-quest-btn" data-action="add-quest" data-field="main" title="${i18n.getTranslation('quests.main.addQuestTitle')}">
-                    <i class="fa-solid fa-plus"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
+                <h3 class="rpg-quest-section-title">Main Quests</h3>
+                ${!hasQuest ? `<button class="rpg-add-quest-btn" data-action="add-quest" data-field="main" title="Add main quests">
+                    <i class="fa-solid fa-plus"></i> Add Quest
                 </button>` : ''}
             </div>
             <div class="rpg-quest-content">
@@ -59,10 +58,10 @@ export function renderMainQuestView(mainQuest) {
                         <input type="text" class="rpg-inline-input" id="rpg-edit-quest-main" value="${escapeHtml(questDisplay)}" />
                         <div class="rpg-inline-buttons">
                             <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-edit-quest" data-field="main">
-                                <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
+                                <i class="fa-solid fa-times"></i> Cancel
                             </button>
                             <button class="rpg-inline-btn rpg-inline-save" data-action="save-edit-quest" data-field="main">
-                                <i class="fa-solid fa-check"></i> <span data-i18n-key="global.save">${i18n.getTranslation('global.save')}</span>
+                                <i class="fa-solid fa-check"></i> Save
                             </button>
                         </div>
                     </div>
@@ -79,22 +78,22 @@ export function renderMainQuestView(mainQuest) {
                     </div>
                 ` : `
                     <div class="rpg-inline-form" id="rpg-add-quest-form-main" style="display: none;">
-                        <input type="text" class="rpg-inline-input" id="rpg-new-quest-main" placeholder="${i18n.getTranslation('quests.main.addQuestPlaceholder')}" data-i18n-placeholder-key="quests.main.addQuestPlaceholder" />
+                        <input type="text" class="rpg-inline-input" id="rpg-new-quest-main" placeholder="Enter main quests title..." />
                         <div class="rpg-inline-actions">
                             <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-quest" data-field="main">
-                                <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
+                                <i class="fa-solid fa-times"></i> Cancel
                             </button>
                             <button class="rpg-inline-btn rpg-inline-save" data-action="save-add-quest" data-field="main">
-                                <i class="fa-solid fa-check"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
+                                <i class="fa-solid fa-check"></i> Add
                             </button>
                         </div>
                     </div>
-                    <div class="rpg-quest-empty" data-i18n-key="quests.main.empty">${i18n.getTranslation('quests.main.empty')}</div>
+                    <div class="rpg-quest-empty">No active main quests</div>
                 `}
             </div>
             <div class="rpg-quest-hint">
                 <i class="fa-solid fa-lightbulb"></i>
-                <span data-i18n-key="quests.main.hint">${i18n.getTranslation('quests.main.hint')}</span>
+                The main quests represent your primary objective in the story.
             </div>
         </div>
     `;
@@ -110,7 +109,7 @@ export function renderOptionalQuestsView(optionalQuests) {
 
     let questsHtml = '';
     if (quests.length === 0) {
-        questsHtml = `<div class="rpg-quest-empty" data-i18n-key="quests.optional.empty">${i18n.getTranslation('quests.optional.empty')}</div>`;
+        questsHtml = '<div class="rpg-quest-empty">No active optional quests</div>';
     } else {
         questsHtml = quests.map((quest, index) => `
             <div class="rpg-quest-item" data-field="optional" data-index="${index}">
@@ -127,20 +126,20 @@ export function renderOptionalQuestsView(optionalQuests) {
     return `
         <div class="rpg-quest-section">
             <div class="rpg-quest-header">
-                <h3 class="rpg-quest-section-title" data-i18n-key="quests.optional.title">${i18n.getTranslation('quests.optional.title')}</h3>
-                <button class="rpg-add-quest-btn" data-action="add-quest" data-field="optional" title="${i18n.getTranslation('quests.optional.addQuestTitle')}">
-                    <i class="fa-solid fa-plus"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
+                <h3 class="rpg-quest-section-title">Optional Quests</h3>
+                <button class="rpg-add-quest-btn" data-action="add-quest" data-field="optional" title="Add optional quest">
+                    <i class="fa-solid fa-plus"></i> Add Quest
                 </button>
             </div>
             <div class="rpg-quest-content">
                 <div class="rpg-inline-form" id="rpg-add-quest-form-optional" style="display: none;">
-                    <input type="text" class="rpg-inline-input" id="rpg-new-quest-optional" placeholder="${i18n.getTranslation('quests.optional.addQuestPlaceholder')}" data-i18n-placeholder-key="quests.optional.addQuestPlaceholder" />
+                    <input type="text" class="rpg-inline-input" id="rpg-new-quest-optional" placeholder="Enter optional quest title..." />
                     <div class="rpg-inline-buttons">
                         <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-quest" data-field="optional">
-                            <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
+                            <i class="fa-solid fa-times"></i> Cancel
                         </button>
                         <button class="rpg-inline-btn rpg-inline-save" data-action="save-add-quest" data-field="optional">
-                            <i class="fa-solid fa-check"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
+                            <i class="fa-solid fa-check"></i> Add
                         </button>
                     </div>
                 </div>
@@ -149,7 +148,7 @@ export function renderOptionalQuestsView(optionalQuests) {
                 </div>
                 <div class="rpg-quest-hint">
                     <i class="fa-solid fa-info-circle"></i>
-                    <span data-i18n-key="quests.optional.hint">${i18n.getTranslation('quests.optional.hint')}</span>
+                    Optional quests are side objectives that complement your main story.
                 </div>
             </div>
         </div>

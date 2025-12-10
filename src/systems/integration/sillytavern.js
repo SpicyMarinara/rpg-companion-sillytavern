@@ -18,10 +18,10 @@ import {
     updateLastGeneratedData,
     updateCommittedTrackerData
 } from '../../core/state.js';
-import { saveChatData, loadChatData } from '../../core/persistence.js';
+import { saveSettings, saveChatData, loadChatData } from '../../core/persistence.js';
 
 // Generation & Parsing
-import { parseResponse, parseUserStats } from '../generation/parser.js';
+import { parseResponse, parseUserStats, parseSpellbook } from '../generation/parser.js';
 import { updateRPGData } from '../generation/apiClient.js';
 
 // Rendering
@@ -30,9 +30,15 @@ import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts, updateChatThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
+import { renderSpellbook } from '../rendering/spellbook.js';
+import { renderAbilities } from '../rendering/abilities.js';
 
 // Utils
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
+
+// Features
+import { processAIRolls } from '../features/aiDiceRoller.js';
+import { extractMonsterCards, addMonsterToLorebook, monsterExists } from '../../utils/monsterkeeper.js';
 
 /**
  * Commits the tracker data from the last assistant message to be used as source for next generation.
@@ -73,7 +79,6 @@ export function commitTrackerData() {
 /**
  * Event handler for when the user sends a message.
  * Sets the flag to indicate this is NOT a swipe.
- * In separate mode with auto-update disabled, commits the displayed tracker data.
  */
 export function onMessageSent() {
     if (!extensionSettings.enabled) return;
@@ -81,21 +86,6 @@ export function onMessageSent() {
     // User sent a new message - NOT a swipe
     setLastActionWasSwipe(false);
     // console.log('[RPG Companion] 🟢 EVENT: onMessageSent - lastActionWasSwipe =', lastActionWasSwipe);
-
-    // In separate mode with auto-update disabled, commit displayed tracker when user sends a message
-    if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
-        // Commit whatever is currently displayed in lastGeneratedData
-        if (lastGeneratedData.userStats || lastGeneratedData.infoBox || lastGeneratedData.characterThoughts) {
-            committedTrackerData.userStats = lastGeneratedData.userStats;
-            committedTrackerData.infoBox = lastGeneratedData.infoBox;
-            committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
-
-            // Save to chat metadata
-            saveChatData();
-
-            // console.log('[RPG Companion] 💾 Committed displayed tracker on user message (auto-update disabled)');
-        }
-    }
 }
 
 /**
@@ -111,7 +101,16 @@ export async function onMessageReceived(data) {
         // The message should be in chat[chat.length - 1]
         const lastMessage = chat[chat.length - 1];
         if (lastMessage && !lastMessage.is_user) {
-            const responseText = lastMessage.mes;
+            let responseText = lastMessage.mes;
+            
+            console.log('[RPG Companion] Original message before AI roll processing:', responseText);
+            
+            // Process AI dice rolls BEFORE parsing tracker data
+            // This replaces [ROLL:XdY+Z] patterns with actual results
+            responseText = await processAIRolls(responseText);
+            
+            console.log('[RPG Companion] Message after AI roll processing:', responseText);
+            
             // console.log('[RPG Companion] Parsing together mode response:', responseText);
 
             const parsedData = parseResponse(responseText);
@@ -127,6 +126,9 @@ export async function onMessageReceived(data) {
             }
             if (parsedData.characterThoughts) {
                 lastGeneratedData.characterThoughts = parsedData.characterThoughts;
+            }
+            if (parsedData.spellbook) {
+                parseSpellbook(parsedData.spellbook);
             }
 
             // Store RPG data for this specific swipe in the message's extra field
@@ -162,10 +164,43 @@ export async function onMessageReceived(data) {
             cleanedMessage = cleanedMessage.replace(/```[^`]*?Stats\s*\n\s*---[^`]*?```\s*/gi, '');
             cleanedMessage = cleanedMessage.replace(/```[^`]*?Info Box\s*\n\s*---[^`]*?```\s*/gi, '');
             cleanedMessage = cleanedMessage.replace(/```[^`]*?Present Characters\s*\n\s*---[^`]*?```\s*/gi, '');
+            cleanedMessage = cleanedMessage.replace(/```[^`]*?Spellbook\s*\n[^`]*?```\s*/gi, '');
+            cleanedMessage = cleanedMessage.replace(/```[^`]*?Spell Book\s*\n[^`]*?```\s*/gi, '');
             // Remove any stray "---" dividers that might appear after the code blocks
             cleanedMessage = cleanedMessage.replace(/^\s*---\s*$/gm, '');
             // Clean up multiple consecutive newlines
             cleanedMessage = cleanedMessage.replace(/\n{3,}/g, '\n\n');
+
+            // Process monster stat blocks if monster detection is enabled
+            if (extensionSettings.monsterDetection) {
+                const monsters = extractMonsterCards(responseText);
+                if (monsters.length > 0) {
+                    for (const monster of monsters) {
+                        try {
+                            const exists = await monsterExists(monster.name);
+                            if (exists) {
+                                console.log(`[RPG Companion] Monster "${monster.name}" already exists in lorebook`);
+                                toastr.info(`Monster "${monster.name}" already exists in lorebook. Use World Info to manage duplicates.`, 'Monster Card Detected', { timeOut: 4000 });
+                            } else {
+                                const success = await addMonsterToLorebook(monster.name, monster.content);
+                                if (success) {
+                                    toastr.success(`Added "${monster.name}" to monsters lorebook (priority: 200)`, 'Monster Card Added', { timeOut: 3000 });
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`[RPG Companion] Error processing monster "${monster.name}":`, error);
+                        }
+                    }
+                    
+                    // Remove monster cards from displayed message if hideMonsterBlocks is enabled
+                    if (extensionSettings.hideMonsterBlocks) {
+                        cleanedMessage = cleanedMessage.replace(/\[MONSTER_CARD\].*?\[\/MONSTER_CARD\]/gis, '');
+                        // Clean up extra whitespace left behind
+                        cleanedMessage = cleanedMessage.replace(/\n{3,}/g, '\n\n').trim();
+                        console.log('[RPG Companion] Removed monster stat blocks from displayed message');
+                    }
+                }
+            }
 
             // Update the message in chat history
             lastMessage.mes = cleanedMessage.trim();
@@ -181,6 +216,7 @@ export async function onMessageReceived(data) {
             renderThoughts();
             renderInventory();
             renderQuests();
+            renderSpellbook();
 
             // Then update the DOM to reflect the cleaned message
             // Using updateMessageBlock to perform macro substitutions + regex formatting
@@ -240,6 +276,8 @@ export function onCharacterChanged() {
     renderThoughts();
     renderInventory();
     renderQuests();
+    renderSpellbook();
+    renderAbilities();
 
     // Update chat thought overlays
     updateChatThoughts();
@@ -312,6 +350,7 @@ export function onMessageSwiped(messageIndex) {
     renderThoughts();
     renderInventory();
     renderQuests();
+    renderSpellbook();
 
     // Update chat thought overlays
     updateChatThoughts();

@@ -19,6 +19,8 @@ export let extensionSettings = {
     showInfoBox: true,
     showCharacterThoughts: true,
     showInventory: true, // Show inventory section (v2 system)
+    showAbilities: true, // Show abilities section
+    showSpellbook: true, // Show spellbook section
     showThoughtsInChat: true, // Show thoughts overlay in chat
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
@@ -47,12 +49,37 @@ export let extensionSettings = {
         arousal: 0,
         mood: '😐',
         conditions: 'None',
+        currency: {
+            name: 'Gold',
+            amount: 0
+        },
         /** @type {InventoryV2} */
         inventory: {
             version: 2,
             onPerson: "None",
             stored: {},
             assets: "None"
+        },
+        // D&D Skills values (manually edited, no AI tracking)
+        dndSkills: {
+            athletics: 0,
+            acrobatics: 0,
+            sleightOfHand: 0,
+            stealth: 0,
+            arcana: 0,
+            history: 0,
+            investigation: 0,
+            nature: 0,
+            religion: 0,
+            animalHandling: 0,
+            insight: 0,
+            medicine: 0,
+            perception: 0,
+            survival: 0,
+            deception: 0,
+            intimidation: 0,
+            performance: 0,
+            persuasion: 0
         }
     },
     statNames: {
@@ -90,11 +117,35 @@ export let extensionSettings = {
                 showMoodEmoji: true,
                 customFields: ['Conditions'] // User can edit what to track
             },
-            // Optional skills field
-            skillsSection: {
-                enabled: false,
-                label: 'Skills', // User-editable
-                customFields: [] // Array of skill names
+            // D&D Skills section (manual values)
+            dndSkills: {
+                enabled: true,
+                collapsed: true, // Start collapsed
+                skills: {
+                    // Strength
+                    athletics: { name: 'Athletics', ability: 'STR', value: 0 },
+                    // Dexterity
+                    acrobatics: { name: 'Acrobatics', ability: 'DEX', value: 0 },
+                    sleightOfHand: { name: 'Sleight of Hand', ability: 'DEX', value: 0 },
+                    stealth: { name: 'Stealth', ability: 'DEX', value: 0 },
+                    // Intelligence
+                    arcana: { name: 'Arcana', ability: 'INT', value: 0 },
+                    history: { name: 'History', ability: 'INT', value: 0 },
+                    investigation: { name: 'Investigation', ability: 'INT', value: 0 },
+                    nature: { name: 'Nature', ability: 'INT', value: 0 },
+                    religion: { name: 'Religion', ability: 'INT', value: 0 },
+                    // Wisdom
+                    animalHandling: { name: 'Animal Handling', ability: 'WIS', value: 0 },
+                    insight: { name: 'Insight', ability: 'WIS', value: 0 },
+                    medicine: { name: 'Medicine', ability: 'WIS', value: 0 },
+                    perception: { name: 'Perception', ability: 'WIS', value: 0 },
+                    survival: { name: 'Survival', ability: 'WIS', value: 0 },
+                    // Charisma
+                    deception: { name: 'Deception', ability: 'CHA', value: 0 },
+                    intimidation: { name: 'Intimidation', ability: 'CHA', value: 0 },
+                    performance: { name: 'Performance', ability: 'CHA', value: 0 },
+                    persuasion: { name: 'Persuasion', ability: 'CHA', value: 0 }
+                }
             }
         },
         infoBox: {
@@ -146,6 +197,29 @@ export let extensionSettings = {
         main: "None",        // Current main quest title
         optional: []         // Array of optional quest titles
     },
+    // Spellbook data: spell slots and known spells
+    spellbook: {
+        // Spell slots by level (1-9). Each level has max and used counts.
+        spellSlots: {
+            1: { max: 0, used: 0 },
+            2: { max: 0, used: 0 },
+            3: { max: 0, used: 0 },
+            4: { max: 0, used: 0 },
+            5: { max: 0, used: 0 },
+            6: { max: 0, used: 0 },
+            7: { max: 0, used: 0 },
+            8: { max: 0, used: 0 },
+            9: { max: 0, used: 0 }
+        },
+        // Known spells list
+        knownSpells: [],
+        spellSaveDC: 0 // New field for spell save DC
+    },
+    // Abilities data: known abilities
+    abilities: {
+        // Known abilities list
+        knownAbilities: []
+    },
     level: 1, // User's character level
     classicStats: {
         str: 10,
@@ -163,7 +237,11 @@ export let extensionSettings = {
         assets: 'list'    // 'list' or 'grid' view mode for Assets section
     },
     debugMode: false, // Enable debug logging visible in UI (for mobile debugging)
-    memoryMessagesToProcess: 16 // Number of messages to process per batch in memory recollection
+    memoryMessagesToProcess: 16, // Number of messages to process per batch in memory recollection
+    autoRollAIDice: true, // Automatically process [ROLL:XdY+Z] syntax in AI messages (client-side, zero API cost)
+    showAutoRollNotifications: true, // Show toast notifications when auto-rolling AI dice
+    monsterDetection: true, // Automatically detect and add [MONSTER_CARD]...[/MONSTER_CARD] blocks to lorebook
+    hideMonsterBlocks: false // Remove monster card blocks from displayed chat messages (keep in lorebook only)
 };
 
 /**
@@ -248,6 +326,8 @@ export let $infoBoxContainer = null;
 export let $thoughtsContainer = null;
 export let $inventoryContainer = null;
 export let $questsContainer = null;
+export let $spellbookContainer = null;
+export let $abilitiesContainer = null;
 
 /**
  * State setters - provide controlled mutation of state variables
@@ -318,4 +398,12 @@ export function setInventoryContainer($element) {
 
 export function setQuestsContainer($element) {
     $questsContainer = $element;
+}
+
+export function setSpellbookContainer($element) {
+    $spellbookContainer = $element;
+}
+
+export function setAbilitiesContainer($element) {
+    $abilitiesContainer = $element;
 }

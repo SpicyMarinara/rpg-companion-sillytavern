@@ -145,7 +145,8 @@ export function parseResponse(responseText) {
     const result = {
         userStats: null,
         infoBox: null,
-        characterThoughts: null
+        characterThoughts: null,
+        spellbook: null
     };
 
     // DEBUG: Log full response for troubleshooting
@@ -209,8 +210,8 @@ export function parseResponse(responseText) {
                 content.match(/Stats\s*\n\s*---/i) ||
                 content.match(/User Stats\s*\n\s*---/i) ||
                 content.match(/Player Stats\s*\n\s*---/i) ||
-                // Fallback: look for stat keywords without strict header
-                (content.match(/Health:\s*\d+%/i) && content.match(/Energy:\s*\d+%/i));
+                // Fallback: look for stat keywords with either % or X/Y format
+                (content.match(/Health:\s*(\d+%|\d+\/\d+)/i) && content.match(/Energy:\s*(\d+%|\d+\/\d+)/i));
 
             // Match Info Box section - flexible patterns
             const isInfoBox =
@@ -228,6 +229,13 @@ export function parseResponse(responseText) {
                 // Fallback: look for new multi-line format patterns
                 (content.match(/^-\s+\w+/m) && content.match(/Details:/i));
 
+            // Match Spellbook section - accept with or without separator, allow blank lines
+            const isSpellbook =
+                content.match(/Spellbook\s*\n\s*---/i) ||
+                content.match(/Spell Book\s*\n\s*---/i) ||
+                (content.match(/Spellbook/i) && content.match(/Level\s+\d+:\s*\d+\/\d+/)) ||
+                (content.match(/Spell Book/i) && content.match(/Level\s+\d+:\s*\d+\/\d+/));
+
             if (isStats && !result.userStats) {
                 result.userStats = stripBrackets(content);
                 debugLog('[RPG Parser] ✓ Matched: Stats section');
@@ -238,14 +246,18 @@ export function parseResponse(responseText) {
                 result.characterThoughts = stripBrackets(content);
                 debugLog('[RPG Parser] ✓ Matched: Present Characters section');
                 debugLog('[RPG Parser] Full content:', content);
+            } else if (isSpellbook && !result.spellbook) {
+                result.spellbook = stripBrackets(content);
+                debugLog('[RPG Parser] ✓ Matched: Spellbook section');
             } else {
                 debugLog('[RPG Parser] ✗ No match - checking patterns:');
                 debugLog('[RPG Parser]   - Has "Stats\\n---"?', !!content.match(/Stats\s*\n\s*---/i));
-                debugLog('[RPG Parser]   - Has stat keywords?', !!(content.match(/Health:\s*\d+%/i) && content.match(/Energy:\s*\d+%/i)));
+                debugLog('[RPG Parser]   - Has stat keywords?', !!(content.match(/Health:\s*(\d+%|\d+\/\d+)/i) && content.match(/Energy:\s*(\d+%|\d+\/\d+)/i)));
                 debugLog('[RPG Parser]   - Has "Info Box\\n---"?', !!content.match(/Info Box\s*\n\s*---/i));
                 debugLog('[RPG Parser]   - Has info keywords?', !!(content.match(/Date:/i) && content.match(/Location:/i)));
                 debugLog('[RPG Parser]   - Has "Present Characters\\n---"?', !!content.match(/Present Characters\s*\n\s*---/i));
                 debugLog('[RPG Parser]   - Has new format ("- Name" + "Details:")?', !!(content.match(/^-\s+\w+/m) && content.match(/Details:/i)));
+                debugLog('[RPG Parser]   - Has "Spellbook\\n---"?', !!content.match(/Spellbook\s*\n\s*---/i));
             }
         }
     }
@@ -254,6 +266,7 @@ export function parseResponse(responseText) {
     debugLog('[RPG Parser] Found Stats:', !!result.userStats);
     debugLog('[RPG Parser] Found Info Box:', !!result.infoBox);
     debugLog('[RPG Parser] Found Characters:', !!result.characterThoughts);
+    debugLog('[RPG Parser] Found Spellbook:', !!result.spellbook);
     debugLog('[RPG Parser] =======================================================');
 
     return result;
@@ -280,15 +293,41 @@ export function parseUserStats(statsText) {
 
         // Dynamically parse custom stats
         for (const stat of enabledStats) {
-            const statRegex = new RegExp(`${stat.name}:\\s*(\\d+)%`, 'i');
-            const match = statsText.match(statRegex);
-            if (match) {
-                // Store using the stat ID (lowercase normalized name)
-                const statId = stat.id;
-                extensionSettings.userStats[statId] = parseInt(match[1]);
-                debugLog(`[RPG Parser] Parsed ${stat.name}:`, match[1]);
+            const useCurrentMax = stat.useCurrentMax || false;
+            let match = null;
+            
+            if (useCurrentMax) {
+                // Match "StatName: X/Y" format (current/max)
+                const statRegex = new RegExp(`${stat.name}:\\s*(\\d+)\\/(\\d+)`, 'i');
+                match = statsText.match(statRegex);
+                if (match) {
+                    const statId = stat.id;
+                    const currentValue = parseInt(match[1]);
+                    const maxValue = parseInt(match[2]);
+                    
+                    // Update current value
+                    extensionSettings.userStats[statId] = currentValue;
+                    
+                    // Update max value in config if it changed
+                    if (maxValue !== stat.maxValue) {
+                        stat.maxValue = maxValue;
+                    }
+                    
+                    debugLog(`[RPG Parser] Parsed ${stat.name}:`, `${currentValue}/${maxValue}`);
+                } else {
+                    debugLog(`[RPG Parser] ${stat.name} NOT FOUND (expected X/Y format)`);
+                }
             } else {
-                debugLog(`[RPG Parser] ${stat.name} NOT FOUND`);
+                // Match "StatName: X%" format (percentage)
+                const statRegex = new RegExp(`${stat.name}:\\s*(\\d+)%`, 'i');
+                match = statsText.match(statRegex);
+                if (match) {
+                    const statId = stat.id;
+                    extensionSettings.userStats[statId] = parseInt(match[1]);
+                    debugLog(`[RPG Parser] Parsed ${stat.name}:`, match[1] + '%');
+                } else {
+                    debugLog(`[RPG Parser] ${stat.name} NOT FOUND (expected X% format)`);
+                }
             }
         }
 
@@ -459,3 +498,17 @@ export function isInfoBoxSection(content) {
 export function isCharacterThoughtsSection(content) {
     return content.match(/Present Characters\s*\n\s*---/i) !== null || content.includes(" | ");
 }
+
+/**
+ * DISABLED: Spell slot parsing is now disabled to prevent AI from modifying spell slots.
+ * Spell slots are now only modified when the user manually casts a spell through the UI.
+ *
+ * Parses spellbook data from the AI response and updates extensionSettings.
+ * Extracts spell slot levels and their used/max counts.
+ *
+ * @param {string} spellbookText - The raw spellbook text from AI response
+ */
+export function parseSpellbook(spellbookText) {
+    // DISABLED - Do not parse spell slots from AI responses
+}
+

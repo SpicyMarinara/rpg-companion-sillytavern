@@ -7,18 +7,16 @@
         <div class="inline-drawer-content">
             <label class="checkbox_label" for="rpg-extension-enabled">
                 <input type="checkbox" id="rpg-extension-enabled" />
-                <span data-i18n-key="settings.extensionEnabled">Enable RPG Companion</span>
+                <span>Enable RPG Companion</span>
             </label>
+            <small class="notes">Toggle to enable/disable the RPG Companion extension. Configure additional settings within the panel itself.</small>
 
-            <div class="form-group" style="margin-top: 10px;">
-                <label for="rpg-companion-language-select" data-i18n-key="settings.language.label">Language</label>
-                <select id="rpg-companion-language-select" class="text_pole">
-                    <option value="en" data-i18n-key="settings.language.option.en">English</option>
-                    <option value="zh-tw" data-i18n-key="settings.language.option.zh-tw">繁體中文</option>
-                </select>
+            <div style="margin-top: 10px;">
+                <button id="rpg-clear-spellbook-cache" class="menu_button">
+                    <i class="fa-solid fa-broom"></i> Clear Spellbook Cache
+                </button>
+                <small class="notes" style="display: block; margin-top: 5px;">Clears the cached lorebook entries for spells. Use this if old deleted spells keep reappearing.</small>
             </div>
-
-            <small class="notes" data-i18n-key="settings.note">Toggle to enable/disable the RPG Companion extension. Configure additional settings within the panel itself.</small>
 
             <div style="margin-top: 10px; display: flex; gap: 10px;">
                 <a href="https://discord.com/invite/KdAkTg94ME" target="_blank" class="menu_button" style="flex: 1; text-align: center; text-decoration: none;">

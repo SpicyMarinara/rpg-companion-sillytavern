@@ -56,6 +56,7 @@ function validateSettings(settings) {
  */
 export function loadSettings() {
     try {
+        console.log('[RPG Companion] loadSettings() called');
         const context = getContext();
         const extension_settings = context.extension_settings || context.extensionSettings;
 
@@ -66,6 +67,7 @@ export function loadSettings() {
         }
 
         if (extension_settings[extensionName]) {
+            console.log('[RPG Companion] Found saved settings');
             const savedSettings = extension_settings[extensionName];
 
             // Validate loaded settings
@@ -81,6 +83,28 @@ export function loadSettings() {
             // console.log('[RPG Companion] Settings loaded:', extensionSettings);
         } else {
             // console.log('[RPG Companion] No saved settings found, using defaults');
+        }
+
+        // Ensure new properties exist with defaults (for backward compatibility)
+        // This runs ALWAYS, regardless of whether settings were loaded or not
+        console.log('[RPG Companion] Checking for missing properties...');
+        console.log('[RPG Companion] showAbilities:', extensionSettings.showAbilities);
+        console.log('[RPG Companion] abilities:', extensionSettings.abilities);
+        
+        let needsSave = false;
+        if (extensionSettings.showAbilities === undefined) {
+            extensionSettings.showAbilities = true;
+            console.log('[RPG Companion] ✅ Added missing showAbilities setting (default: true)');
+            needsSave = true;
+        }
+        if (!extensionSettings.abilities) {
+            extensionSettings.abilities = { knownAbilities: [] };
+            console.log('[RPG Companion] ✅ Added missing abilities storage');
+            needsSave = true;
+        }
+        if (needsSave) {
+            console.log('[RPG Companion] Saving updated settings...');
+            saveSettings(); // Save the updated settings once
         }
 
         // Migrate inventory if feature flag enabled
@@ -137,6 +161,8 @@ export function saveChatData() {
     chat_metadata.rpg_companion = {
         userStats: extensionSettings.userStats,
         classicStats: extensionSettings.classicStats,
+        spellbook: extensionSettings.spellbook,
+        abilities: extensionSettings.abilities,
         quests: extensionSettings.quests,
         lastGeneratedData: lastGeneratedData,
         committedTrackerData: committedTrackerData,
@@ -208,6 +234,14 @@ export function loadChatData() {
             quests: {
                 main: "None",
                 optional: []
+            },
+            spellbook: {
+                spellSlots: {},
+                knownSpells: [],
+                cantrips: []
+            },
+            abilities: {
+                knownAbilities: []
             }
         });
         setLastGeneratedData({
@@ -244,6 +278,28 @@ export function loadChatData() {
         extensionSettings.quests = {
             main: "None",
             optional: []
+        };
+    }
+
+    // Restore spellbook
+    if (savedData.spellbook) {
+        extensionSettings.spellbook = { ...savedData.spellbook };
+    } else {
+        // Initialize with defaults if not present
+        extensionSettings.spellbook = {
+            spellSlots: {},
+            knownSpells: [],
+            cantrips: []
+        };
+    }
+
+    // Restore abilities
+    if (savedData.abilities) {
+        extensionSettings.abilities = { ...savedData.abilities };
+    } else {
+        // Initialize with defaults if not present
+        extensionSettings.abilities = {
+            knownAbilities: []
         };
     }
 

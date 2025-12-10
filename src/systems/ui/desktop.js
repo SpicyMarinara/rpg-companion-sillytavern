@@ -3,8 +3,6 @@
  * Handles desktop-specific UI functionality: tab navigation
  */
 
-import { i18n } from '../../core/i18n.js';
-
 /**
  * Sets up desktop tab navigation for organizing content.
  * Only runs on desktop viewports (>1000px).
@@ -24,10 +22,12 @@ export function setupDesktopTabs() {
     const $infoBox = $('#rpg-info-box');
     const $thoughts = $('#rpg-thoughts');
     const $inventory = $('#rpg-inventory');
+    const $abilities = $('#rpg-abilities');
     const $quests = $('#rpg-quests');
+    const $spellbook = $('#rpg-spellbook');
 
     // If no sections exist, nothing to organize
-    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $inventory.length === 0 && $quests.length === 0) {
+    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $inventory.length === 0 && $abilities.length === 0 && $quests.length === 0) {
         return;
     }
 
@@ -36,15 +36,23 @@ export function setupDesktopTabs() {
         <div class="rpg-tabs-nav">
             <button class="rpg-tab-btn active" data-tab="status">
                 <i class="fa-solid fa-chart-simple"></i>
-                <span data-i18n-key="global.status">Status</span>
+                <span>Status</span>
             </button>
             <button class="rpg-tab-btn" data-tab="inventory">
                 <i class="fa-solid fa-box"></i>
-                <span data-i18n-key="global.inventory">Inventory</span>
+                <span>Inventory</span>
+            </button>
+            <button class="rpg-tab-btn" data-tab="abilities">
+                <i class="fa-solid fa-fist-raised"></i>
+                <span>Abilities</span>
+            </button>
+            <button class="rpg-tab-btn" data-tab="spellbook">
+                <i class="fa-solid fa-book"></i>
+                <span>Spellbook</span>
             </button>
             <button class="rpg-tab-btn" data-tab="quests">
                 <i class="fa-solid fa-scroll"></i>
-                <span data-i18n-key="global.quests">Quests</span>
+                <span>Quests</span>
             </button>
         </div>
     `);
@@ -52,7 +60,9 @@ export function setupDesktopTabs() {
     // Create tab content containers
     const $statusTab = $('<div class="rpg-tab-content active" data-tab-content="status"></div>');
     const $inventoryTab = $('<div class="rpg-tab-content" data-tab-content="inventory"></div>');
+    const $abilitiesTab = $('<div class="rpg-tab-content" data-tab-content="abilities"></div>');
     const $questsTab = $('<div class="rpg-tab-content" data-tab-content="quests"></div>');
+    const $spellbookTab = $('<div class="rpg-tab-content" data-tab-content="spellbook"></div>');
 
     // Move sections into their respective tabs (detach to preserve event handlers)
     if ($userStats.length > 0) {
@@ -71,6 +81,14 @@ export function setupDesktopTabs() {
         $inventoryTab.append($inventory.detach());
         $inventory.show();
     }
+    if ($abilities.length > 0) {
+        $abilitiesTab.append($abilities.detach());
+        $abilities.show();
+    }
+    if ($spellbook.length > 0) {
+        $spellbookTab.append($spellbook.detach());
+        $spellbook.show();
+    }
     if ($quests.length > 0) {
         $questsTab.append($quests.detach());
         $quests.show();
@@ -84,11 +102,12 @@ export function setupDesktopTabs() {
     $tabsContainer.append($tabNav);
     $tabsContainer.append($statusTab);
     $tabsContainer.append($inventoryTab);
+    $tabsContainer.append($abilitiesTab);
+    $tabsContainer.append($spellbookTab);
     $tabsContainer.append($questsTab);
 
     // Replace content box with tabs container
     $contentBox.html('').append($tabsContainer);
-    i18n.applyTranslations($tabsContainer[0]);
 
     // Handle tab switching
     $tabNav.find('.rpg-tab-btn').on('click', function() {
@@ -116,6 +135,8 @@ export function removeDesktopTabs() {
     const $infoBox = $('#rpg-info-box').detach();
     const $thoughts = $('#rpg-thoughts').detach();
     const $inventory = $('#rpg-inventory').detach();
+    const $abilities = $('#rpg-abilities').detach();
+    const $spellbook = $('#rpg-spellbook').detach();
     const $quests = $('#rpg-quests').detach();
 
     // Remove tabs container
@@ -125,16 +146,20 @@ export function removeDesktopTabs() {
     const $dividerStats = $('#rpg-divider-stats');
     const $dividerInfo = $('#rpg-divider-info');
     const $dividerThoughts = $('#rpg-divider-thoughts');
+    const $dividerInventory = $('#rpg-divider-inventory');
+    const $dividerAbilities = $('#rpg-divider-abilities');
 
     // Restore original sections to content box in correct order
     const $contentBox = $('.rpg-content-box');
 
-    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory, Quests
+    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory, Abilities, Spellbook, Quests
     if ($dividerStats.length) {
         $dividerStats.before($userStats);
         $dividerInfo.before($infoBox);
         $dividerThoughts.before($thoughts);
-        $contentBox.append($inventory);
+        $dividerInventory.before($inventory);
+        $dividerAbilities.before($abilities);
+        $contentBox.append($spellbook);
         $contentBox.append($quests);
     } else {
         // Fallback if dividers don't exist
@@ -142,6 +167,8 @@ export function removeDesktopTabs() {
         $contentBox.append($infoBox);
         $contentBox.append($thoughts);
         $contentBox.append($inventory);
+        $contentBox.append($abilities);
+        $contentBox.append($spellbook);
         $contentBox.append($quests);
     }
 

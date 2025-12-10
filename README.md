@@ -1,3 +1,40 @@
+# Changes I made
+
+I made these changes for the purpose to play DnD or any D20 based TTRPG. (Coded with AI, i don't know how to code 🙃)
+
+- **📊 Custom Stats**: You can make them Current/Max(14/14) if you want!
+- **📊 Skills**: Reworked skills to have their own pop up section. Also added a roll button. You can change/add/remove them in the Edit Tracker
+
+![png](https://i.imgur.com/I9oMd8w.png)
+  
+- **📖 Spellbook**: Added a spellbook tab where you can track spellslots, spells, cantrips and spell bonuses such as Spell Attack, Damage Bonus and Spell Save DC.
+
+![png](https://i.imgur.com/BKHkiYy.png)
+
+- **🦜 Abilities**: Added a Ability tab for general abilities such as weapons or anything you'd like.
+
+![png](https://i.imgur.com/tHNNEDa.png)
+
+- **🎲 Auto-rolls to message**: Every spell/ability can be rolled and added to a chat message with a click of a button! It auto detects dice from the descriptions. 
+
+<img src="https://i.imgur.com/A7twFD3.png" alt="png" width="250">
+<img src="https://i.imgur.com/MTjoYpL.png" alt="png" width="600">
+
+Sword description E.g.: Hit +1, 1d8+1 Magic piercing or slashing magical damage. If "Hit" is in there it will ask you to do an Attack roll and it will add the 1d8 as a Damage roll + it will add any Bonuses like the +1 to hit and damge. Damage type will also be added, in this example we have two, if that's the case it lets you choose. "Magic" will also be added to the message.
+
+There's a Spell/Ability Description Keywords Guide in the ⚙️Settings
+
+![png](https://i.imgur.com/toA6N6w.png)
+
+- **🎲 Actual random AI dice!?!**: Well sort of, the extension will detect when the AI says [ROLL:XdY+Z] (E.g. [ROLL:1d20]) and intercept the message, roll the appropriate dice and put it in the AI message that you see.
+- To make this work in practice you have to do it in a specific way. Using a combat example: AI attacks (Lets say it hits)>Your message (doesn't matter what, maybe some cringe RP)>AI rolls damage>Your message. Or just make the AI send another message after the roll. Why? Because the AI wont know the roll until it sees its old message. Hope i explained it so you understand <3.
+- I'm working on a DM Card that will use this.
+
+There is a WIP prompt you give your DM card to try to make this work in the ⚙️Settings
+
+![png](https://i.imgur.com/7rCNL3u.png)
+
+
 # RPG Companion Extension for SillyTavern
 
 An immersive RPG extension for browsers that tracks character stats, scene information, and character thoughts in a beautiful, customizable UI panel. All automated! Works with any preset. Choose between Together or Separate generation modes for context and generation control.
@@ -286,3 +323,32 @@ Made with ❤️ by Marinara
 
 PS I'm looking for a job or a sponsor to fund my custom AI frontend, contact me if interested:
 mgrabower97@gmail.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -7,43 +7,6 @@ import { extensionSettings } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 import { closeMobilePanelWithAnimation, updateCollapseToggleIcon } from './layout.js';
 import { setupDesktopTabs, removeDesktopTabs } from './desktop.js';
-import { i18n } from '../../core/i18n.js';
-
-/**
- * Updates the text labels of the mobile navigation tabs based on the current language.
- */
-export function updateMobileTabLabels() {
-    const $tabs = $('.rpg-mobile-tabs .rpg-mobile-tab');
-    if ($tabs.length === 0) return;
-
-    $tabs.each(function() {
-        const $tab = $(this);
-        const tabName = $tab.data('tab');
-        let translationKey = '';
-
-        switch (tabName) {
-            case 'stats':
-                translationKey = 'global.status';
-                break;
-            case 'info':
-                translationKey = 'global.info';
-                break;
-            case 'inventory':
-                translationKey = 'global.inventory';
-                break;
-            case 'quests':
-                translationKey = 'global.quests';
-                break;
-        }
-
-        if (translationKey) {
-            const translation = i18n.getTranslation(translationKey);
-            if (translation) {
-                $tab.find('span').text(translation);
-            }
-        }
-    });
-}
 
 /**
  * Sets up the mobile toggle button (FAB) with drag functionality.
@@ -568,35 +531,47 @@ export function setupMobileTabs() {
     const $infoBox = $('#rpg-info-box');
     const $thoughts = $('#rpg-thoughts');
     const $inventory = $('#rpg-inventory');
+    const $abilities = $('#rpg-abilities');
+    const $spellbook = $('#rpg-spellbook');
     const $quests = $('#rpg-quests');
 
     // If no sections exist, nothing to organize
-    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $inventory.length === 0 && $quests.length === 0) {
+    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $inventory.length === 0 && $abilities.length === 0 && $spellbook.length === 0 && $quests.length === 0) {
         return;
     }
 
-    // Create tab navigation (3 tabs for mobile)
+    // Create tab navigation
     const tabs = [];
     const hasStats = $userStats.length > 0;
     const hasInfo = $infoBox.length > 0 || $thoughts.length > 0;
     const hasInventory = $inventory.length > 0;
+    const hasAbilities = $abilities.length > 0;
+    const hasSpellbook = $spellbook.length > 0;
     const hasQuests = $quests.length > 0;
 
     // Tab 1: Stats (User Stats only)
     if (hasStats) {
-        tabs.push('<button class="rpg-mobile-tab active" data-tab="stats"><i class="fa-solid fa-chart-bar"></i><span>' + i18n.getTranslation('global.status') + '</span></button>');
+        tabs.push('<button class="rpg-mobile-tab active" data-tab="stats"><i class="fa-solid fa-chart-bar"></i><span>Stats</span></button>');
     }
     // Tab 2: Info (Info Box + Character Thoughts)
     if (hasInfo) {
-        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="info"><i class="fa-solid fa-book"></i><span>' + i18n.getTranslation('global.info') + '</span></button>');
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="info"><i class="fa-solid fa-book"></i><span>Info</span></button>');
     }
     // Tab 3: Inventory
     if (hasInventory) {
-        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="inventory"><i class="fa-solid fa-box"></i><span>' + i18n.getTranslation('global.inventory') + '</span></button>');
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="inventory"><i class="fa-solid fa-box"></i><span>Inventory</span></button>');
     }
-    // Tab 4: Quests
+    // Tab 4: Abilities
+    if (hasAbilities) {
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="abilities"><i class="fa-solid fa-fist-raised"></i><span>Abilities</span></button>');
+    }
+    // Tab 5: Spellbook
+    if (hasSpellbook) {
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="spellbook"><i class="fa-solid fa-book"></i><span>Spellbook</span></button>');
+    }
+    // Tab 6: Quests
     if (hasQuests) {
-        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="quests"><i class="fa-solid fa-scroll"></i><span>' + i18n.getTranslation('global.quests') + '</span></button>');
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="quests"><i class="fa-solid fa-scroll"></i><span>Quests</span></button>');
     }
 
     const $tabNav = $('<div class="rpg-mobile-tabs">' + tabs.join('') + '</div>');
@@ -606,12 +581,16 @@ export function setupMobileTabs() {
     if (hasStats) firstTab = 'stats';
     else if (hasInfo) firstTab = 'info';
     else if (hasInventory) firstTab = 'inventory';
+    else if (hasAbilities) firstTab = 'abilities';
+    else if (hasSpellbook) firstTab = 'spellbook';
     else if (hasQuests) firstTab = 'quests';
 
     // Create tab content wrappers
     const $statsTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'stats' ? 'active' : '') + '" data-tab-content="stats"></div>');
     const $infoTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'info' ? 'active' : '') + '" data-tab-content="info"></div>');
     const $inventoryTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'inventory' ? 'active' : '') + '" data-tab-content="inventory"></div>');
+    const $abilitiesTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'abilities' ? 'active' : '') + '" data-tab-content="abilities"></div>');
+    const $spellbookTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'spellbook' ? 'active' : '') + '" data-tab-content="spellbook"></div>');
     const $questsTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'quests' ? 'active' : '') + '" data-tab-content="quests"></div>');
 
     // Move sections into their respective tabs (detach to preserve event handlers)
@@ -637,6 +616,18 @@ export function setupMobileTabs() {
         $inventory.show();
     }
 
+    // Abilities tab: Abilities only
+    if ($abilities.length > 0) {
+        $abilitiesTab.append($abilities.detach());
+        $abilities.show();
+    }
+
+    // Spellbook tab: Spellbook only
+    if ($spellbook.length > 0) {
+        $spellbookTab.append($spellbook.detach());
+        $spellbook.show();
+    }
+
     // Quests tab: Quests only
     if ($quests.length > 0) {
         $questsTab.append($quests.detach());
@@ -654,8 +645,9 @@ export function setupMobileTabs() {
     if (hasStats) $mobileContainer.append($statsTab);
     if (hasInfo) $mobileContainer.append($infoTab);
     if (hasInventory) $mobileContainer.append($inventoryTab);
+    if (hasAbilities) $mobileContainer.append($abilitiesTab);
+    if (hasSpellbook) $mobileContainer.append($spellbookTab);
     if (hasQuests) $mobileContainer.append($questsTab);
-    if (hasInventory) $mobileContainer.append($inventoryTab);
 
     // Insert mobile tab structure at the beginning of content box
     $contentBox.prepend($mobileContainer);
@@ -683,6 +675,8 @@ export function removeMobileTabs() {
     const $infoBox = $('#rpg-info-box').detach();
     const $thoughts = $('#rpg-thoughts').detach();
     const $inventory = $('#rpg-inventory').detach();
+    const $abilities = $('#rpg-abilities').detach();
+    const $spellbook = $('#rpg-spellbook').detach();
     const $quests = $('#rpg-quests').detach();
 
     // Remove mobile tab container
@@ -692,20 +686,26 @@ export function removeMobileTabs() {
     const $dividerStats = $('#rpg-divider-stats');
     const $dividerInfo = $('#rpg-divider-info');
     const $dividerThoughts = $('#rpg-divider-thoughts');
+    const $dividerInventory = $('#rpg-divider-inventory');
+    const $dividerAbilities = $('#rpg-divider-abilities');
 
     // Restore original sections to content box in correct order
     const $contentBox = $('.rpg-content-box');
 
-    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory, Quests
+    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory, Abilities, Spellbook, Quests
     if ($dividerStats.length) {
         $dividerStats.before($userStats);
         $dividerInfo.before($infoBox);
         $dividerThoughts.before($thoughts);
-        $contentBox.append($inventory);
+        $dividerInventory.before($inventory);
+        $dividerAbilities.before($abilities);
+        $contentBox.append($spellbook);
         $contentBox.append($quests);
     } else {
         // Fallback if dividers don't exist
         $contentBox.prepend($quests);
+        $contentBox.prepend($spellbook);
+        $contentBox.prepend($abilities);
         $contentBox.prepend($inventory);
         $contentBox.prepend($thoughts);
         $contentBox.prepend($infoBox);
@@ -717,6 +717,8 @@ export function removeMobileTabs() {
     $infoBox.show();
     $thoughts.show();
     $inventory.show();
+    $abilities.show();
+    $spellbook.show();
     $('.rpg-divider').show();
 }
 

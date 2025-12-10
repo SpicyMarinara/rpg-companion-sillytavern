@@ -2,12 +2,15 @@
  * Tracker Editor Module
  * Provides UI for customizing tracker configurations
  */
-import { i18n } from '../../core/i18n.js';
+
 import { extensionSettings } from '../../core/state.js';
-import { saveSettings } from '../../core/persistence.js';
+import { saveSettings, saveChatData } from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts } from '../rendering/thoughts.js';
+import { renderSpellbook } from '../rendering/spellbook.js';
+import { addSpellToLorebook } from '../../utils/lorekeeper.js';
+import { showImportDialog } from '../../utils/lorebookImporter.js';
 
 let $editorModal = null;
 let activeTab = 'userStats';
@@ -82,7 +85,7 @@ function openTrackerEditor() {
     $editorModal.attr('data-theme', theme);
 
     renderEditorUI();
-    $editorModal.addClass('is-open').css('display', '');
+    $editorModal.addClass('is-open').removeClass('is-closing');
 }
 
 /**
@@ -95,9 +98,10 @@ function closeTrackerEditor() {
         tempConfig = null;
     }
 
-    $editorModal.removeClass('is-open').addClass('is-closing');
+    $editorModal.addClass('is-closing');
+    $editorModal.removeClass('is-open');
     setTimeout(() => {
-        $editorModal.removeClass('is-closing').hide();
+        $editorModal.removeClass('is-closing');
     }, 200);
 }
 
@@ -141,10 +145,29 @@ function resetToDefaults() {
                 showMoodEmoji: true,
                 customFields: ['Conditions']
             },
-            skillsSection: {
-                enabled: false,
-                label: 'Skills',
-                customFields: []
+            dndSkills: {
+                enabled: true,
+                collapsed: true,
+                skills: {
+                    athletics: { name: 'Athletics', ability: 'STR', value: 0 },
+                    acrobatics: { name: 'Acrobatics', ability: 'DEX', value: 0 },
+                    sleightOfHand: { name: 'Sleight of Hand', ability: 'DEX', value: 0 },
+                    stealth: { name: 'Stealth', ability: 'DEX', value: 0 },
+                    arcana: { name: 'Arcana', ability: 'INT', value: 0 },
+                    history: { name: 'History', ability: 'INT', value: 0 },
+                    investigation: { name: 'Investigation', ability: 'INT', value: 0 },
+                    nature: { name: 'Nature', ability: 'INT', value: 0 },
+                    religion: { name: 'Religion', ability: 'INT', value: 0 },
+                    animalHandling: { name: 'Animal Handling', ability: 'WIS', value: 0 },
+                    insight: { name: 'Insight', ability: 'WIS', value: 0 },
+                    medicine: { name: 'Medicine', ability: 'WIS', value: 0 },
+                    perception: { name: 'Perception', ability: 'WIS', value: 0 },
+                    survival: { name: 'Survival', ability: 'WIS', value: 0 },
+                    deception: { name: 'Deception', ability: 'CHA', value: 0 },
+                    intimidation: { name: 'Intimidation', ability: 'CHA', value: 0 },
+                    performance: { name: 'Performance', ability: 'CHA', value: 0 },
+                    persuasion: { name: 'Persuasion', ability: 'CHA', value: 0 }
+                }
             }
         },
         infoBox: {
@@ -195,6 +218,7 @@ function renderEditorUI() {
     renderUserStatsTab();
     renderInfoBoxTab();
     renderPresentCharactersTab();
+    renderSpellbookTab();
 }
 
 /**
@@ -202,42 +226,76 @@ function renderEditorUI() {
  */
 function renderUserStatsTab() {
     const config = extensionSettings.trackerConfig.userStats;
+
+    // Ensure Skills config exists (fallback if missing in saved settings)
+    if (!config.dndSkills || !config.dndSkills.skills) {
+        config.dndSkills = {
+            enabled: true,
+            collapsed: true,
+            skills: {
+                athletics: { name: 'Athletics', ability: 'STR', value: 0 },
+                acrobatics: { name: 'Acrobatics', ability: 'DEX', value: 0 },
+                sleightOfHand: { name: 'Sleight of Hand', ability: 'DEX', value: 0 },
+                stealth: { name: 'Stealth', ability: 'DEX', value: 0 },
+                arcana: { name: 'Arcana', ability: 'INT', value: 0 },
+                history: { name: 'History', ability: 'INT', value: 0 },
+                investigation: { name: 'Investigation', ability: 'INT', value: 0 },
+                nature: { name: 'Nature', ability: 'INT', value: 0 },
+                religion: { name: 'Religion', ability: 'INT', value: 0 },
+                animalHandling: { name: 'Animal Handling', ability: 'WIS', value: 0 },
+                insight: { name: 'Insight', ability: 'WIS', value: 0 },
+                medicine: { name: 'Medicine', ability: 'WIS', value: 0 },
+                perception: { name: 'Perception', ability: 'WIS', value: 0 },
+                survival: { name: 'Survival', ability: 'WIS', value: 0 },
+                deception: { name: 'Deception', ability: 'CHA', value: 0 },
+                intimidation: { name: 'Intimidation', ability: 'CHA', value: 0 },
+                performance: { name: 'Performance', ability: 'CHA', value: 0 },
+                persuasion: { name: 'Persuasion', ability: 'CHA', value: 0 }
+            }
+        };
+        extensionSettings.trackerConfig.userStats.dndSkills = config.dndSkills;
+    }
     let html = '<div class="rpg-editor-section">';
 
     // Custom Stats section
-    html += `<h4><i class="fa-solid fa-heart-pulse"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.customStatsTitle')}</h4>`;
+    html += '<h4><i class="fa-solid fa-heart-pulse"></i> Custom Stats</h4>';
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-stats-list">';
 
     config.customStats.forEach((stat, index) => {
+        const useCurrentMax = stat.useCurrentMax || false;
         html += `
             <div class="rpg-editor-stat-item" data-index="${index}">
                 <input type="checkbox" ${stat.enabled ? 'checked' : ''} class="rpg-stat-toggle" data-index="${index}">
                 <input type="text" value="${stat.name}" class="rpg-stat-name" data-index="${index}" placeholder="Stat Name">
+                <select class="rpg-stat-display-mode" data-index="${index}" title="Display mode">
+                    <option value="percentage" ${!useCurrentMax ? 'selected' : ''}>Percentage (X%)</option>
+                    <option value="currentmax" ${useCurrentMax ? 'selected' : ''}>Current/Max (X/Y)</option>
+                </select>
                 <button class="rpg-stat-remove" data-index="${index}" title="Remove stat"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
     });
 
     html += '</div>';
-    html += `<button class="rpg-btn-secondary" id="rpg-add-stat"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.addCustomStatButton')}</button>`;
+    html += '<button class="rpg-btn-secondary" id="rpg-add-stat"><i class="fa-solid fa-plus"></i> Add Custom Stat</button>';
 
     // RPG Attributes section
-    html += `<h4><i class="fa-solid fa-dice-d20"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.rpgAttributesTitle')}</h4>`;
+    html += '<h4><i class="fa-solid fa-dice-d20"></i> RPG Attributes</h4>';
 
     // Enable/disable toggle for entire RPG Attributes section
     const showRPGAttributes = config.showRPGAttributes !== undefined ? config.showRPGAttributes : true;
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-show-rpg-attrs" ${showRPGAttributes ? 'checked' : ''}>`;
-    html += `<label for="rpg-show-rpg-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableRpgAttributes')}</label>`;
+    html += '<label for="rpg-show-rpg-attrs">Enable RPG Attributes Section</label>';
     html += '</div>';
 
     // Always send attributes toggle
     const alwaysSendAttributes = config.alwaysSendAttributes !== undefined ? config.alwaysSendAttributes : false;
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-always-send-attrs" ${alwaysSendAttributes ? 'checked' : ''}>`;
-    html += `<label for="rpg-always-send-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributes')}</label>`;
+    html += '<label for="rpg-always-send-attrs">Always Include Attributes in Prompt</label>';
     html += '</div>';
-    html += `<small class="rpg-editor-note">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.alwaysIncludeAttributesNote')}</small>`;
+    html += '<small class="rpg-editor-note">If disabled, attributes are only sent when a dice roll is active.</small>';
 
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-attrs-list">';
 
@@ -268,36 +326,79 @@ function renderUserStatsTab() {
     });
 
     html += '</div>';
-    html += `<button class="rpg-btn-secondary" id="rpg-add-attr"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.addAttributeButton')}</button>`;
+    html += '<button class="rpg-btn-secondary" id="rpg-add-attr"><i class="fa-solid fa-plus"></i> Add Attribute</button>';
+
+    // Skills Section
+    html += '<h4><i class="fa-solid fa-dice-d20"></i> Skills</h4>';
+    html += '<div class="rpg-editor-toggle-row">';
+    html += `<input type="checkbox" id="rpg-dndskills-enabled" ${config.dndSkills.enabled ? 'checked' : ''}>`;
+    html += '<label for="rpg-dndskills-enabled">Enable Skills</label>';
+    html += '</div>';
+
+    html += '<div class="rpg-editor-toggle-row">';
+    html += `<input type="checkbox" id="rpg-dndskills-collapsed" ${config.dndSkills.collapsed ? 'checked' : ''}>`;
+    html += '<label for="rpg-dndskills-collapsed">Start Collapsed</label>';
+    html += '</div>';
+
+    const skillsByAbility = {
+        'STR': ['athletics'],
+        'DEX': ['acrobatics', 'sleightOfHand', 'stealth'],
+        'INT': ['arcana', 'history', 'investigation', 'nature', 'religion'],
+        'WIS': ['animalHandling', 'insight', 'medicine', 'perception', 'survival'],
+        'CHA': ['deception', 'intimidation', 'performance', 'persuasion']
+    };
+
+    html += '<div class="rpg-editor-stats-list" id="rpg-editor-skills-list">';
+    let skillIndex = 0;
+    
+    // Track which skills we've already rendered
+    const renderedSkills = new Set();
+    
+    // First render skills in ability order (hardcoded ones)
+    for (const [ability, skillIds] of Object.entries(skillsByAbility)) {
+        skillIds.forEach(skillId => {
+            const skill = config.dndSkills.skills[skillId];
+            const label = skill?.name || skillId;
+            html += `
+                <div class="rpg-editor-stat-item">
+                    <input type="text" class="rpg-dndskill-name" data-skill="${skillId}" value="${label}" placeholder="Skill name">
+                    <button class="rpg-skill-remove" data-skill="${skillId}" title="Remove skill"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `;
+            renderedSkills.add(skillId);
+            skillIndex++;
+        });
+    }
+    
+    // Then render any custom/new skills that were added dynamically
+    if (config.dndSkills.skills) {
+        for (const [skillId, skill] of Object.entries(config.dndSkills.skills)) {
+            if (!renderedSkills.has(skillId)) {
+                const label = skill?.name || skillId;
+                html += `
+                    <div class="rpg-editor-stat-item">
+                        <input type="text" class="rpg-dndskill-name" data-skill="${skillId}" value="${label}" placeholder="Skill name">
+                        <button class="rpg-skill-remove" data-skill="${skillId}" title="Remove skill"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                skillIndex++;
+            }
+        }
+    }
+    html += '</div>';
+    html += '<button class="rpg-btn-secondary" id="rpg-add-skill"><i class="fa-solid fa-plus"></i> Add Skill</button>';
 
     // Status Section
-    html += `<h4><i class="fa-solid fa-face-smile"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.statusSectionTitle')}</h4>`;
+    html += '<h4><i class="fa-solid fa-face-smile"></i> Status Section</h4>';
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-status-enabled" ${config.statusSection.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-status-enabled">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableStatusSection')}</label>`;
+    html += '<label for="rpg-status-enabled">Enable Status Section</label>';
     html += '</div>';
 
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-mood-emoji" ${config.statusSection.showMoodEmoji ? 'checked' : ''}>`;
-    html += `<label for="rpg-mood-emoji">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.showMoodEmoji')}</label>`;
+    html += '<label for="rpg-mood-emoji">Show Mood Emoji</label>';
     html += '</div>';
-
-    html += `<label>${i18n.getTranslation('template.trackerEditorModal.userStatsTab.statusFieldsLabel')}</label>`;
-    html += `<input type="text" id="rpg-status-fields" value="${config.statusSection.customFields.join(', ')}" class="rpg-text-input" placeholder="e.g., Conditions, Appearance">`;
-
-    // Skills Section
-    html += `<h4><i class="fa-solid fa-star"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsSectionTitle')}</h4>`;
-    html += '<div class="rpg-editor-toggle-row">';
-    html += `<input type="checkbox" id="rpg-skills-enabled" ${config.skillsSection.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-skills-enabled">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableSkillsSection')}</label>`;
-    html += '</div>';
-
-    html += `<label>${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsLabelLabel')}</label>`;
-    html += `<input type="text" id="rpg-skills-label" value="${config.skillsSection.label}" class="rpg-text-input" placeholder="Skills">`;
-
-    html += `<label>${i18n.getTranslation('template.trackerEditorModal.userStatsTab.skillsListLabel')}</label>`;
-    const skillFields = config.skillsSection.customFields || [];
-    html += `<input type="text" id="rpg-skills-fields" value="${skillFields.join(', ')}" class="rpg-text-input" placeholder="e.g., Stealth, Persuasion, Combat">`;
 
     html += '</div>';
 
@@ -315,7 +416,9 @@ function setupUserStatsListeners() {
         extensionSettings.trackerConfig.userStats.customStats.push({
             id: newId,
             name: 'New Stat',
-            enabled: true
+            enabled: true,
+            useCurrentMax: false,
+            maxValue: 100
         });
         // Initialize value if doesn't exist
         if (extensionSettings.userStats[newId] === undefined) {
@@ -341,6 +444,18 @@ function setupUserStatsListeners() {
     $('.rpg-stat-name').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats[index].name = $(this).val();
+    });
+
+    // Change stat display mode
+    $('.rpg-stat-display-mode').off('change').on('change', function() {
+        const index = $(this).data('index');
+        const useCurrentMax = $(this).val() === 'currentmax';
+        extensionSettings.trackerConfig.userStats.customStats[index].useCurrentMax = useCurrentMax;
+        if (!extensionSettings.trackerConfig.userStats.customStats[index].maxValue) {
+            extensionSettings.trackerConfig.userStats.customStats[index].maxValue = 100;
+        }
+        saveSettings();
+        renderUserStats();
     });
 
     // Add attribute
@@ -412,20 +527,105 @@ function setupUserStatsListeners() {
         extensionSettings.trackerConfig.userStats.statusSection.customFields = fields;
     });
 
-    // Skills section toggles
-    $('#rpg-skills-enabled').off('change').on('change', function() {
-        extensionSettings.trackerConfig.userStats.skillsSection.enabled = $(this).is(':checked');
+    // D&D Skills toggles
+    $('#rpg-dndskills-enabled').off('change').on('change', function() {
+        if (!extensionSettings.trackerConfig.userStats.dndSkills) {
+            extensionSettings.trackerConfig.userStats.dndSkills = { enabled: true, collapsed: true, skills: {} };
+        }
+        extensionSettings.trackerConfig.userStats.dndSkills.enabled = $(this).is(':checked');
+        saveSettings();
+        renderUserStats();
     });
 
-    $('#rpg-skills-label').off('blur').on('blur', function() {
-        extensionSettings.trackerConfig.userStats.skillsSection.label = $(this).val();
+    $('#rpg-dndskills-collapsed').off('change').on('change', function() {
+        if (!extensionSettings.trackerConfig.userStats.dndSkills) {
+            extensionSettings.trackerConfig.userStats.dndSkills = { enabled: true, collapsed: true, skills: {} };
+        }
+        extensionSettings.trackerConfig.userStats.dndSkills.collapsed = $(this).is(':checked');
         saveSettings();
     });
 
-    $('#rpg-skills-fields').off('blur').on('blur', function() {
-        const fields = $(this).val().split(',').map(f => f.trim()).filter(f => f);
-        extensionSettings.trackerConfig.userStats.skillsSection.customFields = fields;
+    // D&D Skills name edits
+    $('.rpg-dndskill-name').off('blur').on('blur', function() {
+        const skillId = $(this).data('skill');
+        const value = $(this).val().trim() || skillId;
+
+        if (!extensionSettings.trackerConfig.userStats.dndSkills) {
+            extensionSettings.trackerConfig.userStats.dndSkills = { enabled: true, collapsed: true, skills: {} };
+        }
+        if (!extensionSettings.trackerConfig.userStats.dndSkills.skills) {
+            extensionSettings.trackerConfig.userStats.dndSkills.skills = {};
+        }
+        if (!extensionSettings.trackerConfig.userStats.dndSkills.skills[skillId]) {
+            extensionSettings.trackerConfig.userStats.dndSkills.skills[skillId] = { name: value, ability: '', value: 0 };
+        }
+
+        extensionSettings.trackerConfig.userStats.dndSkills.skills[skillId].name = value;
+
         saveSettings();
+        renderUserStats();
+    });
+
+    // D&D Skills remove button
+    $('.rpg-skill-remove').off('click').on('click', function() {
+        const skillId = $(this).data('skill');
+        
+        if (extensionSettings.trackerConfig.userStats.dndSkills && extensionSettings.trackerConfig.userStats.dndSkills.skills) {
+            delete extensionSettings.trackerConfig.userStats.dndSkills.skills[skillId];
+        }
+        if (extensionSettings.userStats.dndSkills) {
+            delete extensionSettings.userStats.dndSkills[skillId];
+        }
+        
+        saveSettings();
+        renderUserStatsTab();
+        renderUserStats();
+    });
+
+    // Add skill
+    $('#rpg-add-skill').off('click').on('click', function() {
+        // Ensure dndSkills config exists with defaults if needed
+        if (!extensionSettings.trackerConfig.userStats.dndSkills || !extensionSettings.trackerConfig.userStats.dndSkills.skills) {
+            extensionSettings.trackerConfig.userStats.dndSkills = {
+                enabled: true,
+                collapsed: true,
+                skills: {
+                    athletics: { name: 'Athletics', ability: 'STR', value: 0 },
+                    acrobatics: { name: 'Acrobatics', ability: 'DEX', value: 0 },
+                    sleightOfHand: { name: 'Sleight of Hand', ability: 'DEX', value: 0 },
+                    stealth: { name: 'Stealth', ability: 'DEX', value: 0 },
+                    arcana: { name: 'Arcana', ability: 'INT', value: 0 },
+                    history: { name: 'History', ability: 'INT', value: 0 },
+                    investigation: { name: 'Investigation', ability: 'INT', value: 0 },
+                    nature: { name: 'Nature', ability: 'INT', value: 0 },
+                    religion: { name: 'Religion', ability: 'INT', value: 0 },
+                    animalHandling: { name: 'Animal Handling', ability: 'WIS', value: 0 },
+                    insight: { name: 'Insight', ability: 'WIS', value: 0 },
+                    medicine: { name: 'Medicine', ability: 'WIS', value: 0 },
+                    perception: { name: 'Perception', ability: 'WIS', value: 0 },
+                    survival: { name: 'Survival', ability: 'WIS', value: 0 },
+                    deception: { name: 'Deception', ability: 'CHA', value: 0 },
+                    intimidation: { name: 'Intimidation', ability: 'CHA', value: 0 },
+                    performance: { name: 'Performance', ability: 'CHA', value: 0 },
+                    persuasion: { name: 'Persuasion', ability: 'CHA', value: 0 }
+                }
+            };
+        }
+        const newId = 'skill_' + Date.now();
+        extensionSettings.trackerConfig.userStats.dndSkills.skills[newId] = {
+            name: 'New Skill',
+            ability: 'STR',
+            value: 0
+        };
+        // Initialize value in userStats if doesn't exist
+        if (extensionSettings.userStats.dndSkills === undefined) {
+            extensionSettings.userStats.dndSkills = {};
+        }
+        extensionSettings.userStats.dndSkills[newId] = 0;
+        
+        saveSettings();
+        renderUserStatsTab();
+        renderUserStats();
     });
 }
 
@@ -436,12 +636,12 @@ function renderInfoBoxTab() {
     const config = extensionSettings.trackerConfig.infoBox;
     let html = '<div class="rpg-editor-section">';
 
-    html += `<h4><i class="fa-solid fa-info-circle"></i> ${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.widgetsTitle')}</h4>`;
+    html += '<h4><i class="fa-solid fa-info-circle"></i> Widgets</h4>';
 
     // Date widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-date" ${config.widgets.date.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-widget-date">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.dateWidget')}</label>`;
+    html += '<label for="rpg-widget-date">Date</label>';
     html += '<select id="rpg-date-format" class="rpg-select-mini">';
     html += `<option value="Weekday, Month, Year" ${config.widgets.date.format === 'Weekday, Month, Year' ? 'selected' : ''}>Weekday, Month, Year</option>`;
     html += `<option value="dd/mm/yyyy" ${config.widgets.date.format === 'dd/mm/yyyy' ? 'selected' : ''}>dd/mm/yyyy</option>`;
@@ -453,35 +653,36 @@ function renderInfoBoxTab() {
     // Weather widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-weather" ${config.widgets.weather.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-widget-weather">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.weatherWidget')}</label>`;
+    html += '<label for="rpg-widget-weather">Weather</label>';
     html += '</div>';
 
     // Temperature widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-temperature" ${config.widgets.temperature.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-widget-temperature">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.temperatureWidget')}</label>`;
+    html += '<label for="rpg-widget-temperature">Temperature</label>';
     html += '<div class="rpg-radio-group">';
     html += `<label><input type="radio" name="temp-unit" value="C" ${config.widgets.temperature.unit === 'C' ? 'checked' : ''}> °C</label>`;
     html += `<label><input type="radio" name="temp-unit" value="F" ${config.widgets.temperature.unit === 'F' ? 'checked' : ''}> °F</label>`;
     html += '</div>';
+
     html += '</div>';
 
     // Time widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-time" ${config.widgets.time.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-widget-time">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.timeWidget')}</label>`;
+    html += '<label for="rpg-widget-time">Time</label>';
     html += '</div>';
 
     // Location widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-location" ${config.widgets.location.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-widget-location">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.locationWidget')}</label>`;
+    html += '<label for="rpg-widget-location">Location</label>';
     html += '</div>';
 
     // Recent Events widget
     html += '<div class="rpg-editor-widget-row">';
     html += `<input type="checkbox" id="rpg-widget-events" ${config.widgets.recentEvents.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-widget-events">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.recentEventsWidget')}</label>`;
+    html += '<label for="rpg-widget-events">Recent Events</label>';
     html += '</div>';
 
     html += '</div>';
@@ -537,8 +738,8 @@ function renderPresentCharactersTab() {
     let html = '<div class="rpg-editor-section">';
 
     // Relationship Fields Section
-    html += `<h4><i class="fa-solid fa-heart"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.relationshipStatusTitle')}</h4>`;
-    html += `<p class="rpg-editor-hint">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.relationshipStatusHint')}</p>`;
+    html += '<h4><i class="fa-solid fa-heart"></i> Relationship Status Fields</h4>';
+    html += '<p class="rpg-editor-hint">Define relationship types with corresponding emojis shown on character portraits</p>';
 
     html += '<div class="rpg-relationship-mapping-list" id="rpg-relationship-mapping-list">';
     // Show existing relationships as field → emoji pairs
@@ -561,11 +762,11 @@ function renderPresentCharactersTab() {
         `;
     }
     html += '</div>';
-    html += `<button class="rpg-btn-secondary" id="rpg-add-relationship"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.newRelationshipButton')}</button>`;
+    html += '<button class="rpg-btn-secondary" id="rpg-add-relationship"><i class="fa-solid fa-plus"></i> New Relationship</button>';
 
     // Custom Fields Section
-    html += `<h4><i class="fa-solid fa-list"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.appearanceDemeanorTitle')}</h4>`;
-    html += `<p class="rpg-editor-hint">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.appearanceDemeanorHint')}</p>`;
+    html += '<h4><i class="fa-solid fa-list"></i> Appearance/Demeanor Fields</h4>';
+    html += '<p class="rpg-editor-hint">Fields shown below character name, separated by |</p>';
 
     html += '<div class="rpg-editor-fields-list" id="rpg-editor-fields-list">';
 
@@ -585,34 +786,34 @@ function renderPresentCharactersTab() {
     });
 
     html += '</div>';
-    html += `<button class="rpg-btn-secondary" id="rpg-add-field"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.addCustomFieldButton')}</button>`;
+    html += '<button class="rpg-btn-secondary" id="rpg-add-field"><i class="fa-solid fa-plus"></i> Add Custom Field</button>';
 
     // Thoughts Section
-    html += `<h4><i class="fa-solid fa-comment-dots"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.thoughtsConfigTitle')}</h4>`;
+    html += '<h4><i class="fa-solid fa-comment-dots"></i> Thoughts Configuration</h4>';
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-thoughts-enabled" ${config.thoughts?.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-thoughts-enabled">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.enableCharacterThoughts')}</label>`;
+    html += '<label for="rpg-thoughts-enabled">Enable Character Thoughts</label>';
     html += '</div>';
 
     html += '<div class="rpg-thoughts-config">';
     html += '<div class="rpg-editor-input-group">';
-    html += `<label>${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.thoughtsLabelLabel')}</label>`;
+    html += '<label>Thoughts Label:</label>';
     html += `<input type="text" id="rpg-thoughts-name" value="${config.thoughts?.name || 'Thoughts'}" placeholder="e.g., Thoughts, Inner Voice, Feelings">`;
     html += '</div>';
     html += '<div class="rpg-editor-input-group">';
-    html += `<label>${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.aiInstructionLabel')}</label>`;
+    html += '<label>AI Instruction:</label>';
     html += `<input type="text" id="rpg-thoughts-description" value="${config.thoughts?.description || 'Internal monologue (in first person POV, up to three sentences long)'}" placeholder="Description of what to generate">`;
     html += '</div>';
     html += '</div>';
 
     // Character Stats
-    html += `<h4><i class="fa-solid fa-chart-bar"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.characterStatsTitle')}</h4>`;
+    html += '<h4><i class="fa-solid fa-chart-bar"></i> Character Stats</h4>';
     html += '<div class="rpg-editor-toggle-row">';
     html += `<input type="checkbox" id="rpg-char-stats-enabled" ${config.characterStats?.enabled ? 'checked' : ''}>`;
-    html += `<label for="rpg-char-stats-enabled">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.trackCharacterStats')}</label>`;
+    html += '<label for="rpg-char-stats-enabled">Track Character Stats</label>';
     html += '</div>';
 
-    html += `<p class="rpg-editor-hint">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.characterStatsHint')}</p>`;
+    html += '<p class="rpg-editor-hint">Create stats to track for each character (displayed as colored bars)</p>';
     html += '<div class="rpg-editor-fields-list" id="rpg-char-stats-list">';
 
     const charStats = config.characterStats?.customStats || [];
@@ -627,7 +828,7 @@ function renderPresentCharactersTab() {
     });
 
     html += '</div>';
-    html += `<button class="rpg-btn-secondary" id="rpg-add-char-stat"><i class="fa-solid fa-plus"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.addCharacterStatButton')}</button>`;
+    html += '<button class="rpg-btn-secondary" id="rpg-add-char-stat"><i class="fa-solid fa-plus"></i> Add Character Stat</button>';
 
     html += '</div>';
 
@@ -817,5 +1018,159 @@ function setupPresentCharactersListeners() {
     $('.rpg-char-stat-label').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.characterStats.customStats[index].name = $(this).val();
+    });
+}
+
+/**
+ * Render Spellbook configuration tab
+ */
+function renderSpellbookTab() {
+    const spellbook = extensionSettings.spellbook || { spellSlots: {} };
+    let html = '<div class="rpg-editor-section">';
+    
+    // Spell Slots section with collapsible header
+    html += '<h4><i class="fa-solid fa-book-spells"></i> Spell Slots</h4>';
+    html += '<div class="rpg-editor-toggle-row">';
+    html += '<input type="checkbox" id="rpg-spellslots-enabled" checked>';
+    html += '<label for="rpg-spellslots-enabled">Enable Spell Slots</label>';
+    html += '</div>';
+
+    html += '<div class="rpg-editor-stats-list" id="rpg-editor-spellslots-list">';
+    
+    // Render spell slots - only show levels that have been added
+    const spellSlotLevels = spellbook.spellSlots ? Object.keys(spellbook.spellSlots).map(k => parseInt(k)).sort((a, b) => a - b) : [];
+    
+    // If no slots added, show levels 1-9 by default
+    if (spellSlotLevels.length === 0) {
+        for (let lvl = 1; lvl <= 9; lvl++) {
+            html += `
+                <div class="rpg-editor-stat-item" data-level="${lvl}">
+                    <input type="text" class="rpg-spellslot-name" data-level="${lvl}" value="Level ${lvl}" placeholder="Slot name">
+                    <div style="display: flex; gap: 0.5em; align-items: center;">
+                        <input type="number" min="0" class="rpg-spellslot-max" data-level="${lvl}" value="0" placeholder="Max slots" style="width: 70px;">
+                        <button class="rpg-spellslot-remove" data-level="${lvl}" title="Remove spell level"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        // Render only the levels that exist
+        spellSlotLevels.forEach(lvl => {
+            const slot = spellbook.spellSlots[lvl];
+            const displayName = slot.name || `Level ${lvl}`;
+            html += `
+                <div class="rpg-editor-stat-item" data-level="${lvl}">
+                    <input type="text" class="rpg-spellslot-name" data-level="${lvl}" value="${displayName}" placeholder="Slot name">
+                    <div style="display: flex; gap: 0.5em; align-items: center;">
+                        <input type="number" min="0" class="rpg-spellslot-max" data-level="${lvl}" value="${slot.max || 0}" placeholder="Max slots" style="width: 70px;">
+                        <button class="rpg-spellslot-remove" data-level="${lvl}" title="Remove spell level"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    html += '</div>';
+    html += '<button class="rpg-btn-secondary" id="rpg-add-spellslot"><i class="fa-solid fa-plus"></i> Add Spell Level</button>';
+
+    // Utility buttons section
+    html += `
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--rpg-border);">
+            <button id="rpg-clear-spellbook-cache-editor" class="rpg-btn-small" style="width: 100%; margin-bottom: 10px;">
+                <i class="fa-solid fa-broom"></i> Clear Spellbook Cache
+            </button>
+            <small style="display: block; margin-top: 8px; margin-bottom: 15px; opacity: 0.7; font-size: 0.85em;">
+                Clears cached lorebook entries. Use if old deleted spells keep reappearing.
+            </small>
+            <button id="rpg-import-lorebook-btn" class="rpg-btn-secondary" style="width: 100%;">
+                <i class="fa-solid fa-file-import"></i> Import from Lorebook
+            </button>
+            <small style="display: block; margin-top: 8px; opacity: 0.7; font-size: 0.85em;">
+                Import spells, cantrips, and abilities from a SillyTavern lorebook JSON file.
+            </small>
+        </div>
+    `;
+
+    html += '</div>';
+
+    $('#rpg-editor-tab-spellbook').html(html);
+    setupSpellbookEditorListeners();
+}
+
+function setupSpellbookEditorListeners() {
+    // Update spell slot name
+    $('.rpg-spellslot-name').off('blur').on('blur', function() {
+        const lvl = parseInt($(this).data('level'));
+        const name = String($(this).val() || '').trim();
+        if (!extensionSettings.spellbook) extensionSettings.spellbook = { spellSlots: {} };
+        extensionSettings.spellbook.spellSlots[lvl] = extensionSettings.spellbook.spellSlots[lvl] || { max: 0 };
+        extensionSettings.spellbook.spellSlots[lvl].name = name;
+        saveSettings();
+        saveChatData();
+    });
+
+    // Update max slots
+    $('.rpg-spellslot-max').off('change').on('change', function() {
+        const lvl = parseInt($(this).data('level'));
+        const val = parseInt($(this).val()) || 0;
+        if (!extensionSettings.spellbook) extensionSettings.spellbook = { spellSlots: {} };
+        extensionSettings.spellbook.spellSlots[lvl] = extensionSettings.spellbook.spellSlots[lvl] || { max: 0 };
+        extensionSettings.spellbook.spellSlots[lvl].max = val;
+        saveSettings();
+        saveChatData();
+        renderSpellbook();
+    });
+
+    // Remove spell level
+    $('.rpg-spellslot-remove').off('click').on('click', function() {
+        const lvl = parseInt($(this).data('level'));
+        if (extensionSettings.spellbook && extensionSettings.spellbook.spellSlots) {
+            delete extensionSettings.spellbook.spellSlots[lvl];
+        }
+        saveSettings();
+        saveChatData();
+        renderEditorUI();
+    });
+
+    // Add spell level button
+    $('#rpg-add-spellslot').off('click').on('click', function() {
+        if (!extensionSettings.spellbook) extensionSettings.spellbook = { spellSlots: {} };
+        // Find the next available level
+        let nextLevel = 1;
+        while (extensionSettings.spellbook.spellSlots[nextLevel]) {
+            nextLevel++;
+        }
+        if (nextLevel > 9) nextLevel = 10; // Allow custom levels beyond 9
+        extensionSettings.spellbook.spellSlots[nextLevel] = { max: 0 };
+        saveSettings();
+        saveChatData();
+        renderEditorUI();
+    });
+
+    // Clear spellbook cache button
+    $('#rpg-clear-spellbook-cache-editor').off('click').on('click', function() {
+        if (confirm('Clear the spellbook lorebook cache? This will remove all cached spell entries. The lorebook file will be rebuilt from your current spellbook on next spell addition.')) {
+            localStorage.removeItem('rpg_companion_spell_entries_cache');
+            console.log('[RPG Companion] Spellbook cache cleared');
+            alert('Spellbook cache cleared! Old spell entries will no longer reappear.');
+        }
+    });
+
+    // Import from lorebook button
+    $('#rpg-import-lorebook-btn').off('click').on('click', async function() {
+        try {
+            const results = await showImportDialog();
+            
+            // Show results to user
+            const message = `Import completed!\n\nSpells: ${results.spells}\nCantrips: ${results.cantrips}\nAbilities: ${results.abilities}\nSkipped: ${results.skipped}`;
+            alert(message);
+            
+            // Re-render UI
+            renderSpellbook();
+            renderEditorUI();
+        } catch (error) {
+            console.error('[RPG Companion] Import error:', error);
+            alert(`Import failed: ${error.message}`);
+        }
     });
 }

@@ -129,11 +129,20 @@ async function saveWorldInfoEntry(lorebookUid, entry) {
         // Open the world info editor for this lorebook to load its data
         await openWorldInfoEditor(lorebookUid);
 
-        // Wait for it to load
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait for it to load (retry up to 5s)
+        const waitForWorldInfo = async (timeoutMs = 5000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+                if (window.world_info !== undefined && window.world_info !== null) return window.world_info;
+                // eslint-disable-next-line no-await-in-loop
+                await new Promise(r => setTimeout(r, 150));
+            }
+            return window.world_info;
+        };
 
         // Now access the loaded world info data
-        const worldInfo = window.world_info;
+        const worldInfo = await waitForWorldInfo(5000);
+        if (!worldInfo) debugLog('[Memory Recollection] Warning: window.world_info was not populated after openWorldInfoEditor');
 
         debugLog('[Memory Recollection] World info after opening:', {
             type: typeof worldInfo,
@@ -184,7 +193,7 @@ async function saveWorldInfoEntry(lorebookUid, entry) {
  * @param {string} lorebookUid - The filename/UID of the lorebook
  * @param {Array} newEntries - Array of entry objects to add
  */
-async function saveWorldInfoEntries(lorebookUid, newEntries) {
+export async function saveWorldInfoEntries(lorebookUid, newEntries) {
     try {
         debugLog(`[Memory Recollection] Saving ${newEntries.length} entries to lorebook:`, lorebookUid);
 
@@ -194,12 +203,33 @@ async function saveWorldInfoEntries(lorebookUid, newEntries) {
         // Wait for it to load
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Now access the loaded world info data
+        // Now access the loaded world info data (prefer server-side authoritative copy)
         const worldInfo = window.world_info;
+
+        // Attempt to fetch the authoritative worldinfo from the server first (avoids stale UI state)
+        let serverEntries = null;
+        try {
+            const res = await fetch('/api/worldinfo/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: lorebookUid })
+            });
+            if (res.ok) {
+                const json = await res.json();
+                if (json && json.entries) serverEntries = json.entries;
+                debugLog('[Memory Recollection] Fetched worldinfo from server, entries count:', Object.keys(serverEntries || {}).length);
+            } else {
+                debugLog('[Memory Recollection] Server worldinfo GET returned non-OK status:', res.status);
+            }
+        } catch (err) {
+            debugLog('[Memory Recollection] Server worldinfo GET failed, falling back to window.world_info:', err);
+        }
 
         // Try different structures - it might be an array or might have different properties
         let entries = {};
-        if (worldInfo && typeof worldInfo === 'object') {
+        if (serverEntries && typeof serverEntries === 'object') {
+            entries = { ...serverEntries };
+        } else if (worldInfo && typeof worldInfo === 'object') {
             if (worldInfo.entries) {
                 entries = { ...worldInfo.entries }; // Clone existing entries
             } else if (Array.isArray(worldInfo)) {
@@ -218,6 +248,14 @@ async function saveWorldInfoEntries(lorebookUid, newEntries) {
         }
 
         debugLog(`[Memory Recollection] ${newEntries.length} entries added, total entries: ${Object.keys(entries).length}, saving...`);
+
+        // Debug: log exact keys we're about to save so we can detect overwrites
+        try {
+            console.log('[Memory Recollection] Saving to server - entries count:', Object.keys(entries).length);
+            console.log('[Memory Recollection] Saving to server - sample keys:', Object.keys(entries).slice(0, 200));
+        } catch (e) {
+            console.debug('[Memory Recollection] Failed to log entries keys:', e);
+        }
 
         // Save using the imported saveWorldInfo function
         await saveWorldInfo(lorebookUid, { entries });

@@ -22,7 +22,6 @@ import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
-import { i18n } from '../../core/i18n.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -105,8 +104,8 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
         // Update button to show "Updating..." state
         const $updateBtn = $('#rpg-manual-update');
-        const updatingText = i18n.getTranslation('template.mainPanel.updating') || 'Updating...';
-        $updateBtn.html(`<i class="fa-solid fa-spinner fa-spin"></i> ${updatingText}`).prop('disabled', true);
+        const originalHtml = $updateBtn.html();
+        $updateBtn.html('<i class="fa-solid fa-spinner fa-spin"></i> Updating...').prop('disabled', true);
 
         // Save current preset name before switching (if we're going to switch)
         if (extensionSettings.useSeparatePreset) {
@@ -230,8 +229,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
         // Restore button to original state
         const $updateBtn = $('#rpg-manual-update');
-        const refreshText = i18n.getTranslation('template.mainPanel.refreshRpgInfo') || 'Refresh RPG Info';
-        $updateBtn.html(`<i class="fa-solid fa-sync"></i> ${refreshText}`).prop('disabled', false);
+        $updateBtn.html('<i class="fa-solid fa-sync"></i> Refresh RPG Info').prop('disabled', false);
 
         // Reset the flag after tracker generation completes
         // This ensures the flag persists through both main generation AND tracker generation

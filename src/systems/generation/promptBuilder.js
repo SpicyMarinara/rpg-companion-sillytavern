@@ -219,7 +219,12 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
             // Add custom stats dynamically
             for (const stat of enabledStats) {
-                instructions += `- ${stat.name}: X%\n`;
+                const useCurrentMax = stat.useCurrentMax || false;
+                if (useCurrentMax) {
+                    instructions += `- ${stat.name}: X/Y\n`;
+                } else {
+                    instructions += `- ${stat.name}: X%\n`;
+                }
             }
 
             // Add status section if enabled
@@ -241,17 +246,15 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += `Skills: [${skillFieldsText || 'Skill1, Skill2, etc.'}]\n`;
             }
 
-            // Add inventory format based on feature flag - only if showInventory is enabled
-            if (extensionSettings.showInventory) {
-                if (FEATURE_FLAGS.useNewInventory) {
-                    instructions += 'On Person: [Items currently carried/worn, or "None"]\n';
-                    instructions += 'Stored - [Location Name]: [Items stored at this location]\n';
-                    instructions += '(Add multiple "Stored - [Location]:" lines as needed for different storage locations)\n';
-                    instructions += 'Assets: [Vehicles, property, major possessions, or "None"]\n';
-                } else {
-                    // Legacy v1 format
-                    instructions += 'Inventory: [Clothing/Armor, Inventory Items (list of important items, or "None")]\\n';
-                }
+            // Add inventory format based on feature flag
+            if (FEATURE_FLAGS.useNewInventory) {
+                instructions += 'On Person: [Items currently carried/worn, or "None"]\n';
+                instructions += 'Stored - [Location Name]: [Items stored at this location]\n';
+                instructions += '(Add multiple "Stored - [Location]:" lines as needed for different storage locations)\n';
+                instructions += 'Assets: [Vehicles, property, major possessions, or "None"]\n';
+            } else {
+                // Legacy v1 format
+                instructions += 'Inventory: [Clothing/Armor, Inventory Items (list of important items, or "None")]\\n';
             }
 
             // Add quests section
@@ -260,6 +263,26 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
             instructions += '```\n\n';
         }
+
+        // Add Spellbook section if enabled
+        // DISABLED: Spell slot management is now handled manually during spell casting
+        // to prevent AI from accidentally modifying spell slots
+        // if (extensionSettings.showSpellbook) {
+        //     instructions += '```\n';
+        //     instructions += 'Spellbook\n';
+        //     instructions += '---\n';
+        //     instructions += 'Spell Slots (Available/Max):\n';
+        //
+        //     const currentSpellbook = extensionSettings.spellbook || { spellSlots: {} };
+        //     const currentSlots = currentSpellbook.spellSlots || {};
+        //
+        //     for (let lvl = 1; lvl <= 9; lvl++) {
+        //         const slot = currentSlots[lvl] || { used: 0, max: 0 };
+        //         const available = Math.max(0, slot.max - (slot.used || 0));
+        //         instructions += `Level ${lvl}: ${available}/${slot.max}\n`;
+        //     }
+        //     instructions += '```\n\n';
+        // }
 
         if (extensionSettings.showInfoBox) {
             const infoBoxConfig = trackerConfig?.infoBox;
@@ -281,7 +304,12 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += `Temperature: [Temperature in ${unit}]\n`;
             }
             if (widgets.time?.enabled) {
-                instructions += 'Time: [Time Start → Time End]\n';
+                  instructions += 'Time: [Time Start → Time End]\n';
+                  instructions += 'Time Passage Rules:\n';
+                  instructions += '- In combat, do NOT advance time during a single turn.\n';
+                  instructions += '- Only advance time by 1 minute after 10 turns have passed in combat, or after combat ends.\n';
+                  instructions += '- Each combat turn is 6 seconds. Track turns, but do not update the time until 10 turns (1 minute) have elapsed or combat is finished.\n';
+                  instructions += '- Outside combat, progress time realistically: 0-2 minutes for dialogue/conversation, 5-15 minutes for light activity, 15+ minutes for significant events or travel. Example: "14:23 → 14:25" after a brief exchange.\n';
             }
             if (widgets.location?.enabled) {
                 instructions += 'Location: [Location]\n';
@@ -441,6 +469,27 @@ export function generateContextualSummary() {
             summary += cleanedThoughts + '\n\n';
         }
     }
+
+    // DISABLED: Spell slot management is now handled manually during spell casting
+    // to prevent AI from accidentally modifying spell slots
+    // if (extensionSettings.showSpellbook && extensionSettings.spellbook) {
+    //     const spellSlots = extensionSettings.spellbook.spellSlots || {};
+    //     let spellbookSummary = 'Spellbook:\n';
+    //     let hasAnySlots = false;
+    //
+    //     for (let lvl = 1; lvl <= 9; lvl++) {
+    //         const slot = spellSlots[lvl];
+    //         if (slot && (slot.max > 0 || slot.used > 0)) {
+    //             const available = Math.max(0, slot.max - (slot.used || 0));
+    //             spellbookSummary += `Level ${lvl}: ${available}/${slot.max}\n`;
+    //             hasAnySlots = true;
+    //         }
+    //     }
+    //
+    //     if (hasAnySlots) {
+    //         summary += spellbookSummary + '\n';
+    //     }
+    // }
 
     // Include attributes based on settings
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;

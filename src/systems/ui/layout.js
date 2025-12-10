@@ -9,9 +9,10 @@ import {
     $userStatsContainer,
     $infoBoxContainer,
     $thoughtsContainer,
-    $inventoryContainer
+    $inventoryContainer,
+    $spellbookContainer,
+    $abilitiesContainer
 } from '../../core/state.js';
-import { i18n } from '../../core/i18n.js';
 
 /**
  * Toggles the visibility of plot buttons based on settings.
@@ -93,7 +94,6 @@ export function updateCollapseToggleIcon() {
  */
 export function setupCollapseToggle() {
     const $collapseToggle = $('#rpg-collapse-toggle');
-    $collapseToggle.attr('title', i18n.getTranslation('template.mainPanel.collapseExpand'));
     const $panel = $('#rpg-companion-panel');
     const $icon = $collapseToggle.find('i');
 
@@ -230,22 +230,38 @@ export function updateSectionVisibility() {
     if ($inventoryContainer) {
         $inventoryContainer.toggle(extensionSettings.showInventory);
     }
+    if ($abilitiesContainer) {
+        $abilitiesContainer.toggle(extensionSettings.showAbilities);
+    }
+    if ($spellbookContainer) {
+        $spellbookContainer.toggle(extensionSettings.showSpellbook);
+    }
 
     // Show/hide dividers intelligently
     // Divider after User Stats: shown if User Stats is visible AND at least one section after it is visible
     const showDividerAfterStats = extensionSettings.showUserStats &&
-        (extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts || extensionSettings.showInventory);
+        (extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts || extensionSettings.showInventory || extensionSettings.showAbilities || extensionSettings.showSpellbook);
     $('#rpg-divider-stats').toggle(showDividerAfterStats);
 
     // Divider after Info Box: shown if Info Box is visible AND at least one section after it is visible
     const showDividerAfterInfo = extensionSettings.showInfoBox &&
-        (extensionSettings.showCharacterThoughts || extensionSettings.showInventory);
+        (extensionSettings.showCharacterThoughts || extensionSettings.showInventory || extensionSettings.showAbilities || extensionSettings.showSpellbook);
     $('#rpg-divider-info').toggle(showDividerAfterInfo);
 
-    // Divider after Thoughts: shown if Thoughts is visible AND Inventory is visible
+    // Divider after Thoughts: shown if Thoughts is visible AND at least one section after it is visible
     const showDividerAfterThoughts = extensionSettings.showCharacterThoughts &&
-        extensionSettings.showInventory;
+        (extensionSettings.showInventory || extensionSettings.showAbilities || extensionSettings.showSpellbook);
     $('#rpg-divider-thoughts').toggle(showDividerAfterThoughts);
+
+    // Divider after Inventory: shown if Inventory is visible AND at least one section after it is visible
+    const showDividerAfterInventory = extensionSettings.showInventory &&
+        (extensionSettings.showAbilities || extensionSettings.showSpellbook);
+    $('#rpg-divider-inventory').toggle(showDividerAfterInventory);
+
+    // Divider after Abilities: shown if Abilities is visible AND Spellbook is visible
+    const showDividerAfterAbilities = extensionSettings.showAbilities &&
+        extensionSettings.showSpellbook;
+    $('#rpg-divider-abilities').toggle(showDividerAfterAbilities);
 }
 
 /**

@@ -1,3 +1,4 @@
+console.log('[RPG Companion] INDEX.JS LOADING - ABILITIES VERSION');
 import { getContext, renderExtensionTemplateAsync, extension_settings as st_extension_settings } from '../../../extensions.js';
 import { eventSource, event_types, substituteParams, chat, generateRaw, saveSettingsDebounced, chat_metadata, saveChatDebounced, user_avatar, getThumbnailUrl, characters, this_chid, extension_prompt_types, extension_prompt_roles, setExtensionPrompt, reloadCurrentChat, Generate, getRequestHeaders } from '../../../../script.js';
 import { selected_group, getGroupMembers } from '../../../group-chats.js';
@@ -5,7 +6,6 @@ import { power_user } from '../../../power-user.js';
 
 // Core modules
 import { extensionName, extensionFolderPath } from './src/core/config.js';
-import { i18n } from './src/core/i18n.js';
 import {
     extensionSettings,
     lastGeneratedData,
@@ -21,6 +21,8 @@ import {
     $thoughtsContainer,
     $inventoryContainer,
     $questsContainer,
+    $spellbookContainer,
+    $abilitiesContainer,
     setExtensionSettings,
     updateExtensionSettings,
     setLastGeneratedData,
@@ -36,7 +38,9 @@ import {
     setInfoBoxContainer,
     setThoughtsContainer,
     setInventoryContainer,
-    setQuestsContainer
+    setQuestsContainer,
+    setSpellbookContainer,
+    setAbilitiesContainer
 } from './src/core/state.js';
 import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData } from './src/core/persistence.js';
 import { registerAllEvents } from './src/core/events.js';
@@ -65,6 +69,8 @@ import {
 } from './src/systems/rendering/thoughts.js';
 import { renderInventory } from './src/systems/rendering/inventory.js';
 import { renderQuests } from './src/systems/rendering/quests.js';
+import { renderSpellbook } from './src/systems/rendering/spellbook.js';
+import { renderAbilities } from './src/systems/rendering/abilities.js';
 
 // Interaction modules
 import { initInventoryEventListeners } from './src/systems/interaction/inventoryActions.js';
@@ -105,8 +111,7 @@ import {
     setupMobileTabs,
     removeMobileTabs,
     setupMobileKeyboardHandling,
-    setupContentEditableScrolling,
-    updateMobileTabLabels
+    setupContentEditableScrolling
 } from './src/systems/ui/mobile.js';
 import {
     setupDesktopTabs,
@@ -155,29 +160,34 @@ import {
 //  setupMobileKeyboardHandling, setupContentEditableScrolling)
 
 /**
- * Updates UI elements that are dynamically generated and not covered by data-i18n-key.
- */
-function updateDynamicLabels() {
-    // Update "Refresh RPG Info" button, but only if it's not disabled
-    const refreshBtn = document.getElementById('rpg-manual-update');
-    if (refreshBtn && !refreshBtn.disabled) {
-        const refreshText = i18n.getTranslation('template.mainPanel.refreshRpgInfo') || 'Refresh RPG Info';
-        refreshBtn.innerHTML = `<i class="fa-solid fa-sync"></i> ${refreshText}`;
-    }
-
-    // Update "Last Roll" label
-    updateDiceDisplay();
-
-    // Update mobile tab labels
-    updateMobileTabLabels();
-}
-
-/**
  * Adds the extension settings to the Extensions tab.
  */
-async function addExtensionSettings() {
-    // Load the HTML template for the settings
-    const settingsHtml = await renderExtensionTemplateAsync(extensionName, 'settings');
+function addExtensionSettings() {
+    const settingsHtml = `
+        <div class="inline-drawer">
+            <div class="inline-drawer-toggle inline-drawer-header">
+                <b><i class="fa-solid fa-dice-d20"></i> RPG Companion</b>
+                <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+            </div>
+            <div class="inline-drawer-content">
+                <label class="checkbox_label" for="rpg-extension-enabled">
+                    <input type="checkbox" id="rpg-extension-enabled" />
+                    <span>Enable RPG Companion</span>
+                </label>
+                <small class="notes">Toggle to enable/disable the RPG Companion extension. Configure additional settings within the panel itself.</small>
+
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <a href="https://discord.com/invite/KdAkTg94ME" target="_blank" class="menu_button" style="flex: 1; text-align: center; text-decoration: none;">
+                        <i class="fa-brands fa-discord"></i> Discord
+                    </a>
+                    <a href="https://ko-fi.com/marinara_spaghetti" target="_blank" class="menu_button" style="flex: 1; text-align: center; text-decoration: none;">
+                        <i class="fa-solid fa-heart"></i> Support Creator
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
+
     $('#extensions_settings2').append(settingsHtml);
 
     // Set up the enable/disable toggle
@@ -208,26 +218,20 @@ async function addExtensionSettings() {
         updateMemoryRecollectionButton();
     });
 
-    // Set up language selector
-    const langSelect = $('#rpg-companion-language-select');
-    if (langSelect.length) {
-        langSelect.val(i18n.currentLanguage);
-        langSelect.on('change', async function() {
-            const selectedLanguage = $(this).val();
-            await i18n.setLanguage(selectedLanguage);
-            // We need to re-apply translations to the settings panel specifically
-            i18n.applyTranslations(document.getElementById('extensions_settings2'));
-        });
-    }
+    // Set up Clear Spellbook Cache button
+    $('#rpg-clear-spellbook-cache').on('click', function() {
+        if (confirm('Clear the spellbook lorebook cache? This will remove all cached spell entries. The lorebook file will be rebuilt from your current spellbook on next spell addition.')) {
+            localStorage.removeItem('rpg_companion_spell_entries_cache');
+            console.log('[RPG Companion] Spellbook cache cleared');
+            alert('Spellbook cache cleared! Old spell entries will no longer reappear.');
+        }
+    });
 }
 
 /**
  * Initializes the UI for the extension.
  */
 async function initUI() {
-    // Initialize i18n
-    await i18n.init();
-
     // Only initialize UI if extension is enabled
     if (!extensionSettings.enabled) {
         console.log('[RPG Companion] Extension disabled - skipping UI initialization');
@@ -260,9 +264,36 @@ async function initUI() {
     setThoughtsContainer($('#rpg-thoughts'));
     setInventoryContainer($('#rpg-inventory'));
     setQuestsContainer($('#rpg-quests'));
+    setSpellbookContainer($('#rpg-spellbook'));
+    setAbilitiesContainer($('#rpg-abilities'));
 
-    // Re-apply translations to the entire body to catch all new elements from the template
-    i18n.applyTranslations(document.body);
+    console.log('[RPG Companion] Containers initialized');
+    console.log('[RPG Companion] Abilities container:', $abilitiesContainer, 'length:', $abilitiesContainer?.length);
+    console.log('[RPG Companion] showAbilities setting:', extensionSettings.showAbilities);
+
+    // Initial render for spellbook and abilities
+    try {
+        renderSpellbook();
+    } catch (e) {
+        console.warn('[RPG Companion] renderSpellbook failed to run:', e);
+    }
+
+    try {
+        renderAbilities();
+    } catch (e) {
+        console.warn('[RPG Companion] renderAbilities failed to run:', e);
+    }
+
+    // Ensure section visibility matches settings on init
+    try {
+        // Set settings popup controls to current values
+        $('#rpg-toggle-spellbook').prop('checked', extensionSettings.showSpellbook);
+        $('#rpg-toggle-abilities').prop('checked', extensionSettings.showAbilities);
+        // Update visibility immediately
+        updateSectionVisibility();
+    } catch (e) {
+        // ignore if elements not present yet
+    }
 
     // Set up event listeners (enable/disable is handled in Extensions tab)
     $('#rpg-toggle-auto-update').on('change', function() {
@@ -325,6 +356,18 @@ async function initUI() {
         updateSectionVisibility();
     });
 
+    $('#rpg-toggle-abilities').on('change', function() {
+        extensionSettings.showAbilities = $(this).prop('checked');
+        saveSettings();
+        updateSectionVisibility();
+    });
+
+    $('#rpg-toggle-spellbook').on('change', function() {
+        extensionSettings.showSpellbook = $(this).prop('checked');
+        saveSettings();
+        updateSectionVisibility();
+    });
+
     $('#rpg-toggle-thoughts-in-chat').on('change', function() {
         extensionSettings.showThoughtsInChat = $(this).prop('checked');
         // console.log('[RPG Companion] Toggle showThoughtsInChat changed to:', extensionSettings.showThoughtsInChat);
@@ -371,6 +414,54 @@ async function initUI() {
         // console.log('[RPG Companion] Toggle enablePlotButtons changed to:', extensionSettings.enablePlotButtons);
         saveSettings();
         togglePlotButtons();
+    });
+
+    $('#rpg-auto-roll-ai-dice').on('change', function() {
+        extensionSettings.autoRollAIDice = $(this).is(':checked');
+        saveSettings();
+    });
+
+    $('#rpg-show-autoroll-notifications').on('change', function() {
+        extensionSettings.showAutoRollNotifications = $(this).is(':checked');
+        saveSettings();
+    });
+
+    $('#rpg-monster-detection').on('change', function() {
+        extensionSettings.monsterDetection = $(this).is(':checked');
+        saveSettings();
+    });
+
+    $('#rpg-hide-monster-blocks').on('change', function() {
+        extensionSettings.hideMonsterBlocks = $(this).is(':checked');
+        saveSettings();
+    });
+
+    $('#rpg-copy-ai-template').on('click', function() {
+        const template = `When describing combat or chance-based events, use the dice roll syntax to automatically generate results. The system will instantly calculate and display the roll result.
+
+SYNTAX: [ROLL:XdY+Z]
+- X = number of dice
+- Y = sides per die  
+- Z = bonus/penalty modifier (optional)
+
+IMPORTANT: Write ONLY the [ROLL:...] syntax - do NOT manually add a number. The system automatically replaces it with the calculated result.
+
+CORRECT EXAMPLES:
+- "The goblin attacks! [ROLL:1d20+5]" → displays as "The goblin attacks! **18** (🎲 18, 5)"
+- "You take damage: [ROLL:2d6+3]" → displays as "You take damage: **11** (🎲 6, 5, 3)"
+- "The wizard casts Magic Missile: [ROLL:3d4+1]" → displays as "The wizard casts Magic Missile: **8** (🎲 2, 3, 2, 1)"
+
+INCORRECT (do NOT do this):
+- "The goblin attacks! [ROLL:1d20+5] and gets 18" ❌ (don't add the number)
+- "You roll [ROLL:2d6] which is 9" ❌ (let the system display the result)
+
+Just write the [ROLL:...] and the system handles everything else.`;
+        
+        navigator.clipboard.writeText(template).then(() => {
+            toastr.success('AI roll template copied to clipboard!');
+        }).catch(() => {
+            toastr.error('Failed to copy template');
+        });
     });
 
     $('#rpg-toggle-animations').on('change', function() {
@@ -460,6 +551,8 @@ async function initUI() {
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
+    $('#rpg-toggle-abilities').prop('checked', extensionSettings.showAbilities);
+    $('#rpg-toggle-spellbook').prop('checked', extensionSettings.showSpellbook);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
@@ -467,7 +560,11 @@ async function initUI() {
     // Set default HTML prompt as actual text if no custom prompt exists
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
 
-    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
+    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
+    $('#rpg-auto-roll-ai-dice').prop('checked', extensionSettings.autoRollAIDice);
+    $('#rpg-show-autoroll-notifications').prop('checked', extensionSettings.showAutoRollNotifications);
+    $('#rpg-monster-detection').prop('checked', extensionSettings.monsterDetection);
+    $('#rpg-hide-monster-blocks').prop('checked', extensionSettings.hideMonsterBlocks);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
@@ -612,15 +709,9 @@ jQuery(async () => {
             console.error('[RPG Companion] Settings load failed, continuing with defaults:', error);
         }
 
-        // Initialize i18n early for the settings panel
-        await i18n.init();
-
-        // Set up a central listener for language changes to update dynamic UI parts
-        i18n.addEventListener('languageChanged', updateDynamicLabels);
-
         // Add extension settings to Extensions tab
         try {
-            await addExtensionSettings();
+            addExtensionSettings();
         } catch (error) {
             console.error('[RPG Companion] Failed to add extension settings tab:', error);
             // Don't throw - extension can still work without settings tab

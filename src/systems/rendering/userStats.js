@@ -44,7 +44,14 @@ export function buildUserStatsText() {
     const enabledStats = config.customStats.filter(stat => stat && stat.enabled && stat.name && stat.id);
     for (const stat of enabledStats) {
         const value = stats[stat.id] !== undefined ? stats[stat.id] : 100;
-        text += `${stat.name}: ${value}%\n`;
+        const useCurrentMax = stat.useCurrentMax || false;
+        const maxValue = stat.maxValue || 100;
+        
+        if (useCurrentMax) {
+            text += `${stat.name}: ${value}/${maxValue}\n`;
+        } else {
+            text += `${stat.name}: ${value}%\n`;
+        }
     }
 
     // Add status section if enabled
@@ -58,11 +65,6 @@ export function buildUserStatsText() {
     // Add inventory summary
     const inventorySummary = buildInventorySummary(stats.inventory);
     text += inventorySummary;
-
-    // Add skills if enabled
-    if (config.skillsSection.enabled && stats.skills) {
-        text += `\n${config.skillsSection.label}: ${stats.skills}`;
-    }
 
     return text.trim();
 }
@@ -95,7 +97,30 @@ export function renderUserStats() {
             { id: 'cha', name: 'CHA', enabled: true }
         ],
         statusSection: { enabled: true, showMoodEmoji: true, customFields: ['Conditions'] },
-        skillsSection: { enabled: false, label: 'Skills' }
+        dndSkills: {
+            enabled: true,
+            collapsed: true,
+            skills: {
+                athletics: { name: 'Athletics', ability: 'STR', value: 0 },
+                acrobatics: { name: 'Acrobatics', ability: 'DEX', value: 0 },
+                sleightOfHand: { name: 'Sleight of Hand', ability: 'DEX', value: 0 },
+                stealth: { name: 'Stealth', ability: 'DEX', value: 0 },
+                arcana: { name: 'Arcana', ability: 'INT', value: 0 },
+                history: { name: 'History', ability: 'INT', value: 0 },
+                investigation: { name: 'Investigation', ability: 'INT', value: 0 },
+                nature: { name: 'Nature', ability: 'INT', value: 0 },
+                religion: { name: 'Religion', ability: 'INT', value: 0 },
+                animalHandling: { name: 'Animal Handling', ability: 'WIS', value: 0 },
+                insight: { name: 'Insight', ability: 'WIS', value: 0 },
+                medicine: { name: 'Medicine', ability: 'WIS', value: 0 },
+                perception: { name: 'Perception', ability: 'WIS', value: 0 },
+                survival: { name: 'Survival', ability: 'WIS', value: 0 },
+                deception: { name: 'Deception', ability: 'CHA', value: 0 },
+                intimidation: { name: 'Intimidation', ability: 'CHA', value: 0 },
+                performance: { name: 'Performance', ability: 'CHA', value: 0 },
+                persuasion: { name: 'Persuasion', ability: 'CHA', value: 0 }
+            }
+        }
     };
     const userName = getContext().name1;
 
@@ -135,13 +160,25 @@ export function renderUserStats() {
 
     for (const stat of enabledStats) {
         const value = stats[stat.id] !== undefined ? stats[stat.id] : 100;
+        const useCurrentMax = stat.useCurrentMax || false;
+        const maxValue = stat.maxValue || 100;
+        
+        let displayValue, fillPercentage;
+        if (useCurrentMax) {
+            displayValue = `${value}/${maxValue}`;
+            fillPercentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
+        } else {
+            displayValue = `${value}%`;
+            fillPercentage = value;
+        }
+        
         html += `
             <div class="rpg-stat-row">
                 <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="${stat.id}" title="Click to edit stat name">${stat.name}:</span>
                 <div class="rpg-stat-bar" style="background: ${gradient}">
-                    <div class="rpg-stat-fill" style="width: ${100 - value}%"></div>
+                    <div class="rpg-stat-fill" style="width: ${100 - fillPercentage}%"></div>
                 </div>
-                <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="${stat.id}" title="Click to edit">${value}%</span>
+                <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="${stat.id}" data-use-current-max="${useCurrentMax}" data-max-value="${maxValue}" title="Click to edit">${displayValue}</span>
             </div>
         `;
     }
@@ -163,17 +200,6 @@ export function renderUserStats() {
         }
 
         html += '</div>';
-    }
-
-    // Skills section (conditionally rendered)
-    if (config.skillsSection.enabled) {
-        const skillsValue = stats.skills || 'None';
-        html += `
-            <div class="rpg-skills-section">
-                <span class="rpg-skills-label">${config.skillsSection.label}:</span>
-                <div class="rpg-skills-value rpg-editable" contenteditable="true" data-field="skills" title="Click to edit skills">${skillsValue}</div>
-            </div>
-        `;
     }
 
     html += '</div>'; // Close rpg-stats-left
@@ -225,19 +251,153 @@ export function renderUserStats() {
 
     html += '</div>'; // Close rpg-stats-content
 
+    // Skills Section (collapsible, spans full width below stats)
+    const dndSkillsConfig = config.dndSkills;
+    console.log('D&D Skills Config:', dndSkillsConfig);
+    console.log('Config object:', config);
+    if (dndSkillsConfig && dndSkillsConfig.enabled) {
+        console.log('Skills section is enabled, rendering...');
+        // Initialize dndSkills storage if it doesn't exist
+        if (!extensionSettings.userStats.dndSkills) {
+            extensionSettings.userStats.dndSkills = {
+                athletics: 0, acrobatics: 0, sleightOfHand: 0, stealth: 0,
+                arcana: 0, history: 0, investigation: 0, nature: 0, religion: 0,
+                animalHandling: 0, insight: 0, medicine: 0, perception: 0, survival: 0,
+                deception: 0, intimidation: 0, performance: 0, persuasion: 0
+            };
+        }
+        
+        const isCollapsed = dndSkillsConfig.collapsed !== false; // Default to collapsed
+        const chevronClass = isCollapsed ? 'fa-chevron-down' : 'fa-chevron-up';
+        const contentClass = isCollapsed ? 'rpg-dnd-skills-content-collapsed' : '';
+        
+        html += `
+            <div class="rpg-dnd-skills-section">
+                <div class="rpg-dnd-skills-header" id="rpg-dnd-skills-toggle">
+                    <span class="rpg-dnd-skills-title">
+                        <i class="fa-solid ${chevronClass}"></i> Skills
+                    </span>
+                </div>
+                <div class="rpg-dnd-skills-content ${contentClass}">
+        `;
+
+        // Render all skills in a flat list
+        const skillsByAbility = {
+            'STR': ['athletics'],
+            'DEX': ['acrobatics', 'sleightOfHand', 'stealth'],
+            'INT': ['arcana', 'history', 'investigation', 'nature', 'religion'],
+            'WIS': ['animalHandling', 'insight', 'medicine', 'perception', 'survival'],
+            'CHA': ['deception', 'intimidation', 'performance', 'persuasion']
+        };
+
+        const renderedSkills = new Set();
+        
+        // Render hardcoded skills in order
+        for (const [ability, skillIds] of Object.entries(skillsByAbility)) {
+            skillIds.forEach(skillId => {
+                const skillConfig = dndSkillsConfig.skills[skillId];
+                const skillValue = extensionSettings.userStats.dndSkills[skillId] !== undefined 
+                    ? extensionSettings.userStats.dndSkills[skillId] 
+                    : 0;
+                
+                html += `
+                    <div class="rpg-dnd-skill-row">
+                        <span class="rpg-dnd-skill-name">${skillConfig.name}</span>
+                        <div class="rpg-dnd-skill-controls">
+                            <input type="number" 
+                                   class="rpg-dnd-skill-value rpg-editable-skill" 
+                                   data-skill="${skillId}" 
+                                   value="${skillValue}"
+                                   title="Click to edit skill modifier">
+                            <button class="rpg-skill-roll-btn" 
+                                    data-skill="${skillId}" 
+                                    data-skill-name="${skillConfig.name}" 
+                                    data-skill-value="${skillValue}"
+                                    title="Roll d20 + ${skillValue} for ${skillConfig.name}">
+                                <i class="fa-solid fa-dice-d20"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                renderedSkills.add(skillId);
+            });
+        }
+
+        // Render any custom/new skills that were added dynamically
+        if (dndSkillsConfig.skills) {
+            for (const [skillId, skillConfig] of Object.entries(dndSkillsConfig.skills)) {
+                if (!renderedSkills.has(skillId)) {
+                    const skillValue = extensionSettings.userStats.dndSkills[skillId] !== undefined 
+                        ? extensionSettings.userStats.dndSkills[skillId] 
+                        : 0;
+                    
+                    html += `
+                        <div class="rpg-dnd-skill-row">
+                            <span class="rpg-dnd-skill-name">${skillConfig.name}</span>
+                            <div class="rpg-dnd-skill-controls">
+                                <input type="number" 
+                                       class="rpg-dnd-skill-value rpg-editable-skill" 
+                                       data-skill="${skillId}" 
+                                       value="${skillValue}"
+                                       title="Click to edit skill modifier">
+                                <button class="rpg-skill-roll-btn" 
+                                        data-skill="${skillId}" 
+                                        data-skill-name="${skillConfig.name}" 
+                                        data-skill-value="${skillValue}"
+                                        title="Roll d20 + ${skillValue} for ${skillConfig.name}">
+                                    <i class="fa-solid fa-dice-d20"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    }
+
     $userStatsContainer.html(html);
 
     // Add event listeners for editable stat values
     $('.rpg-editable-stat').on('blur', function() {
         const field = $(this).data('field');
-        const textValue = $(this).text().replace('%', '').trim();
-        let value = parseInt(textValue);
+        const useCurrentMax = $(this).data('use-current-max') === 'true' || $(this).data('use-current-max') === true;
+        const maxValue = parseInt($(this).data('max-value')) || 100;
+        const textValue = $(this).text().trim();
+        let value;
 
-        // Validate and clamp value between 0 and 100
-        if (isNaN(value)) {
-            value = 0;
+        if (useCurrentMax) {
+            // Parse "X/Y" format
+            const match = textValue.match(/^(\d+)\/(\d+)$/);
+            if (match) {
+                value = parseInt(match[1]);
+                const newMax = parseInt(match[2]);
+                
+                // Update max value in config if changed
+                const config = extensionSettings.trackerConfig?.userStats;
+                const stat = config?.customStats?.find(s => s.id === field);
+                if (stat && newMax !== stat.maxValue) {
+                    stat.maxValue = newMax;
+                }
+                
+                // Clamp current value to max
+                value = Math.max(0, Math.min(newMax, value));
+            } else {
+                // If format is wrong, just parse as number
+                value = parseInt(textValue.replace(/[^\d]/g, ''));
+                if (isNaN(value)) value = 0;
+                value = Math.max(0, Math.min(maxValue, value));
+            }
+        } else {
+            // Parse percentage format
+            value = parseInt(textValue.replace('%', '').trim());
+            if (isNaN(value)) value = 0;
+            value = Math.max(0, Math.min(100, value));
         }
-        value = Math.max(0, Math.min(100, value));
 
         // Update the setting
         extensionSettings.userStats[field] = value;
@@ -293,23 +453,6 @@ export function renderUserStats() {
         updateMessageSwipeData();
     });
 
-    // Add event listener for skills editing
-    $('.rpg-skills-value.rpg-editable').on('blur', function() {
-        const value = $(this).text().trim();
-        extensionSettings.userStats.skills = value || 'None';
-
-        // Rebuild userStats text
-        const statsText = buildUserStatsText();
-
-        // Update BOTH lastGeneratedData AND committedTrackerData
-        lastGeneratedData.userStats = statsText;
-        committedTrackerData.userStats = statsText;
-
-        saveSettings();
-        saveChatData();
-        updateMessageSwipeData();
-    });
-
     // Add event listeners for stat name editing
     $('.rpg-editable-stat-name').on('blur', function() {
         const field = $(this).data('field');
@@ -357,6 +500,75 @@ export function renderUserStats() {
         if (e.key === 'Enter') {
             e.preventDefault();
             $(this).blur();
+        }
+    });
+
+    // Add event listeners for D&D skills editing
+    $('.rpg-editable-skill').on('change blur', function() {
+        const skillId = $(this).data('skill');
+        let value = parseInt($(this).val());
+        
+        // Allow negative and positive values
+        if (isNaN(value)) {
+            value = 0;
+        }
+        
+        // Update the setting
+        if (!extensionSettings.userStats.dndSkills) {
+            extensionSettings.userStats.dndSkills = {};
+        }
+        extensionSettings.userStats.dndSkills[skillId] = value;
+        
+        saveSettings();
+        saveChatData();
+        updateMessageSwipeData();
+    });
+
+    // Add toggle for D&D Skills section
+    $('#rpg-dnd-skills-toggle').on('click', function() {
+        const $content = $('.rpg-dnd-skills-content');
+        const $icon = $(this).find('i');
+        
+        if ($content.hasClass('rpg-dnd-skills-content-collapsed')) {
+            $content.removeClass('rpg-dnd-skills-content-collapsed');
+            $icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+            if (extensionSettings.trackerConfig.userStats.dndSkills) {
+                extensionSettings.trackerConfig.userStats.dndSkills.collapsed = false;
+            }
+        } else {
+            $content.addClass('rpg-dnd-skills-content-collapsed');
+            $icon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+            if (extensionSettings.trackerConfig.userStats.dndSkills) {
+                extensionSettings.trackerConfig.userStats.dndSkills.collapsed = true;
+            }
+        }
+        
+        saveSettings();
+    });
+
+    // Add skill roll button handler
+    $('.rpg-skill-roll-btn').on('click', async function() {
+        const skillId = $(this).data('skill');
+        const skillName = $(this).data('skill-name');
+        
+        // Get the CURRENT value from the input field, not the stale data attribute
+        const $skillInput = $(this).siblings('.rpg-dnd-skill-value');
+        const skillModifier = parseInt($skillInput.val()) || 0;
+        
+        // Roll d20
+        const d20Roll = Math.floor(Math.random() * 20) + 1;
+        const totalRoll = d20Roll + skillModifier;
+        
+        // Format the message
+        const message = `I rolled a ${skillName} Check: ${totalRoll}`;
+        
+        // Insert into chat input
+        const chatInput = $('#send_textarea');
+        if (chatInput.length) {
+            const currentText = chatInput.val();
+            const newText = currentText ? currentText + '\n' + message : message;
+            chatInput.val(newText);
+            chatInput.trigger('input'); // Trigger input event to update character count, etc.
         }
     });
 }
