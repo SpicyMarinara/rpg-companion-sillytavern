@@ -6637,3 +6637,452 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         font-size: clamp(14px, 3vw, 18px) !important;
     }
 }
+
+/* ============================================
+   ENHANCED CHARACTER SYSTEM STYLES
+   Based on Katherine RPG Master Specification
+   ============================================ */
+
+/* Enhanced Stats Panel */
+.rpg-enhanced-stats-panel {
+    padding: 10px;
+    background: var(--rpg-bg);
+    border-radius: 8px;
+}
+
+.rpg-enhanced-stats-panel .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rpg-border);
+}
+
+.rpg-enhanced-stats-panel .panel-title {
+    font-weight: bold;
+    color: var(--rpg-highlight);
+}
+
+/* Stat Categories */
+.stat-category {
+    margin-bottom: 15px;
+}
+
+.stat-category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    background: var(--rpg-accent);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.stat-category-header:hover {
+    background: rgba(233, 69, 96, 0.2);
+}
+
+.stat-category-name {
+    font-weight: bold;
+    color: var(--rpg-text);
+}
+
+.stat-category-toggle {
+    color: var(--rpg-highlight);
+    font-size: 0.8em;
+}
+
+.stat-category-stats {
+    padding: 0 5px;
+}
+
+/* Enhanced Stat Row */
+.enhanced-stat {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 8px;
+}
+
+.enhanced-stat-label {
+    flex: 0 0 80px;
+    font-size: 0.85em;
+    color: var(--rpg-text);
+}
+
+.enhanced-stat-bar-container {
+    flex: 1;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.enhanced-stat-bar {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.enhanced-stat-value {
+    flex: 0 0 30px;
+    text-align: right;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: var(--rpg-highlight);
+}
+
+/* Priority indicators */
+.priority-indicator {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    background: var(--rpg-accent);
+    border-radius: 4px;
+    border-left: 3px solid var(--rpg-highlight);
+}
+
+.priority-indicator.level-1 { border-left-color: #ff0000; }
+.priority-indicator.level-2 { border-left-color: #ff6600; }
+.priority-indicator.level-3 { border-left-color: #ffcc00; }
+.priority-indicator.level-4 { border-left-color: #33cc33; }
+.priority-indicator.level-5 { border-left-color: #3399ff; }
+.priority-indicator.level-6 { border-left-color: #9966ff; }
+.priority-indicator.level-7 { border-left-color: #999999; }
+
+.priority-level {
+    font-weight: bold;
+    margin-right: 8px;
+    font-size: 0.75em;
+    opacity: 0.7;
+}
+
+.priority-name {
+    font-weight: bold;
+    flex: 1;
+}
+
+.priority-trigger {
+    font-size: 0.8em;
+    opacity: 0.8;
+}
+
+/* Scene Context */
+.scene-context {
+    padding: 10px;
+    background: var(--rpg-accent);
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.scene-context-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.scene-context-label {
+    opacity: 0.8;
+}
+
+.scene-context-value {
+    font-weight: bold;
+}
+
+/* Biology Panel */
+.biology-panel {
+    padding: 10px;
+    background: rgba(255, 100, 150, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 100, 150, 0.3);
+}
+
+.biology-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    color: #ff99cc;
+}
+
+.cycle-phase {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+.cycle-phase.menstrual { background: rgba(200, 0, 50, 0.3); }
+.cycle-phase.follicular { background: rgba(100, 200, 100, 0.3); }
+.cycle-phase.ovulation { background: rgba(255, 150, 0, 0.3); }
+.cycle-phase.luteal { background: rgba(100, 100, 200, 0.3); }
+
+/* Hair Growth Panel */
+.hair-growth-panel {
+    padding: 10px;
+    background: var(--rpg-accent);
+    border-radius: 6px;
+}
+
+.hair-area {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.hair-area-name {
+    flex: 0 0 100px;
+    font-size: 0.85em;
+}
+
+.hair-level-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.hair-level-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8B4513, #D2691E);
+    border-radius: 4px;
+}
+
+/* Outfit Panel */
+.outfit-panel {
+    padding: 10px;
+    background: var(--rpg-accent);
+    border-radius: 6px;
+}
+
+.outfit-header {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: var(--rpg-highlight);
+}
+
+.outfit-description {
+    font-style: italic;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.outfit-items {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.outfit-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85em;
+    margin-bottom: 4px;
+}
+
+.outfit-item-slot {
+    opacity: 0.7;
+}
+
+/* Enhanced Relationships Panel */
+.rpg-enhanced-relationships-panel {
+    padding: 10px;
+    background: var(--rpg-bg);
+    border-radius: 8px;
+}
+
+/* Relationship Card */
+.relationship-card {
+    background: var(--rpg-accent);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.relationship-card:hover {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.relationship-card.active {
+    border-left: 3px solid var(--rpg-highlight);
+}
+
+.rel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.rel-header:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.rel-header-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rel-type-icon {
+    font-size: 1.2em;
+}
+
+.rel-name {
+    font-weight: bold;
+}
+
+.rel-active-badge {
+    font-size: 0.7em;
+    padding: 2px 6px;
+    background: var(--rpg-highlight);
+    border-radius: 10px;
+}
+
+.rel-header-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rel-type {
+    font-size: 0.85em;
+}
+
+.rel-expand-toggle {
+    opacity: 0.6;
+}
+
+.rel-summary {
+    padding: 8px 10px;
+    font-size: 0.85em;
+    opacity: 0.8;
+    font-style: italic;
+}
+
+.rel-details {
+    display: none;
+    padding: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.relationship-card.expanded .rel-details {
+    display: block;
+}
+
+/* Relationship Stats */
+.rel-category {
+    margin-bottom: 12px;
+}
+
+.rel-category-header {
+    font-weight: bold;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    opacity: 0.7;
+}
+
+.rel-category-stats {
+    display: grid;
+    gap: 4px;
+}
+
+.rel-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rel-stat-label {
+    flex: 0 0 80px;
+    font-size: 0.8em;
+}
+
+.rel-stat-bar-container {
+    flex: 1;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.rel-stat-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.rel-stat-bar.empty {
+    background: transparent;
+}
+
+.rel-stat-value {
+    flex: 0 0 25px;
+    text-align: right;
+    font-size: 0.8em;
+}
+
+/* Compact Displays */
+.rpg-enhanced-compact-stats,
+.rpg-enhanced-compact-relationships {
+    padding: 8px;
+}
+
+.compact-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+}
+
+.compact-stat-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8em;
+    padding: 2px 4px;
+}
+
+.compact-rel-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+}
+
+/* Enhanced Settings */
+.rpg-enhanced-settings {
+    padding: 10px;
+}
+
+.enhanced-settings-section {
+    margin-bottom: 20px;
+}
+
+.enhanced-settings-section h5 {
+    margin: 0 0 10px 0;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.enhanced-data-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.enhanced-data-buttons .menu_button {
+    flex: 1;
+    min-width: 120px;
+}
+
+.enhanced-data-buttons .menu_button.caution {
+    background-color: #cc3333;
+}
