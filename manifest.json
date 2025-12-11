@@ -6,6 +6,7 @@
     "js": "index.js",
     "css": "style.css",
     "author": "Marysia",
-    "version": "1.1.0",
-    "homePage": "https://github.com/SpicyMarinara/rpg-companion-sillytavern"
+    "version": "2.0.0",
+    "homePage": "https://github.com/SpicyMarinara/rpg-companion-sillytavern",
+    "description": "Enhanced RPG companion with 30 universal stats, 18-stat NPC relationships, 7-level priority system, biology tracking, and character-focused LLM prompts based on Katherine RPG Master Specification"
 }
