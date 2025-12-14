@@ -865,6 +865,9 @@ jQuery(async () => {
         }
 
         console.log('[RPG Companion] ✅ Extension loaded successfully');
+
+        // Make global functions available for onclick handlers in enhanced panels
+        setupEnhancedGlobalFunctions();
     } catch (error) {
         console.error('[RPG Companion] ❌ Critical initialization failure:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);
@@ -877,3 +880,45 @@ jQuery(async () => {
         );
     }
 });
+
+/**
+ * Set up global functions for enhanced panel onclick handlers
+ */
+function setupEnhancedGlobalFunctions() {
+    // Toggle stat category collapse/expand
+    window.toggleStatCategory = function(categoryKey) {
+        const $category = $(`.rpg-enhanced-category[data-category="${categoryKey}"]`);
+        $category.toggleClass('collapsed');
+        const $toggle = $category.find('.category-toggle');
+        $toggle.text($category.hasClass('collapsed') ? '▶' : '▼');
+    };
+
+    // Toggle relationship card expand/collapse
+    window.toggleRelationshipCard = function(npcName) {
+        const $card = $(`.relationship-card[data-npc="${npcName}"]`);
+        $card.toggleClass('expanded');
+        const $toggle = $card.find('.rel-expand-toggle');
+        $toggle.text($card.hasClass('expanded') ? '▼' : '▶');
+    };
+
+    // Toggle show all relationships
+    window.toggleAllRelationships = function() {
+        const currentState = extensionSettings.enhancedRPG?.showAllRelationships || false;
+        if (!extensionSettings.enhancedRPG) {
+            extensionSettings.enhancedRPG = {};
+        }
+        extensionSettings.enhancedRPG.showAllRelationships = !currentState;
+        renderEnhancedPanels();
+    };
+
+    // Filter relationships by type
+    window.filterRelationships = function(type) {
+        if (!extensionSettings.enhancedRPG) {
+            extensionSettings.enhancedRPG = {};
+        }
+        extensionSettings.enhancedRPG.activeRelationshipFilter = type;
+        renderEnhancedPanels({ activeFilter: type });
+    };
+
+    console.log('[RPG Companion] Global enhanced functions registered');
+}

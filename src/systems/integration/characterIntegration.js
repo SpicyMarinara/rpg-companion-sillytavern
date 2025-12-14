@@ -151,18 +151,79 @@ function onCharacterSystemError(error) {
  * @param {Object} options - Rendering options
  */
 export function renderEnhancedPanels(options = {}) {
-    if (!characterSystemInstance) return;
-
     const $statsContainer = $('#rpg-enhanced-stats');
     const $relationshipsContainer = $('#rpg-enhanced-relationships');
+    const $panel = $('#rpg-companion-panel');
 
+    // Always add the enabled class when rendering is called and setting is enabled
+    if (extensionSettings.enhancedRPG?.enabled) {
+        $panel.addClass('rpg-enhanced-enabled');
+    } else {
+        $panel.removeClass('rpg-enhanced-enabled');
+        // Clear containers if disabled
+        if ($statsContainer.length) $statsContainer.html('');
+        if ($relationshipsContainer.length) $relationshipsContainer.html('');
+        return;
+    }
+
+    // Render stats panel
     if ($statsContainer.length) {
-        $statsContainer.html(renderCharacterStatsPanel(characterSystemInstance, options));
+        if (characterSystemInstance) {
+            $statsContainer.html(renderCharacterStatsPanel(characterSystemInstance, options));
+        } else {
+            // Show initializing/waiting state
+            $statsContainer.html(renderInitializingPanel());
+        }
     }
 
+    // Render relationships panel
     if ($relationshipsContainer.length) {
-        $relationshipsContainer.html(renderRelationshipsPanel(characterSystemInstance, options));
+        if (characterSystemInstance) {
+            $relationshipsContainer.html(renderRelationshipsPanel(characterSystemInstance, options));
+        } else {
+            $relationshipsContainer.html(renderInitializingRelationships());
+        }
     }
+
+    console.log('[RPG Enhanced] Panels rendered, system instance:', !!characterSystemInstance);
+}
+
+/**
+ * Render initializing/waiting state for stats panel
+ * @returns {string} HTML string
+ */
+function renderInitializingPanel() {
+    return `
+        <div class="rpg-enhanced-stats-panel initializing">
+            <div class="panel-header">
+                <span class="panel-title">Enhanced Character Stats</span>
+            </div>
+            <div class="initializing-message">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>Waiting for chat to initialize...</span>
+                <small>Open a chat to see character stats</small>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render initializing/waiting state for relationships panel
+ * @returns {string} HTML string
+ */
+function renderInitializingRelationships() {
+    return `
+        <div class="rpg-enhanced-relationships-panel initializing">
+            <div class="panel-header">
+                <span class="panel-title">NPC Relationships</span>
+            </div>
+            <div class="initializing-message">
+                <i class="fa-solid fa-users"></i>
+                <span>No relationships yet</span>
+                <small>Start chatting to build relationships</small>
+            </div>
+        </div>
+    `;
 }
 
 /**
