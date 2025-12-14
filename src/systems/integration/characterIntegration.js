@@ -55,6 +55,9 @@ export async function initializeCharacterSystem() {
         if (success) {
             console.log('[RPG Enhanced] Character system initialized successfully');
 
+            // Add enhanced-enabled class to panel
+            $('#rpg-companion-panel').addClass('rpg-enhanced-enabled');
+
             // Set up event listeners
             characterSystemInstance.on('stateChanged', onCharacterStateChanged);
             characterSystemInstance.on('error', onCharacterSystemError);

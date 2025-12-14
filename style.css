@@ -7086,3 +7086,16 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .enhanced-data-buttons .menu_button.caution {
     background-color: #cc3333;
 }
+
+/* Enhanced sections - hidden by default, shown when enhanced system is enabled */
+.rpg-enhanced-stats-section,
+.rpg-enhanced-relationships-section,
+#rpg-divider-enhanced {
+    display: none;
+}
+
+.rpg-enhanced-enabled .rpg-enhanced-stats-section,
+.rpg-enhanced-enabled .rpg-enhanced-relationships-section,
+.rpg-enhanced-enabled #rpg-divider-enhanced {
+    display: block;
+}
