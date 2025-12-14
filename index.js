@@ -193,8 +193,66 @@ function updateDynamicLabels() {
  * Adds the extension settings to the Extensions tab.
  */
 async function addExtensionSettings() {
-    // Load the HTML template for the settings
-    const settingsHtml = await renderExtensionTemplateAsync(extensionName, 'settings');
+    // Fallback inline settings HTML in case file loading fails
+    const inlineSettingsHtml = `
+    <div>
+        <div class="inline-drawer">
+            <div class="inline-drawer-toggle inline-drawer-header">
+                <b><i class="fa-solid fa-dice-d20"></i> RPG Companion</b>
+                <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+            </div>
+            <div class="inline-drawer-content">
+                <label class="checkbox_label" for="rpg-extension-enabled">
+                    <input type="checkbox" id="rpg-extension-enabled" />
+                    <span data-i18n-key="settings.extensionEnabled">Enable RPG Companion</span>
+                </label>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label for="rpg-companion-language-select" data-i18n-key="settings.language.label">Language</label>
+                    <select id="rpg-companion-language-select" class="text_pole">
+                        <option value="en">English</option>
+                        <option value="zh-tw">繁體中文</option>
+                    </select>
+                </div>
+                <small class="notes" data-i18n-key="settings.note">Toggle to enable/disable the RPG Companion extension. Configure additional settings within the panel itself.</small>
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <a href="https://discord.com/invite/KdAkTg94ME" target="_blank" class="menu_button" style="flex: 1; text-align: center; text-decoration: none;">
+                        <i class="fa-brands fa-discord"></i> Discord
+                    </a>
+                    <a href="https://ko-fi.com/marinara_spaghetti" target="_blank" class="menu_button" style="flex: 1; text-align: center; text-decoration: none;">
+                        <i class="fa-solid fa-heart"></i> Support Creator
+                    </a>
+                </div>
+                <!-- Enhanced Character System Settings -->
+                <div class="inline-drawer" style="margin-top: 15px;">
+                    <div class="inline-drawer-toggle inline-drawer-header">
+                        <b><i class="fa-solid fa-user-gear"></i> Enhanced Character System</b>
+                        <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                    </div>
+                    <div class="inline-drawer-content">
+                        <div id="rpg-enhanced-settings-container">
+                            <!-- Enhanced settings will be injected here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+    // Try to load from file first, fallback to inline HTML
+    let settingsHtml;
+    try {
+        settingsHtml = await renderExtensionTemplateAsync(extensionName, 'settings');
+    } catch (error) {
+        console.warn('[RPG Companion] Failed to load settings.html, using inline template:', error);
+        settingsHtml = inlineSettingsHtml;
+    }
+
+    // If template loaded but is empty, use inline
+    if (!settingsHtml || settingsHtml.trim() === '') {
+        console.warn('[RPG Companion] Settings template empty, using inline template');
+        settingsHtml = inlineSettingsHtml;
+    }
+
     $('#extensions_settings2').append(settingsHtml);
 
     // Set up the enable/disable toggle
@@ -259,8 +317,71 @@ async function initUI() {
         return;
     }
 
-    // Load the HTML template using SillyTavern's template system
-    const templateHtml = await renderExtensionTemplateAsync(extensionName, 'template');
+    // Fallback inline template in case file loading fails
+    const inlineTemplateHtml = `
+    <div id="rpg-companion-panel" class="rpg-panel">
+        <button class="rpg-collapse-toggle" id="rpg-collapse-toggle" title="Collapse/Expand Panel">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <div class="rpg-game-container">
+            <div class="rpg-panel-header">
+                <h3><i class="fa-solid fa-dice-d20"></i> <span>RPG Companion</span></h3>
+            </div>
+            <div id="rpg-panel-content">
+                <div id="rpg-dice-display" class="rpg-dice-display">
+                    <i class="fa-solid fa-dice"></i>
+                    <span id="rpg-last-roll-text"></span>
+                    <button id="rpg-clear-dice" class="rpg-clear-dice-btn">×</button>
+                </div>
+                <div class="rpg-content-box">
+                    <div id="rpg-user-stats" class="rpg-section rpg-stats-section"></div>
+                    <div id="rpg-divider-stats" class="rpg-divider"></div>
+                    <div id="rpg-info-box" class="rpg-section rpg-info-section"></div>
+                    <div id="rpg-divider-info" class="rpg-divider"></div>
+                    <div id="rpg-thoughts" class="rpg-section rpg-thoughts-section"></div>
+                    <div id="rpg-divider-thoughts" class="rpg-divider"></div>
+                    <div id="rpg-inventory" class="rpg-section rpg-inventory-section"></div>
+                    <div id="rpg-quests" class="rpg-section rpg-quests-section"></div>
+                    <div id="rpg-divider-enhanced" class="rpg-divider"></div>
+                    <div id="rpg-enhanced-stats" class="rpg-section rpg-enhanced-stats-section"></div>
+                    <div id="rpg-enhanced-relationships" class="rpg-section rpg-enhanced-relationships-section"></div>
+                </div>
+                <div class="rpg-toggle-container">
+                    <label class="rpg-toggle-label">
+                        <input type="checkbox" id="rpg-toggle-html-prompt">
+                        <i class="fa-solid fa-code"></i>
+                        <span>Enable Immersive HTML</span>
+                    </label>
+                </div>
+                <button id="rpg-manual-update" class="rpg-btn-primary rpg-manual-update-btn">
+                    <i class="fa-solid fa-sync"></i> <span>Refresh RPG Info</span>
+                </button>
+                <div class="rpg-settings-buttons-row">
+                    <button id="rpg-open-tracker-editor" class="rpg-btn-settings rpg-btn-half">
+                        <i class="fa-solid fa-sliders"></i> <span>Edit Trackers</span>
+                    </button>
+                    <button id="rpg-open-settings" class="rpg-btn-settings rpg-btn-half">
+                        <i class="fa-solid fa-gear"></i> <span>Settings</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+
+    // Try to load from file first, fallback to inline HTML
+    let templateHtml;
+    try {
+        templateHtml = await renderExtensionTemplateAsync(extensionName, 'template');
+    } catch (error) {
+        console.warn('[RPG Companion] Failed to load template.html, using inline template:', error);
+        templateHtml = inlineTemplateHtml;
+    }
+
+    // If template loaded but is empty, use inline
+    if (!templateHtml || templateHtml.trim() === '') {
+        console.warn('[RPG Companion] Template empty, using inline template');
+        templateHtml = inlineTemplateHtml;
+    }
 
     // Append panel to body - positioning handled by CSS
     $('body').append(templateHtml);
