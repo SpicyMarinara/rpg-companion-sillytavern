@@ -110,7 +110,8 @@ import {
 } from './src/systems/ui/mobile.js';
 import {
     setupDesktopTabs,
-    removeDesktopTabs
+    removeDesktopTabs,
+    updateEnhancedTabVisibility
 } from './src/systems/ui/desktop.js';
 
 // Feature modules
@@ -667,15 +668,20 @@ async function initUI() {
     // Initialize Lorebook Limiter
     initLorebookLimiter();
 
-    // Initialize Enhanced Character System if enabled
-    if (extensionSettings.enhancedRPG?.enabled) {
-        try {
+    // Initialize Enhanced Character System
+    try {
+        // Update tab visibility based on settings
+        updateEnhancedTabVisibility();
+
+        if (extensionSettings.enhancedRPG?.enabled) {
             await initializeCharacterSystem();
-            renderEnhancedPanels();
-            console.log('[RPG Companion] Enhanced character system initialized');
-        } catch (error) {
-            console.error('[RPG Companion] Failed to initialize enhanced character system:', error);
         }
+
+        // Always render enhanced panels (shows sample data if no chat open)
+        renderEnhancedPanels();
+        console.log('[RPG Companion] Enhanced character system UI ready');
+    } catch (error) {
+        console.error('[RPG Companion] Failed to initialize enhanced character system:', error);
     }
 }
 

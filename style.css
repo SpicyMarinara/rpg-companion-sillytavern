@@ -6169,6 +6169,35 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: none;
 }
 
+/* Enhanced tabs styling */
+.rpg-enhanced-tab {
+    display: none; /* Hidden by default */
+}
+
+.rpg-enhanced-tab.visible,
+.rpg-enhanced-enabled .rpg-enhanced-tab {
+    display: flex;
+}
+
+.rpg-enhanced-tab i {
+    color: var(--rpg-highlight, #e94560);
+}
+
+.rpg-enhanced-tab-content {
+    display: none;
+}
+
+.rpg-enhanced-tab-content.active {
+    display: flex;
+}
+
+/* Enhanced section containers in tabs */
+#rpg-enhanced-stats,
+#rpg-enhanced-relationships {
+    display: block;
+    padding: 10px;
+}
+
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
     .rpg-inventory-subtabs {
@@ -7878,4 +7907,43 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: 11px;
     color: var(--rpg-text-secondary);
     font-style: italic;
+}
+
+/* Preview mode styling */
+.rpg-enhanced-stats-panel.preview-mode,
+.rpg-enhanced-relationships-panel.preview-mode {
+    opacity: 0.9;
+}
+
+.preview-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    font-size: 11px;
+    color: #60a5fa;
+}
+
+.preview-notice i {
+    font-size: 14px;
+}
+
+/* Sample relationship stats display */
+.rel-quick-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.relationship-card.sample {
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.sample-relationships {
+    opacity: 0.85;
 }

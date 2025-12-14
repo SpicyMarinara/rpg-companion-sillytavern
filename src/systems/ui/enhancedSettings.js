@@ -15,13 +15,14 @@ import {
     importCharacterState,
     resetCharacterState
 } from '../integration/characterIntegration.js';
+import { updateEnhancedTabVisibility } from './desktop.js';
 import { DEFAULT_ANALYSIS_TEMPLATE, DEFAULT_ROLEPLAY_TEMPLATE } from '../../character/enhancedPromptBuilder.js';
 
 /**
  * Default enhanced RPG settings
  */
 export const DEFAULT_ENHANCED_SETTINGS = {
-    enabled: false,
+    enabled: true,  // Enabled by default to show the enhanced panels
     showEnhancedStats: true,
     showRelationships: true,
     showPriorities: true,
@@ -178,6 +179,8 @@ export function setupEnhancedSettingsListeners() {
             await initializeCharacterSystem();
         }
 
+        // Update tab visibility and render panels
+        updateEnhancedTabVisibility();
         renderEnhancedPanels();
     });
 

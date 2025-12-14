@@ -166,14 +166,9 @@ export function renderEnhancedPanels(options = {}) {
         return;
     }
 
-    // Render stats panel
+    // Render stats panel - always render, even without system instance (shows sample data)
     if ($statsContainer.length) {
-        if (characterSystemInstance) {
-            $statsContainer.html(renderCharacterStatsPanel(characterSystemInstance, options));
-        } else {
-            // Show initializing/waiting state
-            $statsContainer.html(renderInitializingPanel());
-        }
+        $statsContainer.html(renderCharacterStatsPanel(characterSystemInstance, options));
     }
 
     // Render relationships panel
@@ -181,7 +176,7 @@ export function renderEnhancedPanels(options = {}) {
         if (characterSystemInstance) {
             $relationshipsContainer.html(renderRelationshipsPanel(characterSystemInstance, options));
         } else {
-            $relationshipsContainer.html(renderInitializingRelationships());
+            $relationshipsContainer.html(renderSampleRelationshipsPanel());
         }
     }
 
@@ -208,19 +203,50 @@ function renderInitializingPanel() {
 }
 
 /**
- * Render initializing/waiting state for relationships panel
+ * Render sample relationships panel (for preview when no chat)
  * @returns {string} HTML string
  */
-function renderInitializingRelationships() {
+function renderSampleRelationshipsPanel() {
     return `
-        <div class="rpg-enhanced-relationships-panel initializing">
+        <div class="rpg-enhanced-relationships-panel preview-mode">
             <div class="panel-header">
-                <span class="panel-title">NPC Relationships</span>
+                <span class="panel-title">NPC Relationships (Preview)</span>
             </div>
-            <div class="initializing-message">
-                <i class="fa-solid fa-users"></i>
-                <span>No relationships yet</span>
-                <small>Start chatting to build relationships</small>
+            <div class="preview-notice">
+                <i class="fa-solid fa-info-circle"></i>
+                <span>Open a chat to track relationships</span>
+            </div>
+            <div class="sample-relationships">
+                <div class="relationship-card sample">
+                    <div class="rel-header">
+                        <div class="rel-header-main">
+                            <span class="rel-type-icon" style="color: #ff66aa">💖</span>
+                            <span class="rel-name">Sample NPC</span>
+                        </div>
+                        <div class="rel-header-info">
+                            <span class="rel-type" style="color: #ff66aa">Dating</span>
+                        </div>
+                    </div>
+                    <div class="rel-summary">Strong affectionate bond</div>
+                    <div class="rel-quick-stats">
+                        <div class="rel-stat">
+                            <span class="rel-stat-name">Trust</span>
+                            <span class="rel-stat-value">65</span>
+                        </div>
+                        <div class="rel-stat">
+                            <span class="rel-stat-name">Love</span>
+                            <span class="rel-stat-value">55</span>
+                        </div>
+                        <div class="rel-stat">
+                            <span class="rel-stat-name">Respect</span>
+                            <span class="rel-stat-value">70</span>
+                        </div>
+                        <div class="rel-stat">
+                            <span class="rel-stat-name">Fear</span>
+                            <span class="rel-stat-value">5</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;

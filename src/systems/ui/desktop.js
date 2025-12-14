@@ -4,11 +4,12 @@
  */
 
 import { i18n } from '../../core/i18n.js';
+import { extensionSettings } from '../../core/state.js';
 
 /**
  * Sets up desktop tab navigation for organizing content.
  * Only runs on desktop viewports (>1000px).
- * Creates two tabs: Status (Stats/Info/Thoughts) and Inventory.
+ * Creates tabs: Status, Character (enhanced), Relations, Inventory, Quests
  */
 export function setupDesktopTabs() {
     const isDesktop = window.innerWidth > 1000;
@@ -25,18 +26,28 @@ export function setupDesktopTabs() {
     const $thoughts = $('#rpg-thoughts');
     const $inventory = $('#rpg-inventory');
     const $quests = $('#rpg-quests');
+    const $enhancedStats = $('#rpg-enhanced-stats');
+    const $enhancedRelationships = $('#rpg-enhanced-relationships');
 
     // If no sections exist, nothing to organize
     if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $inventory.length === 0 && $quests.length === 0) {
         return;
     }
 
-    // Create tab navigation
+    // Create tab navigation with enhanced tabs
     const $tabNav = $(`
         <div class="rpg-tabs-nav">
             <button class="rpg-tab-btn active" data-tab="status">
                 <i class="fa-solid fa-chart-simple"></i>
                 <span data-i18n-key="global.status">Status</span>
+            </button>
+            <button class="rpg-tab-btn rpg-enhanced-tab" data-tab="character">
+                <i class="fa-solid fa-user-gear"></i>
+                <span>Character</span>
+            </button>
+            <button class="rpg-tab-btn rpg-enhanced-tab" data-tab="relations">
+                <i class="fa-solid fa-heart"></i>
+                <span>Relations</span>
             </button>
             <button class="rpg-tab-btn" data-tab="inventory">
                 <i class="fa-solid fa-box"></i>
@@ -51,6 +62,8 @@ export function setupDesktopTabs() {
 
     // Create tab content containers
     const $statusTab = $('<div class="rpg-tab-content active" data-tab-content="status"></div>');
+    const $characterTab = $('<div class="rpg-tab-content rpg-enhanced-tab-content" data-tab-content="character"></div>');
+    const $relationsTab = $('<div class="rpg-tab-content rpg-enhanced-tab-content" data-tab-content="relations"></div>');
     const $inventoryTab = $('<div class="rpg-tab-content" data-tab-content="inventory"></div>');
     const $questsTab = $('<div class="rpg-tab-content" data-tab-content="quests"></div>');
 
@@ -67,6 +80,17 @@ export function setupDesktopTabs() {
         $statusTab.append($thoughts.detach());
         $thoughts.show();
     }
+
+    // Move enhanced sections into their tabs
+    if ($enhancedStats.length > 0) {
+        $characterTab.append($enhancedStats.detach());
+        $enhancedStats.show();
+    }
+    if ($enhancedRelationships.length > 0) {
+        $relationsTab.append($enhancedRelationships.detach());
+        $enhancedRelationships.show();
+    }
+
     if ($inventory.length > 0) {
         $inventoryTab.append($inventory.detach());
         $inventory.show();
@@ -83,6 +107,8 @@ export function setupDesktopTabs() {
     const $tabsContainer = $('<div class="rpg-tabs-container"></div>');
     $tabsContainer.append($tabNav);
     $tabsContainer.append($statusTab);
+    $tabsContainer.append($characterTab);
+    $tabsContainer.append($relationsTab);
     $tabsContainer.append($inventoryTab);
     $tabsContainer.append($questsTab);
 
@@ -103,7 +129,25 @@ export function setupDesktopTabs() {
         $(`.rpg-tab-content[data-tab-content="${tabName}"]`).addClass('active');
     });
 
-    console.log('[RPG Desktop] Desktop tabs initialized');
+    // Update enhanced tab visibility based on settings
+    updateEnhancedTabVisibility();
+
+    console.log('[RPG Desktop] Desktop tabs initialized with enhanced tabs');
+}
+
+/**
+ * Update visibility of enhanced tabs based on settings
+ */
+export function updateEnhancedTabVisibility() {
+    const isEnhancedEnabled = extensionSettings.enhancedRPG?.enabled;
+
+    if (isEnhancedEnabled) {
+        $('.rpg-enhanced-tab').show();
+        $('.rpg-enhanced-tab-content').addClass('enhanced-active');
+    } else {
+        $('.rpg-enhanced-tab').hide();
+        $('.rpg-enhanced-tab-content').removeClass('enhanced-active');
+    }
 }
 
 /**
@@ -117,6 +161,8 @@ export function removeDesktopTabs() {
     const $thoughts = $('#rpg-thoughts').detach();
     const $inventory = $('#rpg-inventory').detach();
     const $quests = $('#rpg-quests').detach();
+    const $enhancedStats = $('#rpg-enhanced-stats').detach();
+    const $enhancedRelationships = $('#rpg-enhanced-relationships').detach();
 
     // Remove tabs container
     $('.rpg-tabs-container').remove();
@@ -129,13 +175,15 @@ export function removeDesktopTabs() {
     // Restore original sections to content box in correct order
     const $contentBox = $('.rpg-content-box');
 
-    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory, Quests
+    // Re-insert sections in original order
     if ($dividerStats.length) {
         $dividerStats.before($userStats);
         $dividerInfo.before($infoBox);
         $dividerThoughts.before($thoughts);
         $contentBox.append($inventory);
         $contentBox.append($quests);
+        $contentBox.append($enhancedStats);
+        $contentBox.append($enhancedRelationships);
     } else {
         // Fallback if dividers don't exist
         $contentBox.append($userStats);
@@ -143,6 +191,8 @@ export function removeDesktopTabs() {
         $contentBox.append($thoughts);
         $contentBox.append($inventory);
         $contentBox.append($quests);
+        $contentBox.append($enhancedStats);
+        $contentBox.append($enhancedRelationships);
     }
 
     // Show sections and dividers

@@ -452,6 +452,41 @@ function renderOutfitSummary(outfit) {
 }
 
 /**
+ * Sample default stats for preview when no chat is open
+ */
+const SAMPLE_STATS = {
+    hunger: 45, bladder: 30, bowel: 25, health: 90, cleanliness: 70,
+    willpower: 60, confidence: 60, pride: 60, shame: 10, jealousy: 20, loneliness: 30,
+    morality: 80, corruption: 5, honesty: 80, loyalty: null,
+    perversion: 10, lewdity: 30, exhibitionism: 5, modesty: 70,
+    dominance: 40, submissiveness: 40, arousal: 30,
+    stress: 20, anxiety: 20, energy: 70, sleep: 70, pain: 0,
+    comfort: 60, patience: 60, focus: 60
+};
+
+const SAMPLE_SCENE = {
+    location: 'Home', locationType: 'Home', privacy: 85, safety: 90,
+    time: '10:30 AM', dayOfWeek: 'Monday', peoplePresent: []
+};
+
+const SAMPLE_OUTFIT = {
+    top: { name: 'Casual T-shirt', description: 'Light blue' },
+    bottom: { name: 'Jeans', description: 'Dark blue' },
+    underwear: { name: 'Cotton panties', description: '' },
+    bra: { name: 'Sports bra', description: '' },
+    shoes: { name: 'Sneakers', description: '' },
+    overallDescription: ''
+};
+
+const SAMPLE_HAIR = {
+    pubic: { value: 15 },
+    armpits: { value: 10 },
+    legs: { value: 12 },
+    arms: { value: 25 },
+    assCrack: { value: 8 }
+};
+
+/**
  * Render full character stats panel
  * @param {Object} characterSystem - Character system instance
  * @param {Object} options - Rendering options
@@ -459,16 +494,15 @@ function renderOutfitSummary(outfit) {
  */
 export function renderCharacterStatsPanel(characterSystem, options = {}) {
     const state = characterSystem?.getState?.();
-    if (!state) {
-        return '<div class="rpg-enhanced-stats-panel empty">Character state not available</div>';
-    }
 
-    const stats = state.stats?.toObject?.() || state.stats || {};
+    // Use sample data if no state available (for preview)
+    const isPreview = !state;
+    const stats = state?.stats?.toObject?.() || state?.stats || SAMPLE_STATS;
     const priorities = characterSystem?.getActivePriorities?.() || [];
-    const scene = state.scene?.toObject?.() || state.scene || {};
-    const hair = state.hair || {};
-    const outfit = state.outfit || {};
-    const biology = state.biology || {};
+    const scene = state?.scene?.toObject?.() || state?.scene || SAMPLE_SCENE;
+    const hair = state?.hair || SAMPLE_HAIR;
+    const outfit = state?.outfit || SAMPLE_OUTFIT;
+    const biology = state?.biology || {};
 
     // Render all categories
     const categoriesHtml = Object.keys(STAT_CATEGORIES)
@@ -476,11 +510,18 @@ export function renderCharacterStatsPanel(characterSystem, options = {}) {
         .join('');
 
     return `
-        <div class="rpg-enhanced-stats-panel">
+        <div class="rpg-enhanced-stats-panel ${isPreview ? 'preview-mode' : ''}">
             <div class="panel-header">
-                <span class="character-name">${state.characterName || 'Character'}</span>
-                <span class="panel-title">Enhanced Stats</span>
+                <span class="character-name">${state?.characterName || 'Character'}</span>
+                <span class="panel-title">Enhanced Stats${isPreview ? ' (Preview)' : ''}</span>
             </div>
+
+            ${isPreview ? `
+                <div class="preview-notice">
+                    <i class="fa-solid fa-info-circle"></i>
+                    <span>Open a chat to see live character data</span>
+                </div>
+            ` : ''}
 
             ${renderPriorityIndicators(priorities)}
             ${renderSceneContext(scene)}
