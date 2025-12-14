@@ -132,6 +132,23 @@ import {
     clearExtensionPrompts
 } from './src/systems/integration/sillytavern.js';
 
+// Enhanced Character System modules
+import {
+    initializeCharacterSystem,
+    getCharacterSystemInstance,
+    loadCharacterState,
+    renderEnhancedPanels,
+    onEnhancedMessageSent,
+    onEnhancedMessageReceived,
+    onEnhancedCharacterChanged,
+    clearEnhancedPrompts
+} from './src/systems/integration/characterIntegration.js';
+import {
+    initEnhancedSettings,
+    generateEnhancedSettingsHTML,
+    setupEnhancedSettingsListeners
+} from './src/systems/ui/enhancedSettings.js';
+
 // Old state variable declarations removed - now imported from core modules
 // (extensionSettings, lastGeneratedData, committedTrackerData, etc. are now in src/core/state.js)
 
@@ -218,6 +235,14 @@ async function addExtensionSettings() {
             // We need to re-apply translations to the settings panel specifically
             i18n.applyTranslations(document.getElementById('extensions_settings2'));
         });
+    }
+
+    // Initialize enhanced character system settings
+    initEnhancedSettings();
+    const enhancedSettingsContainer = $('#rpg-enhanced-settings-container');
+    if (enhancedSettingsContainer.length) {
+        enhancedSettingsContainer.html(generateEnhancedSettingsHTML());
+        setupEnhancedSettingsListeners();
     }
 }
 
@@ -520,6 +545,17 @@ async function initUI() {
 
     // Initialize Lorebook Limiter
     initLorebookLimiter();
+
+    // Initialize Enhanced Character System if enabled
+    if (extensionSettings.enhancedRPG?.enabled) {
+        try {
+            await initializeCharacterSystem();
+            renderEnhancedPanels();
+            console.log('[RPG Companion] Enhanced character system initialized');
+        } catch (error) {
+            console.error('[RPG Companion] Failed to initialize enhanced character system:', error);
+        }
+    }
 }
 
 
@@ -679,11 +715,25 @@ jQuery(async () => {
 
         // Register all event listeners
         try {
+            // Wrapper to call both original and enhanced handlers
+            const combinedMessageSent = () => {
+                onMessageSent();
+                onEnhancedMessageSent();
+            };
+            const combinedMessageReceived = async (data) => {
+                await onMessageReceived(data);
+                await onEnhancedMessageReceived(data);
+            };
+            const combinedCharacterChanged = async () => {
+                onCharacterChanged();
+                await onEnhancedCharacterChanged();
+            };
+
             registerAllEvents({
-                [event_types.MESSAGE_SENT]: onMessageSent,
+                [event_types.MESSAGE_SENT]: combinedMessageSent,
                 [event_types.GENERATION_STARTED]: onGenerationStarted,
-                [event_types.MESSAGE_RECEIVED]: onMessageReceived,
-                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar],
+                [event_types.MESSAGE_RECEIVED]: combinedMessageReceived,
+                [event_types.CHAT_CHANGED]: [combinedCharacterChanged, updatePersonaAvatar],
                 [event_types.MESSAGE_SWIPED]: onMessageSwiped,
                 [event_types.USER_MESSAGE_RENDERED]: updatePersonaAvatar,
                 [event_types.SETTINGS_UPDATED]: updatePersonaAvatar
