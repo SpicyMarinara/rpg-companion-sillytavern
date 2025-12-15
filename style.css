@@ -8742,3 +8742,39 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: 12px;
     font-weight: 700;
 }
+
+/* === EMPTY STATE STYLING === */
+.game-status-screen.empty-state,
+.rpg-enhanced-relationships-panel.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.game-empty-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 30px 20px;
+    text-align: center;
+    color: #888;
+}
+
+.game-empty-message .empty-icon {
+    font-size: 48px;
+    opacity: 0.6;
+}
+
+.game-empty-message .empty-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: #aaa;
+}
+
+.game-empty-message .empty-hint {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+}

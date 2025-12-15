@@ -3,10 +3,42 @@
  * Renders the NPC relationships panel
  *
  * Based on KATHERINE_RPG_MASTER_SPECIFICATION.txt
- * Version: 2.0.0
+ * Version: 2.1.0 - Dynamic character name
  */
 
+import { getContext } from '../../../../../../extensions.js';
 import { RELATIONSHIP_TYPES, IMPORTANCE_LEVELS } from '../../character/relationshipManager.js';
+
+/**
+ * Get the character name from SillyTavern context
+ */
+function getCharacterName() {
+    try {
+        const context = getContext();
+        if (context?.name2) {
+            return context.name2;
+        }
+        if (context?.characterId !== undefined && context?.characters) {
+            const char = context.characters[context.characterId];
+            if (char?.name) return char.name;
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Check if a chat is currently open
+ */
+function isChatOpen() {
+    try {
+        const context = getContext();
+        return context?.chat && context.chat.length > 0;
+    } catch (e) {
+        return false;
+    }
+}
 
 /**
  * Relationship type colors
@@ -350,16 +382,47 @@ function renderRelationshipFilter(allRelationships, activeFilter = 'all') {
  * @returns {string} HTML string
  */
 export function renderRelationshipsPanel(characterSystem, options = {}) {
+    const charName = getCharacterName();
+    const chatOpen = isChatOpen();
+
+    // No chat open - show prompt
+    if (!chatOpen || !charName) {
+        return `
+            <div class="rpg-enhanced-relationships-panel empty-state">
+                <div class="game-empty-message">
+                    <span class="empty-icon">💬</span>
+                    <span class="empty-text">Open a chat to view relationships</span>
+                    <small class="empty-hint">NPC relationships will be tracked during roleplay</small>
+                </div>
+            </div>
+        `;
+    }
+
     const activeRelationships = characterSystem?.getActiveRelationships?.() || {};
     const allRelationships = characterSystem?.relationshipManager?.getAllRelationships?.() || {};
 
-    const state = characterSystem?.getState?.();
-    const characterName = state?.characterName || 'Character';
+    // No relationships yet
+    const hasRelationships = Object.keys(allRelationships).length > 0;
+
+    if (!hasRelationships) {
+        return `
+            <div class="rpg-enhanced-relationships-panel">
+                <div class="panel-header">
+                    <span class="panel-title">${charName}'s Relationships</span>
+                </div>
+                <div class="game-empty-message">
+                    <span class="empty-icon">👥</span>
+                    <span class="empty-text">No relationships tracked yet</span>
+                    <small class="empty-hint">NPCs will appear here as you interact with them</small>
+                </div>
+            </div>
+        `;
+    }
 
     return `
         <div class="rpg-enhanced-relationships-panel">
             <div class="panel-header">
-                <span class="panel-title">${characterName}'s Relationships</span>
+                <span class="panel-title">${charName}'s Relationships</span>
             </div>
 
             ${options.showFilter !== false ?

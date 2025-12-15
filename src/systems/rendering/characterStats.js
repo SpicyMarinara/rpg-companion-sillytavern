@@ -3,7 +3,7 @@
  * Creates a game-like status screen similar to RPGM games
  *
  * Based on KATHERINE_RPG_MASTER_SPECIFICATION.txt
- * Version: 3.0.0 - Game-style UI
+ * Version: 3.1.0 - Dynamic data from chat
  */
 
 import { getContext } from '../../../../../../extensions.js';
@@ -72,11 +72,7 @@ const STAT_INFO = {
     exhibitionism: { name: 'Exhibitionism', desc: 'Show-off desire', icon: '👀' },
     perversion: { name: 'Perversion', desc: 'Kink level', icon: '🎭' },
     dominance: { name: 'Dominance', desc: 'Control desire', icon: '👸' },
-    submissiveness: { name: 'Submissiveness', desc: 'Submission desire', icon: '🙇' },
-    // Extra
-    comfort: { name: 'Comfort', desc: 'Physical comfort', icon: '🛋️' },
-    patience: { name: 'Patience', desc: 'Waiting tolerance', icon: '⏳' },
-    focus: { name: 'Focus', desc: 'Concentration', icon: '🎯' }
+    submissiveness: { name: 'Submissiveness', desc: 'Submission desire', icon: '🙇' }
 };
 
 /**
@@ -91,9 +87,17 @@ const INVERSE_STATS = ['hunger', 'bladder', 'bowel', 'pain', 'stress', 'anxiety'
 function getCharacterName() {
     try {
         const context = getContext();
-        return context?.name2 || 'Character';
+        if (context?.name2) {
+            return context.name2;
+        }
+        // Try to get from characters array
+        if (context?.characterId !== undefined && context?.characters) {
+            const char = context.characters[context.characterId];
+            if (char?.name) return char.name;
+        }
+        return null;
     } catch (e) {
-        return 'Character';
+        return null;
     }
 }
 
@@ -103,9 +107,9 @@ function getCharacterName() {
 function getUserName() {
     try {
         const context = getContext();
-        return context?.name1 || 'User';
+        return context?.name1 || null;
     } catch (e) {
-        return 'User';
+        return null;
     }
 }
 
@@ -127,21 +131,18 @@ function isChatOpen() {
 function getStatColor(value, statName) {
     const isInverse = INVERSE_STATS.includes(statName);
 
-    // Color ranges
     if (isInverse) {
-        // Higher is worse
-        if (value >= 90) return '#ff0000'; // Critical red
-        if (value >= 70) return '#ff6600'; // Urgent orange
-        if (value >= 50) return '#ffcc00'; // Warning yellow
-        if (value >= 30) return '#88cc00'; // Ok lime
-        return '#00cc44'; // Good green
+        if (value >= 90) return '#ff0000';
+        if (value >= 70) return '#ff6600';
+        if (value >= 50) return '#ffcc00';
+        if (value >= 30) return '#88cc00';
+        return '#00cc44';
     } else {
-        // Higher is better
-        if (value >= 80) return '#00cc44'; // Good green
-        if (value >= 60) return '#88cc00'; // Ok lime
-        if (value >= 40) return '#ffcc00'; // Warning yellow
-        if (value >= 20) return '#ff6600'; // Low orange
-        return '#ff0000'; // Critical red
+        if (value >= 80) return '#00cc44';
+        if (value >= 60) return '#88cc00';
+        if (value >= 40) return '#ffcc00';
+        if (value >= 20) return '#ff6600';
+        return '#ff0000';
     }
 }
 
@@ -186,7 +187,7 @@ function renderGameStatBar(statName, value, categoryColor) {
                     <div class="game-stat-bar-bg">
                         <div class="game-stat-bar-fill" style="width: ${barWidth}%; background: linear-gradient(90deg, ${color}88, ${color});"></div>
                     </div>
-                    <div class="game-stat-value">${displayValue}${value !== null ? '' : ''}</div>
+                    <div class="game-stat-value">${displayValue}</div>
                 </div>
             </div>
         </div>
@@ -202,8 +203,9 @@ function renderStatCategory(categoryKey, stats, options = {}) {
 
     const isCollapsed = options.collapsedCategories?.includes(categoryKey);
 
+    // Only render stats that exist in the data
     const statsHtml = category.stats
-        .filter(statName => stats[statName] !== undefined)
+        .filter(statName => stats && stats[statName] !== undefined)
         .map(statName => renderGameStatBar(statName, stats[statName], category.color))
         .join('');
 
@@ -224,10 +226,10 @@ function renderStatCategory(categoryKey, stats, options = {}) {
 }
 
 /**
- * Render scene/location info in game style
+ * Render scene/location info - only if data exists
  */
 function renderGameScene(scene) {
-    if (!scene) return '';
+    if (!scene || !scene.location) return '';
 
     const privacyLevel = scene.privacy >= 80 ? 'Private' :
                          scene.privacy >= 50 ? 'Semi-Private' : 'Public';
@@ -238,23 +240,29 @@ function renderGameScene(scene) {
         <div class="game-scene-panel">
             <div class="game-scene-header">
                 <span class="scene-icon">📍</span>
-                <span class="scene-title">Current Location</span>
+                <span class="scene-title">Current Scene</span>
             </div>
             <div class="game-scene-body">
-                <div class="scene-location-name">${scene.location || 'Unknown'}</div>
+                <div class="scene-location-name">${scene.location}</div>
                 <div class="scene-details">
-                    <div class="scene-detail">
-                        <span class="detail-icon">🕐</span>
-                        <span>${scene.time || '12:00'}</span>
-                    </div>
-                    <div class="scene-detail ${privacyClass}">
-                        <span class="detail-icon">👁️</span>
-                        <span>${privacyLevel} (${scene.privacy || 50}%)</span>
-                    </div>
-                    <div class="scene-detail">
-                        <span class="detail-icon">🛡️</span>
-                        <span>Safety: ${scene.safety || 50}%</span>
-                    </div>
+                    ${scene.time ? `
+                        <div class="scene-detail">
+                            <span class="detail-icon">🕐</span>
+                            <span>${scene.time}</span>
+                        </div>
+                    ` : ''}
+                    ${scene.privacy !== undefined ? `
+                        <div class="scene-detail ${privacyClass}">
+                            <span class="detail-icon">👁️</span>
+                            <span>${privacyLevel} (${scene.privacy}%)</span>
+                        </div>
+                    ` : ''}
+                    ${scene.safety !== undefined ? `
+                        <div class="scene-detail">
+                            <span class="detail-icon">🛡️</span>
+                            <span>Safety: ${scene.safety}%</span>
+                        </div>
+                    ` : ''}
                 </div>
                 ${scene.peoplePresent?.length > 0 ? `
                     <div class="scene-people">
@@ -268,7 +276,7 @@ function renderGameScene(scene) {
 }
 
 /**
- * Render biology/womb system in game style
+ * Render biology/womb system - only if data exists
  */
 function renderGameBiology(biology) {
     if (!biology || !biology.cycleEnabled) return '';
@@ -333,29 +341,31 @@ function renderGameBiology(biology) {
                         <span>Fertile Window!</span>
                     </div>
                 ` : ''}
-                ${biology.symptoms?.length > 0 ? `
-                    <div class="bio-symptoms">
-                        ${biology.symptoms.join(', ')}
-                    </div>
-                ` : ''}
             </div>
         </div>
     `;
 }
 
 /**
- * Render hair growth system in game style
+ * Render hair growth system - only relevant areas (pubic, armpits, rear)
  */
 function renderGameHair(hair) {
     if (!hair) return '';
 
+    // Only relevant areas - NO arms/legs
     const areas = [
         { key: 'pubic', name: 'Pubic', icon: '🔻' },
         { key: 'armpits', name: 'Armpits', icon: '💪' },
-        { key: 'legs', name: 'Legs', icon: '🦵' },
-        { key: 'arms', name: 'Arms', icon: '💪' },
         { key: 'assCrack', name: 'Rear', icon: '🍑' }
     ];
+
+    // Check if any hair data exists
+    const hasData = areas.some(area => {
+        const value = hair[area.key]?.value ?? hair[area.key];
+        return value !== undefined && value !== null;
+    });
+
+    if (!hasData) return '';
 
     const hairBars = areas.map(area => {
         const value = hair[area.key]?.value ?? hair[area.key] ?? 0;
@@ -387,7 +397,7 @@ function renderGameHair(hair) {
 }
 
 /**
- * Render outfit system in game style
+ * Render outfit system - only if data exists
  */
 function renderGameOutfit(outfit) {
     if (!outfit) return '';
@@ -400,6 +410,10 @@ function renderGameOutfit(outfit) {
         { key: 'shoes', icon: '👟', name: 'Shoes' },
         { key: 'accessories', icon: '💍', name: 'Accessories' }
     ];
+
+    // Check if any outfit data exists
+    const hasData = slots.some(slot => outfit[slot.key]);
+    if (!hasData) return '';
 
     const outfitItems = slots.map(slot => {
         const item = outfit[slot.key];
@@ -431,46 +445,63 @@ function renderGameOutfit(outfit) {
 }
 
 /**
- * Default stats when initializing new character
- */
-const DEFAULT_STATS = {
-    // Physical
-    hunger: 30, bladder: 20, bowel: 15, health: 100, cleanliness: 85,
-    energy: 80, sleep: 75, pain: 0,
-    // Mental
-    willpower: 65, confidence: 60, pride: 60, shame: 10,
-    stress: 20, anxiety: 15, loneliness: 25, jealousy: 10,
-    // Moral
-    morality: 75, corruption: 10, honesty: 80, loyalty: null,
-    // Sexual
-    arousal: 20, modesty: 70, lewdity: 25, exhibitionism: 5,
-    perversion: 10, dominance: 40, submissiveness: 45
-};
-
-/**
  * Render the full RPGM-style character stats panel
+ * Shows actual data from character system, or empty state if no data
  */
 export function renderCharacterStatsPanel(characterSystem, options = {}) {
     const charName = getCharacterName();
     const userName = getUserName();
     const chatOpen = isChatOpen();
 
-    // Get state from character system or use defaults
+    // No chat open - show prompt to open chat
+    if (!chatOpen || !charName) {
+        return `
+            <div class="game-status-screen empty-state">
+                <div class="game-empty-message">
+                    <span class="empty-icon">💬</span>
+                    <span class="empty-text">Open a chat to view character stats</span>
+                    <small class="empty-hint">Stats will be tracked automatically during roleplay</small>
+                </div>
+            </div>
+        `;
+    }
+
+    // Get state from character system - NO defaults, only real data
     const state = characterSystem?.getState?.();
-    const stats = state?.stats?.toObject?.() || state?.stats || DEFAULT_STATS;
-    const scene = state?.scene?.toObject?.() || state?.scene || {
-        location: 'Home',
-        privacy: 85,
-        safety: 90,
-        time: '10:00 AM'
-    };
+    const stats = state?.stats?.toObject?.() || state?.stats || null;
+    const scene = state?.scene?.toObject?.() || state?.scene || null;
     const hair = state?.hair || null;
     const outfit = state?.outfit || null;
     const biology = state?.biology || null;
 
-    // Render all stat categories
+    // If no stats data yet, show initializing state
+    if (!stats || Object.keys(stats).length === 0) {
+        return `
+            <div class="game-status-screen">
+                <div class="game-status-header">
+                    <div class="character-portrait">
+                        <div class="portrait-frame">
+                            <span class="portrait-icon">👤</span>
+                        </div>
+                    </div>
+                    <div class="character-info">
+                        <div class="character-name-display">${charName}</div>
+                        ${userName ? `<div class="character-relation">with ${userName}</div>` : ''}
+                    </div>
+                </div>
+                <div class="game-empty-message">
+                    <span class="empty-icon">📊</span>
+                    <span class="empty-text">No stats tracked yet</span>
+                    <small class="empty-hint">Stats will update as you roleplay</small>
+                </div>
+            </div>
+        `;
+    }
+
+    // Render all stat categories that have data
     const categoriesHtml = Object.keys(STAT_CATEGORIES)
         .map(key => renderStatCategory(key, stats, options))
+        .filter(html => html)
         .join('');
 
     return `
@@ -483,19 +514,12 @@ export function renderCharacterStatsPanel(characterSystem, options = {}) {
                 </div>
                 <div class="character-info">
                     <div class="character-name-display">${charName}</div>
-                    <div class="character-relation">Interacting with ${userName}</div>
+                    ${userName ? `<div class="character-relation">with ${userName}</div>` : ''}
                 </div>
             </div>
 
-            ${!chatOpen ? `
-                <div class="game-notice">
-                    <span class="notice-icon">💬</span>
-                    <span>Open a chat to track ${charName}'s state</span>
-                </div>
-            ` : ''}
-
             <div class="game-stats-container">
-                ${categoriesHtml}
+                ${categoriesHtml || '<div class="game-empty-message"><span>No stats data</span></div>'}
             </div>
 
             <div class="game-subsystems">
@@ -513,12 +537,13 @@ export function renderCharacterStatsPanel(characterSystem, options = {}) {
  */
 export function renderCompactStats(characterSystem, options = {}) {
     const state = characterSystem?.getState?.();
-    if (!state) return '';
+    if (!state || !state.stats) return '';
 
-    const stats = state.stats || {};
+    const stats = state.stats;
     const charName = getCharacterName();
+    if (!charName) return '';
 
-    // Show only critical stats
+    // Show only critical stats that exist
     const criticalStats = ['hunger', 'bladder', 'arousal', 'stress', 'health'];
 
     const statsHtml = criticalStats.map(statName => {
@@ -534,7 +559,9 @@ export function renderCompactStats(characterSystem, options = {}) {
                 <span class="compact-value" style="color: ${color}">${Math.round(value)}</span>
             </div>
         `;
-    }).join('');
+    }).filter(h => h).join('');
+
+    if (!statsHtml) return '';
 
     return `
         <div class="game-compact-stats">
@@ -545,4 +572,4 @@ export function renderCompactStats(characterSystem, options = {}) {
 }
 
 // Export for global access
-export { STAT_CATEGORIES, STAT_INFO, DEFAULT_STATS };
+export { STAT_CATEGORIES, STAT_INFO };

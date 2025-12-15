@@ -137,16 +137,39 @@ export function setupDesktopTabs() {
 
 /**
  * Update visibility of enhanced tabs based on settings
+ * When enhanced mode is ON: hide vanilla Status tab, show Character/Relations
+ * When enhanced mode is OFF: show vanilla Status tab, hide Character/Relations
  */
 export function updateEnhancedTabVisibility() {
     const isEnhancedEnabled = extensionSettings.enhancedRPG?.enabled;
 
     if (isEnhancedEnabled) {
+        // Show enhanced tabs
         $('.rpg-enhanced-tab').show();
         $('.rpg-enhanced-tab-content').addClass('enhanced-active');
+
+        // Hide vanilla status tab and content when enhanced is enabled
+        $('.rpg-tab-btn[data-tab="status"]').hide();
+        $('.rpg-tab-content[data-tab-content="status"]').removeClass('active');
+
+        // Make Character tab active by default when enhanced is enabled
+        if (!$('.rpg-tab-btn.active:visible').length) {
+            $('.rpg-tab-btn[data-tab="character"]').addClass('active');
+            $('.rpg-tab-content[data-tab-content="character"]').addClass('active');
+        }
     } else {
+        // Hide enhanced tabs
         $('.rpg-enhanced-tab').hide();
         $('.rpg-enhanced-tab-content').removeClass('enhanced-active');
+
+        // Show vanilla status tab when enhanced is disabled
+        $('.rpg-tab-btn[data-tab="status"]').show();
+
+        // Make Status tab active by default when enhanced is disabled
+        if (!$('.rpg-tab-btn.active:visible').length) {
+            $('.rpg-tab-btn[data-tab="status"]').addClass('active');
+            $('.rpg-tab-content[data-tab-content="status"]').addClass('active');
+        }
     }
 }
 
