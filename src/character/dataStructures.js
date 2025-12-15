@@ -9,48 +9,52 @@
 /**
  * Universal Stats Data Structure
  * 30 core stats that exist for every character
+ * ALL stats start as null - only populated from actual context/conversation
  */
 export class UniversalStats {
     constructor(defaults = {}) {
-        // Physical stats (5)
-        this.hunger = defaults.hunger ?? 45;        // Need to eat (0=full, 100=starving)
-        this.bladder = defaults.bladder ?? 30;      // Need to urinate (0=empty, 100=desperate)
-        this.bowel = defaults.bowel ?? 25;          // Need to defecate (0=empty, 100=desperate)
-        this.health = defaults.health ?? 90;        // Overall wellness (0=dying, 100=peak)
-        this.cleanliness = defaults.cleanliness ?? 70; // How clean (0=filthy, 100=fresh)
+        // Physical stats (5) - ALL start null, populated by LLM analysis
+        this.hunger = defaults.hunger ?? null;        // Need to eat (0=full, 100=starving)
+        this.bladder = defaults.bladder ?? null;      // Need to urinate (0=empty, 100=desperate)
+        this.bowel = defaults.bowel ?? null;          // Need to defecate (0=empty, 100=desperate)
+        this.health = defaults.health ?? null;        // Overall wellness (0=dying, 100=peak)
+        this.cleanliness = defaults.cleanliness ?? null; // How clean (0=filthy, 100=fresh)
 
-        // Mental stats (6)
-        this.willpower = defaults.willpower ?? 60;      // Self-control, resistance
-        this.confidence = defaults.confidence ?? 60;    // Self-belief
-        this.pride = defaults.pride ?? 60;              // Self-satisfaction, dignity
-        this.shame = defaults.shame ?? 10;              // Self-directed embarrassment
-        this.jealousy = defaults.jealousy ?? 20;        // Envy toward others
-        this.loneliness = defaults.loneliness ?? 30;    // Feeling of isolation
+        // Mental stats (6) - ALL start null
+        this.willpower = defaults.willpower ?? null;      // Self-control, resistance
+        this.confidence = defaults.confidence ?? null;    // Self-belief
+        this.pride = defaults.pride ?? null;              // Self-satisfaction, dignity
+        this.shame = defaults.shame ?? null;              // Self-directed embarrassment
+        this.jealousy = defaults.jealousy ?? null;        // Envy toward others
+        this.loneliness = defaults.loneliness ?? null;    // Feeling of isolation
 
-        // Moral stats (4)
-        this.morality = defaults.morality ?? 80;    // Adherence to moral code
-        this.corruption = defaults.corruption ?? 5;  // Moral degradation
-        this.honesty = defaults.honesty ?? 80;      // Truthfulness commitment
+        // Moral stats (4) - ALL start null
+        this.morality = defaults.morality ?? null;    // Adherence to moral code
+        this.corruption = defaults.corruption ?? null;  // Moral degradation
+        this.honesty = defaults.honesty ?? null;      // Truthfulness commitment
         this.loyalty = defaults.loyalty ?? null;     // Devotion (null = not earned)
 
-        // Sexual stats (6)
-        this.perversion = defaults.perversion ?? 10;        // Interest in unusual acts
-        this.lewdity = defaults.lewdity ?? 30;              // Comfort with sexual topics
-        this.exhibitionism = defaults.exhibitionism ?? 5;   // Desire to be seen
-        this.modesty = defaults.modesty ?? 70;              // Preference for privacy
-        this.dominance = defaults.dominance ?? 40;          // Desire to control
-        this.submissiveness = defaults.submissiveness ?? 40; // Desire to submit
-        this.arousal = defaults.arousal ?? 30;              // Sexual excitement
+        // Sexual stats (6) - ALL start null
+        this.perversion = defaults.perversion ?? null;        // Interest in unusual acts
+        this.lewdity = defaults.lewdity ?? null;              // Comfort with sexual topics
+        this.exhibitionism = defaults.exhibitionism ?? null;   // Desire to be seen
+        this.modesty = defaults.modesty ?? null;              // Preference for privacy
+        this.dominance = defaults.dominance ?? null;          // Desire to control
+        this.submissiveness = defaults.submissiveness ?? null; // Desire to submit
+        this.arousal = defaults.arousal ?? null;              // Sexual excitement
 
-        // Additional stats (9)
-        this.stress = defaults.stress ?? 20;        // Mental pressure
-        this.anxiety = defaults.anxiety ?? 20;      // Worry, nervousness
-        this.energy = defaults.energy ?? 70;        // Physical energy
-        this.sleep = defaults.sleep ?? 70;          // Rest level
-        this.pain = defaults.pain ?? 0;             // Physical pain
-        this.comfort = defaults.comfort ?? 60;      // Physical/mental ease
-        this.patience = defaults.patience ?? 60;    // Tolerance for waiting
-        this.focus = defaults.focus ?? 60;          // Concentration ability
+        // Additional stats (9) - ALL start null
+        this.stress = defaults.stress ?? null;        // Mental pressure
+        this.anxiety = defaults.anxiety ?? null;      // Worry, nervousness
+        this.energy = defaults.energy ?? null;        // Physical energy
+        this.sleep = defaults.sleep ?? null;          // Rest level
+        this.pain = defaults.pain ?? null;             // Physical pain
+        this.comfort = defaults.comfort ?? null;      // Physical/mental ease
+        this.patience = defaults.patience ?? null;    // Tolerance for waiting
+        this.focus = defaults.focus ?? null;          // Concentration ability
+
+        // Track which stats have been confirmed from context
+        this._confirmed = defaults._confirmed ?? {};
     }
 
     /**
@@ -178,6 +182,7 @@ export class UniversalStats {
 /**
  * Relationship Stats Structure
  * 18 stats per NPC across 4 categories
+ * ALL stats start null - only populated from actual context/conversation
  */
 export class RelationshipStats {
     /**
@@ -187,49 +192,50 @@ export class RelationshipStats {
     constructor(npcName, defaults = {}) {
         this.npcName = npcName;
 
-        // Core relationship (5 stats)
+        // Core relationship (5 stats) - ALL start null
         this.core = {
-            trust: defaults.trust ?? 30,           // Can I rely on them?
-            love: defaults.love ?? 0,              // Romantic/deep love
-            respect: defaults.respect ?? 30,       // Do I admire them?
-            fear: defaults.fear ?? 0,              // Am I scared of them?
+            trust: defaults.trust ?? null,           // Can I rely on them?
+            love: defaults.love ?? null,              // Romantic/deep love
+            respect: defaults.respect ?? null,       // Do I admire them?
+            fear: defaults.fear ?? null,              // Am I scared of them?
             loyalty: defaults.loyalty ?? null      // Am I devoted? (null = not earned)
         };
 
-        // Emotional connection (5 stats)
+        // Emotional connection (5 stats) - ALL start null
         this.emotional = {
-            closeness: defaults.closeness ?? 10,        // Emotional intimacy
-            comfort: defaults.comfort ?? 30,            // At ease around them
-            openness: defaults.openness ?? 10,          // Will share secrets
-            vulnerability: defaults.vulnerability ?? 5,  // Will show weakness
-            dependence: defaults.dependence ?? 0        // Rely on them
+            closeness: defaults.closeness ?? null,        // Emotional intimacy
+            comfort: defaults.comfort ?? null,            // At ease around them
+            openness: defaults.openness ?? null,          // Will share secrets
+            vulnerability: defaults.vulnerability ?? null,  // Will show weakness
+            dependence: defaults.dependence ?? null        // Rely on them
         };
 
-        // Social dynamics (4 stats)
+        // Social dynamics (4 stats) - ALL start null
         this.social = {
-            dominance: defaults.dominance ?? 50,         // Lead in relationship
-            submissiveness: defaults.submissiveness ?? 50, // Follow in relationship
-            assertiveness: defaults.assertiveness ?? 40,   // Speak up with them
-            flirtiness: defaults.flirtiness ?? 0          // Flirtatious behavior
+            dominance: defaults.dominance ?? null,         // Lead in relationship
+            submissiveness: defaults.submissiveness ?? null, // Follow in relationship
+            assertiveness: defaults.assertiveness ?? null,   // Speak up with them
+            flirtiness: defaults.flirtiness ?? null          // Flirtatious behavior
         };
 
-        // Attraction (4 stats)
+        // Attraction (4 stats) - ALL start null
         this.attraction = {
-            physical: defaults.physical ?? 0,      // Body attraction
-            emotional: defaults.emotional ?? 0,   // Personality attraction
-            intellectual: defaults.intellectual ?? 0, // Mind attraction
-            sexual: defaults.sexual ?? 0          // Sexual desire
+            physical: defaults.physical ?? null,      // Body attraction
+            emotional: defaults.emotional ?? null,   // Personality attraction
+            intellectual: defaults.intellectual ?? null, // Mind attraction
+            sexual: defaults.sexual ?? null          // Sexual desire
         };
 
-        // Metadata
+        // Metadata - only type/importance start with defaults
         this.metadata = {
-            relationshipType: defaults.relationshipType ?? 'Stranger',
-            firstMet: defaults.firstMet ?? new Date().toISOString(),
-            importance: defaults.importance ?? 'Low', // Critical, High, Medium, Low
-            isActive: defaults.isActive ?? false,     // Currently in scene
-            lastSeen: defaults.lastSeen ?? 'Never',
+            relationshipType: defaults.relationshipType ?? 'Unknown',
+            firstMet: defaults.firstMet ?? null,
+            importance: defaults.importance ?? 'Unknown',
+            isActive: defaults.isActive ?? false,
+            lastSeen: defaults.lastSeen ?? null,
             interactionCount: defaults.interactionCount ?? 0,
-            notes: defaults.notes ?? ''
+            notes: defaults.notes ?? '',
+            confirmed: defaults.confirmed ?? false  // Whether this relationship is confirmed from context
         };
     }
 
@@ -327,35 +333,28 @@ export class RelationshipStats {
 
 /**
  * Hair Growth System
- * Tracks hair in 5 body areas with growth rates and descriptions
+ * Tracks hair in body areas - ALL start null until confirmed from context
  */
 export class HairGrowth {
     constructor(defaults = {}) {
+        // Only track relevant areas - all start null
         this.pubic = {
-            value: defaults.pubic?.value ?? 10,
+            value: defaults.pubic?.value ?? null,
             lastShaved: defaults.pubic?.lastShaved ?? null,
-            growthRate: defaults.pubic?.growthRate ?? 3 // per day
+            growthRate: defaults.pubic?.growthRate ?? null
         };
         this.armpits = {
-            value: defaults.armpits?.value ?? 10,
+            value: defaults.armpits?.value ?? null,
             lastShaved: defaults.armpits?.lastShaved ?? null,
-            growthRate: defaults.armpits?.growthRate ?? 4
+            growthRate: defaults.armpits?.growthRate ?? null
         };
         this.assCrack = {
-            value: defaults.assCrack?.value ?? 10,
+            value: defaults.assCrack?.value ?? null,
             lastShaved: defaults.assCrack?.lastShaved ?? null,
-            growthRate: defaults.assCrack?.growthRate ?? 2
+            growthRate: defaults.assCrack?.growthRate ?? null
         };
-        this.arms = {
-            value: defaults.arms?.value ?? 25,
-            lastShaved: defaults.arms?.lastShaved ?? null,
-            growthRate: defaults.arms?.growthRate ?? 1
-        };
-        this.legs = {
-            value: defaults.legs?.value ?? 10,
-            lastShaved: defaults.legs?.lastShaved ?? null,
-            growthRate: defaults.legs?.growthRate ?? 3
-        };
+        // Track if hair system is enabled/relevant for this character
+        this._enabled = defaults._enabled ?? null;
     }
 
     /**
@@ -363,10 +362,13 @@ export class HairGrowth {
      * @param {number} days - Number of days to advance
      */
     advanceDays(days) {
-        const areas = ['pubic', 'armpits', 'assCrack', 'arms', 'legs'];
+        if (!this._enabled) return;
+        const areas = ['pubic', 'armpits', 'assCrack'];
         for (const area of areas) {
-            const growth = this[area].growthRate * days;
-            this[area].value = Math.min(100, this[area].value + growth);
+            if (this[area]?.value !== null && this[area]?.growthRate !== null) {
+                const growth = this[area].growthRate * days;
+                this[area].value = Math.min(100, this[area].value + growth);
+            }
         }
     }
 
@@ -478,8 +480,7 @@ export class HairGrowth {
             pubic: { ...this.pubic },
             armpits: { ...this.armpits },
             assCrack: { ...this.assCrack },
-            arms: { ...this.arms },
-            legs: { ...this.legs }
+            _enabled: this._enabled
         };
     }
 }
@@ -597,20 +598,21 @@ export class Outfit {
 
 /**
  * Biology System
- * Tracks menstrual cycle and pregnancy for female characters
+ * Tracks menstrual cycle and pregnancy - ALL start null until character context confirms
  */
 export class BiologySystem {
     constructor(defaults = {}) {
-        this.cycleEnabled = defaults.cycleEnabled ?? true;
-        this.currentPhase = defaults.currentPhase ?? 'follicular'; // menstruating, follicular, ovulating, luteal
-        this.dayOfCycle = defaults.dayOfCycle ?? 8;
-        this.cycleLength = defaults.cycleLength ?? 28;
+        // All start null - only enabled if character context indicates relevance
+        this.cycleEnabled = defaults.cycleEnabled ?? null;  // null = unknown, false = not applicable
+        this.currentPhase = defaults.currentPhase ?? null;
+        this.dayOfCycle = defaults.dayOfCycle ?? null;
+        this.cycleLength = defaults.cycleLength ?? null;
         this.lastPeriodStart = defaults.lastPeriodStart ?? null;
         this.nextPeriodStart = defaults.nextPeriodStart ?? null;
-        this.pregnant = defaults.pregnant ?? false;
-        this.pregnancyDay = defaults.pregnancyDay ?? 0;
-        this.pregnancyTrimester = defaults.pregnancyTrimester ?? 0;
-        this.fertilityWindow = defaults.fertilityWindow ?? false;
+        this.pregnant = defaults.pregnant ?? null;
+        this.pregnancyDay = defaults.pregnancyDay ?? null;
+        this.pregnancyTrimester = defaults.pregnancyTrimester ?? null;
+        this.fertilityWindow = defaults.fertilityWindow ?? null;
         this.symptoms = defaults.symptoms ?? [];
     }
 
@@ -773,38 +775,38 @@ export class BiologySystem {
 
 /**
  * Scene Context
- * Tracks current environment and situation
+ * Tracks current environment - ALL start null until determined from context
  */
 export class SceneContext {
     constructor(defaults = {}) {
-        // Location
-        this.location = defaults.location ?? 'Unknown';
-        this.locationType = defaults.locationType ?? 'Other'; // Home, Public, Workplace, Outdoor, Vehicle, Other
-        this.description = defaults.description ?? '';
+        // Location - all null until determined
+        this.location = defaults.location ?? null;
+        this.locationType = defaults.locationType ?? null;
+        this.description = defaults.description ?? null;
 
-        // Time
-        this.time = defaults.time ?? '12:00 PM';
-        this.date = defaults.date ?? new Date().toISOString().split('T')[0];
-        this.dayOfWeek = defaults.dayOfWeek ?? 'Monday';
-        this.season = defaults.season ?? 'Spring';
-        this.timeOfDay = defaults.timeOfDay ?? 'Midday'; // Early Morning, Morning, Midday, Afternoon, Evening, Night, Late Night
+        // Time - all null until determined
+        this.time = defaults.time ?? null;
+        this.date = defaults.date ?? null;
+        this.dayOfWeek = defaults.dayOfWeek ?? null;
+        this.season = defaults.season ?? null;
+        this.timeOfDay = defaults.timeOfDay ?? null;
 
         // People
         this.peoplePresent = defaults.peoplePresent ?? [];
 
-        // Conditions (0-100)
-        this.privacy = defaults.privacy ?? 50;
-        this.safety = defaults.safety ?? 70;
-        this.comfort = defaults.comfort ?? 60;
+        // Conditions (0-100) - null until determined
+        this.privacy = defaults.privacy ?? null;
+        this.safety = defaults.safety ?? null;
+        this.comfort = defaults.comfort ?? null;
 
-        // Environment
-        this.weather = defaults.weather ?? 'Clear';
-        this.temperature = defaults.temperature ?? 'Comfortable';
-        this.lighting = defaults.lighting ?? 'Bright';
-        this.noiseLevel = defaults.noiseLevel ?? 'Moderate';
+        // Environment - null until determined
+        this.weather = defaults.weather ?? null;
+        this.temperature = defaults.temperature ?? null;
+        this.lighting = defaults.lighting ?? null;
+        this.noiseLevel = defaults.noiseLevel ?? null;
 
         // Special
-        this.specialNotes = defaults.specialNotes ?? '';
+        this.specialNotes = defaults.specialNotes ?? null;
     }
 
     /**

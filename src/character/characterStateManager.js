@@ -80,9 +80,9 @@ export class CharacterStateManager {
                 await this.saveState();
             }
 
-            // Set up user relationship by default
-            const userName = context.name1 || 'User';
-            this.ensureUserRelationship(userName);
+            // Don't auto-create relationships - they should come from context/LLM analysis
+            // const userName = context.name1 || 'User';
+            // this.ensureUserRelationship(userName);
 
             this.emit('stateChanged', this.currentState);
 

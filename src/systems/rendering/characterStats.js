@@ -203,9 +203,9 @@ function renderStatCategory(categoryKey, stats, options = {}) {
 
     const isCollapsed = options.collapsedCategories?.includes(categoryKey);
 
-    // Only render stats that exist in the data
+    // Only render stats that have actual values (not null/undefined)
     const statsHtml = category.stats
-        .filter(statName => stats && stats[statName] !== undefined)
+        .filter(statName => stats && stats[statName] !== undefined && stats[statName] !== null)
         .map(statName => renderGameStatBar(statName, stats[statName], category.color))
         .join('');
 
@@ -470,12 +470,15 @@ export function renderCharacterStatsPanel(characterSystem, options = {}) {
     const state = characterSystem?.getState?.();
     const stats = state?.stats?.toObject?.() || state?.stats || null;
     const scene = state?.scene?.toObject?.() || state?.scene || null;
-    const hair = state?.hair || null;
-    const outfit = state?.outfit || null;
-    const biology = state?.biology || null;
+    const hair = state?.hair?.toObject?.() || state?.hair || null;
+    const outfit = state?.outfit?.toObject?.() || state?.outfit || null;
+    const biology = state?.biology?.toObject?.() || state?.biology || null;
 
-    // If no stats data yet, show initializing state
-    if (!stats || Object.keys(stats).length === 0) {
+    // Check if any stats have actual non-null values
+    const hasAnyStats = stats && Object.values(stats).some(v => v !== null && v !== undefined && typeof v !== 'object');
+
+    // If no stats have been determined yet, show waiting state
+    if (!hasAnyStats) {
         return `
             <div class="game-status-screen">
                 <div class="game-status-header">
@@ -490,9 +493,9 @@ export function renderCharacterStatsPanel(characterSystem, options = {}) {
                     </div>
                 </div>
                 <div class="game-empty-message">
-                    <span class="empty-icon">📊</span>
-                    <span class="empty-text">No stats tracked yet</span>
-                    <small class="empty-hint">Stats will update as you roleplay</small>
+                    <span class="empty-icon">🔍</span>
+                    <span class="empty-text">Analyzing character context...</span>
+                    <small class="empty-hint">Stats will be extracted from conversation and lorebook</small>
                 </div>
             </div>
         `;
@@ -543,12 +546,13 @@ export function renderCompactStats(characterSystem, options = {}) {
     const charName = getCharacterName();
     if (!charName) return '';
 
-    // Show only critical stats that exist
+    // Show only critical stats that have actual values (not null)
     const criticalStats = ['hunger', 'bladder', 'arousal', 'stress', 'health'];
 
     const statsHtml = criticalStats.map(statName => {
         const value = stats[statName];
-        if (value === undefined) return '';
+        // Only show stats with actual values
+        if (value === undefined || value === null) return '';
 
         const info = STAT_INFO[statName] || { icon: '📊' };
         const color = getStatColor(value, statName);
