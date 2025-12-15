@@ -6,7 +6,7 @@
  * Version: 3.0.0 - Game-style UI
  */
 
-import { getContext } from '../../../../extensions.js';
+import { getContext } from '../../../../../../extensions.js';
 
 /**
  * Stat category configurations - organized like RPGM games
