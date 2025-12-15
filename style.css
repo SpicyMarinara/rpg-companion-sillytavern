@@ -7947,3 +7947,798 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .sample-relationships {
     opacity: 0.85;
 }
+
+/* ============================================
+   RPGM GAME-STYLE UI - CHARACTER STATUS SCREEN
+   ============================================ */
+
+/* === GAME STATUS SCREEN CONTAINER === */
+.game-status-screen {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+    border-radius: 12px;
+    padding: 15px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #e8e8e8;
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* === CHARACTER HEADER === */
+.game-status-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.character-portrait {
+    flex-shrink: 0;
+}
+
+.portrait-frame {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #2d2d4a 0%, #1a1a2e 100%);
+    border: 3px solid #4a7ba7;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 0 15px rgba(74, 123, 167, 0.3),
+        inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.portrait-icon {
+    font-size: 32px;
+}
+
+.character-info {
+    flex: 1;
+}
+
+.character-name-display {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(74, 123, 167, 0.5);
+    margin-bottom: 4px;
+}
+
+.character-relation {
+    font-size: 12px;
+    color: #888;
+}
+
+/* === NOTICE BOX === */
+.game-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #ffc107;
+}
+
+.notice-icon {
+    font-size: 18px;
+}
+
+/* === STATS CONTAINER === */
+.game-stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* === CATEGORY STYLING === */
+.game-category {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.game-category-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: linear-gradient(90deg, rgba(var(--cat-color-rgb, 255,107,107), 0.2), transparent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.game-category-header:hover {
+    background: linear-gradient(90deg, rgba(var(--cat-color-rgb, 255,107,107), 0.3), transparent);
+}
+
+.game-category-icon {
+    font-size: 16px;
+}
+
+.game-category-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cat-color, #ff6b6b);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex: 1;
+}
+
+.game-category-arrow {
+    font-size: 12px;
+    color: #666;
+    transition: transform 0.2s ease;
+}
+
+.game-category.collapsed .game-category-arrow {
+    transform: rotate(-90deg);
+}
+
+.game-category-body {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.game-category.collapsed .game-category-body {
+    max-height: 0;
+    padding: 0 10px;
+}
+
+/* === STAT ROW STYLING === */
+.game-stat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.game-stat-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.game-stat-icon {
+    font-size: 16px;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.game-stat-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.game-stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #ccc;
+    margin-bottom: 3px;
+}
+
+.game-stat-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.game-stat-bar-bg {
+    flex: 1;
+    height: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.game-stat-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 8px currentColor;
+}
+
+.game-stat-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    min-width: 30px;
+    text-align: right;
+}
+
+/* === URGENCY STATES === */
+.game-stat-row.stat-warning {
+    background: rgba(255, 204, 0, 0.1);
+    border-left: 3px solid #ffcc00;
+}
+
+.game-stat-row.stat-urgent {
+    background: rgba(255, 102, 0, 0.15);
+    border-left: 3px solid #ff6600;
+}
+
+.game-stat-row.stat-critical {
+    background: rgba(255, 0, 0, 0.15);
+    border-left: 3px solid #ff0000;
+}
+
+.game-stat-row.pulse-glow {
+    animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 5px rgba(255, 0, 0, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(255, 0, 0, 0.6); }
+}
+
+/* === SUBSYSTEMS PANEL === */
+.game-subsystems {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* === SCENE PANEL === */
+.game-scene-panel {
+    background: rgba(0, 100, 150, 0.1);
+    border: 1px solid rgba(0, 150, 200, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.game-scene-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(0, 150, 200, 0.1);
+    border-bottom: 1px solid rgba(0, 150, 200, 0.2);
+}
+
+.scene-icon {
+    font-size: 16px;
+}
+
+.scene-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4ecdc4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.game-scene-body {
+    padding: 12px;
+}
+
+.scene-location-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+.scene-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.scene-detail {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #aaa;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 5px 10px;
+    border-radius: 15px;
+}
+
+.scene-detail.privacy-high { color: #44ff44; }
+.scene-detail.privacy-mid { color: #ffcc00; }
+.scene-detail.privacy-low { color: #ff4444; }
+
+.detail-icon {
+    font-size: 14px;
+}
+
+.scene-people {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 8px;
+}
+
+/* === BIOLOGY PANEL === */
+.game-biology-panel {
+    background: rgba(150, 0, 100, 0.1);
+    border: 1px solid rgba(200, 0, 150, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.game-biology-panel.pregnant {
+    background: rgba(255, 150, 200, 0.1);
+    border-color: rgba(255, 150, 200, 0.3);
+}
+
+.game-biology-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(200, 0, 150, 0.1);
+    border-bottom: 1px solid rgba(200, 0, 150, 0.2);
+}
+
+.bio-icon {
+    font-size: 16px;
+}
+
+.bio-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ff69b4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.game-biology-body {
+    padding: 12px;
+}
+
+.cycle-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.cycle-phase {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.cycle-day {
+    font-size: 12px;
+    color: #aaa;
+}
+
+.cycle-bar-wrap,
+.pregnancy-bar-wrap {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.cycle-bar,
+.pregnancy-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.pregnancy-bar {
+    background: linear-gradient(90deg, #ff99cc, #ff66aa);
+}
+
+.fertility-alert {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(255, 200, 0, 0.2);
+    border-radius: 4px;
+    color: #ffcc00;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.bio-symptoms {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+.pregnancy-status {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.pregnancy-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ff99cc;
+}
+
+.pregnancy-day {
+    font-size: 12px;
+    color: #aaa;
+}
+
+/* === HAIR GROWTH PANEL === */
+.game-hair-panel {
+    background: rgba(139, 69, 19, 0.1);
+    border: 1px solid rgba(139, 69, 19, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.game-hair-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(139, 69, 19, 0.15);
+    border-bottom: 1px solid rgba(139, 69, 19, 0.2);
+}
+
+.hair-title-icon {
+    font-size: 16px;
+}
+
+.hair-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #d2691e;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.game-hair-body {
+    padding: 10px;
+}
+
+.hair-area-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+}
+
+.hair-icon {
+    font-size: 14px;
+    width: 24px;
+    text-align: center;
+}
+
+.hair-name {
+    font-size: 12px;
+    color: #ccc;
+    width: 60px;
+}
+
+.hair-bar-wrap {
+    flex: 1;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.hair-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.hair-value {
+    font-size: 11px;
+    color: #aaa;
+    min-width: 35px;
+    text-align: right;
+}
+
+/* === OUTFIT PANEL === */
+.game-outfit-panel {
+    background: rgba(100, 0, 150, 0.1);
+    border: 1px solid rgba(150, 0, 200, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.game-outfit-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(150, 0, 200, 0.1);
+    border-bottom: 1px solid rgba(150, 0, 200, 0.2);
+}
+
+.outfit-title-icon {
+    font-size: 16px;
+}
+
+.outfit-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #da70d6;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.game-outfit-body {
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.outfit-slot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+}
+
+.outfit-slot.equipped {
+    border-color: rgba(150, 0, 200, 0.3);
+    background: rgba(150, 0, 200, 0.1);
+}
+
+.outfit-slot.empty {
+    opacity: 0.5;
+}
+
+.outfit-slot-icon {
+    font-size: 18px;
+}
+
+.outfit-slot-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.outfit-slot-name {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.outfit-item-name {
+    font-size: 12px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+/* === BEAUTIFUL TAB BUTTONS === */
+.rpg-tabs-nav {
+    display: flex;
+    gap: 4px;
+    padding: 8px 10px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 100%);
+    border-bottom: 2px solid rgba(74, 123, 167, 0.3);
+    margin-bottom: 10px;
+    border-radius: 8px 8px 0 0;
+    overflow-x: auto;
+}
+
+.rpg-tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 16px;
+    background: linear-gradient(180deg, rgba(30,30,50,0.8) 0%, rgba(20,20,35,0.9) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px 8px 0 0;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 12px;
+    min-width: 70px;
+    position: relative;
+    overflow: hidden;
+}
+
+.rpg-tab-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+    transition: background 0.3s ease;
+}
+
+.rpg-tab-btn:hover {
+    background: linear-gradient(180deg, rgba(50,50,80,0.9) 0%, rgba(30,30,50,0.95) 100%);
+    color: #ccc;
+    transform: translateY(-2px);
+}
+
+.rpg-tab-btn.active {
+    background: linear-gradient(180deg, rgba(74,123,167,0.3) 0%, rgba(40,60,80,0.9) 100%);
+    color: #fff;
+    border-color: rgba(74, 123, 167, 0.5);
+    box-shadow:
+        0 0 15px rgba(74, 123, 167, 0.3),
+        inset 0 0 10px rgba(74, 123, 167, 0.1);
+}
+
+.rpg-tab-btn.active::before {
+    background: linear-gradient(90deg, #4a7ba7, #6fa8dc, #4a7ba7);
+}
+
+.rpg-tab-btn i {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+.rpg-tab-btn:hover i {
+    transform: scale(1.1);
+}
+
+.rpg-tab-btn.active i {
+    color: #6fa8dc;
+    text-shadow: 0 0 10px rgba(111, 168, 220, 0.5);
+}
+
+.rpg-tab-btn span {
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Enhanced tab specific colors */
+.rpg-tab-btn[data-tab="character"].active {
+    background: linear-gradient(180deg, rgba(233,69,96,0.3) 0%, rgba(60,30,40,0.9) 100%);
+    border-color: rgba(233, 69, 96, 0.5);
+}
+
+.rpg-tab-btn[data-tab="character"].active::before {
+    background: linear-gradient(90deg, #e94560, #ff6b8a, #e94560);
+}
+
+.rpg-tab-btn[data-tab="character"].active i {
+    color: #ff6b8a;
+}
+
+.rpg-tab-btn[data-tab="relations"].active {
+    background: linear-gradient(180deg, rgba(255,105,180,0.3) 0%, rgba(60,30,50,0.9) 100%);
+    border-color: rgba(255, 105, 180, 0.5);
+}
+
+.rpg-tab-btn[data-tab="relations"].active::before {
+    background: linear-gradient(90deg, #ff69b4, #ff99cc, #ff69b4);
+}
+
+.rpg-tab-btn[data-tab="relations"].active i {
+    color: #ff99cc;
+}
+
+.rpg-tab-btn[data-tab="inventory"].active {
+    background: linear-gradient(180deg, rgba(255,193,7,0.3) 0%, rgba(60,50,20,0.9) 100%);
+    border-color: rgba(255, 193, 7, 0.5);
+}
+
+.rpg-tab-btn[data-tab="inventory"].active::before {
+    background: linear-gradient(90deg, #ffc107, #ffd54f, #ffc107);
+}
+
+.rpg-tab-btn[data-tab="inventory"].active i {
+    color: #ffd54f;
+}
+
+.rpg-tab-btn[data-tab="quests"].active {
+    background: linear-gradient(180deg, rgba(156,39,176,0.3) 0%, rgba(50,20,60,0.9) 100%);
+    border-color: rgba(156, 39, 176, 0.5);
+}
+
+.rpg-tab-btn[data-tab="quests"].active::before {
+    background: linear-gradient(90deg, #9c27b0, #ce93d8, #9c27b0);
+}
+
+.rpg-tab-btn[data-tab="quests"].active i {
+    color: #ce93d8;
+}
+
+/* === TAB CONTENT === */
+.rpg-tab-content {
+    display: none;
+    padding: 10px;
+}
+
+.rpg-tab-content.active {
+    display: block;
+    animation: fadeInTab 0.3s ease;
+}
+
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* === SCROLLBAR STYLING === */
+.game-status-screen::-webkit-scrollbar,
+.game-category-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.game-status-screen::-webkit-scrollbar-track,
+.game-category-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.game-status-screen::-webkit-scrollbar-thumb,
+.game-category-body::-webkit-scrollbar-thumb {
+    background: rgba(74, 123, 167, 0.5);
+    border-radius: 3px;
+}
+
+.game-status-screen::-webkit-scrollbar-thumb:hover,
+.game-category-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 123, 167, 0.7);
+}
+
+/* === COMPACT STATS FOR SIDEBAR === */
+.game-compact-stats {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.compact-header {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a7ba7;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.compact-stats-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.compact-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.compact-icon {
+    font-size: 14px;
+}
+
+.compact-value {
+    font-size: 12px;
+    font-weight: 700;
+}

@@ -1,223 +1,222 @@
 /**
- * RPG Companion Enhanced - Character Stats Rendering
- * Renders the enhanced character stats panel
+ * RPG Companion Enhanced - RPGM-Style Character Stats Rendering
+ * Creates a game-like status screen similar to RPGM games
  *
  * Based on KATHERINE_RPG_MASTER_SPECIFICATION.txt
- * Version: 2.0.0
+ * Version: 3.0.0 - Game-style UI
  */
 
-import { i18n } from '../../core/i18n.js';
+import { getContext } from '../../../../extensions.js';
 
 /**
- * Stat category configurations
+ * Stat category configurations - organized like RPGM games
  */
 const STAT_CATEGORIES = {
     physical: {
         name: 'Physical',
-        icon: '💪',
+        icon: '❤️',
+        color: '#ff6b6b',
         stats: ['hunger', 'bladder', 'bowel', 'health', 'cleanliness', 'energy', 'sleep', 'pain']
     },
     mental: {
         name: 'Mental',
         icon: '🧠',
+        color: '#4ecdc4',
         stats: ['willpower', 'confidence', 'pride', 'shame', 'stress', 'anxiety', 'loneliness', 'jealousy']
     },
     moral: {
         name: 'Moral',
         icon: '⚖️',
+        color: '#ffe66d',
         stats: ['morality', 'corruption', 'honesty', 'loyalty']
     },
     sexual: {
         name: 'Sexual',
-        icon: '💕',
+        icon: '💋',
+        color: '#ff69b4',
         stats: ['arousal', 'modesty', 'lewdity', 'exhibitionism', 'perversion', 'dominance', 'submissiveness']
     }
 };
 
 /**
- * Stat display names
+ * Stat display names and descriptions
  */
-const STAT_NAMES = {
-    hunger: 'Hunger',
-    bladder: 'Bladder',
-    bowel: 'Bowel',
-    health: 'Health',
-    cleanliness: 'Cleanliness',
-    energy: 'Energy',
-    sleep: 'Sleep',
-    pain: 'Pain',
-    willpower: 'Willpower',
-    confidence: 'Confidence',
-    pride: 'Pride',
-    shame: 'Shame',
-    stress: 'Stress',
-    anxiety: 'Anxiety',
-    loneliness: 'Loneliness',
-    jealousy: 'Jealousy',
-    morality: 'Morality',
-    corruption: 'Corruption',
-    honesty: 'Honesty',
-    loyalty: 'Loyalty',
-    arousal: 'Arousal',
-    modesty: 'Modesty',
-    lewdity: 'Lewdity',
-    exhibitionism: 'Exhibitionism',
-    perversion: 'Perversion',
-    dominance: 'Dominance',
-    submissiveness: 'Submissiveness',
-    comfort: 'Comfort',
-    patience: 'Patience',
-    focus: 'Focus'
+const STAT_INFO = {
+    // Physical
+    hunger: { name: 'Hunger', desc: 'Need to eat', icon: '🍽️' },
+    bladder: { name: 'Bladder', desc: 'Need to pee', icon: '💧' },
+    bowel: { name: 'Bowel', desc: 'Need to poop', icon: '💩' },
+    health: { name: 'Health', desc: 'Physical wellness', icon: '❤️' },
+    cleanliness: { name: 'Cleanliness', desc: 'How clean', icon: '🚿' },
+    energy: { name: 'Energy', desc: 'Stamina level', icon: '⚡' },
+    sleep: { name: 'Sleep', desc: 'Rest level', icon: '😴' },
+    pain: { name: 'Pain', desc: 'Physical pain', icon: '🩹' },
+    // Mental
+    willpower: { name: 'Willpower', desc: 'Self-control', icon: '💪' },
+    confidence: { name: 'Confidence', desc: 'Self-belief', icon: '😎' },
+    pride: { name: 'Pride', desc: 'Self-dignity', icon: '👑' },
+    shame: { name: 'Shame', desc: 'Embarrassment', icon: '😳' },
+    stress: { name: 'Stress', desc: 'Mental pressure', icon: '😰' },
+    anxiety: { name: 'Anxiety', desc: 'Nervousness', icon: '😟' },
+    loneliness: { name: 'Loneliness', desc: 'Isolation', icon: '🥺' },
+    jealousy: { name: 'Jealousy', desc: 'Envy level', icon: '💚' },
+    // Moral
+    morality: { name: 'Morality', desc: 'Ethical code', icon: '😇' },
+    corruption: { name: 'Corruption', desc: 'Moral decay', icon: '😈' },
+    honesty: { name: 'Honesty', desc: 'Truthfulness', icon: '🤥' },
+    loyalty: { name: 'Loyalty', desc: 'Devotion', icon: '🤝' },
+    // Sexual
+    arousal: { name: 'Arousal', desc: 'Sexual desire', icon: '🔥' },
+    modesty: { name: 'Modesty', desc: 'Privacy need', icon: '🙈' },
+    lewdity: { name: 'Lewdity', desc: 'Sexual comfort', icon: '😏' },
+    exhibitionism: { name: 'Exhibitionism', desc: 'Show-off desire', icon: '👀' },
+    perversion: { name: 'Perversion', desc: 'Kink level', icon: '🎭' },
+    dominance: { name: 'Dominance', desc: 'Control desire', icon: '👸' },
+    submissiveness: { name: 'Submissiveness', desc: 'Submission desire', icon: '🙇' },
+    // Extra
+    comfort: { name: 'Comfort', desc: 'Physical comfort', icon: '🛋️' },
+    patience: { name: 'Patience', desc: 'Waiting tolerance', icon: '⏳' },
+    focus: { name: 'Focus', desc: 'Concentration', icon: '🎯' }
 };
 
 /**
- * Get color for stat value
- * @param {number} value - Stat value
- * @param {string} statName - Stat name
- * @param {Object} colorSettings - Color settings
- * @returns {string} Hex color
+ * Stats where higher value is worse (inverted for color)
  */
-function getStatColor(value, statName, colorSettings = {}) {
-    const lowColor = colorSettings.statBarColorLow || '#cc3333';
-    const highColor = colorSettings.statBarColorHigh || '#33cc66';
+const INVERSE_STATS = ['hunger', 'bladder', 'bowel', 'pain', 'stress', 'anxiety',
+                       'shame', 'corruption', 'jealousy', 'loneliness'];
 
-    // Stats where higher is worse
-    const inverseStats = ['hunger', 'bladder', 'bowel', 'pain', 'stress', 'anxiety',
-                          'shame', 'corruption', 'jealousy', 'loneliness'];
+/**
+ * Get the character name from SillyTavern context
+ */
+function getCharacterName() {
+    try {
+        const context = getContext();
+        return context?.name2 || 'Character';
+    } catch (e) {
+        return 'Character';
+    }
+}
 
-    const isInverse = inverseStats.includes(statName);
+/**
+ * Get user name from SillyTavern context
+ */
+function getUserName() {
+    try {
+        const context = getContext();
+        return context?.name1 || 'User';
+    } catch (e) {
+        return 'User';
+    }
+}
 
-    // Calculate percentage for color
-    const percentage = value / 100;
+/**
+ * Check if a chat is currently open
+ */
+function isChatOpen() {
+    try {
+        const context = getContext();
+        return context?.chat && context.chat.length > 0;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * Get color for stat value based on level
+ */
+function getStatColor(value, statName) {
+    const isInverse = INVERSE_STATS.includes(statName);
+
+    // Color ranges
+    if (isInverse) {
+        // Higher is worse
+        if (value >= 90) return '#ff0000'; // Critical red
+        if (value >= 70) return '#ff6600'; // Urgent orange
+        if (value >= 50) return '#ffcc00'; // Warning yellow
+        if (value >= 30) return '#88cc00'; // Ok lime
+        return '#00cc44'; // Good green
+    } else {
+        // Higher is better
+        if (value >= 80) return '#00cc44'; // Good green
+        if (value >= 60) return '#88cc00'; // Ok lime
+        if (value >= 40) return '#ffcc00'; // Warning yellow
+        if (value >= 20) return '#ff6600'; // Low orange
+        return '#ff0000'; // Critical red
+    }
+}
+
+/**
+ * Get urgency level for stat
+ */
+function getStatUrgency(value, statName) {
+    const isInverse = INVERSE_STATS.includes(statName);
 
     if (isInverse) {
-        // Higher is worse - red at high values
-        return interpolateColor(highColor, lowColor, percentage);
+        if (value >= 90) return 'critical';
+        if (value >= 70) return 'urgent';
+        if (value >= 50) return 'warning';
+        return 'normal';
     } else {
-        // Higher is better - green at high values
-        return interpolateColor(lowColor, highColor, percentage);
+        if (value <= 20) return 'critical';
+        if (value <= 30) return 'urgent';
+        if (value <= 40) return 'warning';
+        return 'normal';
     }
 }
 
 /**
- * Interpolate between two colors
- * @param {string} color1 - Start color (hex)
- * @param {string} color2 - End color (hex)
- * @param {number} factor - Interpolation factor (0-1)
- * @returns {string} Interpolated color (hex)
+ * Render a single game-style stat bar
  */
-function interpolateColor(color1, color2, factor) {
-    const hex1 = color1.replace('#', '');
-    const hex2 = color2.replace('#', '');
+function renderGameStatBar(statName, value, categoryColor) {
+    const info = STAT_INFO[statName] || { name: statName, desc: '', icon: '📊' };
+    const color = getStatColor(value, statName);
+    const urgency = getStatUrgency(value, statName);
+    const displayValue = value === null ? 'N/A' : Math.round(value);
+    const barWidth = value === null ? 0 : Math.min(100, Math.max(0, value));
 
-    const r1 = parseInt(hex1.substring(0, 2), 16);
-    const g1 = parseInt(hex1.substring(2, 4), 16);
-    const b1 = parseInt(hex1.substring(4, 6), 16);
-
-    const r2 = parseInt(hex2.substring(0, 2), 16);
-    const g2 = parseInt(hex2.substring(2, 4), 16);
-    const b2 = parseInt(hex2.substring(4, 6), 16);
-
-    const r = Math.round(r1 + (r2 - r1) * factor);
-    const g = Math.round(g1 + (g2 - g1) * factor);
-    const b = Math.round(b1 + (b2 - b1) * factor);
-
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
-
-/**
- * Get urgency class for stat
- * @param {number} value - Stat value
- * @param {string} statName - Stat name
- * @returns {string} CSS class
- */
-function getUrgencyClass(value, statName) {
-    // Stats where higher is critical
-    const highCriticalStats = ['hunger', 'bladder', 'bowel', 'pain', 'stress', 'anxiety'];
-    // Stats where lower is critical
-    const lowCriticalStats = ['health', 'energy', 'sleep'];
-
-    if (highCriticalStats.includes(statName)) {
-        if (value >= 90) return 'stat-critical';
-        if (value >= 70) return 'stat-urgent';
-        if (value >= 50) return 'stat-warning';
-    }
-
-    if (lowCriticalStats.includes(statName)) {
-        if (value <= 20) return 'stat-critical';
-        if (value <= 30) return 'stat-urgent';
-        if (value <= 40) return 'stat-warning';
-    }
-
-    return '';
-}
-
-/**
- * Render a single stat bar
- * @param {string} statName - Stat name
- * @param {number} value - Stat value
- * @param {Object} options - Rendering options
- * @returns {string} HTML string
- */
-function renderStatBar(statName, value, options = {}) {
-    const displayName = STAT_NAMES[statName] || statName;
-    const color = getStatColor(value, statName, options.colorSettings);
-    const urgencyClass = getUrgencyClass(value, statName);
-
-    // Handle null loyalty
-    if (value === null) {
-        return `
-            <div class="rpg-enhanced-stat ${urgencyClass}" data-stat="${statName}">
-                <div class="stat-header">
-                    <span class="stat-name">${displayName}</span>
-                    <span class="stat-value">Not Earned</span>
-                </div>
-                <div class="stat-bar-container">
-                    <div class="stat-bar stat-bar-empty"></div>
-                </div>
-            </div>
-        `;
-    }
+    const urgencyClass = urgency !== 'normal' ? `stat-${urgency}` : '';
+    const pulseClass = (urgency === 'critical' || urgency === 'urgent') ? 'pulse-glow' : '';
 
     return `
-        <div class="rpg-enhanced-stat ${urgencyClass}" data-stat="${statName}">
-            <div class="stat-header">
-                <span class="stat-name">${displayName}</span>
-                <span class="stat-value">${value}/100</span>
-            </div>
-            <div class="stat-bar-container">
-                <div class="stat-bar" style="width: ${value}%; background-color: ${color};"></div>
+        <div class="game-stat-row ${urgencyClass} ${pulseClass}" data-stat="${statName}" title="${info.desc}">
+            <div class="game-stat-icon">${info.icon}</div>
+            <div class="game-stat-info">
+                <div class="game-stat-label">${info.name}</div>
+                <div class="game-stat-bar-wrap">
+                    <div class="game-stat-bar-bg">
+                        <div class="game-stat-bar-fill" style="width: ${barWidth}%; background: linear-gradient(90deg, ${color}88, ${color});"></div>
+                    </div>
+                    <div class="game-stat-value">${displayValue}${value !== null ? '' : ''}</div>
+                </div>
             </div>
         </div>
     `;
 }
 
 /**
- * Render a stat category
- * @param {string} categoryKey - Category key
- * @param {Object} stats - All stats
- * @param {Object} options - Rendering options
- * @returns {string} HTML string
+ * Render a stat category section
  */
 function renderStatCategory(categoryKey, stats, options = {}) {
     const category = STAT_CATEGORIES[categoryKey];
     if (!category) return '';
 
+    const isCollapsed = options.collapsedCategories?.includes(categoryKey);
+
     const statsHtml = category.stats
         .filter(statName => stats[statName] !== undefined)
-        .map(statName => renderStatBar(statName, stats[statName], options))
+        .map(statName => renderGameStatBar(statName, stats[statName], category.color))
         .join('');
 
-    const isCollapsed = options.collapsedCategories?.includes(categoryKey) || false;
+    if (!statsHtml) return '';
 
     return `
-        <div class="rpg-enhanced-category ${isCollapsed ? 'collapsed' : ''}" data-category="${categoryKey}">
-            <div class="category-header" onclick="toggleStatCategory('${categoryKey}')">
-                <span class="category-icon">${category.icon}</span>
-                <span class="category-name">${category.name}</span>
-                <span class="category-toggle">${isCollapsed ? '▶' : '▼'}</span>
+        <div class="game-category ${isCollapsed ? 'collapsed' : ''}" data-category="${categoryKey}">
+            <div class="game-category-header" onclick="window.toggleStatCategory('${categoryKey}')" style="--cat-color: ${category.color}">
+                <span class="game-category-icon">${category.icon}</span>
+                <span class="game-category-name">${category.name}</span>
+                <span class="game-category-arrow">${isCollapsed ? '▶' : '▼'}</span>
             </div>
-            <div class="category-content">
+            <div class="game-category-body">
                 ${statsHtml}
             </div>
         </div>
@@ -225,376 +224,325 @@ function renderStatCategory(categoryKey, stats, options = {}) {
 }
 
 /**
- * Render priority indicators
- * @param {Array} priorities - Active priorities
- * @returns {string} HTML string
+ * Render scene/location info in game style
  */
-function renderPriorityIndicators(priorities) {
-    if (!priorities || priorities.length === 0) {
-        return '';
-    }
-
-    const priorityHtml = priorities
-        .filter(p => p.level <= 4) // Only show important priorities
-        .map(p => {
-            const levelClass = `priority-level-${p.level}`;
-            return `
-                <div class="priority-indicator ${levelClass}">
-                    <span class="priority-level">L${p.level}</span>
-                    <span class="priority-name">${p.name}</span>
-                    <span class="priority-reason">${truncateReason(p.reason, 50)}</span>
-                </div>
-            `;
-        })
-        .join('');
-
-    if (!priorityHtml) return '';
-
-    return `
-        <div class="rpg-enhanced-priorities">
-            <div class="priorities-header">Active Priorities</div>
-            ${priorityHtml}
-        </div>
-    `;
-}
-
-/**
- * Truncate reason text
- * @param {string} reason - Full reason
- * @param {number} maxLength - Max length
- * @returns {string} Truncated reason
- */
-function truncateReason(reason, maxLength) {
-    if (!reason) return '';
-    if (reason.length <= maxLength) return reason;
-    return reason.substring(0, maxLength - 3) + '...';
-}
-
-/**
- * Render scene context summary
- * @param {Object} scene - Scene context
- * @returns {string} HTML string
- */
-function renderSceneContext(scene) {
+function renderGameScene(scene) {
     if (!scene) return '';
 
-    const privacyClass = scene.privacy < 40 ? 'privacy-public' :
-                         scene.privacy < 60 ? 'privacy-semi' : 'privacy-private';
+    const privacyLevel = scene.privacy >= 80 ? 'Private' :
+                         scene.privacy >= 50 ? 'Semi-Private' : 'Public';
+    const privacyClass = scene.privacy >= 80 ? 'privacy-high' :
+                         scene.privacy >= 50 ? 'privacy-mid' : 'privacy-low';
 
     return `
-        <div class="rpg-enhanced-scene">
-            <div class="scene-header">Current Scene</div>
-            <div class="scene-location">
+        <div class="game-scene-panel">
+            <div class="game-scene-header">
                 <span class="scene-icon">📍</span>
-                <span class="scene-name">${scene.location || 'Unknown'}</span>
-                <span class="scene-type">(${scene.locationType || 'Unknown'})</span>
+                <span class="scene-title">Current Location</span>
             </div>
-            <div class="scene-metrics">
-                <div class="scene-metric ${privacyClass}">
-                    <span class="metric-label">Privacy:</span>
-                    <span class="metric-value">${scene.privacy}/100</span>
+            <div class="game-scene-body">
+                <div class="scene-location-name">${scene.location || 'Unknown'}</div>
+                <div class="scene-details">
+                    <div class="scene-detail">
+                        <span class="detail-icon">🕐</span>
+                        <span>${scene.time || '12:00'}</span>
+                    </div>
+                    <div class="scene-detail ${privacyClass}">
+                        <span class="detail-icon">👁️</span>
+                        <span>${privacyLevel} (${scene.privacy || 50}%)</span>
+                    </div>
+                    <div class="scene-detail">
+                        <span class="detail-icon">🛡️</span>
+                        <span>Safety: ${scene.safety || 50}%</span>
+                    </div>
                 </div>
-                <div class="scene-metric">
-                    <span class="metric-label">Safety:</span>
-                    <span class="metric-value">${scene.safety}/100</span>
-                </div>
+                ${scene.peoplePresent?.length > 0 ? `
+                    <div class="scene-people">
+                        <span class="detail-icon">👥</span>
+                        <span>${scene.peoplePresent.join(', ')}</span>
+                    </div>
+                ` : ''}
             </div>
-            <div class="scene-time">
-                <span class="time-icon">🕐</span>
-                <span class="time-value">${scene.time || '12:00 PM'}, ${scene.dayOfWeek || 'Day'}</span>
-            </div>
-            ${scene.peoplePresent?.length > 0 ? `
-                <div class="scene-people">
-                    <span class="people-icon">👥</span>
-                    <span class="people-list">${scene.peoplePresent.join(', ')}</span>
-                </div>
-            ` : ''}
         </div>
     `;
 }
 
 /**
- * Render biology summary
- * @param {Object} biology - Biology data
- * @returns {string} HTML string
+ * Render biology/womb system in game style
  */
-function renderBiologySummary(biology) {
+function renderGameBiology(biology) {
     if (!biology || !biology.cycleEnabled) return '';
 
     if (biology.pregnant) {
+        const trimester = biology.pregnancyTrimester || 1;
+        const progress = Math.min(100, (biology.pregnancyDay / 280) * 100);
+
         return `
-            <div class="rpg-enhanced-biology">
-                <div class="biology-header">Biology</div>
-                <div class="biology-status pregnant">
-                    <span class="status-icon">🤰</span>
-                    <span class="status-text">Pregnant - Day ${biology.pregnancyDay}</span>
-                    <span class="status-detail">Trimester ${biology.pregnancyTrimester}</span>
+            <div class="game-biology-panel pregnant">
+                <div class="game-biology-header">
+                    <span class="bio-icon">🤰</span>
+                    <span class="bio-title">Womb Status</span>
+                </div>
+                <div class="game-biology-body">
+                    <div class="pregnancy-status">
+                        <div class="pregnancy-label">Pregnant - Trimester ${trimester}</div>
+                        <div class="pregnancy-day">Day ${biology.pregnancyDay || 1}</div>
+                    </div>
+                    <div class="pregnancy-bar-wrap">
+                        <div class="pregnancy-bar" style="width: ${progress}%"></div>
+                    </div>
+                    ${biology.symptoms?.length > 0 ? `
+                        <div class="bio-symptoms">
+                            Symptoms: ${biology.symptoms.join(', ')}
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         `;
     }
 
-    const phaseClasses = {
-        menstruating: 'phase-menstruating',
-        follicular: 'phase-follicular',
-        ovulating: 'phase-ovulating',
-        luteal: 'phase-luteal'
+    const phaseColors = {
+        menstruating: '#ff4466',
+        follicular: '#44aaff',
+        ovulating: '#ff66aa',
+        luteal: '#aa66ff'
     };
 
-    const phaseClass = phaseClasses[biology.currentPhase] || '';
+    const phaseColor = phaseColors[biology.currentPhase] || '#888';
+    const cycleProgress = (biology.dayOfCycle / (biology.cycleLength || 28)) * 100;
 
     return `
-        <div class="rpg-enhanced-biology">
-            <div class="biology-header">Biology</div>
-            <div class="biology-cycle ${phaseClass}">
-                <span class="cycle-day">Day ${biology.dayOfCycle}/${biology.cycleLength}</span>
-                <span class="cycle-phase">${biology.currentPhase}</span>
-                ${biology.fertilityWindow ? '<span class="fertility-warning">⚠️ Fertile</span>' : ''}
+        <div class="game-biology-panel">
+            <div class="game-biology-header">
+                <span class="bio-icon">🌸</span>
+                <span class="bio-title">Biology</span>
             </div>
-            ${biology.symptoms?.length > 0 ? `
-                <div class="biology-symptoms">
-                    <span class="symptoms-label">Symptoms:</span>
-                    <span class="symptoms-list">${biology.symptoms.join(', ')}</span>
+            <div class="game-biology-body">
+                <div class="cycle-info">
+                    <div class="cycle-phase" style="color: ${phaseColor}">
+                        ${(biology.currentPhase || 'Unknown').charAt(0).toUpperCase() + (biology.currentPhase || 'unknown').slice(1)}
+                    </div>
+                    <div class="cycle-day">Day ${biology.dayOfCycle || 1} / ${biology.cycleLength || 28}</div>
                 </div>
-            ` : ''}
+                <div class="cycle-bar-wrap">
+                    <div class="cycle-bar" style="width: ${cycleProgress}%; background: ${phaseColor}"></div>
+                </div>
+                ${biology.fertilityWindow ? `
+                    <div class="fertility-alert">
+                        <span class="fertility-icon">⚠️</span>
+                        <span>Fertile Window!</span>
+                    </div>
+                ` : ''}
+                ${biology.symptoms?.length > 0 ? `
+                    <div class="bio-symptoms">
+                        ${biology.symptoms.join(', ')}
+                    </div>
+                ` : ''}
+            </div>
         </div>
     `;
 }
 
 /**
- * Render hair summary
- * @param {Object} hair - Hair data
- * @returns {string} HTML string
+ * Render hair growth system in game style
  */
-function renderHairSummary(hair) {
+function renderGameHair(hair) {
     if (!hair) return '';
 
-    const areas = ['pubic', 'armpits', 'legs', 'arms', 'assCrack'];
-    const areaNames = {
-        pubic: 'Pubic',
-        armpits: 'Armpits',
-        legs: 'Legs',
-        arms: 'Arms',
-        assCrack: 'Rear'
-    };
+    const areas = [
+        { key: 'pubic', name: 'Pubic', icon: '🔻' },
+        { key: 'armpits', name: 'Armpits', icon: '💪' },
+        { key: 'legs', name: 'Legs', icon: '🦵' },
+        { key: 'arms', name: 'Arms', icon: '💪' },
+        { key: 'assCrack', name: 'Rear', icon: '🍑' }
+    ];
 
     const hairBars = areas.map(area => {
-        const value = hair[area]?.value ?? 0;
-        const description = hair.getDescription?.(area) || '';
+        const value = hair[area.key]?.value ?? hair[area.key] ?? 0;
+        const color = value > 70 ? '#8B4513' : value > 40 ? '#D2691E' : '#DEB887';
 
         return `
-            <div class="hair-area" data-area="${area}">
-                <div class="hair-header">
-                    <span class="hair-name">${areaNames[area]}</span>
-                    <span class="hair-value">${value}%</span>
+            <div class="hair-area-row">
+                <span class="hair-icon">${area.icon}</span>
+                <span class="hair-name">${area.name}</span>
+                <div class="hair-bar-wrap">
+                    <div class="hair-bar" style="width: ${value}%; background: ${color}"></div>
                 </div>
-                <div class="hair-bar-container">
-                    <div class="hair-bar" style="width: ${value}%"></div>
-                </div>
-                <div class="hair-description">${description}</div>
+                <span class="hair-value">${value}%</span>
             </div>
         `;
     }).join('');
 
     return `
-        <div class="rpg-enhanced-hair">
-            <div class="hair-header-main">Hair Growth</div>
-            ${hairBars}
+        <div class="game-hair-panel">
+            <div class="game-hair-header">
+                <span class="hair-title-icon">✂️</span>
+                <span class="hair-title">Hair Growth</span>
+            </div>
+            <div class="game-hair-body">
+                ${hairBars}
+            </div>
         </div>
     `;
 }
 
 /**
- * Render outfit summary
- * @param {Object} outfit - Outfit data
- * @returns {string} HTML string
+ * Render outfit system in game style
  */
-function renderOutfitSummary(outfit) {
+function renderGameOutfit(outfit) {
     if (!outfit) return '';
 
     const slots = [
         { key: 'top', icon: '👕', name: 'Top' },
-        { key: 'bottom', icon: '👖', name: 'Bottom' },
         { key: 'bra', icon: '👙', name: 'Bra' },
+        { key: 'bottom', icon: '👖', name: 'Bottom' },
         { key: 'underwear', icon: '🩲', name: 'Underwear' },
         { key: 'shoes', icon: '👟', name: 'Shoes' },
         { key: 'accessories', icon: '💍', name: 'Accessories' }
     ];
 
-    const outfitItems = slots
-        .filter(slot => outfit[slot.key]?.name)
-        .map(slot => `
-            <div class="outfit-item">
-                <span class="outfit-icon">${slot.icon}</span>
-                <span class="outfit-name">${outfit[slot.key].name}</span>
-                ${outfit[slot.key].description ? `
-                    <span class="outfit-desc">(${outfit[slot.key].description})</span>
-                ` : ''}
-            </div>
-        `)
-        .join('');
+    const outfitItems = slots.map(slot => {
+        const item = outfit[slot.key];
+        const itemName = item?.name || item || 'None';
+        const hasItem = itemName && itemName !== 'None';
 
-    if (!outfitItems && !outfit.overallDescription) {
-        return '';
-    }
+        return `
+            <div class="outfit-slot ${hasItem ? 'equipped' : 'empty'}">
+                <span class="outfit-slot-icon">${slot.icon}</span>
+                <div class="outfit-slot-info">
+                    <span class="outfit-slot-name">${slot.name}</span>
+                    <span class="outfit-item-name">${itemName}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 
     return `
-        <div class="rpg-enhanced-outfit">
-            <div class="outfit-header">Current Outfit</div>
-            ${outfit.overallDescription ? `
-                <div class="outfit-overall">${outfit.overallDescription}</div>
-            ` : ''}
-            ${outfitItems ? `
-                <div class="outfit-items">${outfitItems}</div>
-            ` : ''}
+        <div class="game-outfit-panel">
+            <div class="game-outfit-header">
+                <span class="outfit-title-icon">👗</span>
+                <span class="outfit-title">Outfit</span>
+            </div>
+            <div class="game-outfit-body">
+                ${outfitItems}
+            </div>
         </div>
     `;
 }
 
 /**
- * Sample default stats for preview when no chat is open
+ * Default stats when initializing new character
  */
-const SAMPLE_STATS = {
-    hunger: 45, bladder: 30, bowel: 25, health: 90, cleanliness: 70,
-    willpower: 60, confidence: 60, pride: 60, shame: 10, jealousy: 20, loneliness: 30,
-    morality: 80, corruption: 5, honesty: 80, loyalty: null,
-    perversion: 10, lewdity: 30, exhibitionism: 5, modesty: 70,
-    dominance: 40, submissiveness: 40, arousal: 30,
-    stress: 20, anxiety: 20, energy: 70, sleep: 70, pain: 0,
-    comfort: 60, patience: 60, focus: 60
-};
-
-const SAMPLE_SCENE = {
-    location: 'Home', locationType: 'Home', privacy: 85, safety: 90,
-    time: '10:30 AM', dayOfWeek: 'Monday', peoplePresent: []
-};
-
-const SAMPLE_OUTFIT = {
-    top: { name: 'Casual T-shirt', description: 'Light blue' },
-    bottom: { name: 'Jeans', description: 'Dark blue' },
-    underwear: { name: 'Cotton panties', description: '' },
-    bra: { name: 'Sports bra', description: '' },
-    shoes: { name: 'Sneakers', description: '' },
-    overallDescription: ''
-};
-
-const SAMPLE_HAIR = {
-    pubic: { value: 15 },
-    armpits: { value: 10 },
-    legs: { value: 12 },
-    arms: { value: 25 },
-    assCrack: { value: 8 }
+const DEFAULT_STATS = {
+    // Physical
+    hunger: 30, bladder: 20, bowel: 15, health: 100, cleanliness: 85,
+    energy: 80, sleep: 75, pain: 0,
+    // Mental
+    willpower: 65, confidence: 60, pride: 60, shame: 10,
+    stress: 20, anxiety: 15, loneliness: 25, jealousy: 10,
+    // Moral
+    morality: 75, corruption: 10, honesty: 80, loyalty: null,
+    // Sexual
+    arousal: 20, modesty: 70, lewdity: 25, exhibitionism: 5,
+    perversion: 10, dominance: 40, submissiveness: 45
 };
 
 /**
- * Render full character stats panel
- * @param {Object} characterSystem - Character system instance
- * @param {Object} options - Rendering options
- * @returns {string} HTML string
+ * Render the full RPGM-style character stats panel
  */
 export function renderCharacterStatsPanel(characterSystem, options = {}) {
+    const charName = getCharacterName();
+    const userName = getUserName();
+    const chatOpen = isChatOpen();
+
+    // Get state from character system or use defaults
     const state = characterSystem?.getState?.();
+    const stats = state?.stats?.toObject?.() || state?.stats || DEFAULT_STATS;
+    const scene = state?.scene?.toObject?.() || state?.scene || {
+        location: 'Home',
+        privacy: 85,
+        safety: 90,
+        time: '10:00 AM'
+    };
+    const hair = state?.hair || null;
+    const outfit = state?.outfit || null;
+    const biology = state?.biology || null;
 
-    // Use sample data if no state available (for preview)
-    const isPreview = !state;
-    const stats = state?.stats?.toObject?.() || state?.stats || SAMPLE_STATS;
-    const priorities = characterSystem?.getActivePriorities?.() || [];
-    const scene = state?.scene?.toObject?.() || state?.scene || SAMPLE_SCENE;
-    const hair = state?.hair || SAMPLE_HAIR;
-    const outfit = state?.outfit || SAMPLE_OUTFIT;
-    const biology = state?.biology || {};
-
-    // Render all categories
+    // Render all stat categories
     const categoriesHtml = Object.keys(STAT_CATEGORIES)
         .map(key => renderStatCategory(key, stats, options))
         .join('');
 
     return `
-        <div class="rpg-enhanced-stats-panel ${isPreview ? 'preview-mode' : ''}">
-            <div class="panel-header">
-                <span class="character-name">${state?.characterName || 'Character'}</span>
-                <span class="panel-title">Enhanced Stats${isPreview ? ' (Preview)' : ''}</span>
+        <div class="game-status-screen">
+            <div class="game-status-header">
+                <div class="character-portrait">
+                    <div class="portrait-frame">
+                        <span class="portrait-icon">👤</span>
+                    </div>
+                </div>
+                <div class="character-info">
+                    <div class="character-name-display">${charName}</div>
+                    <div class="character-relation">Interacting with ${userName}</div>
+                </div>
             </div>
 
-            ${isPreview ? `
-                <div class="preview-notice">
-                    <i class="fa-solid fa-info-circle"></i>
-                    <span>Open a chat to see live character data</span>
+            ${!chatOpen ? `
+                <div class="game-notice">
+                    <span class="notice-icon">💬</span>
+                    <span>Open a chat to track ${charName}'s state</span>
                 </div>
             ` : ''}
 
-            ${renderPriorityIndicators(priorities)}
-            ${renderSceneContext(scene)}
-
-            <div class="stats-categories">
+            <div class="game-stats-container">
                 ${categoriesHtml}
             </div>
 
-            ${options.showBiology !== false ? renderBiologySummary(biology) : ''}
-            ${options.showHair !== false ? renderHairSummary(hair) : ''}
-            ${options.showOutfit !== false ? renderOutfitSummary(outfit) : ''}
+            <div class="game-subsystems">
+                ${renderGameScene(scene)}
+                ${renderGameBiology(biology)}
+                ${renderGameHair(hair)}
+                ${renderGameOutfit(outfit)}
+            </div>
         </div>
     `;
 }
 
 /**
- * Render compact stats summary (for sidebar)
- * @param {Object} characterSystem - Character system instance
- * @param {Object} options - Rendering options
- * @returns {string} HTML string
+ * Render compact stats for sidebar
  */
 export function renderCompactStats(characterSystem, options = {}) {
     const state = characterSystem?.getState?.();
     if (!state) return '';
 
     const stats = state.stats || {};
-    const priorities = characterSystem?.getActivePriorities?.() || [];
-    const highestPriority = priorities[0];
+    const charName = getCharacterName();
 
-    // Show only critical/urgent stats
-    const critical = stats.getCriticalStats?.() || [];
-    const urgent = stats.getUrgentStats?.() || [];
+    // Show only critical stats
+    const criticalStats = ['hunger', 'bladder', 'arousal', 'stress', 'health'];
 
-    const criticalHtml = critical.map(s => `
-        <div class="compact-stat critical">
-            <span class="stat-name">${STAT_NAMES[s.name] || s.name}</span>
-            <span class="stat-value">${s.value}</span>
-        </div>
-    `).join('');
-
-    const urgentHtml = urgent.map(s => `
-        <div class="compact-stat urgent">
-            <span class="stat-name">${STAT_NAMES[s.name] || s.name}</span>
-            <span class="stat-value">${s.value}</span>
-        </div>
-    `).join('');
-
-    // Always show key stats
-    const keyStats = ['arousal', 'stress', 'energy'];
-    const keyStatsHtml = keyStats.map(statName => {
+    const statsHtml = criticalStats.map(statName => {
         const value = stats[statName];
         if (value === undefined) return '';
+
+        const info = STAT_INFO[statName] || { icon: '📊' };
+        const color = getStatColor(value, statName);
+
         return `
-            <div class="compact-stat">
-                <span class="stat-name">${STAT_NAMES[statName]}</span>
-                <span class="stat-value">${value}</span>
+            <div class="compact-stat-item">
+                <span class="compact-icon">${info.icon}</span>
+                <span class="compact-value" style="color: ${color}">${Math.round(value)}</span>
             </div>
         `;
     }).join('');
 
     return `
-        <div class="rpg-enhanced-compact-stats">
-            ${highestPriority && highestPriority.level <= 3 ? `
-                <div class="compact-priority priority-level-${highestPriority.level}">
-                    ${highestPriority.name}: ${truncateReason(highestPriority.reason, 30)}
-                </div>
-            ` : ''}
-            ${criticalHtml}
-            ${urgentHtml}
-            ${keyStatsHtml}
+        <div class="game-compact-stats">
+            <div class="compact-header">${charName}</div>
+            <div class="compact-stats-row">${statsHtml}</div>
         </div>
     `;
 }
 
 // Export for global access
-export { STAT_CATEGORIES, STAT_NAMES };
+export { STAT_CATEGORIES, STAT_INFO, DEFAULT_STATS };
