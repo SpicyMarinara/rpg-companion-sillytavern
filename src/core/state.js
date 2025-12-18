@@ -164,7 +164,8 @@ export let extensionSettings = {
         assets: 'list'    // 'list' or 'grid' view mode for Assets section
     },
     debugMode: false, // Enable debug logging visible in UI (for mobile debugging)
-    memoryMessagesToProcess: 16 // Number of messages to process per batch in memory recollection
+    memoryMessagesToProcess: 16, // Number of messages to process per batch in memory recollection
+    npcAvatars: {} // Store custom avatar images for NPCs (key: character name, value: base64 data URI)
 };
 
 /**

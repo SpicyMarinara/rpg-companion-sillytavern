@@ -16,6 +16,7 @@ import {
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
+import { saveSettings } from '../../core/persistence.js';
 
 /**
  * Helper to log to both console and debug logs array
@@ -99,6 +100,132 @@ function namesMatch(cardName, aiName) {
     const escapedCardCore = cardCore.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const wordBoundary = new RegExp(`\\b${escapedCardCore}\\b`);
     return wordBoundary.test(aiCore);
+}
+
+/**
+ * Gets the avatar URL for a character, checking custom NPC avatars first
+ * @param {string} characterName - Name of the character
+ * @returns {string} Avatar URL or fallback
+ */
+function getCharacterAvatar(characterName) {
+    // First, check if there's a custom NPC avatar
+    if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[characterName]) {
+        debugLog(`[RPG Thoughts] Found custom NPC avatar for: ${characterName}`);
+        return extensionSettings.npcAvatars[characterName];
+    }
+
+    // Use the existing avatar lookup logic
+    let characterPortrait = FALLBACK_AVATAR_DATA_URI;
+
+    // For group chats, search through group members first
+    if (selected_group) {
+        try {
+            const groupMembers = getGroupMembers(selected_group);
+            if (groupMembers && groupMembers.length > 0) {
+                const matchingMember = groupMembers.find(member =>
+                    member && member.name && namesMatch(member.name, characterName)
+                );
+
+                if (matchingMember && matchingMember.avatar && matchingMember.avatar !== 'none') {
+                    const thumbnailUrl = getSafeThumbnailUrl('avatar', matchingMember.avatar);
+                    if (thumbnailUrl) {
+                        return thumbnailUrl;
+                    }
+                }
+            }
+        } catch (groupError) {
+            debugLog('[RPG Thoughts] Error checking group members:', groupError.message);
+        }
+    }
+
+    // For regular chats or if not found in group, search all characters
+    if (characters && characters.length > 0) {
+        const matchingCharacter = characters.find(c =>
+            c && c.name && namesMatch(c.name, characterName)
+        );
+
+        if (matchingCharacter && matchingCharacter.avatar && matchingCharacter.avatar !== 'none') {
+            const thumbnailUrl = getSafeThumbnailUrl('avatar', matchingCharacter.avatar);
+            if (thumbnailUrl) {
+                return thumbnailUrl;
+            }
+        }
+    }
+
+    // If this is the current character in a 1-on-1 chat, use their portrait
+    if (this_chid !== undefined && characters[this_chid] &&
+        characters[this_chid].name && namesMatch(characters[this_chid].name, characterName)) {
+        const thumbnailUrl = getSafeThumbnailUrl('avatar', characters[this_chid].avatar);
+        if (thumbnailUrl) {
+            return thumbnailUrl;
+        }
+    }
+
+    return characterPortrait;
+}
+
+/**
+ * Handles uploading a custom avatar for an NPC character
+ * @param {string} characterName - Name of the character to set avatar for
+ */
+function uploadNpcAvatar(characterName) {
+    // Create a file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file size (max 2MB to keep settings file reasonable)
+        if (file.size > 2 * 1024 * 1024) {
+            console.error('[RPG Companion] Image file too large. Maximum size is 2MB.');
+            // You could add a toast notification here if available
+            return;
+        }
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            console.error('[RPG Companion] Invalid file type. Please select an image.');
+            return;
+        }
+
+        try {
+            // Read the file and convert to base64 data URI
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const dataUri = event.target.result;
+
+                // Initialize npcAvatars if it doesn't exist
+                if (!extensionSettings.npcAvatars) {
+                    extensionSettings.npcAvatars = {};
+                }
+
+                // Store the avatar
+                extensionSettings.npcAvatars[characterName] = dataUri;
+
+                // Save settings
+                saveSettings();
+
+                console.log(`[RPG Companion] Avatar uploaded for NPC: ${characterName}`);
+
+                // Re-render to show the new avatar
+                renderThoughts();
+            };
+
+            reader.onerror = (error) => {
+                console.error('[RPG Companion] Error reading image file:', error);
+            };
+
+            reader.readAsDataURL(file);
+        } catch (error) {
+            console.error('[RPG Companion] Error uploading avatar:', error);
+        }
+    };
+
+    // Trigger the file input
+    input.click();
 }
 
 /**
@@ -280,7 +407,7 @@ export function renderThoughts() {
         html += '<div class="rpg-thoughts-content">';
         html += `
             <div class="rpg-character-card" data-character-name="${escapedDefaultName}">
-                <div class="rpg-character-avatar">
+                <div class="rpg-character-avatar rpg-avatar-upload" data-character="${escapedDefaultName}" title="Click to upload custom avatar&#10;Right-click to remove custom avatar">
                     <img src="${defaultPortrait}" alt="${escapedDefaultName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
                     <div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="relationship" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">⚖️</div>
                 </div>
@@ -314,64 +441,8 @@ export function renderThoughts() {
             try {
                 debugLog(`[RPG Thoughts] Building HTML for character ${characterIndex}/${presentCharacters.length}:`, char.name);
 
-                // Find character portrait
-                // Use a base64-encoded SVG placeholder as fallback to avoid 400 errors
-                let characterPortrait = FALLBACK_AVATAR_DATA_URI;
-
-                debugLog(`[RPG Thoughts] Looking up avatar for: ${char.name}`);
-
-                // For group chats, search through group members first
-                if (selected_group) {
-                    debugLog('[RPG Thoughts] In group chat, checking group members...');
-
-                    try {
-                        const groupMembers = getGroupMembers(selected_group);
-                        debugLog('[RPG Thoughts] Group members count:', groupMembers ? groupMembers.length : 0);
-
-                        if (groupMembers && groupMembers.length > 0) {
-                            const matchingMember = groupMembers.find(member =>
-                                member && member.name && namesMatch(member.name, char.name)
-                            );
-
-                            if (matchingMember && matchingMember.avatar && matchingMember.avatar !== 'none') {
-                                const thumbnailUrl = getSafeThumbnailUrl('avatar', matchingMember.avatar);
-                                if (thumbnailUrl) {
-                                    characterPortrait = thumbnailUrl;
-                                    debugLog('[RPG Thoughts] Found avatar in group members');
-                                }
-                            }
-                        }
-                    } catch (groupError) {
-                        debugLog('[RPG Thoughts] Error checking group members:', groupError.message);
-                    }
-                }
-
-                // For regular chats or if not found in group, search all characters
-                if (characterPortrait === FALLBACK_AVATAR_DATA_URI && characters && characters.length > 0) {
-                    debugLog('[RPG Thoughts] Searching all characters...');
-
-                    const matchingCharacter = characters.find(c =>
-                        c && c.name && namesMatch(c.name, char.name)
-                    );
-
-                    if (matchingCharacter && matchingCharacter.avatar && matchingCharacter.avatar !== 'none') {
-                        const thumbnailUrl = getSafeThumbnailUrl('avatar', matchingCharacter.avatar);
-                        if (thumbnailUrl) {
-                            characterPortrait = thumbnailUrl;
-                            debugLog('[RPG Thoughts] Found avatar in all characters');
-                        }
-                    }
-                }
-
-                // If this is the current character in a 1-on-1 chat, use their portrait
-                if (this_chid !== undefined && characters[this_chid] &&
-                    characters[this_chid].name && namesMatch(characters[this_chid].name, char.name)) {
-                    const thumbnailUrl = getSafeThumbnailUrl('avatar', characters[this_chid].avatar);
-                    if (thumbnailUrl) {
-                        characterPortrait = thumbnailUrl;
-                        debugLog('[RPG Thoughts] Found avatar from current character');
-                    }
-                }
+                // Find character portrait using the new helper function
+                const characterPortrait = getCharacterAvatar(char.name);
 
                 debugLog(`[RPG Thoughts] Final avatar for ${char.name}:`, characterPortrait.substring(0, 50) + '...');
 
@@ -394,7 +465,7 @@ export function renderThoughts() {
 
                 html += `
                     <div class="rpg-character-card" data-character-name="${escapedName}">
-                        <div class="rpg-character-avatar">
+                        <div class="rpg-character-avatar rpg-avatar-upload" data-character="${escapedName}" title="Click to upload custom avatar&#10;Right-click to remove custom avatar">
                             <img src="${characterPortrait}" alt="${escapedName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
                             ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
                         </div>
@@ -464,6 +535,40 @@ export function renderThoughts() {
         const value = $(this).text().trim();
         console.log('[RPG Companion] Character stat edit:', { character, field, value });
         updateCharacterField(character, field, value);
+    });
+
+    // Add event handler for avatar uploads
+    $thoughtsContainer.find('.rpg-avatar-upload').on('click', function(e) {
+        // Prevent triggering if clicking on the relationship badge
+        if ($(e.target).hasClass('rpg-relationship-badge') || $(e.target).closest('.rpg-relationship-badge').length > 0) {
+            return;
+        }
+
+        const characterName = $(this).data('character');
+        console.log('[RPG Companion] Avatar upload clicked for:', characterName);
+        uploadNpcAvatar(characterName);
+    });
+
+    // Add event handler for removing custom avatars (right-click)
+    $thoughtsContainer.find('.rpg-avatar-upload').on('contextmenu', function(e) {
+        // Prevent triggering if clicking on the relationship badge
+        if ($(e.target).hasClass('rpg-relationship-badge') || $(e.target).closest('.rpg-relationship-badge').length > 0) {
+            return;
+        }
+
+        e.preventDefault(); // Prevent default context menu
+        const characterName = $(this).data('character');
+
+        // Check if this character has a custom avatar
+        if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[characterName]) {
+            // Remove the custom avatar
+            delete extensionSettings.npcAvatars[characterName];
+            saveSettings();
+            console.log(`[RPG Companion] Removed custom avatar for: ${characterName}`);
+
+            // Re-render to show the default avatar
+            renderThoughts();
+        }
     });
 
     // Remove updating class after animation

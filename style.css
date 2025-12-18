@@ -1881,6 +1881,49 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: block; /* Prevent inline spacing issues */
 }
 
+/* Uploadable avatar - make it clickable */
+.rpg-avatar-upload {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.rpg-avatar-upload::after {
+    content: '📷';
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: clamp(10px, 1.5vh, 14px);
+    background: var(--rpg-bg);
+    border: 1px solid var(--rpg-highlight);
+    border-radius: 50%;
+    width: clamp(18px, 2.5vh, 22px);
+    height: clamp(18px, 2.5vh, 22px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.rpg-avatar-upload:hover::after {
+    opacity: 1;
+}
+
+.rpg-avatar-upload:hover {
+    transform: scale(1.05);
+}
+
+.rpg-avatar-upload:hover img {
+    opacity: 0.8;
+    border-color: var(--rpg-text);
+}
+
+.rpg-avatar-upload:active {
+    transform: scale(0.98);
+}
+
 /* Relationship badge in top-right corner */
 .rpg-relationship-badge {
     position: absolute;
