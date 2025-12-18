@@ -91,6 +91,12 @@ import {
     initTrackerEditor
 } from './src/systems/ui/trackerEditor.js';
 import {
+    initChapterCheckpointUI,
+    injectCheckpointButton,
+    updateAllCheckpointIndicators
+} from './src/systems/ui/checkpointUI.js';
+import { restoreCheckpointOnLoad } from './src/systems/features/chapterCheckpoint.js';
+import {
     togglePlotButtons,
     updateCollapseToggleIcon,
     setupCollapseToggle,
@@ -129,7 +135,8 @@ import {
     onCharacterChanged,
     onMessageSwiped,
     updatePersonaAvatar,
-    clearExtensionPrompts
+    clearExtensionPrompts,
+    onGenerationEnded
 } from './src/systems/integration/sillytavern.js';
 
 // Old state variable declarations removed - now imported from core modules
@@ -366,6 +373,11 @@ async function initUI() {
         saveSettings();
     });
 
+    $('#rpg-save-tracker-history').on('change', function() {
+        extensionSettings.saveTrackerHistory = $(this).prop('checked');
+        saveSettings();
+    });
+
     $('#rpg-toggle-plot-buttons').on('change', function() {
         extensionSettings.enablePlotButtons = $(this).prop('checked');
         // console.log('[RPG Companion] Toggle enablePlotButtons changed to:', extensionSettings.enablePlotButtons);
@@ -478,6 +490,7 @@ async function initUI() {
     $('#rpg-custom-highlight').val(extensionSettings.customColors.highlight);
     $('#rpg-generation-mode').val(extensionSettings.generationMode);
     $('#rpg-skip-guided-mode').val(extensionSettings.skipInjectionsForGuided);
+    $('#rpg-save-tracker-history').prop('checked', extensionSettings.saveTrackerHistory);
 
     updatePanelVisibility();
     updateSectionVisibility();
@@ -514,6 +527,10 @@ async function initUI() {
     setupMobileKeyboardHandling();
     setupContentEditableScrolling();
     initInventoryEventListeners();
+
+    // Initialize chapter checkpoint UI
+    initChapterCheckpointUI();
+    injectCheckpointButton();
 
     // Setup Memory Recollection button in World Info
     setupMemoryRecollectionButton();
@@ -683,7 +700,9 @@ jQuery(async () => {
                 [event_types.MESSAGE_SENT]: onMessageSent,
                 [event_types.GENERATION_STARTED]: onGenerationStarted,
                 [event_types.MESSAGE_RECEIVED]: onMessageReceived,
-                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar],
+                [event_types.GENERATION_STOPPED]: onGenerationEnded,
+                [event_types.GENERATION_ENDED]: onGenerationEnded,
+                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar, restoreCheckpointOnLoad],
                 [event_types.MESSAGE_SWIPED]: onMessageSwiped,
                 [event_types.USER_MESSAGE_RENDERED]: updatePersonaAvatar,
                 [event_types.SETTINGS_UPDATED]: updatePersonaAvatar
@@ -692,6 +711,9 @@ jQuery(async () => {
             console.error('[RPG Companion] Event registration failed:', error);
             throw error; // This is critical - can't continue without events
         }
+
+        // Restore checkpoint state if one exists
+        await restoreCheckpointOnLoad();
 
         console.log('[RPG Companion] ✅ Extension loaded successfully');
     } catch (error) {

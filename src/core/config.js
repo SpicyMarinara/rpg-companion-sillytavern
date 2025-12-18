@@ -42,6 +42,7 @@ export const defaultSettings = {
     // This setting helps compatibility with other extensions like GuidedGenerations.
     skipInjectionsForGuided: 'none',
     enablePlotButtons: true, // Show plot progression buttons above chat input
+    saveTrackerHistory: false, // Save tracker data in chat history for each message
     panelPosition: 'right', // 'left', 'right', or 'top'
     theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom
     customColors: {

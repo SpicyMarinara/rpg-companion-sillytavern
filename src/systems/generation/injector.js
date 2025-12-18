@@ -21,6 +21,7 @@ import {
     generateContextualSummary,
     DEFAULT_HTML_PROMPT
 } from './promptBuilder.js';
+import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
 
 /**
  * Event handler for generation start.
@@ -29,7 +30,7 @@ import {
  * @param {string} type - Event type
  * @param {Object} data - Event data
  */
-export function onGenerationStarted(type, data) {
+export async function onGenerationStarted(type, data) {
     // console.log('[RPG Companion] onGenerationStarted called');
     // console.log('[RPG Companion] enabled:', extensionSettings.enabled);
     // console.log('[RPG Companion] generationMode:', extensionSettings.generationMode);
@@ -68,6 +69,10 @@ export function onGenerationStarted(type, data) {
         setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
     }
+
+    // Ensure checkpoint is applied before generation
+    await restoreCheckpointOnLoad();
+
     const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
 
     // For SEPARATE mode only: Check if we need to commit extension data

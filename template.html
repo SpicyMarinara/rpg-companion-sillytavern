@@ -267,6 +267,14 @@
                     When set, the extension will not inject tracker prompts, examples, or HTML instructions according to the selected mode when a guided generation (via `instruct` or `quiet_prompt`) is detected. Useful when using GuidedGenerations or similar extensions.
                 </small>
 
+                <label class="checkbox_label" style="margin-top: 16px;">
+                    <input type="checkbox" id="rpg-save-tracker-history" />
+                    <span data-i18n-key="template.settingsModal.advanced.saveTrackerHistory">Save Tracker History in Chat</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.advanced.saveTrackerHistoryNote">
+                    When enabled, tracker data is saved in chat history for each message. In Together mode, trackers appear in &lt;trackers&gt; XML tags (hidden from display). In Separate mode, tracker data is stored in message metadata. When disabled, only the most recent trackers are kept.
+                </small>
+
                 <!-- Custom HTML Prompt Editor -->
                 <div class="rpg-setting-row" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rpg-border);">
                     <label for="rpg-custom-html-prompt" style="display: block; margin-bottom: 8px; font-weight: 600;" data-i18n-key="template.settingsModal.advanced.customHtmlPromptTitle">

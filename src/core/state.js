@@ -24,6 +24,7 @@ export let extensionSettings = {
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
     enablePlotButtons: true, // Show plot progression buttons above chat input
+    saveTrackerHistory: false, // Save tracker data in chat history for each message
     panelPosition: 'right', // 'left', 'right', or 'top'
     theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom
     customColors: {

@@ -159,6 +159,38 @@ export function parseResponse(responseText) {
     cleanedResponse = cleanedResponse.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
     debugLog('[RPG Parser] Removed thinking tags, new length:', cleanedResponse.length + ' chars');
 
+    // Check if response uses XML <trackers> tags (new format)
+    const xmlMatch = cleanedResponse.match(/<trackers>([\s\S]*?)<\/trackers>/i);
+    if (xmlMatch) {
+        debugLog('[RPG Parser] ✓ Found XML <trackers> tags, using XML parser');
+        const trackersContent = xmlMatch[1].trim();
+
+        // Extract sections from XML content (sections are not in code blocks)
+        const statsMatch = trackersContent.match(/(User )?Stats\s*\n\s*---[\s\S]*?(?=\n\s*\n\s*(Info Box|Present Characters)|$)/i);
+        if (statsMatch) {
+            result.userStats = stripBrackets(statsMatch[0].trim());
+            debugLog('[RPG Parser] ✓ Extracted Stats from XML');
+        }
+
+        const infoBoxMatch = trackersContent.match(/Info Box\s*\n\s*---[\s\S]*?(?=\n\s*\n\s*Present Characters|$)/i);
+        if (infoBoxMatch) {
+            result.infoBox = stripBrackets(infoBoxMatch[0].trim());
+            debugLog('[RPG Parser] ✓ Extracted Info Box from XML');
+        }
+
+        const charactersMatch = trackersContent.match(/Present Characters\s*\n\s*---[\s\S]*$/i);
+        if (charactersMatch) {
+            result.characterThoughts = stripBrackets(charactersMatch[0].trim());
+            debugLog('[RPG Parser] ✓ Extracted Present Characters from XML');
+        }
+
+        debugLog('[RPG Parser] Parsed from XML:', result);
+        return result;
+    }
+
+    // Fallback to markdown code block parsing (old format)
+    debugLog('[RPG Parser] No XML tags found, using code block parser');
+
     // Extract code blocks
     const codeBlockRegex = /```([^`]+)```/g;
     const matches = [...cleanedResponse.matchAll(codeBlockRegex)];

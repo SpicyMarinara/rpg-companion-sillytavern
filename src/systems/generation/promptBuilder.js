@@ -5,7 +5,7 @@
 
 import { getContext } from '../../../../../../extensions.js';
 import { chat, getCurrentChatDetails, characters, this_chid } from '../../../../../../../script.js';
-import { selected_group, getGroupMembers, getGroupChat } from '../../../../../../group-chats.js';
+import { selected_group, getGroupMembers, getGroupChat, groups } from '../../../../../../group-chats.js';
 import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../core/state.js';
 
 // Type imports
@@ -25,7 +25,8 @@ async function getCharacterCardsInfo() {
 
     // Check if in group chat
     if (selected_group) {
-        const group = await getGroupChat(selected_group);
+        // Find the current group directly from the groups array
+        const group = groups.find(g => g.id === selected_group);
         const groupMembers = getGroupMembers(selected_group);
 
         if (groupMembers && groupMembers.length > 0) {
@@ -33,13 +34,15 @@ async function getCharacterCardsInfo() {
 
             // Filter out disabled (muted) members
             const disabledMembers = group?.disabled_members || [];
+            console.log('[RPG Companion] 🔍 Group ID:', selected_group, '| Disabled members:', disabledMembers);
             let characterIndex = 0;
 
             groupMembers.forEach((member) => {
                 if (!member || !member.name) return;
 
-                // Skip muted characters
+                // Skip muted characters - check against avatar filename
                 if (member.avatar && disabledMembers.includes(member.avatar)) {
+                    console.log(`[RPG Companion] ❌ Skipping muted: ${member.name} (${member.avatar})`);
                     return;
                 }
 
@@ -204,16 +207,27 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
     // Only add tracker instructions if at least one tracker is enabled
     if (hasAnyTrackers) {
+        // Determine format based on saveTrackerHistory setting
+        const useXmlTags = extensionSettings.saveTrackerHistory;
+        const openTag = useXmlTags ? '<trackers>\n' : '';
+        const closeTag = useXmlTags ? '\n</trackers>' : '';
+        const codeBlockMarker = useXmlTags ? '' : '```';
+
         // Universal instruction header
-        instructions += `\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the same format as below, enclosed in separate Markdown code fences. Replace X with actual numbers (e.g., 69) and replace all [placeholders] with concrete in-world details that ${userName} perceives about the current scene and the present characters. Do NOT keep the brackets or placeholder text in your response. For example: [Location] becomes Forest Clearing, [Mood Emoji] becomes 😊. Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences (0% if the time progressed only by a few minutes, 1-5% normally, and above 5% only if a major time-skip/event occurs).
+        if (useXmlTags) {
+            instructions += `\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the same format as below, enclosed in <trackers></trackers> XML tags. Replace X with actual numbers (e.g., 69) and replace all [placeholders] with concrete in-world details that ${userName} perceives about the current scene and the present characters. Do NOT keep the brackets or placeholder text in your response. For example: [Location] becomes Forest Clearing, [Mood Emoji] becomes 😊. Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences (0% if the time progressed only by a few minutes, 1-5% normally, and above 5% only if a major time-skip/event occurs).
 `;
+        } else {
+            instructions += `\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the same format as below, enclosed in separate Markdown code fences. Replace X with actual numbers (e.g., 69) and replace all [placeholders] with concrete in-world details that ${userName} perceives about the current scene and the present characters. Do NOT keep the brackets or placeholder text in your response. For example: [Location] becomes Forest Clearing, [Mood Emoji] becomes 😊. Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences (0% if the time progressed only by a few minutes, 1-5% normally, and above 5% only if a major time-skip/event occurs).
+`;
+        }
 
         // Add format specifications for each enabled tracker
         if (extensionSettings.showUserStats) {
             const userStatsConfig = trackerConfig?.userStats;
             const enabledStats = userStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
 
-            instructions += '```\n';
+            instructions += codeBlockMarker + '\n';
             instructions += `${userName}'s Stats\n`;
             instructions += '---\n';
 
@@ -258,14 +272,14 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             instructions += 'Main Quests: [Short title of the currently active main quest (for example, "Save the world"), or "None"]\n';
             instructions += 'Optional Quests: [Short titles of the currently active optional quests (for example, "Find Zandik\'s book"), or "None"]\n';
 
-            instructions += '```\n\n';
+            instructions += codeBlockMarker + '\n\n';
         }
 
         if (extensionSettings.showInfoBox) {
             const infoBoxConfig = trackerConfig?.infoBox;
             const widgets = infoBoxConfig?.widgets || {};
 
-            instructions += '```\n';
+            instructions += codeBlockMarker + '\n';
             instructions += 'Info Box\n';
             instructions += '---\n';
 
@@ -290,7 +304,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += 'Recent Events: [Up to three past events leading to the ongoing scene (short descriptors with no details, for example, "last-night date with Mary")]\n';
             }
 
-            instructions += '```\n\n';
+            instructions += codeBlockMarker + '\n\n';
         }
 
         if (extensionSettings.showCharacterThoughts) {
@@ -301,7 +315,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             const characterStats = presentCharsConfig?.characterStats;
             const enabledCharStats = characterStats?.enabled && characterStats?.customStats?.filter(s => s && s.enabled && s.name) || [];
 
-            instructions += '```\n';
+            instructions += codeBlockMarker + '\n';
             instructions += 'Present Characters\n';
             instructions += '---\n';
 
@@ -346,7 +360,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
             instructions += `- … (Repeat the format above for every other present major character)\n`;
 
-            instructions += '```\n\n';
+            instructions += codeBlockMarker + '\n\n';
         }
 
         // Only add continuation instruction if includeContinuation is true
@@ -560,8 +574,10 @@ export async function generateSeparateUpdatePrompt() {
         content: systemMessage
     });
 
+    // /hide command automatically handles checkpoint filtering
     // Add chat history as separate user/assistant messages
     const recentMessages = chat.slice(-depth);
+
     for (const message of recentMessages) {
         messages.push({
             role: message.is_user ? 'user' : 'assistant',

@@ -161,5 +161,9 @@
     "quests.optional.addQuestButton": "Add Quest",
     "quests.optional.addQuestPlaceholder": "Enter optional quest title...",
     "quests.optional.empty": "No active optional quests",
-    "quests.optional.hint": "Optional quests are side objectives that complement your main story."
+    "quests.optional.hint": "Optional quests are side objectives that complement your main story.",
+    "checkpoint.setChapterStart": "Set Chapter Start",
+    "checkpoint.clearChapterStart": "Clear Chapter Start",
+    "checkpoint.indicator": "Chapter Start",
+    "checkpoint.tooltip": "Messages before this point are excluded from context"
 }
