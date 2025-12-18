@@ -17,6 +17,7 @@ import { sanitizeItemName, MAX_ITEMS_PER_SECTION } from './security.js';
  * - Strips list markers: -, •, 1., 2., etc.
  * - Collapses newlines inside parentheses to spaces
  * - Only splits on commas OUTSIDE parentheses (preserves commas in descriptions)
+ * - Preserves commas in numbers (decimal separators like 4443,445)
  * - Gracefully handles unmatched parentheses
  *
  * @param {string} itemString - Item string from AI (various formats supported)
@@ -34,6 +35,10 @@ import { sanitizeItemName, MAX_ITEMS_PER_SECTION } from './security.js';
  * // Commas in parentheses (preserved)
  * parseItems("Potato (Cursed, Sexy, Your Mum & Dick, Etc), Sword")
  * // → ["Potato (Cursed, Sexy, Your Mum & Dick, Etc)", "Sword"]
+ *
+ * // Decimal commas in numbers (preserved)
+ * parseItems("4443,445 gold coins, Sword, 1,234,567 credits")
+ * // → ["4443,445 gold coins", "Sword", "1,234,567 credits"]
  *
  * // Markdown formatting (stripped)
  * parseItems("**Sword** (equipped), *Shield*") // ["Sword (equipped)", "Shield"]
@@ -125,7 +130,7 @@ export function parseItems(itemString) {
     // STEP 5: Normalize whitespace
     processed = processed.replace(/\s+/g, ' ');
 
-    // STEP 6: Smart comma splitting (only split on commas OUTSIDE parentheses)
+    // STEP 6: Smart comma splitting (only split on commas OUTSIDE parentheses and NOT in numbers)
     // Also handles list markers, quotes, and security validation per-item
     const items = [];
     let currentItem = '';
@@ -146,22 +151,32 @@ export function parseItems(itemString) {
             }
             currentItem += char;
         } else if (char === ',' && parenDepth === 0) {
-            // Comma outside parentheses - this is a separator
-            const cleaned = cleanSingleItem(currentItem);
-            if (cleaned) {
-                // Security check: validate and sanitize item name
-                const sanitized = sanitizeItemName(cleaned);
-                if (sanitized) {
-                    items.push(sanitized);
-                }
+            // Check if this comma is between digits (decimal separator like 4443,445)
+            const prevChar = i > 0 ? processed[i - 1] : '';
+            const nextChar = i < processed.length - 1 ? processed[i + 1] : '';
+            const isDecimalComma = /\d/.test(prevChar) && /\d/.test(nextChar);
 
-                // DoS protection: enforce max items limit
-                if (items.length >= MAX_ITEMS_PER_SECTION) {
-                    console.warn(`[RPG Companion] Reached max items limit (${MAX_ITEMS_PER_SECTION}), truncating list`);
-                    return items;
+            if (isDecimalComma) {
+                // This is a decimal comma, not a separator - keep it
+                currentItem += char;
+            } else {
+                // Comma outside parentheses and not in a number - this is a separator
+                const cleaned = cleanSingleItem(currentItem);
+                if (cleaned) {
+                    // Security check: validate and sanitize item name
+                    const sanitized = sanitizeItemName(cleaned);
+                    if (sanitized) {
+                        items.push(sanitized);
+                    }
+
+                    // DoS protection: enforce max items limit
+                    if (items.length >= MAX_ITEMS_PER_SECTION) {
+                        console.warn(`[RPG Companion] Reached max items limit (${MAX_ITEMS_PER_SECTION}), truncating list`);
+                        return items;
+                    }
                 }
+                currentItem = ''; // Start new item
             }
-            currentItem = ''; // Start new item
         } else {
             currentItem += char;
         }
