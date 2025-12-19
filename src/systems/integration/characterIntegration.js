@@ -286,31 +286,88 @@ export function injectEnhancedPrompts(context = {}) {
     }
 
     try {
-        // Build compact state summary for injection
-        const stateSummary = characterSystemInstance.buildCompactStateSummary();
+        const state = characterSystemInstance.stateManager?.currentState;
+        if (!state) return;
 
-        if (stateSummary) {
-            setExtensionPrompt(
-                'rpg-enhanced-state',
-                stateSummary,
-                extension_prompt_types.IN_CHAT,
-                0, // Depth
-                false // Not scannable
-            );
+        const ctx = getContext();
+        const charName = ctx.name2 || 'Character';
+        const userName = ctx.name1 || 'User';
+
+        // Build comprehensive state prompt for AI guidance
+        let statePrompt = `[RPG CHARACTER STATE - ${charName}]\n`;
+
+        // Add stats that have values
+        const stats = state.stats;
+        const activeStats = [];
+        if (stats) {
+            if (stats.arousal !== null) activeStats.push(`Arousal: ${stats.arousal}/100`);
+            if (stats.stress !== null) activeStats.push(`Stress: ${stats.stress}/100`);
+            if (stats.energy !== null) activeStats.push(`Energy: ${stats.energy}/100`);
+            if (stats.confidence !== null) activeStats.push(`Confidence: ${stats.confidence}/100`);
+            if (stats.comfort !== null) activeStats.push(`Comfort: ${stats.comfort}/100`);
+            if (stats.anxiety !== null) activeStats.push(`Anxiety: ${stats.anxiety}/100`);
         }
 
-        // Build priority-based behavior guidance
-        const highestPriority = characterSystemInstance.getHighestPriority();
-        if (highestPriority) {
-            const priorityPrompt = buildPriorityPrompt(highestPriority);
-            setExtensionPrompt(
-                'rpg-enhanced-priority',
-                priorityPrompt,
-                extension_prompt_types.IN_CHAT,
-                0,
-                false
-            );
+        if (activeStats.length > 0) {
+            statePrompt += `Current Stats: ${activeStats.join(', ')}\n`;
         }
+
+        // Add scene context
+        if (state.scene?.location) {
+            statePrompt += `Location: ${state.scene.location}`;
+            if (state.scene.privacy !== null) {
+                statePrompt += ` (Privacy: ${state.scene.privacy}/100)`;
+            }
+            statePrompt += '\n';
+        }
+
+        // Add outfit info
+        if (state.outfit?.overallDescription) {
+            statePrompt += `Outfit: ${state.outfit.overallDescription}\n`;
+        }
+
+        // Add relationship with user
+        const userRel = state.relationships?.[userName];
+        if (userRel) {
+            const relType = userRel.metadata?.relationshipType || 'Unknown';
+            statePrompt += `Relationship with ${userName}: ${relType}`;
+            if (userRel.core?.trust !== null) statePrompt += `, Trust: ${userRel.core.trust}`;
+            if (userRel.core?.love !== null) statePrompt += `, Love: ${userRel.core.love}`;
+            statePrompt += '\n';
+
+            if (userRel.metadata?.notes) {
+                statePrompt += `${charName}'s thoughts about ${userName}: "${userRel.metadata.notes}"\n`;
+            }
+        }
+
+        // Add behavior guidance based on stats
+        statePrompt += '\n[BEHAVIOR GUIDANCE]\n';
+
+        if (stats?.arousal !== null && stats.arousal >= 60) {
+            statePrompt += `- High arousal (${stats.arousal}): ${charName} is feeling turned on, may be more receptive to intimacy\n`;
+        }
+        if (stats?.stress !== null && stats.stress >= 60) {
+            statePrompt += `- High stress (${stats.stress}): ${charName} is stressed, may be irritable or distracted\n`;
+        }
+        if (stats?.energy !== null && stats.energy <= 30) {
+            statePrompt += `- Low energy (${stats.energy}): ${charName} is tired, may want to rest\n`;
+        }
+        if (stats?.anxiety !== null && stats.anxiety >= 50) {
+            statePrompt += `- Anxious (${stats.anxiety}): ${charName} is nervous, may be hesitant\n`;
+        }
+
+        statePrompt += `\nRespond as ${charName} would, considering these stats and emotional state.`;
+
+        setExtensionPrompt(
+            'rpg-enhanced-state',
+            statePrompt,
+            extension_prompt_types.IN_CHAT,
+            0,
+            false
+        );
+
+        console.log('[RPG Enhanced] Injected state prompt for AI guidance');
+
     } catch (error) {
         console.error('[RPG Enhanced] Error injecting prompts:', error);
     }
@@ -357,19 +414,31 @@ function buildContextAnalysisPrompt() {
     if (this_chid !== undefined && characters[this_chid]) {
         const charData = characters[this_chid];
         charDescription = charData.description || charData.personality || '';
-        if (charDescription.length > 1500) {
-            charDescription = charDescription.substring(0, 1500) + '...';
+        if (charDescription.length > 2000) {
+            charDescription = charDescription.substring(0, 2000) + '...';
         }
     }
 
-    // Get last few messages for context (up to 6 messages)
-    const recentMessages = chat.slice(-6).map(msg => {
+    // Get last few messages for context (up to 8 messages)
+    const recentMessages = chat.slice(-8).map(msg => {
         const speaker = msg.is_user ? userName : charName;
-        const text = msg.mes?.substring(0, 500) || '';
+        const text = msg.mes?.substring(0, 600) || '';
         return `${speaker}: "${text}"`;
     }).join('\n\n');
 
-    return `You are an RPG game master analyzing a roleplay conversation to extract character state.
+    // Get current state for comparison (to track changes)
+    let currentStats = 'No previous state';
+    if (characterSystemInstance?.stateManager?.currentState?.stats) {
+        const s = characterSystemInstance.stateManager.currentState.stats;
+        const tracked = [];
+        if (s.arousal !== null) tracked.push(`arousal:${s.arousal}`);
+        if (s.stress !== null) tracked.push(`stress:${s.stress}`);
+        if (s.energy !== null) tracked.push(`energy:${s.energy}`);
+        if (s.confidence !== null) tracked.push(`confidence:${s.confidence}`);
+        if (tracked.length > 0) currentStats = tracked.join(', ');
+    }
+
+    return `You are an RPG game master analyzing a roleplay conversation to extract and UPDATE character state.
 
 CHARACTER: ${charName}
 USER: ${userName}
@@ -377,50 +446,57 @@ USER: ${userName}
 CHARACTER DESCRIPTION:
 ${charDescription || 'No description available.'}
 
+CURRENT TRACKED STATS: ${currentStats}
+
 RECENT CONVERSATION:
 ${recentMessages}
 
 === ANALYSIS TASK ===
 
-Analyze this conversation and extract ${charName}'s current state. Focus on:
-1. Their relationship with ${userName} (how do they feel about them?)
-2. Any emotional states shown (stressed, happy, aroused, anxious, etc.)
-3. Physical states if mentioned (tired, hungry, etc.)
-4. Location/scene if described
-5. ${charName}'s current thoughts/feelings about ${userName}
+Analyze this conversation and extract ${charName}'s current state. Stats should CHANGE based on the conversation - even small changes matter!
 
 Return ONLY valid JSON in this exact format:
 {
   "characterName": "${charName}",
   "userName": "${userName}",
   "relationship": {
-    "type": "partner/friend/stranger/family/colleague/etc",
-    "trust": 0-100 or null if unknown,
-    "love": 0-100 or null if unknown,
-    "respect": 0-100 or null if unknown,
-    "comfort": 0-100 or null if unknown,
-    "thoughts": "${charName}'s thoughts about ${userName}"
+    "type": "partner/dating/friend/stranger/family/colleague",
+    "trust": 0-100,
+    "love": 0-100,
+    "respect": 0-100,
+    "comfort": 0-100,
+    "flirtiness": 0-100,
+    "thoughts": "${charName}'s current thoughts about ${userName} (1-2 sentences)"
   },
   "stats": {
-    "arousal": 0-100 or null,
-    "stress": 0-100 or null,
-    "happiness": 0-100 or null,
-    "energy": 0-100 or null,
-    "confidence": 0-100 or null
+    "arousal": 0-100,
+    "stress": 0-100,
+    "energy": 0-100,
+    "confidence": 0-100,
+    "comfort": 0-100,
+    "anxiety": 0-100,
+    "happiness": 0-100
   },
   "scene": {
-    "location": "where they are or null",
-    "timeOfDay": "morning/afternoon/evening/night or null",
-    "privacy": 0-100 or null
+    "location": "specific location name",
+    "timeOfDay": "morning/afternoon/evening/night",
+    "privacy": 0-100
   },
-  "internalThoughts": "What ${charName} is thinking right now"
+  "outfit": {
+    "description": "Detailed description of what ${charName} is currently wearing (fabric, fit, coverage, how revealing)",
+    "feeling": "How ${charName} feels about wearing this outfit right now"
+  },
+  "internalThoughts": "What ${charName} is truly thinking/feeling right now about the situation (2-3 sentences, be specific)",
+  "statChanges": "Brief explanation of why stats changed from the last message"
 }
 
-Rules:
-- Use null for any values you cannot determine from the conversation
-- Only include stats that are actually evident from the text
-- Be conservative - don't assume stats, only include what's clearly shown
-- Relationship type should match what's evident (if they call each other 'babe', probably partner)
+RULES:
+- Stats MUST change based on the conversation content, even by small amounts (+/-5 to 15)
+- If arousing content: arousal increases. If stressful: stress increases. If relaxing: stress decreases.
+- Relationship stats should reflect the dynamic shown in messages
+- ALWAYS provide outfit description if ANY clothing is mentioned or can be inferred
+- Internal thoughts should be genuine and reflect ${charName}'s personality
+- If you don't know something, make a reasonable estimate based on context (can be edited later)
 
 Respond with ONLY the JSON, no other text.`;
 }
@@ -488,14 +564,14 @@ async function applyAnalysisToState(analysis) {
     const state = stateManager?.currentState;
     if (!state) return;
 
-    console.log('[RPG Enhanced] Applying analysis to state...');
+    console.log('[RPG Enhanced] Applying analysis to state...', analysis);
 
     // Apply stats that were determined
     if (analysis.stats) {
         for (const [statName, value] of Object.entries(analysis.stats)) {
             if (value !== null && value !== undefined && typeof value === 'number') {
                 // Set stat directly on the stats object
-                if (state.stats && state.stats[statName] !== undefined) {
+                if (state.stats && statName in state.stats) {
                     state.stats[statName] = Math.max(0, Math.min(100, value));
                     console.log(`[RPG Enhanced] Set ${statName} = ${value}`);
                 }
@@ -528,17 +604,20 @@ async function applyAnalysisToState(analysis) {
         }
 
         // Set relationship stats
-        if (analysis.relationship.trust !== null && analysis.relationship.trust !== undefined) {
+        if (typeof analysis.relationship.trust === 'number') {
             rel.core.trust = analysis.relationship.trust;
         }
-        if (analysis.relationship.love !== null && analysis.relationship.love !== undefined) {
+        if (typeof analysis.relationship.love === 'number') {
             rel.core.love = analysis.relationship.love;
         }
-        if (analysis.relationship.respect !== null && analysis.relationship.respect !== undefined) {
+        if (typeof analysis.relationship.respect === 'number') {
             rel.core.respect = analysis.relationship.respect;
         }
-        if (analysis.relationship.comfort !== null && analysis.relationship.comfort !== undefined) {
+        if (typeof analysis.relationship.comfort === 'number') {
             rel.emotional.comfort = analysis.relationship.comfort;
+        }
+        if (typeof analysis.relationship.flirtiness === 'number') {
+            rel.social.flirtiness = analysis.relationship.flirtiness;
         }
 
         // Store thoughts
@@ -561,10 +640,32 @@ async function applyAnalysisToState(analysis) {
         if (analysis.scene.timeOfDay && state.scene) {
             state.scene.timeOfDay = analysis.scene.timeOfDay;
         }
-        if (analysis.scene.privacy !== null && analysis.scene.privacy !== undefined && state.scene) {
+        if (typeof analysis.scene.privacy === 'number' && state.scene) {
             state.scene.privacy = analysis.scene.privacy;
         }
         console.log('[RPG Enhanced] Updated scene');
+    }
+
+    // Apply outfit description
+    if (analysis.outfit && state.outfit) {
+        if (analysis.outfit.description) {
+            state.outfit.overallDescription = analysis.outfit.description;
+        }
+        if (analysis.outfit.feeling) {
+            state.outfit.characterFeeling = analysis.outfit.feeling;
+        }
+        console.log('[RPG Enhanced] Updated outfit description');
+    }
+
+    // Store internal thoughts for display
+    if (analysis.internalThoughts) {
+        state.internalThoughts = analysis.internalThoughts;
+        console.log('[RPG Enhanced] Stored internal thoughts');
+    }
+
+    // Store stat change explanation
+    if (analysis.statChanges) {
+        state.lastStatChangeReason = analysis.statChanges;
     }
 
     // Mark state as updated and emit event

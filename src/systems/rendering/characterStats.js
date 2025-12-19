@@ -359,17 +359,34 @@ function renderGameHair(hair) {
         { key: 'assCrack', name: 'Rear', icon: '🍑' }
     ];
 
-    // Check if any hair data exists
+    // Helper to extract numeric value from hair data
+    const getHairValue = (areaData) => {
+        if (areaData === null || areaData === undefined) return null;
+        if (typeof areaData === 'number') return areaData;
+        if (typeof areaData === 'object' && areaData.value !== undefined) {
+            return typeof areaData.value === 'number' ? areaData.value : null;
+        }
+        return null;
+    };
+
+    // Check if any hair data exists with actual numeric values
     const hasData = areas.some(area => {
-        const value = hair[area.key]?.value ?? hair[area.key];
-        return value !== undefined && value !== null;
+        const value = getHairValue(hair[area.key]);
+        return value !== null;
     });
 
     if (!hasData) return '';
 
     const hairBars = areas.map(area => {
-        const value = hair[area.key]?.value ?? hair[area.key] ?? 0;
+        const value = getHairValue(hair[area.key]);
+        if (value === null) return ''; // Skip areas without data
+
         const color = value > 70 ? '#8B4513' : value > 40 ? '#D2691E' : '#DEB887';
+        const description = value === 0 ? 'Shaved' :
+                           value < 20 ? 'Stubble' :
+                           value < 40 ? 'Short' :
+                           value < 60 ? 'Medium' :
+                           value < 80 ? 'Full' : 'Very Full';
 
         return `
             <div class="hair-area-row">
@@ -378,10 +395,12 @@ function renderGameHair(hair) {
                 <div class="hair-bar-wrap">
                     <div class="hair-bar" style="width: ${value}%; background: ${color}"></div>
                 </div>
-                <span class="hair-value">${value}%</span>
+                <span class="hair-value">${description}</span>
             </div>
         `;
-    }).join('');
+    }).filter(h => h).join('');
+
+    if (!hairBars) return '';
 
     return `
         <div class="game-hair-panel">
@@ -397,49 +416,67 @@ function renderGameHair(hair) {
 }
 
 /**
- * Render outfit system - only if data exists
+ * Render outfit system as text description
  */
-function renderGameOutfit(outfit) {
+function renderGameOutfit(outfit, charName = 'Character') {
     if (!outfit) return '';
 
-    const slots = [
-        { key: 'top', icon: '👕', name: 'Top' },
-        { key: 'bra', icon: '👙', name: 'Bra' },
-        { key: 'bottom', icon: '👖', name: 'Bottom' },
-        { key: 'underwear', icon: '🩲', name: 'Underwear' },
-        { key: 'shoes', icon: '👟', name: 'Shoes' },
-        { key: 'accessories', icon: '💍', name: 'Accessories' }
-    ];
-
-    // Check if any outfit data exists
-    const hasData = slots.some(slot => outfit[slot.key]);
-    if (!hasData) return '';
-
-    const outfitItems = slots.map(slot => {
-        const item = outfit[slot.key];
-        const itemName = item?.name || item || 'None';
-        const hasItem = itemName && itemName !== 'None';
-
+    // Check if we have an overall description (LLM-generated)
+    if (outfit.overallDescription) {
         return `
-            <div class="outfit-slot ${hasItem ? 'equipped' : 'empty'}">
-                <span class="outfit-slot-icon">${slot.icon}</span>
-                <div class="outfit-slot-info">
-                    <span class="outfit-slot-name">${slot.name}</span>
-                    <span class="outfit-item-name">${itemName}</span>
+            <div class="game-outfit-panel">
+                <div class="game-outfit-header">
+                    <span class="outfit-title-icon">👗</span>
+                    <span class="outfit-title">Current Outfit</span>
                 </div>
+                <div class="game-outfit-description">
+                    ${outfit.overallDescription}
+                </div>
+                ${outfit.characterFeeling ? `
+                    <div class="outfit-feeling">
+                        <em>${charName} feels: ${outfit.characterFeeling}</em>
+                    </div>
+                ` : ''}
             </div>
         `;
-    }).join('');
+    }
+
+    // Build description from individual pieces
+    const pieces = [];
+    const slots = ['top', 'bra', 'bottom', 'underwear', 'shoes', 'accessories'];
+
+    for (const slot of slots) {
+        const item = outfit[slot];
+        if (!item) continue;
+
+        const name = item?.name || (typeof item === 'string' ? item : null);
+        const desc = item?.description || '';
+
+        if (name && name !== 'None' && name !== 'none') {
+            if (desc) {
+                pieces.push(`<span class="outfit-item"><strong>${name}</strong>: ${desc}</span>`);
+            } else {
+                pieces.push(`<span class="outfit-item"><strong>${name}</strong></span>`);
+            }
+        }
+    }
+
+    if (pieces.length === 0) return '';
 
     return `
         <div class="game-outfit-panel">
             <div class="game-outfit-header">
                 <span class="outfit-title-icon">👗</span>
-                <span class="outfit-title">Outfit</span>
+                <span class="outfit-title">Current Outfit</span>
             </div>
-            <div class="game-outfit-body">
-                ${outfitItems}
+            <div class="game-outfit-description">
+                ${pieces.join('<br>')}
             </div>
+            ${outfit.characterFeeling ? `
+                <div class="outfit-feeling">
+                    <em>${charName} feels: ${outfit.characterFeeling}</em>
+                </div>
+            ` : ''}
         </div>
     `;
 }
@@ -507,6 +544,10 @@ export function renderCharacterStatsPanel(characterSystem, options = {}) {
         .filter(html => html)
         .join('');
 
+    // Get internal thoughts from state
+    const internalThoughts = state?.internalThoughts || null;
+    const statChangeReason = state?.lastStatChangeReason || null;
+
     return `
         <div class="game-status-screen">
             <div class="game-status-header">
@@ -521,15 +562,32 @@ export function renderCharacterStatsPanel(characterSystem, options = {}) {
                 </div>
             </div>
 
+            ${internalThoughts ? `
+                <div class="game-thoughts-panel">
+                    <div class="game-thoughts-header">
+                        <span class="thoughts-icon">💭</span>
+                        <span class="thoughts-title">${charName}'s Thoughts</span>
+                    </div>
+                    <div class="game-thoughts-content">
+                        <em>"${internalThoughts}"</em>
+                    </div>
+                    ${statChangeReason ? `
+                        <div class="stat-change-reason">
+                            <small>📊 ${statChangeReason}</small>
+                        </div>
+                    ` : ''}
+                </div>
+            ` : ''}
+
             <div class="game-stats-container">
                 ${categoriesHtml || '<div class="game-empty-message"><span>No stats data</span></div>'}
             </div>
 
             <div class="game-subsystems">
                 ${renderGameScene(scene)}
-                ${renderGameBiology(biology)}
+                ${renderGameOutfit(outfit, charName)}
                 ${renderGameHair(hair)}
-                ${renderGameOutfit(outfit)}
+                ${renderGameBiology(biology)}
             </div>
         </div>
     `;
