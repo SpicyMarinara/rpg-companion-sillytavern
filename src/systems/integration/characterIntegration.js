@@ -438,7 +438,7 @@ function buildContextAnalysisPrompt() {
         if (tracked.length > 0) currentStats = tracked.join(', ');
     }
 
-    return `You are an RPG game master analyzing a roleplay conversation to extract and UPDATE character state.
+    return `You are an RPG game master analyzing a roleplay conversation to extract and UPDATE character state for a realistic simulation.
 
 CHARACTER: ${charName}
 USER: ${userName}
@@ -453,7 +453,7 @@ ${recentMessages}
 
 === ANALYSIS TASK ===
 
-Analyze this conversation and extract ${charName}'s current state. Stats should CHANGE based on the conversation - even small changes matter!
+Analyze this conversation and extract ${charName}'s current state. Stats should CHANGE based on the conversation - even small changes matter! Think like a realistic human simulation.
 
 Return ONLY valid JSON in this exact format:
 {
@@ -466,6 +466,7 @@ Return ONLY valid JSON in this exact format:
     "respect": 0-100,
     "comfort": 0-100,
     "flirtiness": 0-100,
+    "dominance": 0-100,
     "thoughts": "${charName}'s current thoughts about ${userName} (1-2 sentences)"
   },
   "stats": {
@@ -475,28 +476,38 @@ Return ONLY valid JSON in this exact format:
     "confidence": 0-100,
     "comfort": 0-100,
     "anxiety": 0-100,
-    "happiness": 0-100
+    "corruption": 0-100,
+    "modesty": 0-100,
+    "willpower": 0-100,
+    "shame": 0-100,
+    "lewdity": 0-100
   },
   "scene": {
     "location": "specific location name",
     "timeOfDay": "morning/afternoon/evening/night",
-    "privacy": 0-100
+    "privacy": 0-100,
+    "safety": 0-100
   },
   "outfit": {
-    "description": "Detailed description of what ${charName} is currently wearing (fabric, fit, coverage, how revealing)",
-    "feeling": "How ${charName} feels about wearing this outfit right now"
+    "description": "Detailed description of what ${charName} is wearing (fabric, fit, coverage, transparency, tightness)",
+    "revealingLevel": 0-100,
+    "feeling": "How ${charName} feels about wearing this outfit"
   },
-  "internalThoughts": "What ${charName} is truly thinking/feeling right now about the situation (2-3 sentences, be specific)",
-  "statChanges": "Brief explanation of why stats changed from the last message"
+  "internalThoughts": "What ${charName} is truly thinking/feeling right now about the situation (2-3 sentences, be specific and psychological)",
+  "statChanges": "Brief explanation of why stats changed"
 }
 
 RULES:
-- Stats MUST change based on the conversation content, even by small amounts (+/-5 to 15)
-- If arousing content: arousal increases. If stressful: stress increases. If relaxing: stress decreases.
-- Relationship stats should reflect the dynamic shown in messages
-- ALWAYS provide outfit description if ANY clothing is mentioned or can be inferred
-- Internal thoughts should be genuine and reflect ${charName}'s personality
-- If you don't know something, make a reasonable estimate based on context (can be edited later)
+- Stats MUST change based on the conversation content (+/-5 to 20)
+- Arousal: increases with intimacy, flirting, physical contact
+- Corruption: slowly increases with morally questionable acts, exposure, giving in to desires
+- Modesty: decreases when character is exposed, acts immodestly, or accepts revealing situations
+- Willpower: decreases when resisting temptation, increases with rest
+- Shame: increases when doing embarrassing things, decreases with acceptance
+- Lewdity: increases with sexual experiences, exposure to perversion
+- Safety: 0=dangerous, 50=neutral, 100=completely safe environment
+- RevealingLevel: 0=fully covered/modest, 50=casual, 100=naked/fully exposed
+- Think like a real person with psychological depth
 
 Respond with ONLY the JSON, no other text.`;
 }
@@ -643,6 +654,9 @@ async function applyAnalysisToState(analysis) {
         if (typeof analysis.scene.privacy === 'number' && state.scene) {
             state.scene.privacy = analysis.scene.privacy;
         }
+        if (typeof analysis.scene.safety === 'number' && state.scene) {
+            state.scene.safety = analysis.scene.safety;
+        }
         console.log('[RPG Enhanced] Updated scene');
     }
 
@@ -654,7 +668,20 @@ async function applyAnalysisToState(analysis) {
         if (analysis.outfit.feeling) {
             state.outfit.characterFeeling = analysis.outfit.feeling;
         }
+        if (typeof analysis.outfit.revealingLevel === 'number') {
+            state.outfit.revealingLevel = analysis.outfit.revealingLevel;
+        }
         console.log('[RPG Enhanced] Updated outfit description');
+    }
+
+    // Apply additional relationship stats
+    if (analysis.relationship && analysis.userName) {
+        const rel = state.relationships?.[analysis.userName];
+        if (rel) {
+            if (typeof analysis.relationship.dominance === 'number') {
+                rel.social.dominance = analysis.relationship.dominance;
+            }
+        }
     }
 
     // Store internal thoughts for display
