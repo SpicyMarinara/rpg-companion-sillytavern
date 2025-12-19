@@ -161,10 +161,27 @@ function renderStatCategory(categoryName, stats, statOrder) {
  * @returns {string} HTML string
  */
 function renderRelationshipCard(npcName, relationship, options = {}) {
-    const type = relationship.metadata?.relationshipType || 'Stranger';
-    const importance = relationship.metadata?.importance || 'Low';
+    const type = relationship.metadata?.relationshipType || 'Unknown';
+    const importance = relationship.metadata?.importance || 'Unknown';
     const isActive = relationship.metadata?.isActive || false;
-    const summary = relationship.getSummary?.() || 'Unknown';
+
+    // Generate summary from relationship stats if method not available
+    let summary = 'Unknown';
+    if (typeof relationship.getSummary === 'function') {
+        summary = relationship.getSummary();
+    } else if (relationship.core) {
+        const trust = relationship.core.trust;
+        const love = relationship.core.love;
+        if (love !== null && love > 60) {
+            summary = 'Strong romantic bond';
+        } else if (trust !== null && trust > 60) {
+            summary = 'Trusted relationship';
+        } else if (relationship.metadata?.notes) {
+            summary = relationship.metadata.notes.substring(0, 50);
+        } else {
+            summary = type !== 'Unknown' ? `${type} relationship` : 'Developing relationship';
+        }
+    }
 
     const typeColor = RELATIONSHIP_COLORS[type] || '#888888';
     const typeIcon = RELATIONSHIP_ICONS[type] || '👤';
@@ -398,8 +415,17 @@ export function renderRelationshipsPanel(characterSystem, options = {}) {
         `;
     }
 
-    const activeRelationships = characterSystem?.getActiveRelationships?.() || {};
-    const allRelationships = characterSystem?.relationshipManager?.getAllRelationships?.() || {};
+    // Get relationships from character state directly
+    const state = characterSystem?.getState?.();
+    const allRelationships = state?.relationships || {};
+
+    // Filter for active relationships
+    const activeRelationships = {};
+    for (const name in allRelationships) {
+        if (allRelationships[name]?.metadata?.isActive) {
+            activeRelationships[name] = allRelationships[name];
+        }
+    }
 
     // No relationships yet
     const hasRelationships = Object.keys(allRelationships).length > 0;

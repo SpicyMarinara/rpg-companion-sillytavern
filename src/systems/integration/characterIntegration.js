@@ -3,7 +3,7 @@
  * Integrates the Katherine RPG character system with SillyTavern
  *
  * Based on KATHERINE_RPG_MASTER_SPECIFICATION.txt
- * Version: 2.0.0
+ * Version: 2.1.0 - Added LLM analysis
  */
 
 import { getContext } from '../../../../../../extensions.js';
@@ -12,7 +12,10 @@ import {
     chat_metadata,
     saveChatDebounced,
     setExtensionPrompt,
-    extension_prompt_types
+    extension_prompt_types,
+    generateRaw,
+    characters,
+    this_chid
 } from '../../../../../../../script.js';
 
 import { extensionSettings } from '../../core/state.js';
@@ -22,6 +25,7 @@ import { renderRelationshipsPanel, renderCompactRelationships } from '../renderi
 
 // Singleton character system instance
 let characterSystemInstance = null;
+let isAnalyzing = false;
 
 /**
  * Initialize the enhanced character system
@@ -340,11 +344,243 @@ export function onEnhancedMessageSent() {
 }
 
 /**
+ * Build the context analysis prompt for extracting character state from conversation
+ * @returns {string} Analysis prompt
+ */
+function buildContextAnalysisPrompt() {
+    const context = getContext();
+    const charName = context.name2 || 'Character';
+    const userName = context.name1 || 'User';
+
+    // Get character description from character card
+    let charDescription = '';
+    if (this_chid !== undefined && characters[this_chid]) {
+        const charData = characters[this_chid];
+        charDescription = charData.description || charData.personality || '';
+        if (charDescription.length > 1500) {
+            charDescription = charDescription.substring(0, 1500) + '...';
+        }
+    }
+
+    // Get last few messages for context (up to 6 messages)
+    const recentMessages = chat.slice(-6).map(msg => {
+        const speaker = msg.is_user ? userName : charName;
+        const text = msg.mes?.substring(0, 500) || '';
+        return `${speaker}: "${text}"`;
+    }).join('\n\n');
+
+    return `You are an RPG game master analyzing a roleplay conversation to extract character state.
+
+CHARACTER: ${charName}
+USER: ${userName}
+
+CHARACTER DESCRIPTION:
+${charDescription || 'No description available.'}
+
+RECENT CONVERSATION:
+${recentMessages}
+
+=== ANALYSIS TASK ===
+
+Analyze this conversation and extract ${charName}'s current state. Focus on:
+1. Their relationship with ${userName} (how do they feel about them?)
+2. Any emotional states shown (stressed, happy, aroused, anxious, etc.)
+3. Physical states if mentioned (tired, hungry, etc.)
+4. Location/scene if described
+5. ${charName}'s current thoughts/feelings about ${userName}
+
+Return ONLY valid JSON in this exact format:
+{
+  "characterName": "${charName}",
+  "userName": "${userName}",
+  "relationship": {
+    "type": "partner/friend/stranger/family/colleague/etc",
+    "trust": 0-100 or null if unknown,
+    "love": 0-100 or null if unknown,
+    "respect": 0-100 or null if unknown,
+    "comfort": 0-100 or null if unknown,
+    "thoughts": "${charName}'s thoughts about ${userName}"
+  },
+  "stats": {
+    "arousal": 0-100 or null,
+    "stress": 0-100 or null,
+    "happiness": 0-100 or null,
+    "energy": 0-100 or null,
+    "confidence": 0-100 or null
+  },
+  "scene": {
+    "location": "where they are or null",
+    "timeOfDay": "morning/afternoon/evening/night or null",
+    "privacy": 0-100 or null
+  },
+  "internalThoughts": "What ${charName} is thinking right now"
+}
+
+Rules:
+- Use null for any values you cannot determine from the conversation
+- Only include stats that are actually evident from the text
+- Be conservative - don't assume stats, only include what's clearly shown
+- Relationship type should match what's evident (if they call each other 'babe', probably partner)
+
+Respond with ONLY the JSON, no other text.`;
+}
+
+/**
+ * Analyze the current conversation context using LLM
+ * @returns {Promise<Object|null>} Analysis results
+ */
+async function analyzeConversationContext() {
+    if (isAnalyzing || !chat || chat.length === 0) {
+        return null;
+    }
+
+    try {
+        isAnalyzing = true;
+        console.log('[RPG Enhanced] Starting LLM context analysis...');
+
+        const prompt = buildContextAnalysisPrompt();
+
+        // Call the LLM for analysis
+        const response = await generateRaw(prompt, null, false, false);
+
+        if (!response) {
+            console.log('[RPG Enhanced] No response from LLM analysis');
+            return null;
+        }
+
+        console.log('[RPG Enhanced] Raw LLM analysis response:', response.substring(0, 200));
+
+        // Try to extract JSON from response
+        let jsonStr = response;
+
+        // Check if response contains JSON block
+        const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+            jsonStr = jsonMatch[1];
+        } else {
+            // Try to find raw JSON object
+            const objectMatch = response.match(/\{[\s\S]*\}/);
+            if (objectMatch) {
+                jsonStr = objectMatch[0];
+            }
+        }
+
+        const analysisData = JSON.parse(jsonStr.trim());
+        console.log('[RPG Enhanced] Parsed analysis:', analysisData);
+
+        return analysisData;
+    } catch (error) {
+        console.error('[RPG Enhanced] LLM analysis failed:', error);
+        return null;
+    } finally {
+        isAnalyzing = false;
+    }
+}
+
+/**
+ * Apply LLM analysis results to character state
+ * @param {Object} analysis - Analysis data from LLM
+ */
+async function applyAnalysisToState(analysis) {
+    if (!characterSystemInstance || !analysis) return;
+
+    const stateManager = characterSystemInstance.stateManager;
+    const state = stateManager?.currentState;
+    if (!state) return;
+
+    console.log('[RPG Enhanced] Applying analysis to state...');
+
+    // Apply stats that were determined
+    if (analysis.stats) {
+        for (const [statName, value] of Object.entries(analysis.stats)) {
+            if (value !== null && value !== undefined && typeof value === 'number') {
+                // Set stat directly on the stats object
+                if (state.stats && state.stats[statName] !== undefined) {
+                    state.stats[statName] = Math.max(0, Math.min(100, value));
+                    console.log(`[RPG Enhanced] Set ${statName} = ${value}`);
+                }
+            }
+        }
+    }
+
+    // Apply relationship data
+    if (analysis.relationship && analysis.userName) {
+        // getRelationship creates the relationship if it doesn't exist
+        const rel = state.getRelationship(analysis.userName);
+
+        // Set relationship type
+        if (analysis.relationship.type) {
+            // Map common types
+            const typeMap = {
+                'partner': 'Partner',
+                'dating': 'Dating',
+                'friend': 'Friend',
+                'stranger': 'Stranger',
+                'family': 'Family',
+                'colleague': 'Coworker',
+                'romantic': 'Romantic Interest',
+                'spouse': 'Spouse',
+                'fiance': 'Fiance'
+            };
+            const type = analysis.relationship.type.toLowerCase();
+            rel.metadata.relationshipType = typeMap[type] || analysis.relationship.type;
+            rel.metadata.confirmed = true;
+        }
+
+        // Set relationship stats
+        if (analysis.relationship.trust !== null && analysis.relationship.trust !== undefined) {
+            rel.core.trust = analysis.relationship.trust;
+        }
+        if (analysis.relationship.love !== null && analysis.relationship.love !== undefined) {
+            rel.core.love = analysis.relationship.love;
+        }
+        if (analysis.relationship.respect !== null && analysis.relationship.respect !== undefined) {
+            rel.core.respect = analysis.relationship.respect;
+        }
+        if (analysis.relationship.comfort !== null && analysis.relationship.comfort !== undefined) {
+            rel.emotional.comfort = analysis.relationship.comfort;
+        }
+
+        // Store thoughts
+        if (analysis.relationship.thoughts) {
+            rel.metadata.notes = analysis.relationship.thoughts;
+        }
+
+        rel.metadata.isActive = true;
+        rel.metadata.lastSeen = 'Just now';
+        rel.metadata.importance = 'High';
+
+        console.log(`[RPG Enhanced] Updated relationship with ${analysis.userName}:`, rel.metadata.relationshipType);
+    }
+
+    // Apply scene data
+    if (analysis.scene) {
+        if (analysis.scene.location && state.scene) {
+            state.scene.location = analysis.scene.location;
+        }
+        if (analysis.scene.timeOfDay && state.scene) {
+            state.scene.timeOfDay = analysis.scene.timeOfDay;
+        }
+        if (analysis.scene.privacy !== null && analysis.scene.privacy !== undefined && state.scene) {
+            state.scene.privacy = analysis.scene.privacy;
+        }
+        console.log('[RPG Enhanced] Updated scene');
+    }
+
+    // Mark state as updated and emit event
+    state.lastUpdated = new Date().toISOString();
+    stateManager.emit('stateChanged', state);
+
+    // Save state
+    await saveCharacterState();
+}
+
+/**
  * Handle message received event
  * @param {Object} data - Message data
  */
 export async function onEnhancedMessageReceived(data) {
-    if (!characterSystemInstance || !extensionSettings.enhancedRPG?.enabled) {
+    if (!extensionSettings.enhancedRPG?.enabled) {
         return;
     }
 
@@ -353,7 +589,12 @@ export async function onEnhancedMessageReceived(data) {
         return;
     }
 
-    // Check for analysis data in the response
+    // Initialize character system if needed
+    if (!characterSystemInstance) {
+        await initializeCharacterSystem();
+    }
+
+    // Check for analysis data in the response first
     const analysisMatch = lastMessage.mes.match(/```json\s*\n?([\s\S]*?)\n?```/);
 
     if (analysisMatch) {
@@ -362,7 +603,7 @@ export async function onEnhancedMessageReceived(data) {
 
             // Apply analysis to character state
             if (analysisData.statChanges || analysisData.relationshipChanges) {
-                await characterSystemInstance.applyAnalysis(analysisData);
+                await characterSystemInstance?.applyAnalysis(analysisData);
 
                 // Clean the analysis from the message
                 lastMessage.mes = lastMessage.mes.replace(/```json\s*\n?[\s\S]*?\n?```\s*/g, '').trim();
@@ -372,9 +613,12 @@ export async function onEnhancedMessageReceived(data) {
         }
     }
 
-    // Update scene context from response if available
-    if (lastMessage.mes) {
-        await updateSceneFromResponse(lastMessage.mes);
+    // Always run LLM analysis to extract context
+    console.log('[RPG Enhanced] Running LLM analysis for message...');
+    const analysis = await analyzeConversationContext();
+
+    if (analysis) {
+        await applyAnalysisToState(analysis);
     }
 
     // Re-render panels
