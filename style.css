@@ -1986,6 +1986,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: center;
     gap: clamp(4px, 0.5vw, 6px);
     flex-wrap: nowrap; /* Prevent wrapping */
+    position: relative;
 }
 
 .rpg-character-emoji {
@@ -2002,6 +2003,39 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     white-space: nowrap; /* Prevent name from wrapping */
     overflow: hidden;
     text-overflow: ellipsis;
+    flex: 1;
+}
+
+/* Character remove button */
+.rpg-character-remove {
+    background: transparent;
+    border: none;
+    color: var(--rpg-text);
+    font-size: clamp(14px, 2vw, 18px);
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    margin-left: auto;
+    width: clamp(16px, 2.5vh, 20px);
+    height: clamp(16px, 2.5vh, 20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.rpg-character-remove:hover {
+    opacity: 1;
+    background: rgba(255, 0, 0, 0.2);
+    color: #ff4444;
+    transform: scale(1.1);
+}
+
+.rpg-character-remove:active {
+    transform: scale(0.95);
 }
 
 /* Character traits/status line and custom fields */

@@ -229,6 +229,62 @@ function uploadNpcAvatar(characterName) {
 }
 
 /**
+ * Removes a character from the Present Characters panel and saved data
+ * @param {string} characterName - Name of the character to remove
+ */
+function removeCharacter(characterName) {
+    console.log(`[RPG Companion] Removing character: ${characterName}`);
+
+    // Initialize if it doesn't exist
+    if (!lastGeneratedData.characterThoughts) {
+        return;
+    }
+
+    const lines = lastGeneratedData.characterThoughts.split('\n');
+    const newLines = [];
+    let skipUntilNextCharacter = false;
+    let foundCharacter = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        // Check if this is the start of the character we want to remove
+        if (line.startsWith('- ')) {
+            const name = line.substring(2).trim();
+            if (name.toLowerCase() === characterName.toLowerCase()) {
+                foundCharacter = true;
+                skipUntilNextCharacter = true;
+                continue; // Skip this line
+            } else {
+                // This is a different character, stop skipping
+                skipUntilNextCharacter = false;
+            }
+        }
+
+        // If we're not skipping, add the line
+        if (!skipUntilNextCharacter) {
+            newLines.push(lines[i]);
+        }
+    }
+
+    if (foundCharacter) {
+        // Update both lastGeneratedData and committedTrackerData
+        lastGeneratedData.characterThoughts = newLines.join('\n');
+        committedTrackerData.characterThoughts = newLines.join('\n');
+
+        // Save to chat metadata
+        saveChatData();
+
+        console.log(`[RPG Companion] Character removed: ${characterName}`);
+
+        // Re-render the panel
+        renderThoughts();
+    } else {
+        console.warn(`[RPG Companion] Character not found: ${characterName}`);
+    }
+}
+
+/**
  * Renders character thoughts (Present Characters) panel.
  * Displays character cards with avatars, relationship badges, and traits.
  * Includes event listeners for editable character fields.
@@ -474,6 +530,7 @@ export function renderThoughts() {
                                 <div class="rpg-character-header">
                                     <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
                                     <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="name" title="Click to edit name">${char.name}</span>
+                                    <button class="rpg-character-remove" data-character="${escapedName}" title="Remove this character from the panel">×</button>
                                 </div>
                 `;
 
@@ -569,6 +626,13 @@ export function renderThoughts() {
             // Re-render to show the default avatar
             renderThoughts();
         }
+    });
+
+    // Add event handler for character removal
+    $thoughtsContainer.find('.rpg-character-remove').on('click', function(e) {
+        e.stopPropagation(); // Prevent event bubbling
+        const characterName = $(this).data('character');
+        removeCharacter(characterName);
     });
 
     // Remove updating class after animation
