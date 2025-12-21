@@ -15,15 +15,23 @@ import {
  * Adds the chapter checkpoint button to a message's extra menu
  * @param {number} messageId - The message index
  * @param {HTMLElement} menu - The message menu element
+ * @param {boolean} isExpanded - Whether this is for expanded message actions
  */
-export function addCheckpointButtonToMessage(messageId, menu) {
+export function addCheckpointButtonToMessage(messageId, menu, isExpanded = false) {
     if (!menu) return;
 
     const isCheckpoint = isCheckpointMessage(messageId);
 
     // Create the menu item
     const menuItem = document.createElement('div');
-    menuItem.className = 'extraMesButtonsHint list-group-item flex-container flexGap5';
+    // Use different classes for expanded vs dropdown menu
+    if (isExpanded) {
+        menuItem.className = 'mes_button';
+        menuItem.setAttribute('tabindex', '0');
+    } else {
+        menuItem.className = 'extraMesButtonsHint list-group-item flex-container flexGap5';
+    }
+
     const translationKey = isCheckpoint ? 'checkpoint.clearChapterStart' : 'checkpoint.setChapterStart';
     menuItem.setAttribute('data-i18n', translationKey);
     menuItem.title = isCheckpoint
@@ -111,11 +119,6 @@ export function updateAllCheckpointIndicators() {
 
     if (!chat) return;
 
-    // Clear all processed flags so buttons can be updated
-    document.querySelectorAll('.extraMesButtons[data-checkpoint-processed]').forEach(menu => {
-        delete menu.dataset.checkpointProcessed;
-    });
-
     // Update all message blocks
     const messageBlocks = document.querySelectorAll('.mes');
     messageBlocks.forEach((block) => {
@@ -126,10 +129,16 @@ export function updateAllCheckpointIndicators() {
 
         addCheckpointIndicator(messageId, block);
 
-        // Also update any open menus for this message
-        const menu = block.querySelector('.extraMesButtons');
-        if (menu) {
-            updateCheckpointButtonInMenu(menu, messageId);
+        // Update any existing dropdown menu button for this message
+        const dropdownMenu = block.querySelector('.extraMesButtons');
+        if (dropdownMenu) {
+            updateCheckpointButtonInMenu(dropdownMenu, messageId);
+        }
+
+        // Update any existing expanded button for this message
+        const mesButtons = block.querySelector('.mes_buttons');
+        if (mesButtons) {
+            updateCheckpointButtonInMenu(mesButtons, messageId);
         }
     });
 }
@@ -185,21 +194,29 @@ export function initChapterCheckpointUI() {
  * This should be called when SillyTavern renders message menus
  */
 export function injectCheckpointButton() {
-    // Direct approach: Hook into when extraMesButtons elements appear or are populated
+    // Observer for dropdown menus and message blocks
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             // Check for added nodes
             mutation.addedNodes.forEach((node) => {
                 if (node.nodeType === Node.ELEMENT_NODE) {
-                    // Check if extraMesButtons container was added
+                    // Check if extraMesButtons container was added (dropdown menu)
                     if (node.classList && node.classList.contains('extraMesButtons')) {
                         processExtraMesButtons(node);
                     }
 
-                    // Also check if extraMesButtons exists within added subtree
+                    // Check if message block was added (for expanded mode)
+                    if (node.classList && node.classList.contains('mes')) {
+                        processExpandedButton(node);
+                    }
+
+                    // Also check if either exists within added subtree
                     if (node.querySelector) {
                         const extraButtons = node.querySelectorAll('.extraMesButtons');
                         extraButtons.forEach(processExtraMesButtons);
+
+                        const messageBlocks = node.querySelectorAll('.mes');
+                        messageBlocks.forEach(processExpandedButton);
                     }
                 }
             });
@@ -220,14 +237,17 @@ export function injectCheckpointButton() {
             subtree: true
         });
 
-        // Process any existing menus on initialization
-        const existingMenus = chatContainer.querySelectorAll('.extraMesButtons');
-        existingMenus.forEach(processExtraMesButtons);
+        // Process any existing menus and messages on initialization
+        const existingDropdownMenus = chatContainer.querySelectorAll('.extraMesButtons');
+        existingDropdownMenus.forEach(processExtraMesButtons);
+
+        const existingMessages = chatContainer.querySelectorAll('.mes');
+        existingMessages.forEach(processExpandedButton);
     }
 }
 
 /**
- * Process an extraMesButtons container to add checkpoint button
+ * Process an extraMesButtons container to add checkpoint button (dropdown menu)
  * @param {HTMLElement} menu - The extraMesButtons container
  */
 function processExtraMesButtons(menu) {
@@ -237,34 +257,67 @@ function processExtraMesButtons(menu) {
     const messageBlock = menu.closest('.mes');
     if (!messageBlock) return;
 
+    // Check if expanded mode is active - if so, don't add to dropdown
+    const mesButtons = messageBlock.querySelector('.mes_buttons');
+    if (mesButtons && window.getComputedStyle(mesButtons).display !== 'none') {
+        return; // Expanded mode is active, skip dropdown
+    }
+
     // Get the message ID from the mesid attribute (SillyTavern's standard way)
     const messageId = Number(messageBlock.getAttribute('mesid'));
 
     if (isNaN(messageId)) return;
 
-    // Check if button already exists
-    if (!menu.dataset.checkpointProcessed) {
-        // Mark as processed
-        menu.dataset.checkpointProcessed = 'true';
+    // Check if button already exists in this container
+    if (menu.querySelector('.rpg-checkpoint-button')) return;
 
-        // Add checkpoint button
-        const checkpointBtn = addCheckpointButtonToMessage(messageId, menu);
-        if (checkpointBtn) {
-            checkpointBtn.classList.add('rpg-checkpoint-button');
-            menu.appendChild(checkpointBtn);
-        }
+    // Add checkpoint button for dropdown menu
+    const checkpointBtn = addCheckpointButtonToMessage(messageId, menu, false);
+    if (checkpointBtn) {
+        checkpointBtn.classList.add('rpg-checkpoint-button');
+        menu.appendChild(checkpointBtn);
+    }
+}
+
+/**
+ * Process message to add expanded checkpoint button
+ * @param {HTMLElement} messageBlock - The message block element
+ */
+function processExpandedButton(messageBlock) {
+    if (!messageBlock) return;
+
+    const mesButtons = messageBlock.querySelector('.mes_buttons');
+    if (!mesButtons) return;
+
+    // Only add if mes_buttons is visible (expanded mode is active)
+    if (window.getComputedStyle(mesButtons).display === 'none') {
+        return;
+    }
+
+    const messageId = Number(messageBlock.getAttribute('mesid'));
+    if (isNaN(messageId)) return;
+
+    // Check if button already exists in this container
+    if (mesButtons.querySelector('.rpg-checkpoint-button-expanded')) return;
+
+    // Add checkpoint button as separate mes_button
+    const checkpointBtn = addCheckpointButtonToMessage(messageId, mesButtons, true);
+    if (checkpointBtn) {
+        checkpointBtn.classList.add('rpg-checkpoint-button-expanded');
+        mesButtons.appendChild(checkpointBtn);
     }
 }
 
 /**
  * Update the checkpoint button in an existing menu
- * @param {HTMLElement} menu - The extraMesButtons container
+ * @param {HTMLElement} menu - The extraMesButtons or mes_buttons container
  * @param {number} messageId - The message index
  */
 function updateCheckpointButtonInMenu(menu, messageId) {
     if (!menu) return;
 
-    const existingButton = menu.querySelector('.rpg-checkpoint-button');
+    // Check for both button classes (dropdown and expanded)
+    const existingButton = menu.querySelector('.rpg-checkpoint-button, .rpg-checkpoint-button-expanded');
     if (!existingButton) return;
 
     const isCheckpoint = isCheckpointMessage(messageId);
