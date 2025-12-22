@@ -30,6 +30,7 @@
     "template.settingsModal.display.showInfoBox": "Show Info Box",
     "template.settingsModal.display.showPresentCharacters": "Show Present Characters",
     "template.settingsModal.display.showInventory": "Show Inventory",
+    "template.settingsModal.display.showQuests": "Show Quests",
     "template.settingsModal.display.showThoughtsInChat": "Show Thoughts in Chat",
     "template.settingsModal.display.showThoughtsInChatNote": "Display character thoughts as overlay bubbles next to their messages",
     "template.settingsModal.display.alwaysShowThoughtBubble": "Always Show Thought Bubble",

@@ -31,6 +31,7 @@ export const defaultSettings = {
     showInfoBox: true,
     showCharacterThoughts: true,
     showInventory: true, // Show inventory section (v2 system)
+    showQuests: true, // Show quests section
     showThoughtsInChat: true, // Show thoughts overlay in chat
     alwaysShowThoughtBubble: false, // Auto-expand thought bubble without clicking icon
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection

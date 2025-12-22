@@ -93,7 +93,8 @@ import {
 import {
     initChapterCheckpointUI,
     injectCheckpointButton,
-    updateAllCheckpointIndicators
+    updateAllCheckpointIndicators,
+    cleanupCheckpointUI
 } from './src/systems/ui/checkpointUI.js';
 import { restoreCheckpointOnLoad } from './src/systems/features/chapterCheckpoint.js';
 import {
@@ -197,6 +198,7 @@ async function addExtensionSettings() {
             // Disabling extension - remove UI elements
             clearExtensionPrompts();
             updateChatThoughts(); // Remove thought bubbles
+            cleanupCheckpointUI(); // Remove checkpoint buttons and indicators
 
             // Remove panel and toggle buttons
             $('#rpg-companion-panel').remove();
@@ -204,11 +206,14 @@ async function addExtensionSettings() {
             $('#rpg-collapse-toggle').remove();
             $('#rpg-debug-toggle').remove();
             $('#rpg-debug-panel').remove();
+            $('#rpg-plot-buttons').remove(); // Remove plot buttons
         } else if (extensionSettings.enabled && !wasEnabled) {
             // Enabling extension - initialize UI
             await initUI();
             loadChatData(); // Load chat data for current chat
             updateChatThoughts(); // Create thought bubbles if data exists
+            injectCheckpointButton(); // Re-add checkpoint buttons
+            updateAllCheckpointIndicators(); // Update button states
         }
 
         // Update Memory Recollection button visibility
@@ -328,6 +333,12 @@ async function initUI() {
 
     $('#rpg-toggle-inventory').on('change', function() {
         extensionSettings.showInventory = $(this).prop('checked');
+        saveSettings();
+        updateSectionVisibility();
+    });
+
+    $('#rpg-toggle-quests').on('change', function() {
+        extensionSettings.showQuests = $(this).prop('checked');
         saveSettings();
         updateSectionVisibility();
     });
@@ -472,6 +483,7 @@ async function initUI() {
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
+    $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);

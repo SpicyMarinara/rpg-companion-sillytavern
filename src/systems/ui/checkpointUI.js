@@ -119,6 +119,9 @@ export function updateAllCheckpointIndicators() {
 
     if (!chat) return;
 
+    // First, remove ALL checkpoint buttons from everywhere
+    document.querySelectorAll('.rpg-checkpoint-button, .rpg-checkpoint-button-expanded').forEach(btn => btn.remove());
+
     // Update all message blocks
     const messageBlocks = document.querySelectorAll('.mes');
     messageBlocks.forEach((block) => {
@@ -129,18 +132,25 @@ export function updateAllCheckpointIndicators() {
 
         addCheckpointIndicator(messageId, block);
 
-        // Update any existing dropdown menu button for this message
+        // Re-add buttons based on current mode
+        processExpandedButton(block);
+
         const dropdownMenu = block.querySelector('.extraMesButtons');
         if (dropdownMenu) {
-            updateCheckpointButtonInMenu(dropdownMenu, messageId);
-        }
-
-        // Update any existing expanded button for this message
-        const mesButtons = block.querySelector('.mes_buttons');
-        if (mesButtons) {
-            updateCheckpointButtonInMenu(mesButtons, messageId);
+            processExtraMesButtons(dropdownMenu);
         }
     });
+}
+
+/**
+ * Removes all checkpoint UI elements
+ */
+export function cleanupCheckpointUI() {
+    // Remove all checkpoint buttons
+    document.querySelectorAll('.rpg-checkpoint-button, .rpg-checkpoint-button-expanded').forEach(btn => btn.remove());
+
+    // Remove all checkpoint indicators (banner)
+    document.querySelectorAll('.rpg-checkpoint-indicator').forEach(indicator => indicator.remove());
 }
 
 /**
@@ -151,6 +161,17 @@ export function initChapterCheckpointUI() {
     document.addEventListener('rpg-companion-checkpoint-changed', () => {
         updateAllCheckpointIndicators();
     });
+
+    // Listen for expandMessageActions class changes on body
+    const bodyObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                // The expandMessageActions class was toggled, refresh all buttons
+                updateAllCheckpointIndicators();
+            }
+        });
+    });
+    bodyObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     // Listen for chat changes to update indicators
     const context = getContext();
@@ -205,12 +226,12 @@ export function injectCheckpointButton() {
                         processExtraMesButtons(node);
                     }
 
-                    // Check if message block was added (for expanded mode)
+                    // Check if message block was added (for expanded buttons)
                     if (node.classList && node.classList.contains('mes')) {
                         processExpandedButton(node);
                     }
 
-                    // Also check if either exists within added subtree
+                    // Also check if any exist within added subtree
                     if (node.querySelector) {
                         const extraButtons = node.querySelectorAll('.extraMesButtons');
                         extraButtons.forEach(processExtraMesButtons);
@@ -237,12 +258,15 @@ export function injectCheckpointButton() {
             subtree: true
         });
 
-        // Process any existing menus and messages on initialization
-        const existingDropdownMenus = chatContainer.querySelectorAll('.extraMesButtons');
-        existingDropdownMenus.forEach(processExtraMesButtons);
+        // Process any existing dropdown menus and messages on initialization
+        // Use setTimeout to ensure styles are computed
+        setTimeout(() => {
+            const existingDropdownMenus = chatContainer.querySelectorAll('.extraMesButtons');
+            existingDropdownMenus.forEach(processExtraMesButtons);
 
-        const existingMessages = chatContainer.querySelectorAll('.mes');
-        existingMessages.forEach(processExpandedButton);
+            const existingMessages = chatContainer.querySelectorAll('.mes');
+            existingMessages.forEach(processExpandedButton);
+        }, 100);
     }
 }
 
@@ -257,21 +281,20 @@ function processExtraMesButtons(menu) {
     const messageBlock = menu.closest('.mes');
     if (!messageBlock) return;
 
-    // Check if expanded mode is active - if so, don't add to dropdown
-    const mesButtons = messageBlock.querySelector('.mes_buttons');
-    if (mesButtons && window.getComputedStyle(mesButtons).display !== 'none') {
-        return; // Expanded mode is active, skip dropdown
-    }
-
     // Get the message ID from the mesid attribute (SillyTavern's standard way)
     const messageId = Number(messageBlock.getAttribute('mesid'));
 
     if (isNaN(messageId)) return;
 
+    // Check if expanded mode is active - if so, skip dropdown
+    if (document.body.classList.contains('expandMessageActions')) {
+        return; // Expanded mode is ON, button will be added to mes_buttons instead
+    }
+
     // Check if button already exists in this container
     if (menu.querySelector('.rpg-checkpoint-button')) return;
 
-    // Add checkpoint button for dropdown menu
+    // Add checkpoint button to dropdown menu
     const checkpointBtn = addCheckpointButtonToMessage(messageId, menu, false);
     if (checkpointBtn) {
         checkpointBtn.classList.add('rpg-checkpoint-button');
@@ -280,7 +303,7 @@ function processExtraMesButtons(menu) {
 }
 
 /**
- * Process message to add expanded checkpoint button
+ * Process a message block to add expanded checkpoint button
  * @param {HTMLElement} messageBlock - The message block element
  */
 function processExpandedButton(messageBlock) {
@@ -289,9 +312,9 @@ function processExpandedButton(messageBlock) {
     const mesButtons = messageBlock.querySelector('.mes_buttons');
     if (!mesButtons) return;
 
-    // Only add if mes_buttons is visible (expanded mode is active)
-    if (window.getComputedStyle(mesButtons).display === 'none') {
-        return;
+    // Only add if expanded mode is ON (check body class)
+    if (!document.body.classList.contains('expandMessageActions')) {
+        return; // Expanded mode is OFF, button will be in dropdown instead
     }
 
     const messageId = Number(messageBlock.getAttribute('mesid'));
@@ -304,9 +327,17 @@ function processExpandedButton(messageBlock) {
     const checkpointBtn = addCheckpointButtonToMessage(messageId, mesButtons, true);
     if (checkpointBtn) {
         checkpointBtn.classList.add('rpg-checkpoint-button-expanded');
-        mesButtons.appendChild(checkpointBtn);
+
+        // Insert before the edit button if it exists, otherwise append
+        const editButton = mesButtons.querySelector('.mes_edit');
+        if (editButton) {
+            mesButtons.insertBefore(checkpointBtn, editButton);
+        } else {
+            mesButtons.appendChild(checkpointBtn);
+        }
     }
 }
+
 
 /**
  * Update the checkpoint button in an existing menu
@@ -316,7 +347,7 @@ function processExpandedButton(messageBlock) {
 function updateCheckpointButtonInMenu(menu, messageId) {
     if (!menu) return;
 
-    // Check for both button classes (dropdown and expanded)
+    // Find the checkpoint button (either dropdown or expanded)
     const existingButton = menu.querySelector('.rpg-checkpoint-button, .rpg-checkpoint-button-expanded');
     if (!existingButton) return;
 

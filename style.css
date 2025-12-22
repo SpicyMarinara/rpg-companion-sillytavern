@@ -1143,6 +1143,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0.25em;
     flex: 1;
     min-height: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 /* Row 1: 4 equal-width widgets - more square aspect ratio */

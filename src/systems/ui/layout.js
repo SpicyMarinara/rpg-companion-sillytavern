@@ -9,7 +9,8 @@ import {
     $userStatsContainer,
     $infoBoxContainer,
     $thoughtsContainer,
-    $inventoryContainer
+    $inventoryContainer,
+    $questsContainer
 } from '../../core/state.js';
 import { i18n } from '../../core/i18n.js';
 
@@ -230,22 +231,29 @@ export function updateSectionVisibility() {
     if ($inventoryContainer) {
         $inventoryContainer.toggle(extensionSettings.showInventory);
     }
+    if ($questsContainer) {
+        $questsContainer.toggle(extensionSettings.showQuests);
+    }
 
     // Show/hide dividers intelligently
     // Divider after User Stats: shown if User Stats is visible AND at least one section after it is visible
     const showDividerAfterStats = extensionSettings.showUserStats &&
-        (extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts || extensionSettings.showInventory);
+        (extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts || extensionSettings.showInventory || extensionSettings.showQuests);
     $('#rpg-divider-stats').toggle(showDividerAfterStats);
 
     // Divider after Info Box: shown if Info Box is visible AND at least one section after it is visible
     const showDividerAfterInfo = extensionSettings.showInfoBox &&
-        (extensionSettings.showCharacterThoughts || extensionSettings.showInventory);
+        (extensionSettings.showCharacterThoughts || extensionSettings.showInventory || extensionSettings.showQuests);
     $('#rpg-divider-info').toggle(showDividerAfterInfo);
 
-    // Divider after Thoughts: shown if Thoughts is visible AND Inventory is visible
+    // Divider after Thoughts: shown if Thoughts is visible AND at least one section after it is visible
     const showDividerAfterThoughts = extensionSettings.showCharacterThoughts &&
-        extensionSettings.showInventory;
+        (extensionSettings.showInventory || extensionSettings.showQuests);
     $('#rpg-divider-thoughts').toggle(showDividerAfterThoughts);
+
+    // Divider after Inventory: shown if Inventory is visible AND Quests is visible
+    const showDividerAfterInventory = extensionSettings.showInventory && extensionSettings.showQuests;
+    $('#rpg-divider-inventory').toggle(showDividerAfterInventory);
 }
 
 /**
