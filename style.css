@@ -6787,3 +6787,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: 24px;
     border-radius: 8px;
 }
+
+/* Textarea style for LLM instruction input */
+.rpg-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid var(--rpg-border);
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+}

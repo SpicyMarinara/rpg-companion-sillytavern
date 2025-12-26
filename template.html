@@ -238,25 +238,17 @@
                     Automatically generate avatars for characters without custom images using Stable Diffusion
                 </small>
 
-                <div class="rpg-setting-row" style="margin-top: 12px;">
-                    <label for="rpg-avatar-style-select" data-i18n-key="template.settingsModal.display.avatarPromptStyle">Avatar Generation Style:</label>
-                    <select id="rpg-avatar-style-select" class="rpg-select">
-                        <option value="auto" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.auto">Auto (Fantasy)</option>
-                        <option value="fantasy" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.fantasy">Fantasy</option>
-                        <option value="scifi" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.scifi">Sci-Fi</option>
-                        <option value="anime" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.anime">Anime</option>
-                        <option value="realistic" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.realistic">Realistic</option>
-                    </select>
-                </div>
-
-                <div class="rpg-setting-row" style="margin-top: 12px;">
-                    <label for="rpg-avatar-custom-prompt" style="display: block; margin-bottom: 8px;" data-i18n-key="template.settingsModal.display.avatarCustomPrompt">
-                        Custom Avatar Prompt:
-                    </label>
-                    <input type="text" id="rpg-avatar-custom-prompt" class="rpg-input" placeholder="portrait, fantasy character, RPG style" />
-                    <small style="display: block; margin-top: 4px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.avatarCustomPromptNote">
-                        Additional prompt modifiers for avatar generation
-                    </small>
+                <!-- Avatar options container - conditionally visible -->
+                <div id="rpg-avatar-options" style="margin-left: 24px; margin-top: 12px; display: none;">
+                    <div class="rpg-setting-row" style="margin-top: 12px;">
+                        <label for="rpg-avatar-llm-instruction" style="display: block; margin-bottom: 8px;" data-i18n-key="template.settingsModal.display.avatarLLMInstruction">
+                            LLM Instruction:
+                        </label>
+                        <textarea id="rpg-avatar-llm-instruction" class="rpg-textarea" rows="3" placeholder="Create a detailed portrait prompt focusing on the character's appearance, clothing, and mood..."></textarea>
+                        <small style="display: block; margin-top: 4px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.avatarLLMInstructionNote">
+                            The LLM will use character cards, tracker data, and chat context to generate detailed prompts
+                        </small>
+                    </div>
                 </div>
             </div>
 

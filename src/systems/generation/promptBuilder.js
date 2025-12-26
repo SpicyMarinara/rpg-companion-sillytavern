@@ -597,3 +597,85 @@ export async function generateSeparateUpdatePrompt() {
 
     return messages;
 }
+
+/**
+ * Default custom instruction for avatar prompt generation
+ */
+const DEFAULT_AVATAR_CUSTOM_INSTRUCTION = `Create a detailed portrait prompt focusing on the character's appearance, clothing, and mood. Include appropriate artistic style keywords.`;
+
+/**
+ * Generates the prompt for LLM-based avatar prompt generation
+ * Uses the same context as RPG generation (character cards, tracker data, chat history)
+ *
+ * @param {Array<string>} characterNames - Array of character names to generate prompts for
+ * @returns {Promise<Array<{role: string, content: string}>>} Message array for generateRaw API
+ */
+export async function generateAvatarPromptGenerationPrompt(characterNames) {
+    const depth = extensionSettings.updateDepth;
+    const messages = [];
+
+    // Build system message with character context
+    let systemMessage = `You are an AI assistant specializing in creating detailed image generation prompts for character avatars.\n\n`;
+
+    // Add character card information (reusing existing function)
+    const characterInfo = await getCharacterCardsInfo();
+    if (characterInfo) {
+        systemMessage += `Character Information:\n${characterInfo}\n\n`;
+    }
+
+    // Add tracker context if available
+    if (committedTrackerData.characterThoughts) {
+        systemMessage += `Current Scene Context:\n${committedTrackerData.characterThoughts}\n\n`;
+    }
+
+    systemMessage += `Recent conversation context:\n<history>`;
+    messages.push({ role: 'system', content: systemMessage });
+
+    // Add chat history
+    const recentMessages = chat.slice(-depth);
+    for (const message of recentMessages) {
+        messages.push({
+            role: message.is_user ? 'user' : 'assistant',
+            content: message.mes
+        });
+    }
+
+    // Build instruction message
+    let instructionMessage = `</history>\n\n`;
+    const customInstruction = extensionSettings.avatarLLMCustomInstruction || DEFAULT_AVATAR_CUSTOM_INSTRUCTION;
+
+    instructionMessage += `Task: Generate detailed image prompts for the following characters.\n\n`;
+    instructionMessage += `Instructions: ${customInstruction}\n\n`;
+    instructionMessage += `Characters:\n`;
+    characterNames.forEach((name, index) => {
+        instructionMessage += `${index + 1}. ${name}\n`;
+    });
+
+    instructionMessage += `\nOutput Format (one per line):\n`;
+    instructionMessage += `CHARACTER_NAME: [detailed prompt]\n\n`;
+    instructionMessage += `Example:\n`;
+    instructionMessage += `Gandalf: portrait, elderly wizard with long white beard, wearing grey robes, holding wooden staff, intense blue eyes, wise expression, fantasy art style\n\n`;
+    instructionMessage += `Provide ONLY the formatted prompts, no other text.`;
+
+    messages.push({ role: 'user', content: instructionMessage });
+    return messages;
+}
+
+/**
+ * Parses LLM response to extract character prompts
+ * @param {string} response - Raw LLM response
+ * @returns {Object} Map of character name to prompt
+ */
+export function parseAvatarPromptsResponse(response) {
+    const prompts = {};
+    const lines = response.split('\n');
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        const match = trimmed.match(/^([^:]+):\s*(.+)$/);
+        if (match) {
+            prompts[match[1].trim()] = match[2].trim();
+        }
+    }
+    return prompts;
+}

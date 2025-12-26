@@ -12,10 +12,15 @@ import {
     isGenerating,
     lastActionWasSwipe,
     setIsGenerating,
-    setLastActionWasSwipe
+    setLastActionWasSwipe,
+    sessionAvatarPrompts
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
-import { generateSeparateUpdatePrompt } from './promptBuilder.js';
+import {
+    generateSeparateUpdatePrompt,
+    generateAvatarPromptGenerationPrompt,
+    parseAvatarPromptsResponse
+} from './promptBuilder.js';
 import { parseResponse, parseUserStats } from './parser.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
@@ -158,6 +163,15 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 lastGeneratedData.characterThoughts = parsedData.characterThoughts;
             }
 
+            // Generate avatar prompts if auto-generate is enabled and characters need avatars
+            if (extensionSettings.autoGenerateAvatars) {
+                const charactersNeedingPrompts = parseCharactersWithoutAvatars(parsedData.characterThoughts);
+                if (charactersNeedingPrompts.length > 0) {
+                    console.log('[RPG Companion] Generating LLM avatar prompts for:', charactersNeedingPrompts);
+                    await generateAvatarPrompts(charactersNeedingPrompts);
+                }
+            }
+
             // When saveTrackerHistory is enabled, store tracker data on the user's message too
             // This allows scrolling through history and seeing trackers at each point
             if (extensionSettings.saveTrackerHistory && lastMessage && lastMessage.is_user) {
@@ -252,4 +266,75 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         // console.log('[RPG Companion] 🔄 Tracker generation complete - resetting lastActionWasSwipe to false');
         setLastActionWasSwipe(false);
     }
+}
+
+/**
+ * Parses character thoughts to find characters that need avatar prompts
+ * @param {string} characterThoughtsData - Raw character thoughts data
+ * @returns {Array<string>} Array of character names needing prompts
+ */
+function parseCharactersWithoutAvatars(characterThoughtsData) {
+    if (!characterThoughtsData) return [];
+
+    const lines = characterThoughtsData.split('\n');
+    const characters = [];
+
+    for (const line of lines) {
+        if (line.trim().startsWith('- ')) {
+            const name = line.trim().substring(2).trim();
+            if (name && name.toLowerCase() !== 'unavailable') {
+                // Skip if already has custom avatar
+                if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[name]) {
+                    continue;
+                }
+                // Skip if already has session prompt
+                if (sessionAvatarPrompts[name]) {
+                    continue;
+                }
+                characters.push(name);
+            }
+        }
+    }
+    return characters;
+}
+
+/**
+ * Generates LLM-based avatar prompts for specified characters
+ * Called during batch RPG data refresh when avatar generation is enabled
+ *
+ * @param {Array<string>} characterNames - Array of character names needing prompts
+ * @returns {Promise<Object>} Map of character name to generated prompt
+ */
+export async function generateAvatarPrompts(characterNames) {
+    if (!characterNames || characterNames.length === 0) {
+        return {};
+    }
+
+    try {
+        console.log('[RPG Avatar] Generating LLM prompts for characters:', characterNames);
+
+        const prompt = await generateAvatarPromptGenerationPrompt(characterNames);
+
+        // Generate using raw prompt
+        const response = await generateRaw({
+            prompt: prompt,
+            quietToLoud: false
+        });
+
+        if (response) {
+            const prompts = parseAvatarPromptsResponse(response);
+            console.log('[RPG Avatar] Generated prompts:', prompts);
+
+            // Store in session-only storage
+            for (const [name, prompt] of Object.entries(prompts)) {
+                sessionAvatarPrompts[name] = prompt;
+            }
+
+            return prompts;
+        }
+    } catch (error) {
+        console.error('[RPG Avatar] LLM prompt generation failed:', error);
+    }
+
+    return {};
 }

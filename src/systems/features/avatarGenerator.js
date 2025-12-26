@@ -4,7 +4,7 @@
  */
 
 import { executeSlashCommandsOnChatInput } from '../../../../../../../scripts/slash-commands.js';
-import { extensionSettings } from '../../core/state.js';
+import { extensionSettings, sessionAvatarPrompts } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 
 // Track pending avatar generations to avoid duplicate requests
@@ -17,25 +17,20 @@ const pendingGenerations = new Set();
 let onGenerationCompleteCallback = null;
 
 /**
- * Style presets for avatar generation prompts
- */
-const STYLE_PRESETS = {
-    'auto': 'portrait, fantasy character, RPG style',
-    'fantasy': 'portrait, fantasy character, medieval RPG style, detailed face',
-    'scifi': 'portrait, sci-fi character, futuristic, cyberpunk style, detailed face',
-    'anime': 'portrait, anime character, manga style, detailed face',
-    'realistic': 'portrait, realistic character, detailed face, photorealistic'
-};
-
-/**
  * Builds the generation prompt for a character
+ * Uses LLM-generated prompt from session storage
  * @param {string} characterName - Name of the character
  * @returns {string} Full prompt for /sd command
  */
 function buildGenerationPrompt(characterName) {
-    const style = STYLE_PRESETS[extensionSettings.avatarGenerationStyle] || STYLE_PRESETS.auto;
-    const custom = extensionSettings.avatarGenerationPrompt || '';
-    return `${style}, ${characterName}, ${custom}`.trim();
+    const llmPrompt = sessionAvatarPrompts[characterName];
+    if (llmPrompt) {
+        console.log(`[RPG Avatar] Using LLM prompt for ${characterName}`);
+        return llmPrompt;
+    }
+
+    console.warn(`[RPG Avatar] No LLM prompt generated for ${characterName}, skipping generation`);
+    return null;
 }
 
 /**
@@ -83,6 +78,12 @@ export async function generateAvatar(characterName) {
 
     try {
         const prompt = buildGenerationPrompt(characterName);
+
+        // Skip if no prompt was generated (LLM hasn't generated one yet)
+        if (!prompt) {
+            console.log(`[RPG Avatar] No prompt available for ${characterName}, skipping`);
+            return null;
+        }
 
         // Execute /sd command with quiet=true
         // IMPORTANT: quiet=true must come BEFORE the prompt

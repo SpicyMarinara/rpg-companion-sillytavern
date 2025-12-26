@@ -169,8 +169,7 @@ export let extensionSettings = {
     npcAvatars: {}, // Store custom avatar images for NPCs (key: character name, value: base64 data URI)
     // Auto avatar generation settings
     autoGenerateAvatars: false, // Master toggle for auto-generating avatars
-    avatarGenerationPrompt: 'portrait, fantasy character, RPG style', // Default prompt template
-    avatarGenerationStyle: 'auto', // Style preset: auto, fantasy, sci-fi, anime, realistic
+    avatarLLMCustomInstruction: '', // Custom instruction for LLM prompt generation
 };
 
 /**
@@ -192,6 +191,25 @@ export let committedTrackerData = {
     infoBox: null,
     characterThoughts: null
 };
+
+/**
+ * Session-only storage for LLM-generated avatar prompts
+ * Maps character names to their generated prompts
+ * Resets on new chat (not persisted to extensionSettings)
+ */
+export let sessionAvatarPrompts = {};
+
+export function setSessionAvatarPrompt(characterName, prompt) {
+    sessionAvatarPrompts[characterName] = prompt;
+}
+
+export function getSessionAvatarPrompt(characterName) {
+    return sessionAvatarPrompts[characterName] || null;
+}
+
+export function clearSessionAvatarPrompts() {
+    sessionAvatarPrompts = {};
+}
 
 /**
  * Tracks whether the last action was a swipe (for separate mode)
