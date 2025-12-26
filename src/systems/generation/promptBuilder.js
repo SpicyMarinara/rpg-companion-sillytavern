@@ -23,6 +23,27 @@ export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, an
 async function getCharacterCardsInfo() {
     let characterInfo = '';
 
+    // Narrator mode: use character card as narrator context, infer characters from story context
+    if (extensionSettings.narratorMode) {
+        if (this_chid !== undefined && characters && characters[this_chid]) {
+            const character = characters[this_chid];
+            characterInfo += 'You are acting as the narrator for this story. The narrator card provides context for the story tone and style:\n\n';
+            characterInfo += `<narrator>\n`;
+
+            if (character.description) {
+                characterInfo += `${character.description}\n`;
+            }
+
+            if (character.personality) {
+                characterInfo += `${character.personality}\n`;
+            }
+
+            characterInfo += `</narrator>\n\n`;
+            characterInfo += `Infer the identity and details of characters present in each scene from the story context below. Do not use fixed character references - instead, identify characters naturally based on their actions, dialogue, and descriptions in the narrative.\n\n`;
+        }
+        return characterInfo;
+    }
+
     // Check if in group chat
     if (selected_group) {
         // Find the current group directly from the groups array
@@ -331,7 +352,11 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 .join(' | ');
 
             // Character block format
-            instructions += `- [Name (do not include ${userName}; state "Unavailable" if no major characters are present in the scene)]\n`;
+            if (extensionSettings.narratorMode) {
+                instructions += `- [Character Name (infer from story context; do not include ${userName}; state "Unavailable" if no other characters are present in the scene)]\n`;
+            } else {
+                instructions += `- [Name (do not include ${userName}; state "Unavailable" if no major characters are present in the scene)]\n`;
+            }
 
             // Details line with emoji and custom fields
             if (fieldPlaceholders) {
@@ -358,7 +383,11 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 instructions += `${thoughtsName}: [${thoughtsDescription}]\n`;
             }
 
-            instructions += `- … (Repeat the format above for every other present major character)\n`;
+            if (extensionSettings.narratorMode) {
+                instructions += `- … (Repeat the format above for every other character present in the scene, inferred from story context)\n`;
+            } else {
+                instructions += `- … (Repeat the format above for every other present major character)\n`;
+            }
 
             instructions += codeBlockMarker + '\n\n';
         }
