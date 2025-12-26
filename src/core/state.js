@@ -21,6 +21,7 @@ export let extensionSettings = {
     showInventory: true, // Show inventory section (v2 system)
     showQuests: true, // Show quests section
     showThoughtsInChat: true, // Show thoughts overlay in chat
+    showPlaceholderCharacterCard: true, // Show placeholder character card when no characters detected
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
@@ -158,6 +159,7 @@ export let extensionSettings = {
         cha: 10
     },
     lastDiceRoll: null, // Store last dice roll result
+    showDiceDisplay: true, // Show the "Last Roll" display in the panel
     collapsedInventoryLocations: [], // Array of collapsed storage location names
     inventoryViewModes: {
         onPerson: 'list', // 'list' or 'grid' view mode for On Person section

@@ -331,6 +331,11 @@ async function initUI() {
         updateSectionVisibility();
     });
 
+    $('#rpg-toggle-placeholder-card').on('change', function() {
+        extensionSettings.showPlaceholderCharacterCard = $(this).prop('checked');
+        saveSettings();
+    });
+
     $('#rpg-toggle-inventory').on('change', function() {
         extensionSettings.showInventory = $(this).prop('checked');
         saveSettings();
@@ -400,6 +405,12 @@ async function initUI() {
         extensionSettings.enableAnimations = $(this).prop('checked');
         saveSettings();
         toggleAnimations();
+    });
+
+    $('#rpg-toggle-dice-display').on('change', function() {
+        extensionSettings.showDiceDisplay = $(this).prop('checked');
+        saveSettings();
+        updateDiceDisplay();
     });
 
     $('#rpg-manual-update').on('click', async function() {
@@ -482,6 +493,7 @@ async function initUI() {
     $('#rpg-toggle-user-stats').prop('checked', extensionSettings.showUserStats);
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
+    $('#rpg-toggle-placeholder-card').prop('checked', extensionSettings.showPlaceholderCharacterCard);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
     $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
@@ -493,6 +505,7 @@ async function initUI() {
 
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
+    $('#rpg-toggle-dice-display').prop('checked', extensionSettings.showDiceDisplay);
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
     $('#rpg-theme-select').val(extensionSettings.theme);

@@ -441,8 +441,8 @@ export function renderThoughts() {
     debugLog('[RPG Thoughts] ==================== BUILDING HTML ====================');
     debugLog('[RPG Thoughts] Starting HTML generation for', presentCharacters.length + ' characters');
 
-    // If no characters parsed, show a placeholder editable card
-    if (presentCharacters.length === 0) {
+    // If no characters parsed, show a placeholder editable card (if enabled)
+    if (presentCharacters.length === 0 && extensionSettings.showPlaceholderCharacterCard) {
         debugLog('[RPG Thoughts] ⚠ No characters parsed - showing placeholder card');
         // Get default character portrait
         let defaultPortrait = FALLBACK_AVATAR_DATA_URI;
