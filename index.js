@@ -331,8 +331,8 @@ async function initUI() {
         updateSectionVisibility();
     });
 
-    $('#rpg-toggle-placeholder-card').on('change', function() {
-        extensionSettings.showPlaceholderCharacterCard = $(this).prop('checked');
+    $('#rpg-toggle-narrator-mode').on('change', function() {
+        extensionSettings.narratorMode = $(this).prop('checked');
         saveSettings();
     });
 
@@ -493,7 +493,7 @@ async function initUI() {
     $('#rpg-toggle-user-stats').prop('checked', extensionSettings.showUserStats);
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
-    $('#rpg-toggle-placeholder-card').prop('checked', extensionSettings.showPlaceholderCharacterCard);
+    $('#rpg-toggle-narrator-mode').prop('checked', extensionSettings.narratorMode);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
     $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);

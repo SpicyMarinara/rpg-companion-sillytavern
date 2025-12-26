@@ -21,7 +21,7 @@ export let extensionSettings = {
     showInventory: true, // Show inventory section (v2 system)
     showQuests: true, // Show quests section
     showThoughtsInChat: true, // Show thoughts overlay in chat
-    showPlaceholderCharacterCard: true, // Show placeholder character card when no characters detected
+    narratorMode: false, // Use character card as narrator instead of fixed character references
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
