@@ -15,7 +15,9 @@ import {
     setLastActionWasSwipe
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
-import { generateSeparateUpdatePrompt } from './promptBuilder.js';
+import {
+    generateSeparateUpdatePrompt
+} from './promptBuilder.js';
 import { parseResponse, parseUserStats } from './parser.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
@@ -23,6 +25,7 @@ import { renderThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
 import { i18n } from '../../core/i18n.js';
+import { generateAvatarsForCharacters } from '../features/avatarGenerator.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -31,7 +34,7 @@ let originalPresetName = null;
  * Gets the current preset name using the /preset command
  * @returns {Promise<string|null>} Current preset name or null if unavailable
  */
-async function getCurrentPresetName() {
+export async function getCurrentPresetName() {
     try {
         // Use /preset without arguments to get the current preset name
         const result = await executeSlashCommandsOnChatInput('/preset', { quiet: true });
@@ -55,12 +58,14 @@ async function getCurrentPresetName() {
         console.error('[RPG Companion] Error getting current preset:', error);
         return null;
     }
-}/**
+}
+
+/**
  * Switches to a specific preset by name using the /preset slash command
  * @param {string} presetName - Name of the preset to switch to
  * @returns {Promise<boolean>} True if switching succeeded, false otherwise
  */
-async function switchToPreset(presetName) {
+export async function switchToPreset(presetName) {
     try {
         // Use the /preset slash command to switch presets
         // This is the proper way to change presets in SillyTavern
@@ -207,7 +212,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 // console.log('[RPG Companion] 🔆 FIRST TIME: Auto-committed tracker data');
             }
 
-            // Render the updated data (outside the message check, always render)
+            // Render the updated data
             renderUserStats();
             renderInfoBox();
             renderThoughts();
@@ -216,6 +221,26 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
             // Save to chat metadata
             saveChatData();
+
+            // Generate avatars if auto-generate is enabled (runs within this workflow)
+            // This uses the RPG Companion Trackers preset and keeps the button spinning
+            if (extensionSettings.autoGenerateAvatars) {
+                const charactersNeedingAvatars = parseCharactersFromThoughts(parsedData.characterThoughts);
+                if (charactersNeedingAvatars.length > 0) {
+                    console.log('[RPG Companion] Generating avatars for:', charactersNeedingAvatars);
+                    
+                    // Generate avatars - this awaits completion
+                    await generateAvatarsForCharacters(charactersNeedingAvatars, (names) => {
+                        // Callback when generation starts - re-render to show loading spinners
+                        console.log('[RPG Companion] Avatar generation started, showing spinners...');
+                        renderThoughts();
+                    });
+
+                    // Re-render once all avatars are generated
+                    console.log('[RPG Companion] All avatars generated, re-rendering...');
+                    renderThoughts();
+                }
+            }
         }
 
     } catch (error) {
@@ -240,4 +265,26 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         // console.log('[RPG Companion] 🔄 Tracker generation complete - resetting lastActionWasSwipe to false');
         setLastActionWasSwipe(false);
     }
+}
+
+/**
+ * Parses character names from Present Characters thoughts data
+ * @param {string} characterThoughtsData - Raw character thoughts data
+ * @returns {Array<string>} Array of character names found
+ */
+function parseCharactersFromThoughts(characterThoughtsData) {
+    if (!characterThoughtsData) return [];
+
+    const lines = characterThoughtsData.split('\n');
+    const characters = [];
+
+    for (const line of lines) {
+        if (line.trim().startsWith('- ')) {
+            const name = line.trim().substring(2).trim();
+            if (name && name.toLowerCase() !== 'unavailable') {
+                characters.push(name);
+            }
+        }
+    }
+    return characters;
 }

@@ -36,7 +36,8 @@ import {
     setInfoBoxContainer,
     setThoughtsContainer,
     setInventoryContainer,
-    setQuestsContainer
+    setQuestsContainer,
+    clearSessionAvatarPrompts
 } from './src/core/state.js';
 import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData } from './src/core/persistence.js';
 import { registerAllEvents } from './src/core/events.js';
@@ -407,6 +408,23 @@ async function initUI() {
         toggleAnimations();
     });
 
+    // Auto avatar generation settings
+    $('#rpg-toggle-auto-avatars').on('change', function() {
+        extensionSettings.autoGenerateAvatars = $(this).prop('checked');
+        saveSettings();
+
+        // Show/hide avatar options based on toggle
+        const $options = $('#rpg-avatar-options');
+        if (extensionSettings.autoGenerateAvatars) {
+            $options.slideDown(200);
+        } else {
+            $options.slideUp(200);
+        }
+    });
+
+    $('#rpg-avatar-llm-instruction').on('input', function() {
+        extensionSettings.avatarLLMCustomInstruction = $(this).val().trim();
+        saveSettings();
     $('#rpg-toggle-dice-display').on('change', function() {
         extensionSettings.showDiceDisplay = $(this).prop('checked');
         saveSettings();
@@ -505,6 +523,18 @@ async function initUI() {
 
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
+
+    // Initialize avatar options
+    $('#rpg-toggle-auto-avatars').prop('checked', extensionSettings.autoGenerateAvatars || false);
+    $('#rpg-avatar-llm-instruction').val(extensionSettings.avatarLLMCustomInstruction || '');
+
+    // Initialize avatar options visibility
+    if (extensionSettings.autoGenerateAvatars) {
+        $('#rpg-avatar-options').show();
+    } else {
+        $('#rpg-avatar-options').hide();
+    }
+
     $('#rpg-toggle-dice-display').prop('checked', extensionSettings.showDiceDisplay);
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
@@ -727,7 +757,7 @@ jQuery(async () => {
                 [event_types.MESSAGE_RECEIVED]: onMessageReceived,
                 [event_types.GENERATION_STOPPED]: onGenerationEnded,
                 [event_types.GENERATION_ENDED]: onGenerationEnded,
-                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar, restoreCheckpointOnLoad],
+                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar, restoreCheckpointOnLoad, clearSessionAvatarPrompts],
                 [event_types.MESSAGE_SWIPED]: onMessageSwiped,
                 [event_types.USER_MESSAGE_RENDERED]: updatePersonaAvatar,
                 [event_types.SETTINGS_UPDATED]: updatePersonaAvatar
