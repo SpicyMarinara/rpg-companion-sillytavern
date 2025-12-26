@@ -85,6 +85,15 @@ export async function executeRollCommand(command) {
  * Updates the dice display in the sidebar.
  */
 export function updateDiceDisplay() {
+    // Hide the entire dice display if showDiceDisplay is false
+    const $display = $('#rpg-dice-display');
+    if (!extensionSettings.showDiceDisplay) {
+        $display.hide();
+        return;
+    } else {
+        $display.show();
+    }
+
     const lastRoll = extensionSettings.lastDiceRoll;
     const label = i18n.getTranslation('template.mainPanel.lastRoll') || 'Last Roll: ';
     const noneValue = i18n.getTranslation('global.none') || 'None';
@@ -98,6 +107,7 @@ export function updateDiceDisplay() {
 
 /**
  * Clears the last dice roll.
+ * Called when the x button is clicked.
  */
 export function clearDiceRoll() {
     extensionSettings.lastDiceRoll = null;
