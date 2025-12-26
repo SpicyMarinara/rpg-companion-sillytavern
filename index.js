@@ -402,6 +402,22 @@ async function initUI() {
         toggleAnimations();
     });
 
+    // Auto avatar generation settings
+    $('#rpg-toggle-auto-avatars').on('change', function() {
+        extensionSettings.autoGenerateAvatars = $(this).prop('checked');
+        saveSettings();
+    });
+
+    $('#rpg-avatar-style-select').on('change', function() {
+        extensionSettings.avatarGenerationStyle = String($(this).val());
+        saveSettings();
+    });
+
+    $('#rpg-avatar-custom-prompt').on('input', function() {
+        extensionSettings.avatarGenerationPrompt = $(this).val().trim();
+        saveSettings();
+    });
+
     $('#rpg-manual-update').on('click', async function() {
         if (!extensionSettings.enabled) {
             // console.log('[RPG Companion] Extension is disabled. Please enable it in the Extensions tab.');
@@ -493,6 +509,9 @@ async function initUI() {
 
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
+    $('#rpg-toggle-auto-avatars').prop('checked', extensionSettings.autoGenerateAvatars || false);
+    $('#rpg-avatar-style-select').val(extensionSettings.avatarGenerationStyle || 'auto');
+    $('#rpg-avatar-custom-prompt').val(extensionSettings.avatarGenerationPrompt || '');
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
     $('#rpg-theme-select').val(extensionSettings.theme);

@@ -229,6 +229,35 @@
                 <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.enableDebugModeNote">
                     Shows parser logs in a mobile-friendly UI panel. Useful for troubleshooting. Look for the red bug button.
                 </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-auto-avatars" />
+                    <span data-i18n-key="template.settingsModal.display.autoGenerateAvatars">Auto-generate Missing Avatars</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.autoGenerateAvatarsNote">
+                    Automatically generate avatars for characters without custom images using Stable Diffusion
+                </small>
+
+                <div class="rpg-setting-row" style="margin-top: 12px;">
+                    <label for="rpg-avatar-style-select" data-i18n-key="template.settingsModal.display.avatarPromptStyle">Avatar Generation Style:</label>
+                    <select id="rpg-avatar-style-select" class="rpg-select">
+                        <option value="auto" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.auto">Auto (Fantasy)</option>
+                        <option value="fantasy" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.fantasy">Fantasy</option>
+                        <option value="scifi" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.scifi">Sci-Fi</option>
+                        <option value="anime" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.anime">Anime</option>
+                        <option value="realistic" data-i18n-key="template.settingsModal.display.avatarPromptStyleOptions.realistic">Realistic</option>
+                    </select>
+                </div>
+
+                <div class="rpg-setting-row" style="margin-top: 12px;">
+                    <label for="rpg-avatar-custom-prompt" style="display: block; margin-bottom: 8px;" data-i18n-key="template.settingsModal.display.avatarCustomPrompt">
+                        Custom Avatar Prompt:
+                    </label>
+                    <input type="text" id="rpg-avatar-custom-prompt" class="rpg-input" placeholder="portrait, fantasy character, RPG style" />
+                    <small style="display: block; margin-top: 4px; color: #888; font-size: 11px;" data-i18n-key="template.settingsModal.display.avatarCustomPromptNote">
+                        Additional prompt modifiers for avatar generation
+                    </small>
+                </div>
             </div>
 
             <div class="rpg-settings-group">

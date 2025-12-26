@@ -6767,3 +6767,23 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: linear-gradient(180deg, #4a9eff 0%, transparent 100%);
     opacity: 0.5;
 }
+
+/* Avatar generation loading overlay */
+.rpg-avatar-generating {
+    position: relative;
+}
+
+.rpg-generating-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    border-radius: 8px;
+}

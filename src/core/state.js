@@ -166,7 +166,11 @@ export let extensionSettings = {
     },
     debugMode: false, // Enable debug logging visible in UI (for mobile debugging)
     memoryMessagesToProcess: 16, // Number of messages to process per batch in memory recollection
-    npcAvatars: {} // Store custom avatar images for NPCs (key: character name, value: base64 data URI)
+    npcAvatars: {}, // Store custom avatar images for NPCs (key: character name, value: base64 data URI)
+    // Auto avatar generation settings
+    autoGenerateAvatars: false, // Master toggle for auto-generating avatars
+    avatarGenerationPrompt: 'portrait, fantasy character, RPG style', // Default prompt template
+    avatarGenerationStyle: 'auto', // Style preset: auto, fantasy, sci-fi, anime, realistic
 };
 
 /**
