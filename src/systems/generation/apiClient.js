@@ -12,14 +12,11 @@ import {
     isGenerating,
     lastActionWasSwipe,
     setIsGenerating,
-    setLastActionWasSwipe,
-    sessionAvatarPrompts
+    setLastActionWasSwipe
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
 import {
-    generateSeparateUpdatePrompt,
-    generateAvatarPromptGenerationPrompt,
-    parseAvatarPromptsResponse
+    generateSeparateUpdatePrompt
 } from './promptBuilder.js';
 import { parseResponse, parseUserStats } from './parser.js';
 import { renderUserStats } from '../rendering/userStats.js';
@@ -28,7 +25,7 @@ import { renderThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
 import { i18n } from '../../core/i18n.js';
-import { setOnGenerationComplete, waitForAllGenerations } from '../features/avatarGenerator.js';
+import { generateAvatarsForCharacters } from '../features/avatarGenerator.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -37,7 +34,7 @@ let originalPresetName = null;
  * Gets the current preset name using the /preset command
  * @returns {Promise<string|null>} Current preset name or null if unavailable
  */
-async function getCurrentPresetName() {
+export async function getCurrentPresetName() {
     try {
         // Use /preset without arguments to get the current preset name
         const result = await executeSlashCommandsOnChatInput('/preset', { quiet: true });
@@ -61,12 +58,14 @@ async function getCurrentPresetName() {
         console.error('[RPG Companion] Error getting current preset:', error);
         return null;
     }
-}/**
+}
+
+/**
  * Switches to a specific preset by name using the /preset slash command
  * @param {string} presetName - Name of the preset to switch to
  * @returns {Promise<boolean>} True if switching succeeded, false otherwise
  */
-async function switchToPreset(presetName) {
+export async function switchToPreset(presetName) {
     try {
         // Use the /preset slash command to switch presets
         // This is the proper way to change presets in SillyTavern
@@ -163,15 +162,6 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 lastGeneratedData.characterThoughts = parsedData.characterThoughts;
             }
 
-            // Generate avatar prompts if auto-generate is enabled and characters need avatars
-            if (extensionSettings.autoGenerateAvatars) {
-                const charactersNeedingPrompts = parseCharactersWithoutAvatars(parsedData.characterThoughts);
-                if (charactersNeedingPrompts.length > 0) {
-                    console.log('[RPG Companion] Generating LLM avatar prompts for:', charactersNeedingPrompts);
-                    await generateAvatarPrompts(charactersNeedingPrompts);
-                }
-            }
-
             // When saveTrackerHistory is enabled, store tracker data on the user's message too
             // This allows scrolling through history and seeing trackers at each point
             if (extensionSettings.saveTrackerHistory && lastMessage && lastMessage.is_user) {
@@ -222,31 +212,40 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 // console.log('[RPG Companion] 🔆 FIRST TIME: Auto-committed tracker data');
             }
 
-            // Render the updated data (outside the message check, always render)
+            // Render the updated data
             renderUserStats();
             renderInfoBox();
             renderThoughts();
             renderInventory();
             renderQuests();
 
-            // Set up callback to re-render thoughts when avatars finish generating
-            setOnGenerationComplete(() => {
-                console.log('[RPG Companion] Avatar generation complete, re-rendering thoughts...');
-                renderThoughts();
-            });
-
             // Save to chat metadata
             saveChatData();
+
+            // Generate avatars if auto-generate is enabled (runs within this workflow)
+            // This uses the RPG Companion Trackers preset and keeps the button spinning
+            if (extensionSettings.autoGenerateAvatars) {
+                const charactersNeedingAvatars = parseCharactersFromThoughts(parsedData.characterThoughts);
+                if (charactersNeedingAvatars.length > 0) {
+                    console.log('[RPG Companion] Generating avatars for:', charactersNeedingAvatars);
+                    
+                    // Generate avatars - this awaits completion
+                    await generateAvatarsForCharacters(charactersNeedingAvatars, (names) => {
+                        // Callback when generation starts - re-render to show loading spinners
+                        console.log('[RPG Companion] Avatar generation started, showing spinners...');
+                        renderThoughts();
+                    });
+
+                    // Re-render once all avatars are generated
+                    console.log('[RPG Companion] All avatars generated, re-rendering...');
+                    renderThoughts();
+                }
+            }
         }
 
     } catch (error) {
         console.error('[RPG Companion] Error updating RPG data:', error);
     } finally {
-        // Wait for all avatar generations to complete before finishing
-        console.log('[RPG Companion] Waiting for avatar generations to complete...');
-        await waitForAllGenerations();
-        console.log('[RPG Companion] All avatar generations complete.');
-
         // Restore original preset if we switched to a separate one
         if (originalPresetName && extensionSettings.useSeparatePreset) {
             console.log(`[RPG Companion] Restoring original preset: "${originalPresetName}"`);
@@ -269,11 +268,11 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 }
 
 /**
- * Parses character thoughts to find characters that need avatar prompts
+ * Parses character names from Present Characters thoughts data
  * @param {string} characterThoughtsData - Raw character thoughts data
- * @returns {Array<string>} Array of character names needing prompts
+ * @returns {Array<string>} Array of character names found
  */
-function parseCharactersWithoutAvatars(characterThoughtsData) {
+function parseCharactersFromThoughts(characterThoughtsData) {
     if (!characterThoughtsData) return [];
 
     const lines = characterThoughtsData.split('\n');
@@ -283,58 +282,9 @@ function parseCharactersWithoutAvatars(characterThoughtsData) {
         if (line.trim().startsWith('- ')) {
             const name = line.trim().substring(2).trim();
             if (name && name.toLowerCase() !== 'unavailable') {
-                // Skip if already has custom avatar
-                if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[name]) {
-                    continue;
-                }
-                // Skip if already has session prompt
-                if (sessionAvatarPrompts[name]) {
-                    continue;
-                }
                 characters.push(name);
             }
         }
     }
     return characters;
-}
-
-/**
- * Generates LLM-based avatar prompts for specified characters
- * Called during batch RPG data refresh when avatar generation is enabled
- *
- * @param {Array<string>} characterNames - Array of character names needing prompts
- * @returns {Promise<Object>} Map of character name to generated prompt
- */
-export async function generateAvatarPrompts(characterNames) {
-    if (!characterNames || characterNames.length === 0) {
-        return {};
-    }
-
-    try {
-        console.log('[RPG Avatar] Generating LLM prompts for characters:', characterNames);
-
-        const prompt = await generateAvatarPromptGenerationPrompt(characterNames);
-
-        // Generate using raw prompt
-        const response = await generateRaw({
-            prompt: prompt,
-            quietToLoud: false
-        });
-
-        if (response) {
-            const prompts = parseAvatarPromptsResponse(response);
-            console.log('[RPG Avatar] Generated prompts:', prompts);
-
-            // Store in session-only storage
-            for (const [name, prompt] of Object.entries(prompts)) {
-                sessionAvatarPrompts[name] = prompt;
-            }
-
-            return prompts;
-        }
-    } catch (error) {
-        console.error('[RPG Avatar] LLM prompt generation failed:', error);
-    }
-
-    return {};
 }

@@ -17,7 +17,7 @@ import {
 import { saveChatData } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 import { saveSettings } from '../../core/persistence.js';
-import { checkAndGenerateAvatar, isGenerating } from '../features/avatarGenerator.js';
+import { isGenerating, regenerateAvatar } from '../features/avatarGenerator.js';
 
 /**
  * Helper to log to both console and debug logs array
@@ -172,11 +172,6 @@ function getCharacterAvatar(characterName) {
             hasAvatar = true;
             return thumbnailUrl;
         }
-    }
-
-    // Trigger auto-generation if no avatar was found
-    if (!hasAvatar) {
-        checkAndGenerateAvatar(characterName, false);
     }
 
     return characterPortrait;
@@ -481,7 +476,7 @@ export function renderThoughts() {
         html += '<div class="rpg-thoughts-content">';
         html += `
             <div class="rpg-character-card" data-character-name="${escapedDefaultName}">
-                <div class="rpg-character-avatar rpg-avatar-upload" data-character="${escapedDefaultName}" title="Click to upload custom avatar&#10;Right-click to remove custom avatar">
+                <div class="rpg-character-avatar rpg-avatar-upload" data-character="${escapedDefaultName}" title="Click to upload custom avatar&#10;Right-click to regenerate avatar">
                     <img src="${defaultPortrait}" alt="${escapedDefaultName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
                     <div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="relationship" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">⚖️</div>
                 </div>
@@ -542,7 +537,7 @@ export function renderThoughts() {
 
                 html += `
                     <div class="rpg-character-card" data-character-name="${escapedName}">
-                        <div class="rpg-character-avatar rpg-avatar-upload ${isCurrentlyGenerating ? 'rpg-avatar-generating' : ''}" data-character="${escapedName}" title="Click to upload custom avatar&#10;Right-click to remove custom avatar">
+                        <div class="rpg-character-avatar rpg-avatar-upload ${isCurrentlyGenerating ? 'rpg-avatar-generating' : ''}" data-character="${escapedName}" title="Click to upload custom avatar&#10;Right-click to regenerate avatar">
                             <img src="${characterPortrait}" alt="${escapedName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
                             ${isCurrentlyGenerating ? '<div class="rpg-generating-overlay"><i class="fa-solid fa-spinner fa-spin"></i></div>' : ''}
                             ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
@@ -628,8 +623,8 @@ export function renderThoughts() {
         uploadNpcAvatar(characterName);
     });
 
-    // Add event handler for removing custom avatars (right-click)
-    $thoughtsContainer.find('.rpg-avatar-upload').on('contextmenu', function(e) {
+    // Add event handler for regenerating avatars (right-click)
+    $thoughtsContainer.find('.rpg-avatar-upload').on('contextmenu', async function(e) {
         // Prevent triggering if clicking on the relationship badge
         if ($(e.target).hasClass('rpg-relationship-badge') || $(e.target).closest('.rpg-relationship-badge').length > 0) {
             return;
@@ -637,17 +632,42 @@ export function renderThoughts() {
 
         e.preventDefault(); // Prevent default context menu
         const characterName = $(this).data('character');
+        const $avatarEl = $(this);
 
-        // Check if this character has a custom avatar
-        if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[characterName]) {
-            // Remove the custom avatar
-            delete extensionSettings.npcAvatars[characterName];
-            saveSettings();
-            console.log(`[RPG Companion] Removed custom avatar for: ${characterName}`);
-
-            // Re-render to show the default avatar
-            renderThoughts();
+        // Check if auto-generation is enabled
+        if (!extensionSettings.autoGenerateAvatars) {
+            // If auto-generation is disabled, just remove the custom avatar
+            if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[characterName]) {
+                delete extensionSettings.npcAvatars[characterName];
+                saveSettings();
+                console.log(`[RPG Companion] Removed custom avatar for: ${characterName}`);
+                renderThoughts();
+            }
+            return;
         }
+
+        // Show generating state with spinner overlay
+        $avatarEl.addClass('rpg-avatar-generating');
+        if (!$avatarEl.find('.rpg-generating-overlay').length) {
+            $avatarEl.append('<div class="rpg-generating-overlay"><i class="fa-solid fa-spinner fa-spin"></i></div>');
+        }
+        console.log(`[RPG Companion] Regenerating avatar for: ${characterName}`);
+
+        try {
+            // Regenerate the avatar
+            const newUrl = await regenerateAvatar(characterName);
+            
+            if (newUrl) {
+                console.log(`[RPG Companion] Successfully regenerated avatar for: ${characterName}`);
+            } else {
+                console.warn(`[RPG Companion] Failed to regenerate avatar for: ${characterName}`);
+            }
+        } catch (error) {
+            console.error(`[RPG Companion] Error regenerating avatar for ${characterName}:`, error);
+        }
+
+        // Re-render to show the new avatar (or fallback)
+        renderThoughts();
     });
 
     // Add event handler for character removal
