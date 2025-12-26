@@ -23,6 +23,7 @@ import { renderThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
 import { i18n } from '../../core/i18n.js';
+import { setOnGenerationComplete, waitForAllGenerations } from '../features/avatarGenerator.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -214,6 +215,12 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             renderInventory();
             renderQuests();
 
+            // Set up callback to re-render thoughts when avatars finish generating
+            setOnGenerationComplete(() => {
+                console.log('[RPG Companion] Avatar generation complete, re-rendering thoughts...');
+                renderThoughts();
+            });
+
             // Save to chat metadata
             saveChatData();
         }
@@ -221,6 +228,11 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
     } catch (error) {
         console.error('[RPG Companion] Error updating RPG data:', error);
     } finally {
+        // Wait for all avatar generations to complete before finishing
+        console.log('[RPG Companion] Waiting for avatar generations to complete...');
+        await waitForAllGenerations();
+        console.log('[RPG Companion] All avatar generations complete.');
+
         // Restore original preset if we switched to a separate one
         if (originalPresetName && extensionSettings.useSeparatePreset) {
             console.log(`[RPG Companion] Restoring original preset: "${originalPresetName}"`);

@@ -11,6 +11,12 @@ import { saveSettings } from '../../core/persistence.js';
 const pendingGenerations = new Set();
 
 /**
+ * Callback for when all avatar generations complete
+ * Used to trigger UI updates
+ */
+let onGenerationCompleteCallback = null;
+
+/**
  * Style presets for avatar generation prompts
  */
 const STYLE_PRESETS = {
@@ -30,6 +36,24 @@ function buildGenerationPrompt(characterName) {
     const style = STYLE_PRESETS[extensionSettings.avatarGenerationStyle] || STYLE_PRESETS.auto;
     const custom = extensionSettings.avatarGenerationPrompt || '';
     return `${style}, ${characterName}, ${custom}`.trim();
+}
+
+/**
+ * Sets a callback to be called when all avatar generations complete
+ * @param {Function} callback - Function to call when all generations are done
+ */
+export function setOnGenerationComplete(callback) {
+    onGenerationCompleteCallback = callback;
+}
+
+/**
+ * Triggers the completion callback if all generations are done
+ */
+function checkAndTriggerCompletionCallback() {
+    if (pendingGenerations.size === 0 && onGenerationCompleteCallback) {
+        onGenerationCompleteCallback();
+        onGenerationCompleteCallback = null;
+    }
 }
 
 /**
@@ -61,10 +85,11 @@ export async function generateAvatar(characterName) {
         const prompt = buildGenerationPrompt(characterName);
 
         // Execute /sd command with quiet=true
-        // This saves to gallery without posting to chat
+        // IMPORTANT: quiet=true must come BEFORE the prompt
+        // This suppresses chat output and returns the image URL via pipe
         const result = await executeSlashCommandsOnChatInput(
-            `/sd ${prompt} quiet=true`,
-            { clearChatInput: false }
+            `/sd quiet=true ${prompt}`,
+            { clearChatInput: true }
         );
 
         // The result might be an object with various properties
@@ -102,6 +127,8 @@ export async function generateAvatar(characterName) {
         return null;
     } finally {
         pendingGenerations.delete(characterName);
+        // Check if all generations are complete and trigger callback
+        checkAndTriggerCompletionCallback();
     }
 }
 
@@ -133,4 +160,31 @@ export function checkAndGenerateAvatar(characterName, hasAvatar) {
  */
 export function isGenerating(characterName) {
     return pendingGenerations.has(characterName);
+}
+
+/**
+ * Checks if ANY avatars are currently being generated
+ * @returns {boolean} True if any generation is in progress
+ */
+export function isAnyGenerating() {
+    return pendingGenerations.size > 0;
+}
+
+/**
+ * Waits for all pending avatar generations to complete
+ * @returns {Promise<void>}
+ */
+export function waitForAllGenerations() {
+    if (pendingGenerations.size === 0) {
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+            if (pendingGenerations.size === 0) {
+                clearInterval(checkInterval);
+                resolve();
+            }
+        }, 100);
+    });
 }
