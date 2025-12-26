@@ -425,6 +425,8 @@ async function initUI() {
     $('#rpg-avatar-llm-instruction').on('input', function() {
         extensionSettings.avatarLLMCustomInstruction = $(this).val().trim();
         saveSettings();
+    });
+
     $('#rpg-toggle-dice-display').on('change', function() {
         extensionSettings.showDiceDisplay = $(this).prop('checked');
         saveSettings();
@@ -521,7 +523,7 @@ async function initUI() {
     // Set default HTML prompt as actual text if no custom prompt exists
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
 
-    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
+    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
 
     // Initialize avatar options
