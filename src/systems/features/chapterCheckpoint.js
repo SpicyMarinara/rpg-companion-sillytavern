@@ -14,7 +14,7 @@ let currentlyHiddenRange = null;
 // Debounce restore to prevent loops
 let isRestoring = false;
 let restoreTimeout = null;
-let pendingResolve = null; // Track pending promise resolve function
+let pendingResolve = null;
 
 /**
  * Gets the current chapter checkpoint message ID for the active chat
@@ -142,7 +142,7 @@ export async function restoreCheckpointOnLoad() {
 
     // Debounce: wait 100ms before actually restoring
     return new Promise((resolve) => {
-        pendingResolve = resolve; // Track this promise's resolve function
+        pendingResolve = resolve;
         restoreTimeout = setTimeout(async () => {
             isRestoring = true;
             try {
