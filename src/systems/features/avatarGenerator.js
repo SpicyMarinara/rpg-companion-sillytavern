@@ -1,7 +1,7 @@
 /**
  * Avatar Generator Module
  * Handles automatic and manual avatar generation for NPC characters
- * 
+ *
  * Features:
  * - Batch generation with awaitable completion
  * - Batch prompt generation via LLM
@@ -119,7 +119,7 @@ export function hasExistingAvatar(characterName) {
 /**
  * Generates avatars for multiple characters and waits for all to complete.
  * This is the main entry point for auto-generation within a workflow.
- * 
+ *
  * @param {string[]} characterNames - Array of character names to generate avatars for
  * @param {Function} onStarted - Optional callback when generation starts (to update UI)
  * @returns {Promise<void>} Resolves when all generations complete
@@ -199,7 +199,7 @@ export async function generateAvatarsForCharacters(characterNames, onStarted = n
  * Regenerates avatar for a specific character
  * Clears existing avatar and prompt, then generates new ones
  * Handles preset switching if useSeparatePreset is enabled
- * 
+ *
  * @param {string} characterName - Name of character to regenerate
  * @returns {Promise<string|null>} New avatar URL or null if failed
  */
@@ -250,7 +250,7 @@ export async function regenerateAvatar(characterName) {
 
 /**
  * Generates LLM prompts for multiple characters in a single API call
- * 
+ *
  * @param {string[]} characterNames - Names of characters needing prompts
  */
 async function generateLLMPrompts(characterNames) {
@@ -282,7 +282,7 @@ async function generateLLMPrompts(characterNames) {
 /**
  * Builds a fallback prompt when LLM prompt generation fails or isn't available
  * Uses information embedded in the character name if present (e.g., from malformed tracker output)
- * 
+ *
  * @param {string} characterName - Character name (may contain additional details)
  * @returns {string} A basic prompt for image generation
  */
@@ -299,14 +299,14 @@ function buildFallbackPrompt(characterName) {
             return `portrait of ${name}, ${descriptions}, fantasy art style, detailed`;
         }
     }
-    
+
     // Simple fallback - just use the name
     return `portrait of ${characterName}, character portrait, fantasy art style, detailed face, high quality`;
 }
 
 /**
  * Generates a single avatar using the /sd command
- * 
+ *
  * @param {string} characterName - Name of character to generate avatar for
  * @returns {Promise<string|null>} Avatar URL or null if failed
  */
@@ -324,7 +324,7 @@ async function generateSingleAvatar(characterName) {
         // Execute /sd command with quiet=true to suppress chat output
         const result = await executeSlashCommandsOnChatInput(
             `/sd quiet=true ${prompt}`,
-            { clearChatInput: true }
+            { clearChatInput: false }
         );
 
         // Extract image URL from result
@@ -353,7 +353,7 @@ async function generateSingleAvatar(characterName) {
 /**
  * Extracts image URL from /sd command result
  * Handles various result formats
- * 
+ *
  * @param {any} result - Result from executeSlashCommandsOnChatInput
  * @returns {string|null} Image URL or null
  */
@@ -373,7 +373,7 @@ function extractImageUrl(result) {
     if (typeof result === 'object') {
         // Try common properties
         const url = result.pipe || result.output || result.image || result.url || result.result;
-        
+
         if (url && typeof url === 'string') {
             if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('/')) {
                 return url;

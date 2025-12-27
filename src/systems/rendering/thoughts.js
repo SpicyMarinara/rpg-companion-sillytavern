@@ -473,10 +473,15 @@ export function renderThoughts() {
 
         const escapedDefaultName = escapeHtmlAttr(defaultName);
 
+        // Determine right-click action text based on auto-generate setting
+        const defaultAvatarRightClickAction = extensionSettings.autoGenerateAvatars 
+            ? 'Right-click to regenerate avatar' 
+            : 'Right-click to delete avatar';
+
         html += '<div class="rpg-thoughts-content">';
         html += `
             <div class="rpg-character-card" data-character-name="${escapedDefaultName}">
-                <div class="rpg-character-avatar rpg-avatar-upload" data-character="${escapedDefaultName}" title="Click to upload custom avatar&#10;Right-click to regenerate avatar">
+                <div class="rpg-character-avatar rpg-avatar-upload" data-character="${escapedDefaultName}" title="Click to upload custom avatar&#10;${defaultAvatarRightClickAction}">
                     <img src="${defaultPortrait}" alt="${escapedDefaultName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
                     <div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="relationship" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">⚖️</div>
                 </div>
@@ -535,9 +540,14 @@ export function renderThoughts() {
                 // Check if avatar is being generated
                 const isCurrentlyGenerating = isGenerating(char.name);
 
+                // Determine right-click action text based on auto-generate setting
+                const avatarRightClickAction = extensionSettings.autoGenerateAvatars 
+                    ? 'Right-click to regenerate avatar' 
+                    : 'Right-click to delete avatar';
+
                 html += `
                     <div class="rpg-character-card" data-character-name="${escapedName}">
-                        <div class="rpg-character-avatar rpg-avatar-upload ${isCurrentlyGenerating ? 'rpg-avatar-generating' : ''}" data-character="${escapedName}" title="Click to upload custom avatar&#10;Right-click to regenerate avatar">
+                        <div class="rpg-character-avatar rpg-avatar-upload ${isCurrentlyGenerating ? 'rpg-avatar-generating' : ''}" data-character="${escapedName}" title="Click to upload custom avatar&#10;${avatarRightClickAction}">
                             <img src="${characterPortrait}" alt="${escapedName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
                             ${isCurrentlyGenerating ? '<div class="rpg-generating-overlay"><i class="fa-solid fa-spinner fa-spin"></i></div>' : ''}
                             ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
