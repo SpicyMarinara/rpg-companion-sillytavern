@@ -128,6 +128,7 @@ import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/sy
 import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
 import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
 import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
+import { openEncounterModal } from './src/systems/ui/encounterUI.js';
 
 // Integration modules
 import {
@@ -402,6 +403,122 @@ async function initUI() {
         togglePlotButtons();
     });
 
+    $('#rpg-toggle-encounters').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = { enabled: true, historyDepth: 8, autoSaveLogs: true };
+        }
+        extensionSettings.encounterSettings.enabled = $(this).prop('checked');
+        saveSettings();
+        togglePlotButtons(); // This also controls encounter button visibility
+    });
+
+    $('#rpg-encounter-history-depth').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = { enabled: true, historyDepth: 8, autoSaveLogs: true };
+        }
+        const value = $(this).val();
+        extensionSettings.encounterSettings.historyDepth = parseInt(String(value));
+        saveSettings();
+    });
+
+    $('#rpg-toggle-autosave-logs').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = { enabled: true, historyDepth: 8, autoSaveLogs: true };
+        }
+        extensionSettings.encounterSettings.autoSaveLogs = $(this).prop('checked');
+        saveSettings();
+    });
+
+    // Combat narrative style settings
+    $('#rpg-combat-tense').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = {};
+        }
+        if (!extensionSettings.encounterSettings.combatNarrative) {
+            extensionSettings.encounterSettings.combatNarrative = {};
+        }
+        extensionSettings.encounterSettings.combatNarrative.tense = $(this).val();
+        saveSettings();
+    });
+
+    $('#rpg-combat-person').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = {};
+        }
+        if (!extensionSettings.encounterSettings.combatNarrative) {
+            extensionSettings.encounterSettings.combatNarrative = {};
+        }
+        extensionSettings.encounterSettings.combatNarrative.person = $(this).val();
+        saveSettings();
+    });
+
+    $('#rpg-combat-narration').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = {};
+        }
+        if (!extensionSettings.encounterSettings.combatNarrative) {
+            extensionSettings.encounterSettings.combatNarrative = {};
+        }
+        extensionSettings.encounterSettings.combatNarrative.narration = $(this).val();
+        saveSettings();
+    });
+
+    $('#rpg-combat-pov').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = {};
+        }
+        if (!extensionSettings.encounterSettings.combatNarrative) {
+            extensionSettings.encounterSettings.combatNarrative = {};
+        }
+        extensionSettings.encounterSettings.combatNarrative.pov = $(this).val();
+        saveSettings();
+    });
+
+    // Summary narrative style settings
+    $('#rpg-summary-tense').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = {};
+        }
+        if (!extensionSettings.encounterSettings.summaryNarrative) {
+            extensionSettings.encounterSettings.summaryNarrative = {};
+        }
+        extensionSettings.encounterSettings.summaryNarrative.tense = $(this).val();
+        saveSettings();
+    });
+
+    $('#rpg-summary-person').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = {};
+        }
+        if (!extensionSettings.encounterSettings.summaryNarrative) {
+            extensionSettings.encounterSettings.summaryNarrative = {};
+        }
+        extensionSettings.encounterSettings.summaryNarrative.person = $(this).val();
+        saveSettings();
+    });
+
+    $('#rpg-summary-narration').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = {};
+        }
+        if (!extensionSettings.encounterSettings.summaryNarrative) {
+            extensionSettings.encounterSettings.summaryNarrative = {};
+        }
+        extensionSettings.encounterSettings.summaryNarrative.narration = $(this).val();
+        saveSettings();
+    });
+
+    $('#rpg-summary-pov').on('change', function() {
+        if (!extensionSettings.encounterSettings) {
+            extensionSettings.encounterSettings = {};
+        }
+        if (!extensionSettings.encounterSettings.summaryNarrative) {
+            extensionSettings.encounterSettings.summaryNarrative = {};
+        }
+        extensionSettings.encounterSettings.summaryNarrative.pov = $(this).val();
+        saveSettings();
+    });
+
     $('#rpg-toggle-animations').on('change', function() {
         extensionSettings.enableAnimations = $(this).prop('checked');
         saveSettings();
@@ -524,6 +641,22 @@ async function initUI() {
     $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
 
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
+    $('#rpg-toggle-encounters').prop('checked', extensionSettings.encounterSettings?.enabled ?? true);
+    $('#rpg-encounter-history-depth').val(extensionSettings.encounterSettings?.historyDepth ?? 8);
+    $('#rpg-toggle-autosave-logs').prop('checked', extensionSettings.encounterSettings?.autoSaveLogs ?? true);
+
+    // Combat narrative style
+    $('#rpg-combat-tense').val(extensionSettings.encounterSettings?.combatNarrative?.tense ?? 'present');
+    $('#rpg-combat-person').val(extensionSettings.encounterSettings?.combatNarrative?.person ?? 'third');
+    $('#rpg-combat-narration').val(extensionSettings.encounterSettings?.combatNarrative?.narration ?? 'omniscient');
+    $('#rpg-combat-pov').val(extensionSettings.encounterSettings?.combatNarrative?.pov ?? 'narrator');
+
+    // Summary narrative style
+    $('#rpg-summary-tense').val(extensionSettings.encounterSettings?.summaryNarrative?.tense ?? 'past');
+    $('#rpg-summary-person').val(extensionSettings.encounterSettings?.summaryNarrative?.person ?? 'third');
+    $('#rpg-summary-narration').val(extensionSettings.encounterSettings?.summaryNarrative?.narration ?? 'omniscient');
+    $('#rpg-summary-pov').val(extensionSettings.encounterSettings?.summaryNarrative?.pov ?? 'narrator');
+
     $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
 
     // Initialize avatar options
@@ -580,7 +713,7 @@ async function initUI() {
     setupSettingsPopup();
     initTrackerEditor();
     addDiceQuickReply();
-    setupPlotButtons(sendPlotProgression);
+    setupPlotButtons(sendPlotProgression, openEncounterModal);
     setupMobileKeyboardHandling();
     setupContentEditableScrolling();
     initInventoryEventListeners();

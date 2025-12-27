@@ -205,10 +205,10 @@ export function renderInfoBox() {
                     data.weatherEmoji = emoji;
                     data.weatherForecast = text;
                 } else if (weatherStr.includes(',')) {
-                    // Fallback to comma split if emoji detection failed
-                    const weatherParts = weatherStr.split(',').map(p => p.trim());
-                    data.weatherEmoji = weatherParts[0] || '';
-                    data.weatherForecast = weatherParts[1] || '';
+                    // Fallback to comma split if emoji detection failed - split only on FIRST comma
+                    const firstCommaIndex = weatherStr.indexOf(',');
+                    data.weatherEmoji = weatherStr.substring(0, firstCommaIndex).trim();
+                    data.weatherForecast = weatherStr.substring(firstCommaIndex + 1).trim();
                 } else {
                     // No clear separation - assume it's all forecast text
                     data.weatherEmoji = '🌤️'; // Default emoji
@@ -608,14 +608,16 @@ export function updateInfoBoxField(field, value) {
             if (line.startsWith('Weather:')) {
                 // New format: Weather: emoji, forecast
                 const weatherContent = line.replace('Weather:', '').trim();
-                const parts = weatherContent.split(',').map(p => p.trim());
-                const forecast = parts[1] || 'Weather';
+                // Split only on first comma to get emoji and rest
+                const firstCommaIndex = weatherContent.indexOf(',');
+                const forecast = firstCommaIndex > 0 ? weatherContent.substring(firstCommaIndex + 1).trim() : 'Weather';
                 return `Weather: ${value}, ${forecast}`;
             } else {
                 // Legacy format: emoji: forecast
-                const parts = line.split(':');
-                if (parts.length >= 2) {
-                    return `${value}: ${parts.slice(1).join(':').trim()}`;
+                const firstColonIndex = line.indexOf(':');
+                if (firstColonIndex >= 0) {
+                    const forecast = line.substring(firstColonIndex + 1).trim();
+                    return `${value}: ${forecast}`;
                 }
             }
         } else if (field === 'weatherForecast' && index === weatherLineIndex) {
@@ -623,14 +625,16 @@ export function updateInfoBoxField(field, value) {
             if (line.startsWith('Weather:')) {
                 // New format: Weather: emoji, forecast
                 const weatherContent = line.replace('Weather:', '').trim();
-                const parts = weatherContent.split(',').map(p => p.trim());
-                const emoji = parts[0] || '🌤️';
+                // Split only on first comma to get emoji and rest
+                const firstCommaIndex = weatherContent.indexOf(',');
+                const emoji = firstCommaIndex > 0 ? weatherContent.substring(0, firstCommaIndex).trim() : '🌤️';
                 return `Weather: ${emoji}, ${value}`;
             } else {
                 // Legacy format: emoji: forecast
-                const parts = line.split(':');
-                if (parts.length >= 2) {
-                    return `${parts[0].trim()}: ${value}`;
+                const firstColonIndex = line.indexOf(':');
+                if (firstColonIndex >= 0) {
+                    const emoji = line.substring(0, firstColonIndex).trim();
+                    return `${emoji}: ${value}`;
                 }
             }
         } else if (field === 'temperature' && (line.includes('🌡️:') || line.startsWith('Temperature:'))) {

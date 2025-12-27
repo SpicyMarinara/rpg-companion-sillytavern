@@ -20,6 +20,13 @@ import { i18n } from '../../core/i18n.js';
 export function togglePlotButtons() {
     if (extensionSettings.enablePlotButtons && extensionSettings.enabled) {
         $('#rpg-plot-buttons').show();
+
+        // Show/hide encounter button based on encounter settings
+        if (extensionSettings.encounterSettings?.enabled) {
+            $('#rpg-encounter-button').show();
+        } else {
+            $('#rpg-encounter-button').hide();
+        }
     } else {
         $('#rpg-plot-buttons').hide();
     }
