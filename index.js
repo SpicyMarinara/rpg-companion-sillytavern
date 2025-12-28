@@ -537,6 +537,9 @@ async function initUI() {
         } else {
             $options.slideUp(200);
         }
+
+        // Re-render thoughts to update tooltips (regenerate vs delete)
+        renderThoughts();
     });
 
     $('#rpg-avatar-llm-instruction').on('input', function() {
