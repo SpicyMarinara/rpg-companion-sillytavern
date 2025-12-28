@@ -88,7 +88,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     justify-content: center;
     z-index: 10001;
     transition: all 0.3s ease;
-    font-size: 1.5vw;
+    font-size: clamp(1rem, 1.5vw, 1.5rem);
     box-shadow: 0 0 10px var(--rpg-shadow);
     pointer-events: auto;
 }
@@ -209,11 +209,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-panel.rpg-position-top .rpg-stats-title {
-    font-size: 1.3vw;
+    font-size: clamp(1rem, 1.3vw, 1.3rem);
 }
 
 .rpg-panel.rpg-position-top .rpg-mood {
-    font-size: 1vw;
+    font-size: clamp(0.875rem, 1vw, 1rem);
     padding: 0.375em;
 }
 
@@ -223,7 +223,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-panel.rpg-position-top .rpg-classic-stats-title {
-    font-size: 1vw;
+    font-size: clamp(0.875rem, 1vw, 1rem);
     margin-bottom: 0.5em;
 }
 
@@ -236,11 +236,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-panel.rpg-position-top .rpg-classic-stat-label {
-    font-size: 0.85vw;
+    font-size: clamp(0.75rem, 0.85vw, 0.875rem);
 }
 
 .rpg-panel.rpg-position-top .rpg-classic-stat-value {
-    font-size: 1.3vw;
+    font-size: clamp(1rem, 1.3vw, 1.3rem);
 }
 
 /* ============================================
@@ -329,12 +329,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-panel.rpg-position-top .rpg-classic-stat-btn {
     padding: 0.125em;
-    font-size: 1.1vw;
+    font-size: clamp(0.875rem, 1.1vw, 1.1rem);
 }
 
 .rpg-panel.rpg-position-top .rpg-info-content,
 .rpg-panel.rpg-position-top .rpg-thoughts-content {
-    font-size: 1.1vw;
+    font-size: clamp(0.875rem, 1.1vw, 1.1rem);
     max-height: 9.375rem;
 }
 
@@ -399,7 +399,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-panel-header h3 {
     margin: 0;
-    font-size: 1.7vw;
+    font-size: clamp(1.25rem, 1.7vw, 1.75rem);
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -432,7 +432,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: var(--rpg-accent);
     border-radius: 0.75em;
     color: var(--rpg-highlight);
-    font-size: 1.3vw;
+    font-size: clamp(1rem, 1.3vw, 1.3rem);
     font-weight: bold;
     animation: pulseGlow 1.5s ease-in-out infinite;
     flex-shrink: 0;
@@ -459,7 +459,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 0.5em;
     border: 2px solid var(--rpg-border);
-    font-size: 1vw;
+    font-size: clamp(0.875rem, 1vw, 1rem);
     font-weight: bold;
     color: var(--rpg-text);
     cursor: pointer;
@@ -475,7 +475,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-dice-display i {
     color: var(--rpg-highlight);
-    font-size: 1.3vw;
+    font-size: clamp(1rem, 1.3vw, 1.3rem);
 }
 
 /* Clear dice roll button */
@@ -484,7 +484,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border: 1px solid rgba(255, 0, 0, 0.4);
     border-radius: 0.25em;
     color: #ff6b6b;
-    font-size: 1.5vw;
+    font-size: clamp(1rem, 1.5vw, 1.5rem);
     font-weight: bold;
     width: 1.25rem;
     height: 1.25rem;
@@ -977,7 +977,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-classic-stats-title {
     text-align: center;
-    font-size: 0.85vw;
+    font-size: clamp(0.75rem, 0.85vw, 0.875rem);
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.037em;
@@ -1073,7 +1073,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
    ============================================ */
 
 .rpg-info-header {
-    font-size: 1.3vw;
+    font-size: clamp(1rem, 1.3vw, 1.3rem);
     font-weight: bold;
     margin-bottom: 0.625em;
     color: var(--rpg-highlight);
@@ -1082,7 +1082,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-info-content {
-    font-size: 1.1vw;
+    font-size: clamp(0.875rem, 1.1vw, 1.1rem);
     line-height: 1.5;
     text-align: left;
     flex: 1;
@@ -1419,7 +1419,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-map-marker {
-    font-size: 1vw;
+    font-size: clamp(0.875rem, 1vw, 1rem);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
     animation: markerPulse 2s ease-in-out infinite;
 }
@@ -1695,7 +1695,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-thoughts-header {
-    font-size: 1.3vw;
+    font-size: clamp(1rem, 1.3vw, 1.3rem);
     font-weight: bold;
     margin-bottom: 0.625em;
     color: var(--rpg-highlight);
@@ -1836,7 +1836,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: flex-start;
     gap: 0.5em;
-    font-size: 1.1vw;
+    font-size: clamp(0.875rem, 1.1vw, 1.1rem);
     font-style: italic;
     line-height: 1.4;
 }
@@ -2231,7 +2231,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     gap: 0.375em;
-    font-size: 1.1vw;
+    font-size: clamp(0.875rem, 1.1vw, 1.1rem);
 }
 
 .rpg-settings summary:hover {
@@ -2254,7 +2254,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-setting-row label {
     display: block;
     margin-bottom: 0.188em;
-    font-size: 1vw;
+    font-size: clamp(0.875rem, 1vw, 1rem);
 }
 
 .rpg-setting-row input[type="number"] {
@@ -2264,14 +2264,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border-radius: 3px;
     background: rgba(0, 0, 0, 0.3);
     color: inherit;
-    font-size: 1vw;
+    font-size: clamp(0.875rem, 1vw, 1rem);
 }
 
 .rpg-setting-row small {
     display: block;
     margin-top: 0.188em;
     color: #888;
-    font-size: 0.95vw;
+    font-size: clamp(0.75rem, 0.95vw, 0.95rem);
 }
 
 #rpg-manual-update {
@@ -2282,7 +2282,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: center;
     justify-content: center;
     gap: 0.375em;
-    font-size: 1.1vw;
+    font-size: clamp(0.875rem, 1.1vw, 1.1rem);
 }
 
 /* Responsive adjustments */
@@ -2293,7 +2293,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     .rpg-stat-label {
         min-width: 5rem;
-        font-size: 1.1vw;
+        font-size: clamp(0.875rem, 1.1vw, 1.1rem);
     }
 }
 
@@ -2357,7 +2357,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-settings-group h4 {
     margin: 0 0 0.75em 0;
-    font-size: 1.5vw;
+    font-size: clamp(1.125rem, 1.5vw, 1.5rem);
     color: var(--rpg-highlight);
     display: flex;
     align-items: center;
@@ -2371,7 +2371,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-setting-row label {
     display: block;
     margin-bottom: 0.375em;
-    font-size: 1.2vw;
+    font-size: clamp(0.938rem, 1.2vw, 1.2rem);
     font-weight: 600;
 }
 
@@ -2383,7 +2383,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border-radius: 0.375em;
     background: var(--rpg-bg);
     color: var(--rpg-text);
-    font-size: 1.3vw;
+    font-size: clamp(1rem, 1.3vw, 1.3rem);
     transition: all 0.3s ease;
 }
 
@@ -2413,7 +2413,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: block;
     margin-top: 0.25em;
     color: #999;
-    font-size: 1vw;
+    font-size: clamp(0.875rem, 1vw, 1rem);
     font-style: italic;
 }
 
@@ -2445,7 +2445,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border: 2px solid var(--rpg-border);
     border-radius: 0.625em;
     color: var(--rpg-text);
-    font-size: 1.4vw;
+    font-size: clamp(1.063rem, 1.4vw, 1.4rem);
     font-weight: bold;
     cursor: pointer;
     display: flex;
@@ -2475,7 +2475,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border: 2px solid rgba(220, 53, 69, 0.5);
     border-radius: 0.5em;
     color: #ff6b6b;
-    font-size: 1.2vw;
+    font-size: clamp(0.938rem, 1.2vw, 1.2rem);
     font-weight: 600;
     cursor: pointer;
     display: flex;
@@ -2504,7 +2504,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border: 2px solid rgba(52, 152, 219, 0.5);
     border-radius: 0.5em;
     color: #5dade2;
-    font-size: 1.2vw;
+    font-size: clamp(0.938rem, 1.2vw, 1.2rem);
     font-weight: 600;
     cursor: pointer;
     display: flex;
@@ -2890,7 +2890,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-panel[data-theme="fantasy"] .rpg-divider::after {
     content: '❦';
-    font-size: 1.5vw;
+    font-size: clamp(1rem, 1.5vw, 1.5rem);
 }
 
 .rpg-panel[data-theme="fantasy"] .rpg-thoughts-content::before {
@@ -3187,7 +3187,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     .rpg-stats-title {
-        font-size: 1.5vw;
+        font-size: clamp(1.125rem, 1.5vw, 1.5rem);
     }
 }
 
@@ -3633,7 +3633,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border: 2px solid var(--rpg-highlight);
     border-radius: 0.5em;
     color: var(--rpg-text);
-    font-size: 1.1vw;
+    font-size: clamp(0.875rem, 1.1vw, 1.1rem);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -3669,7 +3669,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border: 2px solid var(--rpg-border);
     border-radius: 0.5em;
     color: var(--rpg-text);
-    font-size: 1.1vw;
+    font-size: clamp(0.875rem, 1.1vw, 1.1rem);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -4255,7 +4255,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: transparent;
     border: none;
     color: var(--rpg-text);
-    font-size: 2.2vw;
+    font-size: clamp(1.5rem, 2.2vw, 2.2rem);
     cursor: pointer;
     padding: 0.5rem;
     min-width: 44px;
@@ -4708,7 +4708,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: var(--SmartThemeBlurTintColor);
     border: 2px solid var(--SmartThemeBorderColor);
     color: var(--rpg-text, #ecf0f1);
-    font-size: 1.85vw;
+    font-size: clamp(1.25rem, 1.85vw, 1.875rem);
     cursor: grab;
     z-index: 10002;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -5371,7 +5371,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         /* 20% larger than desktop for better visibility on mobile */
         width: 2.7rem !important;
         height: 2.7rem !important;
-        font-size: 2.2vw !important;
+        font-size: clamp(1.5rem, 2.2vw, 1.875rem) !important;
         /* Use transform to shift icon above and to the right of avatar */
         transform: translate(50px, -45px) !important;
         /* Smooth animation for position changes during scroll */
@@ -5585,7 +5585,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         right: 0.938rem;
         width: 3.25rem;
         height: 3.25rem;
-        font-size: 2vw;
+        font-size: clamp(1.25rem, 2vw, 1.75rem);
     }
 }
 
@@ -5601,7 +5601,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     .rpg-thought-close {
         min-width: 2.75rem;
         min-height: 2.75rem;
-        font-size: 2.2vw;
+        font-size: clamp(1.5rem, 2.2vw, 1.875rem);
     }
 }
 
@@ -6914,7 +6914,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 0.8vw;
+    gap: clamp(0.5rem, 0.8vw, 0.8rem);
 }
 
 .rpg-encounter-close-btn {
@@ -7087,7 +7087,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     color: var(--rpg-text, #eaeaea);
     display: flex;
     align-items: center;
-    gap: 0.5vw;
+    gap: clamp(0.375rem, 0.5vw, 0.5rem);
 }
 
 .rpg-encounter-section {
@@ -7276,7 +7276,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     color: var(--rpg-text, #eaeaea);
     display: flex;
     align-items: center;
-    gap: 0.5vw;
+    gap: clamp(0.375rem, 0.5vw, 0.5rem);
 }
 
 .rpg-encounter-controls h4 {
@@ -7356,7 +7356,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-encounter-input-group {
     display: flex;
-    gap: 0.8vw;
+    gap: clamp(0.5rem, 0.8vw, 0.8rem);
 }
 
 .rpg-encounter-input-group input {
