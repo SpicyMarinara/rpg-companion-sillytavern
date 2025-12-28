@@ -639,7 +639,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-inventory-items {
-    font-size: clamp(0.7vw, 0.5vw, 0.6vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     color: var(--rpg-text);
     line-height: 1.3;
     overflow-y: auto;
@@ -710,7 +710,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: center;
     justify-content: center;
     gap: 0.375em;
-    font-size: clamp(0.4vw, 0.5vw, 0.6vw);
+    font-size: clamp(0.5rem, 0.5vw, 0.625rem);
     flex-shrink: 0;
 }
 
@@ -840,7 +840,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-stat-label {
     min-width: 4.062rem;
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: 600;
     text-align: left;
     color: var(--rpg-text);
@@ -870,7 +870,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-stat-value {
     color: #fff;
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: bold;
     min-width: 1.875rem;
     text-align: right;
@@ -891,7 +891,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         transform: translateY(-50%);
         z-index: 2;
         min-width: auto;
-        font-size: clamp(0.6vw, 0.7vw, 0.8vw);
+        font-size: clamp(0.75rem, 0.7vw, 0.875rem);
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
     }
 
@@ -908,7 +908,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         transform: translateY(-50%);
         z-index: 2;
         min-width: auto;
-        font-size: clamp(0.6vw, 0.7vw, 0.8vw);
+        font-size: clamp(0.75rem, 0.7vw, 0.875rem);
     }
 }
 
@@ -916,7 +916,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     gap: 0.375em;
-    font-size: clamp(0.4vw, 0.5vw, 0.6vw);
+    font-size: clamp(0.5rem, 0.5vw, 0.625rem);
     padding: clamp(4px, 0.6vh, 6px) 0.375em;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 0.25em;
@@ -943,7 +943,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     gap: 0.375em;
-    font-size: clamp(0.4vw, 0.5vw, 0.6vw);
+    font-size: clamp(0.5rem, 0.5vw, 0.625rem);
     padding: clamp(4px, 0.6vh, 6px) 0.375em;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 0.25em;
@@ -1011,7 +1011,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-classic-stat-label {
-    font-size: clamp(0.4vw, 0.5vw, 0.6vw);
+    font-size: clamp(0.5rem, 0.5vw, 0.625rem);
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.006em;
@@ -1021,7 +1021,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-classic-stat-value {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: bold;
     color: var(--rpg-highlight);
     text-align: center;
@@ -1204,7 +1204,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-calendar-top {
     background: var(--rpg-highlight);
     color: var(--rpg-bg);
-    font-size: clamp(0.5vw, 0.55vw, 0.6vw);
+    font-size: clamp(0.563rem, 0.55vw, 0.625rem);
     font-weight: bold;
     padding: 0.125em 0.375em;
     border-radius: 3px 3px 0 0;
@@ -1215,7 +1215,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-calendar-day {
     background: rgba(255, 255, 255, 0.1);
     color: var(--rpg-text);
-    font-size: clamp(0.5vw, 0.7vw, 0.85vw);
+    font-size: clamp(0.625rem, 0.7vw, 0.875rem);
     font-weight: bold;
     padding: 0.25em;
     width: 100%;
@@ -1233,7 +1233,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-calendar-year {
-    font-size: clamp(0.5vw, 0.55vw, 0.6vw);
+    font-size: clamp(0.563rem, 0.55vw, 0.625rem);
     color: var(--rpg-text);
     opacity: 0.7;
     margin-top: 0.062em;
@@ -1258,7 +1258,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-weather-forecast {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     text-align: center;
     margin: 0;
     font-weight: 600;
@@ -1325,7 +1325,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-temp-value {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: bold;
     color: var(--rpg-text);
     text-align: center;
@@ -1388,7 +1388,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-time-value {
-    font-size: clamp(0.5vw,0.6vw,0.7vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: bold;
     color: var(--rpg-text);
 }
@@ -1430,7 +1430,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-location-text {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: bold;
     color: var(--rpg-text);
     text-align: center;
@@ -1519,7 +1519,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-notebook-title {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: bold;
     color: var(--rpg-highlight);
     text-align: center;
@@ -1576,7 +1576,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-bullet {
-    font-size: clamp(0.5vw, 0.6vw, 0.7vw);
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     color: var(--rpg-highlight);
     flex-shrink: 0;
     line-height: 1.4;
@@ -1589,7 +1589,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-event-text {
-    font-size: clamp(0.45vw, 0.55vw, 0.65vw);
+    font-size: clamp(0.563rem, 0.55vw, 0.688rem);
     color: var(--rpg-text);
     line-height: 1.4;
     flex: 1;
@@ -2014,7 +2014,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-character-name {
     font-weight: bold;
     color: var(--rpg-highlight);
-    font-size: clamp(0.7vw, 0.75vw, 0.8vw);
+    font-size: clamp(0.75rem, 0.75vw, 0.875rem);
     text-transform: uppercase;
     letter-spacing: 0.031em;
     white-space: nowrap; /* Prevent name from wrapping */
@@ -2058,7 +2058,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* Character traits/status line and custom fields */
 .rpg-character-traits,
 .rpg-character-field {
-    font-size: clamp(0.6vw, 0.7vw, 0.8vw);
+    font-size: clamp(0.75rem, 0.7vw, 0.875rem);
     color: var(--rpg-text);
     opacity: 0.8;
     line-height: 1.3;
