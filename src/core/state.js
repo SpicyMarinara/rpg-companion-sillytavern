@@ -175,7 +175,7 @@ export let extensionSettings = {
     // External API settings for 'external' generation mode
     externalApiSettings: {
         baseUrl: '',           // OpenAI-compatible API base URL (e.g., "https://api.openai.com/v1")
-        apiKey: '',            // API key for the external service
+        // apiKey is NOT stored here for security. It is stored in localStorage('rpg_companion_api_key')
         model: '',             // Model identifier (e.g., "gpt-4o-mini")
         maxTokens: 8192,       // Maximum tokens for generation
         temperature: 0.7       // Temperature setting for generation

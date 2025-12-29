@@ -39,14 +39,16 @@ let originalPresetName = null;
  * @throws {Error} If the API call fails or configuration is invalid
  */
 export async function generateWithExternalAPI(messages) {
-    const { baseUrl, apiKey, model, maxTokens, temperature } = extensionSettings.externalApiSettings || {};
+    const { baseUrl, model, maxTokens, temperature } = extensionSettings.externalApiSettings || {};
+    // Retrieve API key from secure storage (not shared extension settings)
+    const apiKey = localStorage.getItem('rpg_companion_external_api_key');
 
     // Validate required settings
     if (!baseUrl || !baseUrl.trim()) {
         throw new Error('External API base URL is not configured');
     }
     if (!apiKey || !apiKey.trim()) {
-        throw new Error('External API key is not configured');
+        throw new Error('External API key is not found. If you switched browsers or cleared your cache, please re-enter your API key in the extension settings.');
     }
     if (!model || !model.trim()) {
         throw new Error('External API model is not configured');
@@ -113,12 +115,15 @@ export async function generateWithExternalAPI(messages) {
  * @returns {Promise<{success: boolean, message: string, model?: string}>}
  */
 export async function testExternalAPIConnection() {
-    const { baseUrl, apiKey, model } = extensionSettings.externalApiSettings || {};
+    const { baseUrl, model } = extensionSettings.externalApiSettings || {};
+    const apiKey = localStorage.getItem('rpg_companion_external_api_key');
 
     if (!baseUrl || !apiKey || !model) {
         return {
             success: false,
-            message: 'Please fill in all required fields (Base URL, API Key, and Model)'
+            message: !apiKey 
+                ? 'API Key not found. Please re-enter it in settings (keys are stored locally per-browser).'
+                : 'Please fill in all required fields (Base URL, API Key, and Model)'
         };
     }
 
