@@ -172,6 +172,14 @@ export let extensionSettings = {
     // Auto avatar generation settings
     autoGenerateAvatars: false, // Master toggle for auto-generating avatars
     avatarLLMCustomInstruction: '', // Custom instruction for LLM prompt generation
+    // External API settings for 'external' generation mode
+    externalApiSettings: {
+        baseUrl: '',           // OpenAI-compatible API base URL (e.g., "https://api.openai.com/v1")
+        apiKey: '',            // API key for the external service
+        model: '',             // Model identifier (e.g., "gpt-4o-mini")
+        maxTokens: 2048,       // Maximum tokens for generation
+        temperature: 0.7       // Temperature setting for generation
+    }
 };
 
 /**
