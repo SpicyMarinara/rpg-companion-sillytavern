@@ -513,11 +513,18 @@ export async function buildCombatActionPrompt(action, combatStats) {
     stateMessage += `If all enemies are defeated or escape: add "combatEnd": true, "result": "victory". If all party defeated: add "combatEnd": true, "result": "defeat". It's also possible for the encounter to be interrupted by external interference (e.g., an explosion knocks everyone out, sudden environmental catastrophe, third party intervention, etc.). If this occurs, add "combatEnd": true, "result": "interrupted". Each status (if applied) has a format: {"name": "Status Name", "emoji": "💀", "duration": X}.\n`;
     stateMessage += `Scale combat difficulty appropriately: Powerful entities (gods, dragons, legendary creatures) should be formidable challenges requiring multiple rounds and strategic play. Weaker foes (common animals, basic enemies, minions) should be resolved more quickly, typically 2-4 rounds. Match HP damage and combat pacing to the narrative weight of the encounter. A wolf should not take 20 rounds to defeat, nor should a deity fall in one hit.\n`;
     stateMessage += `For the narrative, write it with intent in ${tense} tense ${person}-person ${narration} from ${pov}'s point of view.\n`;
-    stateMessage += `Build novel prose. Break patterns from your previous responses by varying sentence structures, rhythms, formats, and openings. Track whether a sentence shape, cadence, sensory detail, or a descriptor appeared recently, and replace it with a different one or skip it entirely. If you mentioned a physical feature, mannerism, or expression once, move on. Don't fixate on the same traits every turn. Well-placed humor, unconventional similes, and subverted turns of phrase are encouraged. Avoid GPTisms, purple prose, and anaphoras, especially the negatives with "no/not/wasn't/didn't." Refrain from describing actions or emotions via negation; focus on what does happen, not what doesn't. Absolutely no asterisks, ellipses, or em-dashes. Explicit content is allowed, no plot armor. Do not play for ${userName}. Keep your response length under 150 words. Never end on handover cues; finish naturally.\n`;
-    stateMessage += `CRITICAL: Do not repeat, echo, parrot, or restate distinctive words, phrases, and dialogues from the user's last message. If reacting to speech, show interpretation or response, not repetition.\n`;
-    stateMessage += `EXAMPLE: "Are you a gooner?" User asks.\n`;
-    stateMessage += `BAD: "Gooner?"\n`;
-    stateMessage += `GOOD: A flat look. "What type of question is that?"`;
+
+    // Use custom combat narrative prompt if available
+    const customCombatPrompt = extensionSettings.customCombatNarrativePrompt;
+    if (customCombatPrompt) {
+        stateMessage += customCombatPrompt.replace(/{userName}/g, userName) + '\n';
+    } else {
+        stateMessage += `Build novel prose. Break patterns from your previous responses by varying sentence structures, rhythms, formats, and openings. Track whether a sentence shape, cadence, sensory detail, or a descriptor appeared recently, and replace it with a different one or skip it entirely. If you mentioned a physical feature, mannerism, or expression once, move on. Don't fixate on the same traits every turn. Well-placed humor, unconventional similes, and subverted turns of phrase are encouraged. Avoid GPTisms, purple prose, and anaphoras, especially the negatives with "no/not/wasn't/didn't." Refrain from describing actions or emotions via negation; focus on what does happen, not what doesn't. Absolutely no asterisks, ellipses, or em-dashes. Explicit content is allowed, no plot armor. Do not play for ${userName}. Keep your response length under 150 words. Never end on handover cues; finish naturally.\n`;
+        stateMessage += `CRITICAL: Do not repeat, echo, parrot, or restate distinctive words, phrases, and dialogues from the user's last message. If reacting to speech, show interpretation or response, not repetition.\n`;
+        stateMessage += `EXAMPLE: "Are you a gooner?" User asks.\n`;
+        stateMessage += `BAD: "Gooner?"\n`;
+        stateMessage += `GOOD: A flat look. "What type of question is that?"`;
+    }
 
     messages.push({
         role: 'user',

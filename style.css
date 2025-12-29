@@ -4098,6 +4098,41 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0.5em;
 }
 
+/* Prompts Editor Styles */
+.rpg-prompt-editor-section {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--rpg-border);
+}
+
+.rpg-prompt-editor-section:last-child {
+    border-bottom: none;
+}
+
+.rpg-prompt-textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    background: var(--SmartThemeBlurTintColor);
+    color: var(--SmartThemeBodyColor);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    resize: vertical;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+
+.rpg-prompt-textarea:focus {
+    outline: none;
+    border-color: var(--rpg-highlight);
+    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.2);
+}
+
+.rpg-restore-prompt-btn {
+    font-size: 0.9em;
+}
+
 /* Editor buttons */
 .rpg-btn-primary,
 .rpg-btn-secondary,

@@ -92,6 +92,9 @@ import {
     initTrackerEditor
 } from './src/systems/ui/trackerEditor.js';
 import {
+    initPromptsEditor
+} from './src/systems/ui/promptsEditor.js';
+import {
     initChapterCheckpointUI,
     injectCheckpointButton,
     updateAllCheckpointIndicators,
@@ -374,18 +377,6 @@ async function initUI() {
         saveSettings();
     });
 
-    $('#rpg-custom-html-prompt').on('input', function() {
-        extensionSettings.customHtmlPrompt = $(this).val().trim();
-        saveSettings();
-    });
-
-    $('#rpg-restore-default-html-prompt').on('click', function() {
-        extensionSettings.customHtmlPrompt = '';
-        $('#rpg-custom-html-prompt').val('');
-        saveSettings();
-        toastr.success('HTML prompt restored to default');
-    });
-
     $('#rpg-skip-guided-mode').on('change', function() {
         extensionSettings.skipInjectionsForGuided = String($(this).val());
         saveSettings();
@@ -639,7 +630,7 @@ async function initUI() {
         // Securely store API key in localStorage instead of shared extension settings
         const apiKey = String($(this).val()).trim();
         localStorage.setItem('rpg_companion_external_api_key', apiKey);
-        
+
         // Ensure the externalApiSettings object exists, but don't store the key in it
         if (!extensionSettings.externalApiSettings) {
             extensionSettings.externalApiSettings = {
@@ -690,13 +681,13 @@ async function initUI() {
         const $result = $('#rpg-external-api-test-result');
         const $btn = $(this);
         const originalText = $btn.html();
-        
+
         $btn.html('<i class="fa-solid fa-spinner fa-spin"></i> Testing...').prop('disabled', true);
         $result.hide().removeClass('rpg-success-message rpg-error-message');
-        
+
         try {
             const result = await testExternalAPIConnection();
-            
+
             if (result.success) {
                 $result.addClass('rpg-success-message')
                     .html(`<i class="fa-solid fa-check-circle"></i> ${result.message}`)
@@ -732,9 +723,6 @@ async function initUI() {
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
-
-    // Set default HTML prompt as actual text if no custom prompt exists
-    $('#rpg-custom-html-prompt').val(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
 
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-encounters').prop('checked', extensionSettings.encounterSettings?.enabled ?? true);
@@ -778,11 +766,11 @@ async function initUI() {
     // Initialize External API settings values
     if (extensionSettings.externalApiSettings) {
         $('#rpg-external-base-url').val(extensionSettings.externalApiSettings.baseUrl || '');
-        
+
         // Load API Key from secure localStorage
         const storedApiKey = localStorage.getItem('rpg_companion_external_api_key') || '';
         $('#rpg-external-api-key').val(storedApiKey);
-        
+
         $('#rpg-external-model').val(extensionSettings.externalApiSettings.model || '');
         $('#rpg-external-max-tokens').val(extensionSettings.externalApiSettings.maxTokens || 8192);
         $('#rpg-external-temperature').val(extensionSettings.externalApiSettings.temperature ?? 0.7);
@@ -822,6 +810,7 @@ async function initUI() {
     setupClassicStatsButtons();
     setupSettingsPopup();
     initTrackerEditor();
+    initPromptsEditor();
     addDiceQuickReply();
     setupPlotButtons(sendPlotProgression, openEncounterModal);
     setupMobileKeyboardHandling();

@@ -336,15 +336,24 @@ export function updateGenerationModeUI() {
         $('#rpg-manual-update').hide();
         $('#rpg-external-api-settings').slideUp(200);
         $('#rpg-separate-mode-settings').slideUp(200);
+        // Disable auto-update toggle (not applicable in together mode)
+        $('#rpg-toggle-auto-update').prop('disabled', true);
+        $('#rpg-auto-update-container').css('opacity', '0.5');
     } else if (extensionSettings.generationMode === 'separate') {
         // In "separate" mode, manual update button is visible
         $('#rpg-manual-update').show();
         $('#rpg-external-api-settings').slideUp(200);
         $('#rpg-separate-mode-settings').slideDown(200);
+        // Enable auto-update toggle (only works in separate mode)
+        $('#rpg-toggle-auto-update').prop('disabled', false);
+        $('#rpg-auto-update-container').css('opacity', '1');
     } else if (extensionSettings.generationMode === 'external') {
         // In "external" mode, manual update button is visible AND external settings are shown
         $('#rpg-manual-update').show();
         $('#rpg-external-api-settings').slideDown(200);
         $('#rpg-separate-mode-settings').slideUp(200);
+        // Disable auto-update toggle (not applicable in external mode)
+        $('#rpg-toggle-auto-update').prop('disabled', true);
+        $('#rpg-auto-update-container').css('opacity', '0.5');
     }
 }

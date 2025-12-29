@@ -187,12 +187,6 @@
                 </div>
 
                 <label class="checkbox_label">
-                    <input type="checkbox" id="rpg-toggle-auto-update" />
-                    <span data-i18n-key="template.settingsModal.display.toggleAutoUpdate">Auto-update after
-                        messages</span>
-                </label>
-
-                <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-user-stats" />
                     <span data-i18n-key="template.settingsModal.display.showUserStats">Show User Stats</span>
                 </label>
@@ -207,16 +201,6 @@
                     <span data-i18n-key="template.settingsModal.display.showPresentCharacters">Show Present
                         Characters</span>
                 </label>
-
-                <label class="checkbox_label">
-                    <input type="checkbox" id="rpg-toggle-narrator-mode" />
-                    <span data-i18n-key="template.settingsModal.display.narratorMode">Narrator Mode</span>
-                </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
-                    data-i18n-key="template.settingsModal.display.narratorModeNote">
-                    Use character card as narrator. Infer characters from context instead of using fixed character
-                    references.
-                </small>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-inventory" />
@@ -276,16 +260,6 @@
                 </small>
 
                 <label class="checkbox_label">
-                    <input type="checkbox" id="rpg-toggle-debug-mode" />
-                    <span data-i18n-key="template.settingsModal.display.enableDebugMode">Enable Debug Mode</span>
-                </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
-                    data-i18n-key="template.settingsModal.display.enableDebugModeNote">
-                    Shows parser logs in a mobile-friendly UI panel. Useful for troubleshooting. Look for the red bug
-                    button.
-                </small>
-
-                <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-auto-avatars" />
                     <span data-i18n-key="template.settingsModal.display.autoGenerateAvatars">Auto-generate Missing
                         Avatars</span>
@@ -294,6 +268,16 @@
                     data-i18n-key="template.settingsModal.display.autoGenerateAvatarsNote">
                     Automatically generate avatars for characters without custom images using the Image Generation
                     Plugin
+                </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-debug-mode" />
+                    <span data-i18n-key="template.settingsModal.display.enableDebugMode">Enable Debug Mode</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                    data-i18n-key="template.settingsModal.display.enableDebugModeNote">
+                    Shows parser logs in a mobile-friendly UI panel. Useful for troubleshooting. Look for the red bug
+                    button.
                 </small>
 
                 <!-- Avatar options container - conditionally visible -->
@@ -463,7 +447,16 @@
                     </small>
                 </div>
 
-                <div class="rpg-setting-row">
+                <label class="checkbox_label" id="rpg-auto-update-container">
+                    <input type="checkbox" id="rpg-toggle-auto-update" />
+                    <span data-i18n-key="template.settingsModal.display.toggleAutoUpdate">Auto-update after
+                        messages</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                    Automatically refresh RPG info after each message. Only available in Separate Generation mode.
+                </small>
+
+                <div class="rpg-setting-row" style="margin-top: 16px;">
                     <label for="rpg-skip-guided-mode"
                         data-i18n-key="template.settingsModal.advanced.skipInjections">Skip Injections during Guided
                         Generations:</label>
@@ -486,6 +479,16 @@
                 </small>
 
                 <label class="checkbox_label" style="margin-top: 16px;">
+                    <input type="checkbox" id="rpg-toggle-narrator-mode" />
+                    <span data-i18n-key="template.settingsModal.display.narratorMode">Narrator Mode</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                    data-i18n-key="template.settingsModal.display.narratorModeNote">
+                    Use character card as narrator. Infer characters from context instead of using fixed character
+                    references.
+                </small>
+
+                <label class="checkbox_label" style="margin-top: 16px;">
                     <input type="checkbox" id="rpg-save-tracker-history" />
                     <span data-i18n-key="template.settingsModal.advanced.saveTrackerHistory">Save Tracker History in
                         Chat</span>
@@ -497,39 +500,14 @@
                     in message metadata. When disabled, only the most recent trackers are kept.
                 </small>
 
-                <!-- Custom HTML Prompt Editor -->
-                <div class="rpg-setting-row"
-                    style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--rpg-border);">
-                    <label for="rpg-custom-html-prompt" style="display: block; margin-bottom: 8px; font-weight: 600;"
-                        data-i18n-key="template.settingsModal.advanced.customHtmlPromptTitle">
-                        <i class="fa-solid fa-code" aria-hidden="true"></i> Custom HTML Prompt:
-                    </label>
-
-                    <textarea id="rpg-custom-html-prompt" style="width: 100%; min-height: 120px; padding: 10px; border-radius: 4px;
-                                     border: 1px solid var(--SmartThemeBorderColor); background: var(--SmartThemeBlurTintColor);
-                                     color: var(--SmartThemeBodyColor); font-family: 'Courier New', monospace; font-size: 12px;
-                                     resize: vertical; line-height: 1.5;" placeholder=""></textarea>
-                    <div style="margin-top: 8px; display: flex; gap: 8px;">
-                        <button id="rpg-restore-default-html-prompt" class="menu_button" style="flex: 1;">
-                            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> <span
-                                data-i18n-key="template.settingsModal.advanced.restoreDefaultHtmlPrompt">Restore
-                                Default</span>
-                        </button>
-                    </div>
-                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;"
-                        data-i18n-key="template.settingsModal.advanced.customHtmlPromptNote">
-                        Customize the HTML prompt injected when "Enable Immersive HTML" is enabled. The default prompt
-                        is shown above - you can edit it directly or replace it entirely. Click "Restore Default" to
-                        reset. This affects all generation modes (together, separate, and plot progression).
-                    </small>
-                </div>
-
-                <!-- Clear Cache Button -->
+                <!-- Customize Prompts Button -->
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rpg-border);">
-                    <button id="rpg-clear-cache" class="rpg-btn-clear-cache">
-                        <i class="fa-solid fa-trash" aria-hidden="true"></i> <span
-                            data-i18n-key="template.settingsModal.advanced.clearCache">Clear Extension Cache</span>
+                    <button id="rpg-open-prompts-editor" class="menu_button" style="width: 100%;">
+                        <i class="fa-solid fa-file-lines" aria-hidden="true"></i> <span>Customize Prompts</span>
                     </button>
+                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;">
+                        Edit all AI prompts used for generation, plot progression, and combat encounters
+                    </small>
                 </div>
 
                 <!-- Reset FAB Positions Button -->
@@ -544,6 +522,14 @@
                         Resets all floating action buttons (toggle, refresh, debug) to default top-left positions.
                         Useful if buttons are off-screen.
                     </small>
+                </div>
+
+                <!-- Clear Cache Button -->
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rpg-border);">
+                    <button id="rpg-clear-cache" class="rpg-btn-clear-cache">
+                        <i class="fa-solid fa-trash" aria-hidden="true"></i> <span
+                            data-i18n-key="template.settingsModal.advanced.clearCache">Clear Extension Cache</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -658,6 +644,136 @@
                 <button id="rpg-editor-save" class="rpg-btn-primary" type="button">
                     <i class="fa-solid fa-save"></i> <span data-i18n-key="template.trackerEditorModal.buttons.save">Save
                         & Apply</span>
+                </button>
+            </div>
+        </footer>
+    </div>
+</div>
+<!-- Prompts Editor Modal -->
+<div id="rpg-prompts-editor-popup" class="rpg-settings-popup" role="dialog" aria-modal="true"
+    aria-labelledby="rpg-prompts-editor-title" style="display: none;">
+    <div class="rpg-settings-popup-content">
+        <header class="rpg-settings-popup-header">
+            <h3 id="rpg-prompts-editor-title">
+                <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+                <span>Customize Prompts</span>
+            </h3>
+            <button id="rpg-close-prompts-editor" class="rpg-popup-close" type="button"
+                aria-label="Close prompts editor">&times;</button>
+        </header>
+
+        <div class="rpg-settings-popup-body">
+            <small class="notes" style="display: block; margin-bottom: 16px;">
+                <i class="fa-solid fa-info-circle"></i> Customize the AI prompts used throughout the extension. Leave fields empty to use defaults.
+            </small>
+
+            <!-- HTML Prompt -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-html" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-code"></i> HTML Prompt
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Injected when "Enable Immersive HTML" is enabled. Affects all generation modes.
+                </small>
+                <textarea id="rpg-prompt-html" class="rpg-prompt-textarea" rows="4"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="html" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore Default
+                </button>
+            </div>
+
+            <!-- Random Plot Progression Prompt -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-plot-random" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-dice"></i> Random Plot Progression Prompt
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Injected when the "Randomized Plot" button is clicked. Introduces random elements to the story.
+                </small>
+                <textarea id="rpg-prompt-plot-random" class="rpg-prompt-textarea" rows="6"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="plotRandom" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore Default
+                </button>
+            </div>
+
+            <!-- Natural Plot Progression Prompt -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-plot-natural" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-forward"></i> Natural Plot Progression Prompt
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Injected when the "Natural Plot" button is clicked. Progresses the story naturally.
+                </small>
+                <textarea id="rpg-prompt-plot-natural" class="rpg-prompt-textarea" rows="4"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="plotNatural" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore Default
+                </button>
+            </div>
+
+            <!-- Avatar Generation Instruction -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-avatar" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-user-circle"></i> Avatar Generation Instruction
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Instructions for LLM when generating avatar image prompts. Used by Auto-generate Missing Avatars feature.
+                </small>
+                <textarea id="rpg-prompt-avatar" class="rpg-prompt-textarea" rows="3"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="avatar" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore Default
+                </button>
+            </div>
+
+            <!-- Tracker Instructions -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-tracker-instructions" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-list-check"></i> Tracker Instructions
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Instruction portion only (format specification is hardcoded). {userName} will be replaced with the user's name.
+                </small>
+                <textarea id="rpg-prompt-tracker-instructions" class="rpg-prompt-textarea" rows="4"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="trackerInstructions" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore Default
+                </button>
+            </div>
+
+            <!-- Tracker Continuation Instruction -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-tracker-continuation" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-arrow-right"></i> Tracker Continuation Instruction
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Instructions added after tracker format specifications, telling the AI how to continue the narrative.
+                </small>
+                <textarea id="rpg-prompt-tracker-continuation" class="rpg-prompt-textarea" rows="4"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="trackerContinuation" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore Default
+                </button>
+            </div>
+
+            <!-- Combat Narrative Style Instruction -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-combat-narrative" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-fire"></i> Combat Narrative Style Instruction
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Writing style instructions for combat encounters. Includes prose quality guidelines and anti-repetition rules. {userName} will be replaced with the user's name.
+                </small>
+                <textarea id="rpg-prompt-combat-narrative" class="rpg-prompt-textarea" rows="6"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="combatNarrative" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore Default
+                </button>
+            </div>
+        </div>
+
+        <footer class="rpg-settings-popup-footer">
+            <button id="rpg-prompts-restore-all" class="rpg-btn-secondary" type="button">
+                <i class="fa-solid fa-rotate-left"></i> Restore All To Default
+            </button>
+            <div class="rpg-footer-right">
+                <button id="rpg-prompts-cancel" class="rpg-btn-secondary" type="button">Cancel</button>
+                <button id="rpg-prompts-save" class="rpg-btn-primary" type="button">
+                    <i class="fa-solid fa-save"></i> Save Changes
                 </button>
             </div>
         </footer>
