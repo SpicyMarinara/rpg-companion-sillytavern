@@ -15,7 +15,7 @@ import { selected_group, getGroupMembers } from '../../../../../../group-chats.j
 import { extensionSettings, sessionAvatarPrompts, setSessionAvatarPrompt } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 import { generateAvatarPromptGenerationPrompt, parseAvatarPromptsResponse } from '../generation/promptBuilder.js';
-import { getCurrentPresetName, switchToPreset } from '../generation/apiClient.js';
+import { getCurrentPresetName, switchToPreset, generateWithExternalAPI } from '../generation/apiClient.js';
 
 // Generation state - tracks characters currently being generated
 const pendingGenerations = new Set();
@@ -260,10 +260,17 @@ async function generateLLMPrompts(characterNames) {
         console.log('[RPG Avatar] Generating LLM prompts for:', characterNames);
 
         const promptMessages = await generateAvatarPromptGenerationPrompt(characterNames);
-        const response = await generateRaw({
-            prompt: promptMessages,
-            quietToLoud: false
-        });
+        let response;
+
+        if (extensionSettings.generationMode === 'external') {
+            console.log('[RPG Avatar] Using external API for avatar prompt generation');
+            response = await generateWithExternalAPI(promptMessages);
+        } else {
+            response = await generateRaw({
+                prompt: promptMessages,
+                quietToLoud: false
+            });
+        }
 
         if (response) {
             const prompts = parseAvatarPromptsResponse(response);
