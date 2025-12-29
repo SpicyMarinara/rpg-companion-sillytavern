@@ -18,15 +18,31 @@ import { i18n } from '../../core/i18n.js';
  * Toggles the visibility of plot buttons based on settings.
  */
 export function togglePlotButtons() {
-    if (extensionSettings.enablePlotButtons && extensionSettings.enabled) {
-        $('#rpg-plot-buttons').show();
+    if (!extensionSettings.enabled) {
+        $('#rpg-plot-buttons').hide();
+        return;
+    }
 
-        // Show/hide encounter button based on encounter settings
-        if (extensionSettings.encounterSettings?.enabled) {
-            $('#rpg-encounter-button').show();
-        } else {
-            $('#rpg-encounter-button').hide();
-        }
+    // Show/hide plot progression buttons based on enablePlotButtons setting
+    if (extensionSettings.enablePlotButtons) {
+        $('#rpg-plot-random').show();
+        $('#rpg-plot-natural').show();
+    } else {
+        $('#rpg-plot-random').hide();
+        $('#rpg-plot-natural').hide();
+    }
+
+    // Show/hide encounter button independently based on encounter settings
+    if (extensionSettings.encounterSettings?.enabled) {
+        $('#rpg-encounter-button').show();
+    } else {
+        $('#rpg-encounter-button').hide();
+    }
+
+    // Show the container if at least one button is visible
+    const shouldShowContainer = extensionSettings.enablePlotButtons || extensionSettings.encounterSettings?.enabled;
+    if (shouldShowContainer) {
+        $('#rpg-plot-buttons').show();
     } else {
         $('#rpg-plot-buttons').hide();
     }
