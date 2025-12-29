@@ -51,7 +51,7 @@ import {
     generateSeparateUpdatePrompt
 } from './src/systems/generation/promptBuilder.js';
 import { parseResponse, parseUserStats } from './src/systems/generation/parser.js';
-import { updateRPGData } from './src/systems/generation/apiClient.js';
+import { updateRPGData, testExternalAPIConnection } from './src/systems/generation/apiClient.js';
 import { onGenerationStarted } from './src/systems/generation/injector.js';
 
 // Rendering modules
@@ -621,6 +621,95 @@ async function initUI() {
         }
     });
 
+    // External API settings event handlers
+    $('#rpg-external-base-url').on('change', function() {
+        if (!extensionSettings.externalApiSettings) {
+            extensionSettings.externalApiSettings = {
+                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+            };
+        }
+        extensionSettings.externalApiSettings.baseUrl = String($(this).val()).trim();
+        saveSettings();
+    });
+
+    $('#rpg-external-api-key').on('change', function() {
+        if (!extensionSettings.externalApiSettings) {
+            extensionSettings.externalApiSettings = {
+                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+            };
+        }
+        extensionSettings.externalApiSettings.apiKey = String($(this).val()).trim();
+        saveSettings();
+    });
+
+    $('#rpg-external-model').on('change', function() {
+        if (!extensionSettings.externalApiSettings) {
+            extensionSettings.externalApiSettings = {
+                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+            };
+        }
+        extensionSettings.externalApiSettings.model = String($(this).val()).trim();
+        saveSettings();
+    });
+
+    $('#rpg-external-max-tokens').on('change', function() {
+        if (!extensionSettings.externalApiSettings) {
+            extensionSettings.externalApiSettings = {
+                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+            };
+        }
+        extensionSettings.externalApiSettings.maxTokens = parseInt(String($(this).val()));
+        saveSettings();
+    });
+
+    $('#rpg-external-temperature').on('change', function() {
+        if (!extensionSettings.externalApiSettings) {
+            extensionSettings.externalApiSettings = {
+                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+            };
+        }
+        extensionSettings.externalApiSettings.temperature = parseFloat(String($(this).val()));
+        saveSettings();
+    });
+
+    $('#rpg-toggle-api-key-visibility').on('click', function() {
+        const $input = $('#rpg-external-api-key');
+        const type = $input.attr('type') === 'password' ? 'text' : 'password';
+        $input.attr('type', type);
+        $(this).find('i').toggleClass('fa-eye fa-eye-slash');
+    });
+
+    $('#rpg-test-external-api').on('click', async function() {
+        const $result = $('#rpg-external-api-test-result');
+        const $btn = $(this);
+        const originalText = $btn.html();
+        
+        $btn.html('<i class="fa-solid fa-spinner fa-spin"></i> Testing...').prop('disabled', true);
+        $result.hide().removeClass('rpg-success-message rpg-error-message');
+        
+        try {
+            const result = await testExternalAPIConnection();
+            
+            if (result.success) {
+                $result.addClass('rpg-success-message')
+                    .html(`<i class="fa-solid fa-check-circle"></i> ${result.message}`)
+                    .slideDown();
+                toastr.success(result.message);
+            } else {
+                $result.addClass('rpg-error-message')
+                    .html(`<i class="fa-solid fa-exclamation-circle"></i> ${result.message}`)
+                    .slideDown();
+                toastr.error(result.message);
+            }
+        } catch (error) {
+            $result.addClass('rpg-error-message')
+                .html(`<i class="fa-solid fa-exclamation-circle"></i> Error: ${error.message}`)
+                .slideDown();
+        } finally {
+            $btn.html(originalText).prop('disabled', false);
+        }
+    });
+
     // Initialize UI state (enable/disable is in Extensions tab)
     $('#rpg-toggle-auto-update').prop('checked', extensionSettings.autoUpdate);
     $('#rpg-position-select').val(extensionSettings.panelPosition);
@@ -678,6 +767,16 @@ async function initUI() {
     $('#rpg-custom-accent').val(extensionSettings.customColors.accent);
     $('#rpg-custom-text').val(extensionSettings.customColors.text);
     $('#rpg-custom-highlight').val(extensionSettings.customColors.highlight);
+
+    // Initialize External API settings values
+    if (extensionSettings.externalApiSettings) {
+        $('#rpg-external-base-url').val(extensionSettings.externalApiSettings.baseUrl || '');
+        $('#rpg-external-api-key').val(extensionSettings.externalApiSettings.apiKey || '');
+        $('#rpg-external-model').val(extensionSettings.externalApiSettings.model || '');
+        $('#rpg-external-max-tokens').val(extensionSettings.externalApiSettings.maxTokens || 2048);
+        $('#rpg-external-temperature').val(extensionSettings.externalApiSettings.temperature ?? 0.7);
+    }
+
     $('#rpg-generation-mode').val(extensionSettings.generationMode);
     $('#rpg-skip-guided-mode').val(extensionSettings.skipInjectionsForGuided);
     $('#rpg-save-tracker-history').prop('checked', extensionSettings.saveTrackerHistory);

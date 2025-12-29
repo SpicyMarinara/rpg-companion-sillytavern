@@ -31,6 +31,118 @@ import { generateAvatarsForCharacters } from '../features/avatarGenerator.js';
 let originalPresetName = null;
 
 /**
+ * Generates tracker data using an external OpenAI-compatible API.
+ * Used when generationMode is 'external'.
+ *
+ * @param {Array<{role: string, content: string}>} messages - Array of message objects for the API
+ * @returns {Promise<string>} The generated response content
+ * @throws {Error} If the API call fails or configuration is invalid
+ */
+export async function generateWithExternalAPI(messages) {
+    const { baseUrl, apiKey, model, maxTokens, temperature } = extensionSettings.externalApiSettings || {};
+
+    // Validate required settings
+    if (!baseUrl || !baseUrl.trim()) {
+        throw new Error('External API base URL is not configured');
+    }
+    if (!apiKey || !apiKey.trim()) {
+        throw new Error('External API key is not configured');
+    }
+    if (!model || !model.trim()) {
+        throw new Error('External API model is not configured');
+    }
+
+    // Normalize base URL (remove trailing slash if present)
+    const normalizedBaseUrl = baseUrl.trim().replace(/\/+$/, '');
+    const endpoint = `${normalizedBaseUrl}/chat/completions`;
+
+    console.log(`[RPG Companion] Calling external API: ${normalizedBaseUrl} with model: ${model}`);
+
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey.trim()}`
+            },
+            body: JSON.stringify({
+                model: model.trim(),
+                messages: messages,
+                max_tokens: maxTokens || 2048,
+                temperature: temperature ?? 0.7
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            let errorMessage = `External API error: ${response.status} ${response.statusText}`;
+            try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.error?.message) {
+                    errorMessage = `External API error: ${errorJson.error.message}`;
+                }
+            } catch (e) {
+                // If parsing fails, use the raw text if it's short enough
+                if (errorText.length < 200) {
+                    errorMessage = `External API error: ${errorText}`;
+                }
+            }
+            throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            throw new Error('Invalid response format from external API');
+        }
+
+        const content = data.choices[0].message.content;
+        console.log('[RPG Companion] External API response received successfully');
+
+        return content;
+    } catch (error) {
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error(`Failed to connect to external API. Check the URL and your network connection.`);
+        }
+        throw error;
+    }
+}
+
+/**
+ * Tests the external API connection with a simple request.
+ * @returns {Promise<{success: boolean, message: string, model?: string}>}
+ */
+export async function testExternalAPIConnection() {
+    const { baseUrl, apiKey, model } = extensionSettings.externalApiSettings || {};
+
+    if (!baseUrl || !apiKey || !model) {
+        return {
+            success: false,
+            message: 'Please fill in all required fields (Base URL, API Key, and Model)'
+        };
+    }
+
+    try {
+        const testMessages = [
+            { role: 'user', content: 'Respond with exactly: "Connection successful"' }
+        ];
+
+        const response = await generateWithExternalAPI(testMessages);
+
+        return {
+            success: true,
+            message: `Connection successful! Model: ${model}`,
+            model: model
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.message || 'Connection failed'
+        };
+    }
+}
+
+/**
  * Gets the current preset name using the /preset command
  * @returns {Promise<string|null>} Current preset name or null if unavailable
  */
@@ -100,10 +212,12 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         return;
     }
 
-    if (extensionSettings.generationMode !== 'separate') {
-        // console.log('[RPG Companion] Not in separate mode, skipping manual update');
+    if (extensionSettings.generationMode !== 'separate' && extensionSettings.generationMode !== 'external') {
+        // console.log('[RPG Companion] Not in separate or external mode, skipping manual update');
         return;
     }
+
+    const isExternalMode = extensionSettings.generationMode === 'external';
 
     try {
         setIsGenerating(true);
@@ -114,13 +228,14 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         $updateBtn.html(`<i class="fa-solid fa-spinner fa-spin"></i> ${updatingText}`).prop('disabled', true);
 
         // Save current preset name before switching (if we're going to switch)
-        if (extensionSettings.useSeparatePreset) {
+        // Note: Preset switching is only used in separate mode, not external mode
+        if (!isExternalMode && extensionSettings.useSeparatePreset) {
             originalPresetName = await getCurrentPresetName();
             console.log(`[RPG Companion] Saved original preset: "${originalPresetName}"`);
         }
 
-        // Switch to separate preset if enabled
-        if (extensionSettings.useSeparatePreset) {
+        // Switch to separate preset if enabled (separate mode only)
+        if (!isExternalMode && extensionSettings.useSeparatePreset) {
             const switched = await switchToPreset('RPG Companion Trackers');
             if (!switched) {
                 console.warn('[RPG Companion] Failed to switch to RPG Companion Trackers preset. Using current preset.');
@@ -130,11 +245,19 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
         const prompt = await generateSeparateUpdatePrompt();
 
-        // Generate using raw prompt (uses current preset, no chat history)
-        const response = await generateRaw({
-            prompt: prompt,
-            quietToLoud: false
-        });
+        // Generate response based on mode
+        let response;
+        if (isExternalMode) {
+            // External mode: Use external OpenAI-compatible API directly
+            console.log('[RPG Companion] Using external API for tracker generation');
+            response = await generateWithExternalAPI(prompt);
+        } else {
+            // Separate mode: Use SillyTavern's generateRaw
+            response = await generateRaw({
+                prompt: prompt,
+                quietToLoud: false
+            });
+        }
 
         if (response) {
             // console.log('[RPG Companion] Raw AI response:', response);
