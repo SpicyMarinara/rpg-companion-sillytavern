@@ -101,8 +101,8 @@ export async function generateWithExternalAPI(messages) {
 
         return content;
     } catch (error) {
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            throw new Error(`Failed to connect to external API. Check the URL and your network connection.`);
+        if (error.name === 'TypeError' && (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+            throw new Error(`CORS Access Blocked: This API endpoint (${normalizedBaseUrl}) does not allow direct access from a browser. This is a browser security restriction (CORS), not a bug in the extension. Please use an endpoint that supports CORS (like OpenRouter or a local proxy) or use SillyTavern's internal API system (Separate Mode).`);
         }
         throw error;
     }
@@ -368,6 +368,9 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
     } catch (error) {
         console.error('[RPG Companion] Error updating RPG data:', error);
+        if (isExternalMode) {
+            toastr.error(error.message, 'RPG Companion External API Error');
+        }
     } finally {
         // Restore original preset if we switched to a separate one
         if (originalPresetName && extensionSettings.useSeparatePreset) {
