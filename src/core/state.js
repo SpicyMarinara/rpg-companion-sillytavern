@@ -177,7 +177,7 @@ export let extensionSettings = {
         baseUrl: '',           // OpenAI-compatible API base URL (e.g., "https://api.openai.com/v1")
         apiKey: '',            // API key for the external service
         model: '',             // Model identifier (e.g., "gpt-4o-mini")
-        maxTokens: 2048,       // Maximum tokens for generation
+        maxTokens: 8192,       // Maximum tokens for generation
         temperature: 0.7       // Temperature setting for generation
     }
 };

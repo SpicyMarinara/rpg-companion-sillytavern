@@ -625,7 +625,7 @@ async function initUI() {
     $('#rpg-external-base-url').on('change', function() {
         if (!extensionSettings.externalApiSettings) {
             extensionSettings.externalApiSettings = {
-                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+                baseUrl: '', apiKey: '', model: '', maxTokens: 8192, temperature: 0.7
             };
         }
         extensionSettings.externalApiSettings.baseUrl = String($(this).val()).trim();
@@ -635,7 +635,7 @@ async function initUI() {
     $('#rpg-external-api-key').on('change', function() {
         if (!extensionSettings.externalApiSettings) {
             extensionSettings.externalApiSettings = {
-                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+                baseUrl: '', apiKey: '', model: '', maxTokens: 8192, temperature: 0.7
             };
         }
         extensionSettings.externalApiSettings.apiKey = String($(this).val()).trim();
@@ -645,7 +645,7 @@ async function initUI() {
     $('#rpg-external-model').on('change', function() {
         if (!extensionSettings.externalApiSettings) {
             extensionSettings.externalApiSettings = {
-                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+                baseUrl: '', apiKey: '', model: '', maxTokens: 8192, temperature: 0.7
             };
         }
         extensionSettings.externalApiSettings.model = String($(this).val()).trim();
@@ -655,7 +655,7 @@ async function initUI() {
     $('#rpg-external-max-tokens').on('change', function() {
         if (!extensionSettings.externalApiSettings) {
             extensionSettings.externalApiSettings = {
-                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+                baseUrl: '', apiKey: '', model: '', maxTokens: 8192, temperature: 0.7
             };
         }
         extensionSettings.externalApiSettings.maxTokens = parseInt(String($(this).val()));
@@ -665,7 +665,7 @@ async function initUI() {
     $('#rpg-external-temperature').on('change', function() {
         if (!extensionSettings.externalApiSettings) {
             extensionSettings.externalApiSettings = {
-                baseUrl: '', apiKey: '', model: '', maxTokens: 2048, temperature: 0.7
+                baseUrl: '', apiKey: '', model: '', maxTokens: 8192, temperature: 0.7
             };
         }
         extensionSettings.externalApiSettings.temperature = parseFloat(String($(this).val()));
@@ -773,7 +773,7 @@ async function initUI() {
         $('#rpg-external-base-url').val(extensionSettings.externalApiSettings.baseUrl || '');
         $('#rpg-external-api-key').val(extensionSettings.externalApiSettings.apiKey || '');
         $('#rpg-external-model').val(extensionSettings.externalApiSettings.model || '');
-        $('#rpg-external-max-tokens').val(extensionSettings.externalApiSettings.maxTokens || 2048);
+        $('#rpg-external-max-tokens').val(extensionSettings.externalApiSettings.maxTokens || 8192);
         $('#rpg-external-temperature').val(extensionSettings.externalApiSettings.temperature ?? 0.7);
     }
 
