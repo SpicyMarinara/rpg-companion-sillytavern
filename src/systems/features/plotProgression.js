@@ -33,10 +33,9 @@ export function setupPlotButtons(handlePlotClick, handleEncounterClick) {
                 border-radius: 4px;
                 font-size: 13px;
                 cursor: pointer;
-                margin: 0 4px;
-                display: inline-block;
+                margin: 0 2px;
             " tabindex="0" role="button">
-                <i class="fa-solid fa-dice"></i> Randomized Plot
+                <i class="fa-solid fa-dice"></i> <span class="rpg-btn-text">Randomized Plot</span>
             </button>
             <button id="rpg-plot-natural" class="menu_button interactable" style="
                 background-color: #4a90e2;
@@ -46,10 +45,9 @@ export function setupPlotButtons(handlePlotClick, handleEncounterClick) {
                 border-radius: 4px;
                 font-size: 13px;
                 cursor: pointer;
-                margin: 0 4px;
-                display: inline-block;
+                margin: 0 2px;
             " tabindex="0" role="button">
-                <i class="fa-solid fa-forward"></i> Natural Plot
+                <i class="fa-solid fa-forward"></i> <span class="rpg-btn-text">Natural Plot</span>
             </button>
             <button id="rpg-encounter-button" class="menu_button interactable" style="
                 background-color: #cc3333;
@@ -59,10 +57,9 @@ export function setupPlotButtons(handlePlotClick, handleEncounterClick) {
                 border-radius: 4px;
                 font-size: 13px;
                 cursor: pointer;
-                margin: 0 4px;
-                display: inline-block;
+                margin: 0 2px;
             " tabindex="0" role="button" title="Enter combat encounter">
-                <i class="fa-solid fa-fire"></i> Enter Encounter
+                <i class="fa-solid fa-fire"></i> <span class="rpg-btn-text">Enter Encounter</span>
             </button>
         </span>
     `;

@@ -8164,3 +8164,107 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-encounter-status:hover {
     transform: scale(1.2);
 }
+
+/* ============================================
+   PLOT BUTTONS - RESPONSIVE LAYOUT
+   ============================================ */
+
+/* Base styles for plot buttons container */
+#rpg-plot-buttons {
+    display: flex !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    align-items: center;
+}
+
+/* Base button styles - ensure consistent sizing */
+#rpg-plot-random,
+#rpg-plot-natural,
+#rpg-encounter-button {
+    flex: 0 1 auto;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+/* Tablet and smaller screens - adjust button sizing */
+@media (max-width: 768px) {
+    #rpg-plot-buttons {
+        gap: 3px;
+    }
+
+    #rpg-plot-random,
+    #rpg-plot-natural,
+    #rpg-encounter-button {
+        padding: 6px 10px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* Small mobile screens - more compact buttons */
+@media (max-width: 600px) {
+    #rpg-plot-buttons {
+        gap: 2px;
+    }
+
+    #rpg-plot-random,
+    #rpg-plot-natural,
+    #rpg-encounter-button {
+        padding: 5px 8px !important;
+        font-size: 11px !important;
+    }
+}
+
+/* Very small screens - stack buttons vertically or use icons only */
+@media (max-width: 480px) {
+    #rpg-plot-buttons {
+        gap: 4px;
+    }
+
+    /* Option 1: Stack vertically (uncomment if preferred)
+    #rpg-plot-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    #rpg-plot-random,
+    #rpg-plot-natural,
+    #rpg-encounter-button {
+        width: 100%;
+        padding: 8px !important;
+        font-size: 13px !important;
+    }
+    */
+
+    /* Option 2: Keep horizontal but more compact (default) */
+    #rpg-plot-random,
+    #rpg-plot-natural,
+    #rpg-encounter-button {
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+    }
+}
+
+/* Extra small screens - icon-only mode */
+@media (max-width: 400px) {
+    #rpg-plot-random,
+    #rpg-plot-natural,
+    #rpg-encounter-button {
+        padding: 6px !important;
+    }
+
+    /* Hide button text, keep icons */
+    #rpg-plot-random .rpg-btn-text,
+    #rpg-plot-natural .rpg-btn-text,
+    #rpg-encounter-button .rpg-btn-text {
+        display: none;
+    }
+
+    /* Ensure icons are visible */
+    #rpg-plot-random i,
+    #rpg-plot-natural i,
+    #rpg-encounter-button i {
+        margin: 0 !important;
+        font-size: 14px;
+    }
+}
