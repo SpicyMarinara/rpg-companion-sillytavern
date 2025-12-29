@@ -53,7 +53,7 @@
     "template.settingsModal.advanced.generationMode": "Generation Mode:",
     "template.settingsModal.advanced.generationModeOptions.together": "Together with Main Generation",
     "template.settingsModal.advanced.generationModeOptions.separate": "Separate Generation",
-    "template.settingsModal.advanced.generationModeNote": "Together: Adds RPG tracking to main roleplay. Separate: Generates RPG data separately (manual or auto). External: Connects to a 3rd party API directly.",
+    "template.settingsModal.advanced.generationModeNote": "Together: Adds RPG tracking to main roleplay. Separate: Generates RPG data separately (manual or auto). External: Connects to an OpenAI-compatible endpoint directly.",
     "template.settingsModal.advanced.generationModeOptions.external": "External API",
     "template.settingsModal.advanced.externalApi.title": "External API Settings",
     "template.settingsModal.advanced.externalApi.baseUrl": "API Base URL",

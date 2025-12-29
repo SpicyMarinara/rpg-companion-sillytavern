@@ -44,7 +44,7 @@
     "template.settingsModal.advanced.generationMode": "生成模式：",
     "template.settingsModal.advanced.generationModeOptions.together": "同時生成",
     "template.settingsModal.advanced.generationModeOptions.separate": "單獨生成",
-    "template.settingsModal.advanced.generationModeNote": "同時生成：將 RPG 追蹤添加到主要提示詞中一同生成。單獨生成：分開生成 RPG 數據。（就是手動或自動的差別）。外部 API：直接連接第三方 API 生成數據。",
+    "template.settingsModal.advanced.generationModeNote": "同時生成：將 RPG 追蹤添加到主要提示詞中一同生成。單獨生成：分開生成 RPG 數據。（就是手動或自動的差別）。外部 API：直接連接 OpenAI 兼容端點生成數據。",
     "template.settingsModal.advanced.generationModeOptions.external": "外部 API",
     "template.settingsModal.advanced.externalApi.title": "外部 API 設定",
     "template.settingsModal.advanced.externalApi.baseUrl": "API 基礎 URL",
