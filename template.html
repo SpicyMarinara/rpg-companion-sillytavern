@@ -448,18 +448,20 @@
                         process per batch in Memory Recollection</small>
                 </div>
 
-                <label class="checkbox_label">
-                    <input type="checkbox" id="rpg-use-separate-preset" />
-                    <span data-i18n-key="template.settingsModal.advanced.useSeparatePreset">Use model connected to RPG
-                        Companion Trackers preset</span>
-                </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
-                    data-i18n-key="template.settingsModal.advanced.useSeparatePresetNote">
-                    Separate mode only. When enabled, tracker generation will use the model from the "RPG Companion
-                    Trackers" preset instead of your main API model. The preset will be switched automatically during
-                    generation and restored afterward. Select the desired model in that preset and make sure the "Bind
-                    presets to API connections" toggle is on (next to the import/export preset buttons).
-                </small>
+                <div id="rpg-separate-mode-settings">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-use-separate-preset" />
+                        <span data-i18n-key="template.settingsModal.advanced.useSeparatePreset">Use model connected to RPG
+                            Companion Trackers preset</span>
+                    </label>
+                    <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                        data-i18n-key="template.settingsModal.advanced.useSeparatePresetNote">
+                        Separate mode only. When enabled, tracker generation will use the model from the "RPG Companion
+                        Trackers" preset instead of your main API model. The preset will be switched automatically during
+                        generation and restored afterward. Select the desired model in that preset and make sure the "Bind
+                        presets to API connections" toggle is on (next to the import/export preset buttons).
+                    </small>
+                </div>
 
                 <div class="rpg-setting-row">
                     <label for="rpg-skip-guided-mode"

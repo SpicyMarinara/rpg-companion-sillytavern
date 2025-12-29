@@ -294,13 +294,16 @@ export function updateGenerationModeUI() {
         // In "together" mode, manual update button is hidden
         $('#rpg-manual-update').hide();
         $('#rpg-external-api-settings').slideUp(200);
+        $('#rpg-separate-mode-settings').slideUp(200);
     } else if (extensionSettings.generationMode === 'separate') {
         // In "separate" mode, manual update button is visible
         $('#rpg-manual-update').show();
         $('#rpg-external-api-settings').slideUp(200);
+        $('#rpg-separate-mode-settings').slideDown(200);
     } else if (extensionSettings.generationMode === 'external') {
         // In "external" mode, manual update button is visible AND external settings are shown
         $('#rpg-manual-update').show();
         $('#rpg-external-api-settings').slideDown(200);
+        $('#rpg-separate-mode-settings').slideUp(200);
     }
 }
