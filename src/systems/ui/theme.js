@@ -77,6 +77,27 @@ export function toggleAnimations() {
 }
 
 /**
+ * Updates visibility of feature toggles in main panel based on settings
+ */
+export function updateFeatureTogglesVisibility() {
+    const $featuresRow = $('#rpg-features-row');
+    const $htmlToggle = $('#rpg-html-toggle-wrapper');
+    const $spotifyToggle = $('#rpg-spotify-toggle-wrapper');
+    const $snowflakesToggle = $('#rpg-snowflakes-toggle-wrapper');
+
+    // Show/hide individual toggles
+    $htmlToggle.toggle(extensionSettings.showHtmlToggle);
+    $spotifyToggle.toggle(extensionSettings.showSpotifyToggle);
+    $snowflakesToggle.toggle(extensionSettings.showSnowflakesToggle);
+
+    // Hide entire row if all toggles are hidden
+    const anyVisible = extensionSettings.showHtmlToggle ||
+                      extensionSettings.showSpotifyToggle ||
+                      extensionSettings.showSnowflakesToggle;
+    $featuresRow.toggle(anyVisible);
+}
+
+/**
  * Updates the settings popup theme in real-time.
  * Backwards compatible wrapper for SettingsModal class.
  * @param {Object} settingsModal - The SettingsModal instance (passed as parameter to avoid circular dependency)

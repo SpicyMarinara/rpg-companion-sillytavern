@@ -16,12 +16,14 @@ import {
     setLastActionWasSwipe,
     setIsPlotProgression,
     updateLastGeneratedData,
-    updateCommittedTrackerData
+    updateCommittedTrackerData,
+    $musicPlayerContainer
 } from '../../core/state.js';
 import { saveChatData, loadChatData } from '../../core/persistence.js';
 
 // Generation & Parsing
 import { parseResponse, parseUserStats } from '../generation/parser.js';
+import { parseAndStoreSpotifyUrl, convertToEmbedUrl } from '../features/musicPlayer.js';
 import { updateRPGData } from '../generation/apiClient.js';
 
 // Rendering
@@ -30,6 +32,7 @@ import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts, updateChatThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
+import { renderMusicPlayer } from '../rendering/musicPlayer.js';
 
 // Utils
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
@@ -119,6 +122,8 @@ export async function onMessageReceived(data) {
             // console.log('[RPG Companion] Parsing together mode response:', responseText);
 
             const parsedData = parseResponse(responseText);
+            // Parse and store Spotify URL if feature is enabled
+            parseAndStoreSpotifyUrl(responseText);
             // console.log('[RPG Companion] Parsed data:', parsedData);
 
             // Update stored data
@@ -176,6 +181,7 @@ export async function onMessageReceived(data) {
                 cleanedMessage = cleanedMessage.replace(/\n{3,}/g, '\n\n');
             }
             // Note: <trackers> XML tags are automatically hidden by SillyTavern
+            // Note: <Song - Artist/> tags are also automatically hidden by SillyTavern
 
             // Update the message in chat history
             lastMessage.mes = cleanedMessage.trim();
@@ -191,6 +197,7 @@ export async function onMessageReceived(data) {
             renderThoughts();
             renderInventory();
             renderQuests();
+            renderMusicPlayer($musicPlayerContainer[0]);
 
             // Then update the DOM to reflect the cleaned message
             // Using updateMessageBlock to perform macro substitutions + regex formatting
@@ -202,11 +209,28 @@ export async function onMessageReceived(data) {
             // Save to chat metadata
             saveChatData();
         }
-    } else if (extensionSettings.generationMode === 'separate' && extensionSettings.autoUpdate) {
-        // In separate mode with auto-update, trigger update after message
-        setTimeout(async () => {
-            await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
-        }, 500);
+    } else if (extensionSettings.generationMode === 'separate') {
+        // In separate mode, also parse Spotify URLs from the main roleplay response
+        const lastMessage = chat[chat.length - 1];
+        if (lastMessage && !lastMessage.is_user) {
+            const responseText = lastMessage.mes;
+
+            // Parse and store Spotify URL
+            const foundSpotifyUrl = parseAndStoreSpotifyUrl(responseText);
+
+            // No need to clean message - SillyTavern auto-hides <Song - Artist/> tags
+            if (foundSpotifyUrl && extensionSettings.enableSpotifyMusic) {
+                // Just render the music player
+                renderMusicPlayer($musicPlayerContainer[0]);
+            }
+        }
+
+        // Trigger auto-update if enabled
+        if (extensionSettings.autoUpdate) {
+            setTimeout(async () => {
+                await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
+            }, 500);
+        }
     }
 
     // Reset the swipe flag after generation completes
@@ -253,6 +277,7 @@ export function onCharacterChanged() {
     renderThoughts();
     renderInventory();
     renderQuests();
+    renderMusicPlayer($musicPlayerContainer[0]);
 
     // Update chat thought overlays
     updateChatThoughts();
@@ -328,6 +353,7 @@ export function onMessageSwiped(messageIndex) {
     renderThoughts();
     renderInventory();
     renderQuests();
+    renderMusicPlayer($musicPlayerContainer[0]);
 
     // Update chat thought overlays
     updateChatThoughts();

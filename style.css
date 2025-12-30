@@ -1251,7 +1251,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Weather Widget Icon */
 .rpg-weather-icon {
-    font-size: clamp(14px, 2.5vw, 20px);
+    font-size: clamp(0.875rem, 2.5vw, 1.25rem);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
     flex-shrink: 0;
     line-height: 1;
@@ -1267,12 +1267,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     opacity: 0.85;
     line-height: 1.2;
     word-wrap: break-word;
+    overflow-wrap: break-word;
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    white-space: normal;
     flex-shrink: 1;
 }
 
@@ -5120,19 +5117,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     .rpg-weather-forecast {
-        font-size: clamp(9px, 2.2vw, 11px) !important;
+        font-size: clamp(0.5625rem, 2.2vw, 0.6875rem) !important;
     }
 
     .rpg-temp-value {
-        font-size: clamp(10px, 2.5vw, 13px) !important;
+        font-size: clamp(0.625rem, 2.5vw, 0.8125rem) !important;
     }
 
     .rpg-time-value {
-        font-size: clamp(10px, 2.5vw, 13px) !important;
+        font-size: clamp(0.625rem, 2.5vw, 0.8125rem) !important;
     }
 
     .rpg-location-text {
-        font-size: clamp(11px, 2.8vw, 14px) !important;
+        font-size: clamp(0.6875rem, 2.8vw, 0.875rem) !important;
     }
 
     .rpg-map-marker {
@@ -8302,4 +8299,375 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         margin: 0 !important;
         font-size: 14px;
     }
+}
+
+/* ============================================
+   SPOTIFY MUSIC WIDGET STYLES
+   ============================================ */
+
+/* Music Widget Container - Positioned above chat input */
+.rpg-music-widget {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, calc(-100% - 8px));
+    width: calc(100% - 40px);
+    max-width: 650px;
+    z-index: 1000;
+    animation: rpg-music-slide-in 0.3s ease-out;
+}
+
+@keyframes rpg-music-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Widget Content - The actual player UI */
+.rpg-music-widget-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--rpg-accent);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 2px solid var(--rpg-border);
+}
+
+.rpg-music-widget-content:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), 0 4px 8px var(--rpg-highlight);
+}
+
+/* Spotify Icon */
+.rpg-music-widget-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    color: #1DB954;
+    font-size: 20px;
+}
+
+/* Song Info Container */
+.rpg-music-widget-info {
+    flex: 1;
+    min-width: 0; /* Allows text truncation */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Song Title */
+.rpg-music-widget-title {
+    color: var(--rpg-text);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Artist Name */
+.rpg-music-widget-artist {
+    color: var(--rpg-text);
+    opacity: 0.7;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Play Button */
+.rpg-music-widget-play {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--rpg-highlight);
+    border: none;
+    border-radius: 50%;
+    color: var(--rpg-text);
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.rpg-music-widget-play:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.rpg-music-widget-play:active {
+    transform: scale(0.95);
+}
+
+.rpg-music-widget-play i {
+    margin-left: 2px; /* Visual centering for play icon */
+}
+
+/* Close/Dismiss Button */
+.rpg-music-widget-close {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 50%;
+    color: var(--rpg-text);
+    opacity: 0.6;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.rpg-music-widget-close:hover {
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 1;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 600px) {
+    .rpg-music-widget-content {
+        padding: 8px 12px;
+        gap: 10px;
+    }
+
+    .rpg-music-widget-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+
+    .rpg-music-widget-title {
+        font-size: 13px;
+    }
+
+    .rpg-music-widget-artist {
+        font-size: 11px;
+    }
+
+    .rpg-music-widget-play {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+
+    .rpg-music-widget-close {
+        width: 22px;
+        height: 22px;
+        font-size: 11px;
+    }
+}
+
+/* Theme Support - Apply theme colors */
+.rpg-panel[data-theme="sci-fi"] ~ .rpg-music-widget .rpg-music-widget-content,
+body[data-theme="sci-fi"] .rpg-music-widget-content {
+    background: linear-gradient(135deg, #8b00ff 0%, #6a00cc 50%, #5000aa 100%);
+}
+
+.rpg-panel[data-theme="sci-fi"] ~ .rpg-music-widget .rpg-music-widget-play,
+body[data-theme="sci-fi"] .rpg-music-widget-play {
+    color: #8b00ff;
+}
+
+.rpg-panel[data-theme="fantasy"] ~ .rpg-music-widget .rpg-music-widget-content,
+body[data-theme="fantasy"] .rpg-music-widget-content {
+    background: linear-gradient(135deg, #d4af37 0%, #b8962e 50%, #9c7d25 100%);
+}
+
+.rpg-panel[data-theme="fantasy"] ~ .rpg-music-widget .rpg-music-widget-play,
+body[data-theme="fantasy"] .rpg-music-widget-play {
+    color: #d4af37;
+}
+
+.rpg-panel[data-theme="cyberpunk"] ~ .rpg-music-widget .rpg-music-widget-content,
+body[data-theme="cyberpunk"] .rpg-music-widget-content {
+    background: linear-gradient(135deg, #ff2a6d 0%, #d91e58 50%, #b31848 100%);
+}
+
+.rpg-panel[data-theme="cyberpunk"] ~ .rpg-music-widget .rpg-music-widget-play,
+body[data-theme="cyberpunk"] .rpg-music-widget-play {
+    color: #ff2a6d;
+}
+/* ============================================
+   SNOWFLAKES EFFECT
+   ============================================ */
+
+/* Snowflakes container - covers entire viewport */
+.rpg-snowflakes-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+/* Individual snowflake */
+.rpg-snowflake {
+    position: absolute;
+    top: -10px;
+    color: white;
+    font-size: 1em;
+    font-family: Arial, sans-serif;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+    animation: rpg-snowfall linear infinite;
+    opacity: 0.8;
+}
+
+/* Snowfall animation */
+@keyframes rpg-snowfall {
+    0% {
+        transform: translateY(0vh) rotate(0deg);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0.2;
+    }
+}
+
+/* Create variations for different snowflakes */
+.rpg-snowflake:nth-child(2n) {
+    animation-duration: 12s;
+    font-size: 0.8em;
+}
+
+.rpg-snowflake:nth-child(3n) {
+    animation-duration: 15s;
+    font-size: 1.2em;
+}
+
+.rpg-snowflake:nth-child(4n) {
+    animation-duration: 18s;
+    font-size: 0.6em;
+}
+
+.rpg-snowflake:nth-child(5n) {
+    animation-duration: 10s;
+    font-size: 1.4em;
+}
+
+/* Slower mobile animation for performance */
+@media (max-width: 768px) {
+    .rpg-snowflake {
+        animation-duration: 20s;
+    }
+}
+
+/* ============================================
+   HOLIDAY PROMOTION BANNER
+   ============================================ */
+
+/* Mobile-friendly holiday promo */
+.rpg-holiday-promo {
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.rpg-holiday-promo a {
+    display: inline-block;
+    max-width: 100%;
+}
+
+/* Dismiss button hover effect */
+#rpg-dismiss-promo:hover {
+    opacity: 1 !important;
+    transform: scale(1.1);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+    .rpg-holiday-promo {
+        font-size: 10px !important;
+        padding: 10px 8px !important;
+    }
+
+    #rpg-dismiss-promo {
+        font-size: 12px !important;
+        top: 2px !important;
+        right: 2px !important;
+    }
+}
+
+/* ============================================
+   THREE-COLUMN FEATURE TOGGLES LAYOUT
+   ============================================ */
+
+/* Features row container */
+.rpg-features-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+/* Each feature column */
+.rpg-feature-col {
+    flex: 1;
+    min-width: 0;
+}
+
+.rpg-feature-col .rpg-toggle-label {
+    justify-content: center;
+}
+
+/* Always hide text, show only checkbox + icon */
+.rpg-feature-col .rpg-toggle-text {
+    display: none;
+}
+
+.rpg-feature-col .rpg-toggle-label i {
+    font-size: 1.125rem;
+    flex-shrink: 0;
+}
+
+/* Tablet and below: Hide text, show only checkbox + icon */
+@media (max-width: 768px) {
+    .rpg-feature-col .rpg-toggle-text {
+        display: none;
+    }
+
+    .rpg-feature-col .rpg-toggle-label i {
+        font-size: 1.cally with icons only */
+@media (max-width: 400px) {
+    .rpg-features-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .rpg-feature-col .rpg-toggle-label i {
+        font-size: 1.25rem;
+    }
+}
+
+
+
+/* Ensure send_form has relative positioning for music widget placement */
+#send_form {
+    position: relative !important;
 }

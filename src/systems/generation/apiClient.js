@@ -12,18 +12,21 @@ import {
     isGenerating,
     lastActionWasSwipe,
     setIsGenerating,
-    setLastActionWasSwipe
+    setLastActionWasSwipe,
+    $musicPlayerContainer
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
 import {
     generateSeparateUpdatePrompt
 } from './promptBuilder.js';
 import { parseResponse, parseUserStats } from './parser.js';
+import { parseAndStoreSpotifyUrl } from '../features/musicPlayer.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
+import { renderMusicPlayer } from '../rendering/musicPlayer.js';
 import { i18n } from '../../core/i18n.js';
 import { generateAvatarsForCharacters } from '../features/avatarGenerator.js';
 
@@ -121,7 +124,7 @@ export async function testExternalAPIConnection() {
     if (!baseUrl || !apiKey || !model) {
         return {
             success: false,
-            message: !apiKey 
+            message: !apiKey
                 ? 'API Key not found. Please re-enter it in settings (keys are stored locally per-browser).'
                 : 'Please fill in all required fields (Base URL, API Key, and Model)'
         };
@@ -267,6 +270,8 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         if (response) {
             // console.log('[RPG Companion] Raw AI response:', response);
             const parsedData = parseResponse(response);
+            // Parse and store Spotify URL if feature is enabled
+            parseAndStoreSpotifyUrl(response);
             // console.log('[RPG Companion] Parsed data:', parsedData);
             // console.log('[RPG Companion] parsedData.userStats:', parsedData.userStats ? parsedData.userStats.substring(0, 100) + '...' : 'null');
 
@@ -346,6 +351,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             renderThoughts();
             renderInventory();
             renderQuests();
+            renderMusicPlayer($musicPlayerContainer[0]);
 
             // Save to chat metadata
             saveChatData();
@@ -356,7 +362,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 const charactersNeedingAvatars = parseCharactersFromThoughts(parsedData.characterThoughts);
                 if (charactersNeedingAvatars.length > 0) {
                     console.log('[RPG Companion] Generating avatars for:', charactersNeedingAvatars);
-                    
+
                     // Generate avatars - this awaits completion
                     await generateAvatarsForCharacters(charactersNeedingAvatars, (names) => {
                         // Callback when generation starts - re-render to show loading spinners

@@ -10,7 +10,7 @@
         <div class="rpg-panel-header">
             <h3>
                 <i class="fa-solid fa-dice-d20"></i>
-                <span data-i18n-key="template.mainPanel.title">RPG Companion</span>
+                <span id="rpg-panel-title" data-i18n-key="template.mainPanel.title">RPG Companion</span>
             </h3>
         </div>
 
@@ -60,15 +60,44 @@
                 <div id="rpg-quests" class="rpg-section rpg-quests-section">
                     <!-- Content will be populated by JavaScript -->
                 </div>
+
+                <!-- Divider after Quests -->
+                <div id="rpg-divider-quests" class="rpg-divider"></div>
+
+                <!-- Music Player Section -->
+                <div id="rpg-music-player" class="rpg-section rpg-music-section">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
             </div>
 
-            <!-- HTML Prompt Toggle -->
-            <div class="rpg-toggle-container">
-                <label class="rpg-toggle-label">
-                    <input type="checkbox" id="rpg-toggle-html-prompt">
-                    <i class="fa-solid fa-code"></i>
-                    <span data-i18n-key="template.mainPanel.enableImmersiveHtml">Enable Immersive HTML</span>
-                </label>
+            <!-- Feature Toggles Row -->
+            <div class="rpg-features-row" id="rpg-features-row">
+                <!-- HTML Prompt Toggle -->
+                <div class="rpg-toggle-container rpg-feature-col" id="rpg-html-toggle-wrapper">
+                    <label class="rpg-toggle-label" title="Immersive HTML">
+                        <input type="checkbox" id="rpg-toggle-html-prompt">
+                        <i class="fa-solid fa-code"></i>
+                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.immersiveHtml">Immersive HTML</span>
+                    </label>
+                </div>
+
+                <!-- Spotify Music Toggle -->
+                <div class="rpg-toggle-container rpg-feature-col" id="rpg-spotify-toggle-wrapper">
+                    <label class="rpg-toggle-label" title="Spotify Music">
+                        <input type="checkbox" id="rpg-toggle-spotify-music">
+                        <i class="fa-brands fa-spotify"></i>
+                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.spotifyMusic">Spotify Music</span>
+                    </label>
+                </div>
+
+                <!-- Snowflakes Toggle -->
+                <div class="rpg-toggle-container rpg-feature-col" id="rpg-snowflakes-toggle-wrapper">
+                    <label class="rpg-toggle-label" title="Snowflakes Effect">
+                        <input type="checkbox" id="rpg-toggle-snowflakes">
+                        <i class="fa-solid fa-snowflake"></i>
+                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.snowflakesEffect">Snowflakes Effect</span>
+                    </label>
+                </div>
             </div>
 
             <!-- Manual Update Button -->
@@ -87,6 +116,15 @@
                     <i class="fa-solid fa-gear"></i> <span
                         data-i18n-key="template.mainPanel.settingsButton">Settings</span>
                 </button>
+            </div>
+
+            <!-- Holiday Promotion -->
+            <div class="rpg-holiday-promo" id="rpg-holiday-promo" style="text-align: center; padding: 12px 10px; margin-top: 8px; font-size: 11px; opacity: 0.85; position: relative; line-height: 1.5;">
+                <button id="rpg-dismiss-promo" style="position: absolute; top: 4px; right: 4px; background: none; border: none; color: currentColor; opacity: 0.6; cursor: pointer; padding: 2px 6px; font-size: 14px; line-height: 1;" title="Dismiss permanently">✓</button>
+                <div style="margin-bottom: 4px;">Happy Holidays & Happy New Year!</div>
+                <a href="https://www.electronhub.ai/" target="_blank" style="color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; display: inline-block;">
+                    🎁 15% OFF for Electron Hub subscriptions with <strong>2026WITHMARINARA</strong> 🎁
+                </a>
             </div>
         </div>
     </div>
@@ -239,6 +277,21 @@
                     data-i18n-key="template.settingsModal.display.enableAnimationsNote">
                     Smooth transitions for stats, content updates, and dice rolls
                 </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-show-html-toggle" />
+                    <span data-i18n-key="template.settingsModal.display.showImmersiveHtmlToggle">Show Immersive HTML</span>
+                </label>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-show-spotify-toggle" />
+                    <span data-i18n-key="template.settingsModal.display.showSpotifyMusicToggle">Show Spotify Music</span>
+                </label>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-show-snowflakes-toggle" />
+                    <span data-i18n-key="template.settingsModal.display.showSnowflakesToggle">Show Snowflakes Effect</span>
+                </label>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-plot-buttons" />
@@ -662,6 +715,20 @@
                 </small>
                 <textarea id="rpg-prompt-html" class="rpg-prompt-textarea" rows="4"></textarea>
                 <button class="menu_button rpg-restore-prompt-btn" data-prompt="html" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i> Restore Default
+                </button>
+            </div>
+
+            <!-- Spotify Music Prompt -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-spotify" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-brands fa-spotify"></i> Spotify Music Prompt
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Injected when "Enable Spotify Music" is enabled. Asks AI to suggest appropriate music for the scene.
+                </small>
+                <textarea id="rpg-prompt-spotify" class="rpg-prompt-textarea" rows="4"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="spotify" style="margin-top: 8px;">
                     <i class="fa-solid fa-rotate-left"></i> Restore Default
                 </button>
             </div>

@@ -39,6 +39,9 @@
     "template.settingsModal.display.alwaysShowThoughtBubbleNote": "Auto-expand thought bubble without clicking the icon first",
     "template.settingsModal.display.enableAnimations": "Enable Animations",
     "template.settingsModal.display.enableAnimationsNote": "Smooth transitions for stats, content updates, and dice rolls",
+    "template.settingsModal.display.showImmersiveHtmlToggle": "Show Immersive HTML",
+    "template.settingsModal.display.showSpotifyMusicToggle": "Show Spotify Music",
+    "template.settingsModal.display.showSnowflakesToggle": "Show Snowflakes Effect",
     "template.settingsModal.display.showPlotProgressionButtons": "Show Plot Progression Buttons",
     "template.settingsModal.display.showPlotProgressionButtonsNote": "Display buttons above chat input for plot progression prompts",
     "template.settingsModal.display.showDiceDisplay": "Show Dice Roll Display",
@@ -126,7 +129,9 @@
     "template.mainPanel.title": "RPG Companion",
     "template.mainPanel.lastRoll": "Last Roll:",
     "template.mainPanel.clearLastRoll": "Clear last roll",
-    "template.mainPanel.enableImmersiveHtml": "Enable Immersive HTML",
+    "template.mainPanel.immersiveHtml": "Immersive HTML",
+    "template.mainPanel.spotifyMusic": "Spotify Music",
+    "template.mainPanel.snowflakesEffect": "Snowflakes Effect",
     "template.mainPanel.refreshRpgInfo": "Refresh RPG Info",
     "template.mainPanel.updating": "Updating...",
     "template.mainPanel.editTrackersButton": "Edit Trackers",
@@ -183,5 +188,7 @@
     "checkpoint.setChapterStart": "Set Chapter Start",
     "checkpoint.clearChapterStart": "Clear Chapter Start",
     "checkpoint.indicator": "Chapter Start",
-    "checkpoint.tooltip": "Messages before this point are excluded from context"
+    "checkpoint.tooltip": "Messages before this point are excluded from context",
+    "musicPlayer.title": "Scene Music",
+    "musicPlayer.noMusic": "AI will suggest music when appropriate for the scene"
 }

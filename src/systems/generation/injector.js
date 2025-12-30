@@ -19,7 +19,9 @@ import {
     generateTrackerExample,
     generateTrackerInstructions,
     generateContextualSummary,
-    DEFAULT_HTML_PROMPT
+    DEFAULT_HTML_PROMPT,
+    DEFAULT_SPOTIFY_PROMPT,
+    SPOTIFY_FORMAT_INSTRUCTION
 } from './promptBuilder.js';
 import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
 
@@ -67,6 +69,7 @@ export async function onGenerationStarted(type, data) {
         setExtensionPrompt('rpg-companion-inject', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
     }
 
@@ -230,6 +233,19 @@ export async function onGenerationStarted(type, data) {
             // Clear HTML prompt if disabled
             setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         }
+
+        // Inject Spotify prompt separately at depth 0 if enabled
+        if (extensionSettings.enableSpotifyMusic && !shouldSuppress) {
+            // Use custom Spotify prompt if set, otherwise use default
+            const spotifyPromptText = extensionSettings.customSpotifyPrompt || DEFAULT_SPOTIFY_PROMPT;
+            const spotifyPrompt = `\n${spotifyPromptText} ${SPOTIFY_FORMAT_INSTRUCTION}`;
+
+            setExtensionPrompt('rpg-companion-spotify', spotifyPrompt, extension_prompt_types.IN_CHAT, 0, false);
+            // console.log('[RPG Companion] Injected Spotify prompt at depth 0 for together mode');
+        } else {
+            // Clear Spotify prompt if disabled
+            setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
+        }
     } else if (extensionSettings.generationMode === 'separate') {
         // In SEPARATE mode, inject the contextual summary for main roleplay generation
         const contextSummary = generateContextualSummary();
@@ -266,6 +282,19 @@ Ensure these details naturally reflect and influence the narrative. Character be
             setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         }
 
+        // Inject Spotify prompt separately at depth 0 if enabled
+        if (extensionSettings.enableSpotifyMusic && !shouldSuppress) {
+            // Use custom Spotify prompt if set, otherwise use default
+            const spotifyPromptText = extensionSettings.customSpotifyPrompt || DEFAULT_SPOTIFY_PROMPT;
+            const spotifyPrompt = `\n${spotifyPromptText} ${SPOTIFY_FORMAT_INSTRUCTION}`;
+
+            setExtensionPrompt('rpg-companion-spotify', spotifyPrompt, extension_prompt_types.IN_CHAT, 0, false);
+            // console.log('[RPG Companion] Injected Spotify prompt at depth 0 for separate mode');
+        } else {
+            // Clear Spotify prompt if disabled
+            setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
+        }
+
         // Clear together mode injections
         setExtensionPrompt('rpg-companion-inject', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
@@ -274,5 +303,7 @@ Ensure these details naturally reflect and influence the narrative. Character be
         setExtensionPrompt('rpg-companion-inject', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
+        setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
     }
 }

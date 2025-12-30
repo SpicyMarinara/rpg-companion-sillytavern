@@ -24,6 +24,13 @@ export let extensionSettings = {
     narratorMode: false, // Use character card as narrator instead of fixed character references
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
+    enableSpotifyMusic: false, // Enable Spotify music integration (asks AI for Spotify URLs)
+    customSpotifyPrompt: '', // Custom Spotify prompt text (empty = use default)
+    enableSnowflakes: false, // Enable festive snowflakes effect
+    dismissedHolidayPromo: false, // User dismissed the holiday promotion banner
+    showHtmlToggle: true, // Show Immersive HTML toggle in main panel
+    showSpotifyToggle: true, // Show Spotify Music toggle in main panel
+    showSnowflakesToggle: true, // Show Snowflakes Effect toggle in main panel
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
     enablePlotButtons: true, // Show plot progression buttons above chat input
     saveTrackerHistory: false, // Save tracker data in chat history for each message
@@ -283,6 +290,7 @@ export let $infoBoxContainer = null;
 export let $thoughtsContainer = null;
 export let $inventoryContainer = null;
 export let $questsContainer = null;
+export let $musicPlayerContainer = null;
 
 /**
  * State setters - provide controlled mutation of state variables
@@ -353,4 +361,8 @@ export function setInventoryContainer($element) {
 
 export function setQuestsContainer($element) {
     $questsContainer = $element;
+}
+
+export function setMusicPlayerContainer($element) {
+    $musicPlayerContainer = $element;
 }

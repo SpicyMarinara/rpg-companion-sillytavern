@@ -36,6 +36,9 @@
     "template.settingsModal.display.alwaysShowThoughtBubbleNote": "自動展開想法泡泡",
     "template.settingsModal.display.enableAnimations": "啟用動畫",
     "template.settingsModal.display.enableAnimationsNote": "屬性、內容更新和擲骰的動畫效果",
+    "template.settingsModal.display.showImmersiveHtmlToggle": "顯示沉浸式 HTML",
+    "template.settingsModal.display.showSpotifyMusicToggle": "顯示 Spotify 音樂",
+    "template.settingsModal.display.showSnowflakesToggle": "顯示雪花效果",
     "template.settingsModal.display.showPlotProgressionButtons": "顯示劇情推進按鈕（QR）",
     "template.settingsModal.display.showPlotProgressionButtonsNote": "在聊天輸入框上方顯示劇情推進提示按鈕（QR）",
     "template.settingsModal.display.enableDebugMode": "Debug Mode",
@@ -119,7 +122,9 @@
     "template.mainPanel.title": "RPG Companion",
     "template.mainPanel.lastRoll": "上次擲骰：",
     "template.mainPanel.clearLastRoll": "清除上次擲骰",
-    "template.mainPanel.enableImmersiveHtml": "啟用沉浸式 HTML",
+    "template.mainPanel.immersiveHtml": "沉浸式 HTML",
+    "template.mainPanel.spotifyMusic": "Spotify 音樂",
+    "template.mainPanel.snowflakesEffect": "雪花效果",
     "template.mainPanel.refreshRpgInfo": "刷新資訊",
     "template.mainPanel.updating": "更新中...",
     "template.mainPanel.editTrackersButton": "追蹤器編輯",
@@ -172,5 +177,7 @@
     "quests.optional.addQuestButton": "添加支線任務",
     "quests.optional.addQuestPlaceholder": "輸入支線任務名稱...",
     "quests.optional.empty": "當前無支線任務 (ʘ̆ʚʘ̆)",
-    "quests.optional.hint": "支線任務是補充主線劇情的支線目標。"
+    "quests.optional.hint": "支線任務是補充主線劇情的支線目標。",
+    "musicPlayer.title": "場景音樂",
+    "musicPlayer.noMusic": "AI 會在適當時為場景建議音樂"
 }

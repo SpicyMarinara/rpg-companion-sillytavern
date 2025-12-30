@@ -21,6 +21,7 @@ import {
     $thoughtsContainer,
     $inventoryContainer,
     $questsContainer,
+    $musicPlayerContainer,
     setExtensionSettings,
     updateExtensionSettings,
     setLastGeneratedData,
@@ -37,6 +38,7 @@ import {
     setThoughtsContainer,
     setInventoryContainer,
     setQuestsContainer,
+    setMusicPlayerContainer,
     clearSessionAvatarPrompts
 } from './src/core/state.js';
 import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData } from './src/core/persistence.js';
@@ -66,6 +68,8 @@ import {
 } from './src/systems/rendering/thoughts.js';
 import { renderInventory } from './src/systems/rendering/inventory.js';
 import { renderQuests } from './src/systems/rendering/quests.js';
+import { renderMusicPlayer } from './src/systems/rendering/musicPlayer.js';
+import { toggleSnowflakes, initSnowflakes } from './src/systems/ui/snowflakes.js';
 
 // Interaction modules
 import { initInventoryEventListeners } from './src/systems/interaction/inventoryActions.js';
@@ -76,6 +80,7 @@ import {
     applyCustomTheme,
     toggleCustomColors,
     toggleAnimations,
+    updateFeatureTogglesVisibility,
     updateSettingsPopupTheme,
     applyCustomThemeToSettingsPopup
 } from './src/systems/ui/theme.js';
@@ -130,6 +135,7 @@ import { setupClassicStatsButtons } from './src/systems/features/classicStats.js
 import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/systems/features/htmlCleaning.js';
 import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
 import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
+import { parseAndStoreSpotifyUrl } from './src/systems/features/musicPlayer.js';
 import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
 import { openEncounterModal } from './src/systems/ui/encounterUI.js';
 
@@ -277,6 +283,7 @@ async function initUI() {
     setThoughtsContainer($('#rpg-thoughts'));
     setInventoryContainer($('#rpg-inventory'));
     setQuestsContainer($('#rpg-quests'));
+    setMusicPlayerContainer($('#rpg-music-player'));
 
     // Re-apply translations to the entire body to catch all new elements from the template
     i18n.applyTranslations(document.body);
@@ -375,6 +382,25 @@ async function initUI() {
         extensionSettings.enableHtmlPrompt = $(this).prop('checked');
         // console.log('[RPG Companion] Toggle enableHtmlPrompt changed to:', extensionSettings.enableHtmlPrompt);
         saveSettings();
+    });
+
+    $('#rpg-toggle-spotify-music').on('change', function() {
+        extensionSettings.enableSpotifyMusic = $(this).prop('checked');
+        saveSettings();
+        updateSectionVisibility();
+        renderMusicPlayer($musicPlayerContainer[0]);
+    });
+
+    $('#rpg-toggle-snowflakes').on('change', function() {
+        extensionSettings.enableSnowflakes = $(this).prop('checked');
+        saveSettings();
+        toggleSnowflakes(extensionSettings.enableSnowflakes);
+    });
+
+    $('#rpg-dismiss-promo').on('click', function() {
+        extensionSettings.dismissedHolidayPromo = true;
+        saveSettings();
+        $('#rpg-holiday-promo').fadeOut(300);
     });
 
     $('#rpg-skip-guided-mode').on('change', function() {
@@ -514,6 +540,25 @@ async function initUI() {
         extensionSettings.enableAnimations = $(this).prop('checked');
         saveSettings();
         toggleAnimations();
+    });
+
+    // Feature toggle visibility controls
+    $('#rpg-toggle-show-html-toggle').on('change', function() {
+        extensionSettings.showHtmlToggle = $(this).prop('checked');
+        saveSettings();
+        updateFeatureTogglesVisibility();
+    });
+
+    $('#rpg-toggle-show-spotify-toggle').on('change', function() {
+        extensionSettings.showSpotifyToggle = $(this).prop('checked');
+        saveSettings();
+        updateFeatureTogglesVisibility();
+    });
+
+    $('#rpg-toggle-show-snowflakes-toggle').on('change', function() {
+        extensionSettings.showSnowflakesToggle = $(this).prop('checked');
+        saveSettings();
+        updateFeatureTogglesVisibility();
     });
 
     // Auto avatar generation settings
@@ -710,6 +755,18 @@ async function initUI() {
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
+    $('#rpg-toggle-spotify-music').prop('checked', extensionSettings.enableSpotifyMusic);
+    $('#rpg-toggle-snowflakes').prop('checked', extensionSettings.enableSnowflakes);
+
+    // Feature toggle visibility settings
+    $('#rpg-toggle-show-html-toggle').prop('checked', extensionSettings.showHtmlToggle ?? true);
+    $('#rpg-toggle-show-spotify-toggle').prop('checked', extensionSettings.showSpotifyToggle ?? true);
+    $('#rpg-toggle-show-snowflakes-toggle').prop('checked', extensionSettings.showSnowflakesToggle ?? true);
+
+    // Hide holiday promo if previously dismissed
+    if (extensionSettings.dismissedHolidayPromo) {
+        $('#rpg-holiday-promo').hide();
+    }
 
     $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
     $('#rpg-toggle-encounters').prop('checked', extensionSettings.encounterSettings?.enabled ?? true);
@@ -766,6 +823,7 @@ async function initUI() {
     applyPanelPosition();
     toggleCustomColors();
     toggleAnimations();
+    updateFeatureTogglesVisibility();
 
     // Setup mobile toggle button
     setupMobileToggle();
@@ -784,6 +842,7 @@ async function initUI() {
     renderThoughts();
     renderInventory();
     renderQuests();
+    renderMusicPlayer($musicPlayerContainer[0]);
     updateDiceDisplay();
     setupDiceRoller();
     setupClassicStatsButtons();
@@ -982,6 +1041,14 @@ jQuery(async () => {
 
         // Restore checkpoint state if one exists
         await restoreCheckpointOnLoad();
+
+        // Initialize snowflakes effect if enabled
+        try {
+            initSnowflakes();
+        } catch (error) {
+            console.error('[RPG Companion] Snowflakes initialization failed:', error);
+            // Non-critical - continue without it
+        }
 
         console.log('[RPG Companion] ✅ Extension loaded successfully');
     } catch (error) {
