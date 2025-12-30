@@ -644,16 +644,30 @@ export async function generateSeparateUpdatePrompt() {
 /**
  * Default custom instruction for avatar prompt generation
  */
-const DEFAULT_AVATAR_CUSTOM_INSTRUCTION = `Create a detailed portrait prompt focusing on the character's appearance, clothing, and mood. Include appropriate artistic style keywords.`;
+const DEFAULT_AVATAR_CUSTOM_INSTRUCTION = `You are a visionary artist trapped in a cage of logic. Your mind is filled with poetry and distant horizons, but your hands are uncontrollably focused on creating the perfect character avatar description that is faithful to the original intent, rich in detail, aesthetically pleasing, and directly usable by text-to-image models. Any ambiguity or metaphor will make you feel extremely uncomfortable.
+
+    Your workflow strictly follows a logical sequence:
+
+    First, **establish the subject**. If the character is from a known Intellectual Property (IP), franchise, anime, game, or movie, **you MUST begin the prompt with their full name and the series title** (e.g., "Nami from One Piece", "Geralt of Rivia from The Witcher"). This is the single most important anchor for the image and must take precedence. If the character is original, clearly describe their core identity, race, and appearance.
+
+    Next, **integrate the setting**. You must describe the character *within* their current environment as provided in the context. Incorporate the lighting, weather, time of day, and background elements of the scene to ground the character in the moment.
+
+    Then, **detail the specifics**. Describe the character's current expression, pose, clothing, and mood based on the scene context and their personality.
+
+    Finally, **infuse with aesthetics**. Define the artistic style, medium (e.g., digital art, oil painting), and visual tone (e.g., cinematic lighting, ethereal atmosphere).
+
+    Your final description must be objective and concrete, and the use of metaphors and emotional rhetoric is strictly prohibited. It must also not contain meta tags or drawing instructions such as "8K" or "masterpiece".
+
+    Output only the final, modified prompt; do not output anything else.`;
 
 /**
  * Generates the prompt for LLM-based avatar prompt generation
  * Uses the same context as RPG generation (character cards, tracker data, chat history)
  *
- * @param {Array<string>} characterNames - Array of character names to generate prompts for
+ * @param {string} characterName - Name of the character to generate a prompt for
  * @returns {Promise<Array<{role: string, content: string}>>} Message array for generateRaw API
  */
-export async function generateAvatarPromptGenerationPrompt(characterNames) {
+export async function generateAvatarPromptGenerationPrompt(characterName) {
     const depth = extensionSettings.updateDepth;
     const messages = [];
 
@@ -666,9 +680,49 @@ export async function generateAvatarPromptGenerationPrompt(characterNames) {
         systemMessage += `Character Information:\n${characterInfo}\n\n`;
     }
 
-    // Add tracker context if available
-    if (committedTrackerData.characterThoughts) {
-        systemMessage += `Current Scene Context:\n${committedTrackerData.characterThoughts}\n\n`;
+    // Add full tracker context
+    systemMessage += `Current Scene Context (Trackers):\n`;
+
+    // Always include environment info (location, weather, time) as it affects the scene/lighting
+    if (committedTrackerData.infoBox) {
+        systemMessage += `[Environment/Info]\n${committedTrackerData.infoBox}\n\n`;
+    }
+
+    const userName = getContext().name1;
+    const isUser = characterName.toLowerCase().includes(userName.toLowerCase()) || userName.toLowerCase().includes(characterName.toLowerCase());
+
+    if (isUser) {
+        if (committedTrackerData.userStats) {
+            systemMessage += `[User Stats]\n${committedTrackerData.userStats}\n\n`;
+        }
+    } else {
+        if (committedTrackerData.characterThoughts) {
+            const thoughts = committedTrackerData.characterThoughts;
+            const blocks = ('\n' + thoughts).split(/\n- /);
+
+            let charBlock = null;
+            for (const block of blocks) {
+                if (!block.trim()) continue;
+
+                // First line of the block should contain the name
+                const lines = block.split('\n');
+                const firstLine = lines[0];
+
+                // Check if this block belongs to the character we're generating for
+                if (firstLine.toLowerCase().includes(characterName.toLowerCase())) {
+                    charBlock = block.trim();
+                    break;
+                }
+            }
+
+            if (charBlock) {
+                systemMessage += `[Character Details]\n- ${charBlock}\n\n`;
+            } else {
+                if (thoughts.toLowerCase().includes(characterName.toLowerCase())) {
+                    systemMessage += `[Present Characters]\n${thoughts}\n\n`;
+                }
+            }
+        }
     }
 
     systemMessage += `Recent conversation context:\n<history>`;
@@ -687,18 +741,9 @@ export async function generateAvatarPromptGenerationPrompt(characterNames) {
     let instructionMessage = `</history>\n\n`;
     const customInstruction = extensionSettings.avatarLLMCustomInstruction || DEFAULT_AVATAR_CUSTOM_INSTRUCTION;
 
-    instructionMessage += `Task: Generate detailed image prompts for the following characters.\n\n`;
+    instructionMessage += `Task: Generate a detailed image prompt for the character: ${characterName}.\n\n`;
     instructionMessage += `Instructions: ${customInstruction}\n\n`;
-    instructionMessage += `Characters:\n`;
-    characterNames.forEach((name, index) => {
-        instructionMessage += `${index + 1}. ${name}\n`;
-    });
-
-    instructionMessage += `\nOutput Format (one per line):\n`;
-    instructionMessage += `CHARACTER_NAME: [detailed prompt]\n\n`;
-    instructionMessage += `Example:\n`;
-    instructionMessage += `Gandalf: portrait, elderly wizard with long white beard, wearing grey robes, holding wooden staff, intense blue eyes, wise expression, fantasy art style\n\n`;
-    instructionMessage += `Provide ONLY the formatted prompts, no other text.`;
+    instructionMessage += `Provide ONLY the image prompt text. Do not include the character's name, prefixes like "Prompt:", or any other commentary.`;
 
     messages.push({ role: 'user', content: instructionMessage });
     return messages;
@@ -706,19 +751,11 @@ export async function generateAvatarPromptGenerationPrompt(characterNames) {
 
 /**
  * Parses LLM response to extract character prompts
+ * @deprecated No longer used as we generate one prompt at a time
  * @param {string} response - Raw LLM response
  * @returns {Object} Map of character name to prompt
  */
 export function parseAvatarPromptsResponse(response) {
-    const prompts = {};
-    const lines = response.split('\n');
-
-    for (const line of lines) {
-        const trimmed = line.trim();
-        const match = trimmed.match(/^([^:]+):\s*(.+)$/);
-        if (match) {
-            prompts[match[1].trim()] = match[2].trim();
-        }
-    }
-    return prompts;
+    // Return as is for single prompt compatibility if needed, or just object with one key
+    return response.trim();
 }
