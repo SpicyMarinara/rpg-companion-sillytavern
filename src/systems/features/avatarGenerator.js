@@ -14,11 +14,12 @@ import { executeSlashCommandsOnChatInput } from '../../../../../../../scripts/sl
 import { selected_group, getGroupMembers } from '../../../../../../group-chats.js';
 import { extensionSettings, sessionAvatarPrompts, setSessionAvatarPrompt } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
-import { generateAvatarPromptGenerationPrompt, parseAvatarPromptsResponse } from '../generation/promptBuilder.js';
+import { generateAvatarPromptGenerationPrompt } from '../generation/promptBuilder.js';
 import { getCurrentPresetName, switchToPreset, generateWithExternalAPI } from '../generation/apiClient.js';
 
 // Generation state - tracks characters currently being generated
 const pendingGenerations = new Set();
+
 
 /**
  * Checks if a character is pending generation (waiting or actively generating)
@@ -163,13 +164,7 @@ export async function generateAvatarsForCharacters(characterNames, onStarted = n
     }
 
     try {
-        // Generate LLM prompts for all characters that don't have them
-        const needsPrompts = needsGeneration.filter(name => !sessionAvatarPrompts[name]);
-        if (needsPrompts.length > 0) {
-            await generateLLMPrompts(needsPrompts);
-        }
-
-        // Generate images one at a time
+        // Generate images one at a time, generating prompt on demand
         for (const characterName of needsGeneration) {
             // Skip if somehow already has avatar now
             if (hasExistingAvatar(characterName)) {
@@ -177,7 +172,12 @@ export async function generateAvatarsForCharacters(characterNames, onStarted = n
                 continue;
             }
 
-            await generateSingleAvatar(characterName);
+            // Generate LLM prompt for this character
+            const prompt = await generateAvatarPrompt(characterName);
+            
+            // Generate the image using the prompt
+            await generateSingleAvatar(characterName, prompt);
+            
             pendingGenerations.delete(characterName);
 
             // Small delay between generations to avoid overwhelming the API
@@ -215,7 +215,7 @@ export async function regenerateAvatar(characterName) {
         saveSettings();
     }
 
-    // Clear existing prompt to force new LLM generation
+    // Clear existing prompt cache
     if (sessionAvatarPrompts[characterName]) {
         delete sessionAvatarPrompts[characterName];
     }
@@ -232,10 +232,10 @@ export async function regenerateAvatar(characterName) {
 
     try {
         // Generate new LLM prompt
-        await generateLLMPrompts([characterName]);
+        const prompt = await generateAvatarPrompt(characterName);
 
         // Generate the avatar
-        return await generateSingleAvatar(characterName);
+        return await generateSingleAvatar(characterName, prompt);
     } finally {
         // Restore original preset if we switched
         if (originalPresetName && extensionSettings.useSeparatePreset) {
@@ -249,17 +249,21 @@ export async function regenerateAvatar(characterName) {
 }
 
 /**
- * Generates LLM prompts for multiple characters in a single API call
+ * Generates an LLM prompt for a single character
  *
- * @param {string[]} characterNames - Names of characters needing prompts
+ * @param {string} characterName - Name of character
+ * @returns {Promise<string|null>} Generated prompt or null if failed
  */
-async function generateLLMPrompts(characterNames) {
-    if (characterNames.length === 0) return;
+async function generateAvatarPrompt(characterName) {
+    // Check cache first if not forcing regeneration
+    if (sessionAvatarPrompts[characterName]) {
+        return sessionAvatarPrompts[characterName];
+    }
 
     try {
-        console.log('[RPG Avatar] Generating LLM prompts for:', characterNames);
+        console.log('[RPG Avatar] Generating LLM prompt for:', characterName);
 
-        const promptMessages = await generateAvatarPromptGenerationPrompt(characterNames);
+        const promptMessages = await generateAvatarPromptGenerationPrompt(characterName);
         let response;
 
         if (extensionSettings.generationMode === 'external') {
@@ -273,17 +277,17 @@ async function generateLLMPrompts(characterNames) {
         }
 
         if (response) {
-            const prompts = parseAvatarPromptsResponse(response);
-            console.log('[RPG Avatar] Generated prompts:', prompts);
+            const prompt = response.trim();
+            console.log(`[RPG Avatar] Generated prompt for ${characterName}:`, prompt);
 
-            // Store prompts in session storage
-            for (const [name, prompt] of Object.entries(prompts)) {
-                setSessionAvatarPrompt(name, prompt);
-            }
+            // Store prompt in session storage
+            setSessionAvatarPrompt(characterName, prompt);
+            return prompt;
         }
     } catch (error) {
-        console.error('[RPG Avatar] Failed to generate LLM prompts:', error);
+        console.error(`[RPG Avatar] Failed to generate LLM prompt for ${characterName}:`, error);
     }
+    return null;
 }
 
 /**
@@ -315,11 +319,15 @@ function buildFallbackPrompt(characterName) {
  * Generates a single avatar using the /sd command
  *
  * @param {string} characterName - Name of character to generate avatar for
+ * @param {string|null} prompt - The prompt to use (optional, will fallback if null)
  * @returns {Promise<string|null>} Avatar URL or null if failed
  */
-async function generateSingleAvatar(characterName) {
-    // Get the prompt from session storage, or build a fallback
-    let prompt = sessionAvatarPrompts[characterName];
+async function generateSingleAvatar(characterName, prompt = null) {
+    // Use provided prompt, or check cache, or build fallback
+    if (!prompt) {
+        prompt = sessionAvatarPrompts[characterName];
+    }
+    
     if (!prompt) {
         console.log(`[RPG Avatar] No LLM prompt for ${characterName}, using fallback prompt`);
         prompt = buildFallbackPrompt(characterName);
