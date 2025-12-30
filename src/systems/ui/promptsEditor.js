@@ -20,9 +20,11 @@ const DEFAULT_PROMPTS = {
 
     First, **establish the subject**. If the character is from a known Intellectual Property (IP), franchise, anime, game, or movie, **you MUST begin the prompt with their full name and the series title** (e.g., "Nami from One Piece", "Geralt of Rivia from The Witcher"). This is the single most important anchor for the image and must take precedence. If the character is original, clearly describe their core identity, race, and appearance.
 
-    Next, **integrate the setting**. You must describe the character *within* their current environment as provided in the context. Incorporate the lighting, weather, time of day, and background elements of the scene to ground the character in the moment.
+    Next, **set the framing**. This is an avatar portrait. Focus strictly on the character's face and upper shoulders (bust shot or close-up). Ensure the face is the central focal point.
 
-    Then, **detail the specifics**. Describe the character's current expression, pose, clothing, and mood based on the scene context and their personality.
+    Then, **integrate the setting**. Describe the character *within* their current environment as provided in the context, but keep it as a background element. Incorporate the lighting, weather, and atmosphere to influence the character's appearance (e.g., shadows on the face, wet hair from rain).
+
+    Next, **detail the facial specifics**. Describe the character's current expression, eye contact, and mood in high detail based on the scene context and their personality. Mention visible clothing only at the neckline/shoulders.
 
     Finally, **infuse with aesthetics**. Define the artistic style, medium (e.g., digital art, oil painting), and visual tone (e.g., cinematic lighting, ethereal atmosphere).
 
