@@ -521,21 +521,8 @@ async function initUI() {
         extensionSettings.autoGenerateAvatars = $(this).prop('checked');
         saveSettings();
 
-        // Show/hide avatar options based on toggle
-        const $options = $('#rpg-avatar-options');
-        if (extensionSettings.autoGenerateAvatars) {
-            $options.slideDown(200);
-        } else {
-            $options.slideUp(200);
-        }
-
         // Re-render thoughts to update tooltips (regenerate vs delete)
         renderThoughts();
-    });
-
-    $('#rpg-avatar-llm-instruction').on('input', function() {
-        extensionSettings.avatarLLMCustomInstruction = $(this).val().trim();
-        saveSettings();
     });
 
     $('#rpg-toggle-dice-display').on('change', function() {
@@ -745,14 +732,6 @@ async function initUI() {
 
     // Initialize avatar options
     $('#rpg-toggle-auto-avatars').prop('checked', extensionSettings.autoGenerateAvatars || false);
-    $('#rpg-avatar-llm-instruction').val(extensionSettings.avatarLLMCustomInstruction || '');
-
-    // Initialize avatar options visibility
-    if (extensionSettings.autoGenerateAvatars) {
-        $('#rpg-avatar-options').show();
-    } else {
-        $('#rpg-avatar-options').hide();
-    }
 
     $('#rpg-toggle-dice-display').prop('checked', extensionSettings.showDiceDisplay);
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
