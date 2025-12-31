@@ -824,6 +824,7 @@ async function initUI() {
     toggleCustomColors();
     toggleAnimations();
     updateFeatureTogglesVisibility();
+    togglePlotButtons(); // Initialize plot buttons and encounter button visibility
 
     // Setup mobile toggle button
     setupMobileToggle();
