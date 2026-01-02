@@ -11,9 +11,13 @@ import {
     $thoughtsContainer,
     $inventoryContainer,
     $questsContainer,
-    $musicPlayerContainer
+    $musicPlayerContainer,
+    setInventoryContainer,
+    setQuestsContainer
 } from '../../core/state.js';
 import { i18n } from '../../core/i18n.js';
+import { setupMobileTabs, removeMobileTabs } from './mobile.js';
+import { setupDesktopTabs, removeDesktopTabs } from './desktop.js';
 
 /**
  * Toggles the visibility of plot buttons based on settings.
@@ -248,6 +252,10 @@ export function updatePanelVisibility() {
  * Updates the visibility of individual sections.
  */
 export function updateSectionVisibility() {
+    // Refresh container references first (in case they were detached during tab operations)
+    setInventoryContainer($('#rpg-inventory'));
+    setQuestsContainer($('#rpg-quests'));
+
     // Show/hide sections based on settings
     // Use explicit .show()/.hide() instead of .toggle() to ensure proper state on reload
     if (extensionSettings.showUserStats) {
@@ -268,20 +276,17 @@ export function updateSectionVisibility() {
         $thoughtsContainer.hide();
     }
 
-    if ($inventoryContainer) {
-        if (extensionSettings.showInventory) {
-            $inventoryContainer.show();
-        } else {
-            $inventoryContainer.hide();
-        }
+    // Use direct DOM selectors for inventory and quests to avoid stale references
+    if (extensionSettings.showInventory) {
+        $('#rpg-inventory').show();
+    } else {
+        $('#rpg-inventory').hide();
     }
 
-    if ($questsContainer) {
-        if (extensionSettings.showQuests) {
-            $questsContainer.show();
-        } else {
-            $questsContainer.hide();
-        }
+    if (extensionSettings.showQuests) {
+        $('#rpg-quests').show();
+    } else {
+        $('#rpg-quests').hide();
     }
 
     if ($musicPlayerContainer) {
@@ -334,6 +339,37 @@ export function updateSectionVisibility() {
         $('#rpg-divider-quests').show();
     } else {
         $('#rpg-divider-quests').hide();
+    }
+
+    // Rebuild tabs to reflect visibility changes for inventory and quests
+    const isMobile = window.innerWidth <= 1000;
+    const hasMobileTabs = $('.rpg-mobile-container').length > 0;
+    const hasDesktopTabs = $('.rpg-tabs-nav').length > 0;
+
+    // Only rebuild if tabs currently exist
+    if (hasMobileTabs || hasDesktopTabs) {
+        // Remove existing tabs
+        if (hasMobileTabs) {
+            removeMobileTabs();
+            // Force remove any lingering mobile tab elements (but not the content sections!)
+            $('.rpg-mobile-container').remove();
+            $('.rpg-mobile-tabs').remove();
+        } else {
+            removeDesktopTabs();
+            // Force remove any lingering desktop tab structure (but not the content sections!)
+            // The removeDesktopTabs() function already detached and restored the sections
+        }
+
+        // Rebuild tabs immediately
+        if (isMobile) {
+            setupMobileTabs();
+        } else {
+            setupDesktopTabs();
+        }
+
+        // Refresh container references
+        setInventoryContainer($('#rpg-inventory'));
+        setQuestsContainer($('#rpg-quests'));
     }
 }
 

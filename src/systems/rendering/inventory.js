@@ -24,8 +24,8 @@ export function getLocationId(locationName) {
 }
 
 /**
- * Renders the inventory sub-tab navigation (On Person, Stored, Assets)
- * @param {string} activeTab - Currently active sub-tab ('onPerson', 'stored', 'assets')
+ * Renders the inventory sub-tab navigation (On Person, Clothing, Stored, Assets)
+ * @param {string} activeTab - Currently active sub-tab ('onPerson', 'clothing', 'stored', 'assets')
  * @returns {string} HTML for sub-tab navigation
  */
 export function renderInventorySubTabs(activeTab = 'onPerson') {
@@ -33,6 +33,9 @@ export function renderInventorySubTabs(activeTab = 'onPerson') {
         <div class="rpg-inventory-subtabs">
             <button class="rpg-inventory-subtab ${activeTab === 'onPerson' ? 'active' : ''}" data-tab="onPerson" data-i18n-key="inventory.section.onPerson">
                 ${i18n.getTranslation('inventory.section.onPerson')}
+            </button>
+            <button class="rpg-inventory-subtab ${activeTab === 'clothing' ? 'active' : ''}" data-tab="clothing" data-i18n-key="inventory.section.clothing">
+                ${i18n.getTranslation('inventory.section.clothing')}
             </button>
             <button class="rpg-inventory-subtab ${activeTab === 'stored' ? 'active' : ''}" data-tab="stored" data-i18n-key="inventory.section.stored">
                 ${i18n.getTranslation('inventory.section.stored')}
@@ -108,6 +111,82 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
                             <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
                         </button>
                         <button class="rpg-inline-btn rpg-inline-save" data-action="save-add-item" data-field="onPerson">
+                            <i class="fa-solid fa-check"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="rpg-item-list ${listViewClass}">
+                    ${itemsHtml}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Renders the "Clothing" inventory view with list or grid display
+ * @param {string} clothingItems - Current clothing items (comma-separated string)
+ * @param {string} viewMode - View mode ('list' or 'grid')
+ * @returns {string} HTML for clothing view with items and add button
+ */
+export function renderClothingView(clothingItems, viewMode = 'list') {
+    const items = parseItems(clothingItems);
+
+    let itemsHtml = '';
+    if (items.length === 0) {
+        itemsHtml = `<div class="rpg-inventory-empty" data-i18n-key="inventory.clothing.empty">${i18n.getTranslation('inventory.clothing.empty')}</div>`;
+    } else {
+        if (viewMode === 'grid') {
+            // Grid view: card-style items
+            itemsHtml = items.map((item, index) => `
+                <div class="rpg-item-card" data-field="clothing" data-index="${index}">
+                    <button class="rpg-item-remove" data-action="remove-item" data-field="clothing" data-index="${index}" title="Remove item">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                </div>
+            `).join('');
+        } else {
+            // List view: full-width rows
+            itemsHtml = items.map((item, index) => `
+                <div class="rpg-item-row" data-field="clothing" data-index="${index}">
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    <button class="rpg-item-remove" data-action="remove-item" data-field="clothing" data-index="${index}" title="Remove item">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+    }
+
+    const listViewClass = viewMode === 'list' ? 'rpg-item-list-view' : 'rpg-item-grid-view';
+
+    return `
+        <div class="rpg-inventory-section" data-section="clothing">
+            <div class="rpg-inventory-header">
+                <h4 data-i18n-key="inventory.clothing.title">${i18n.getTranslation('inventory.clothing.title')}</h4>
+                <div class="rpg-inventory-header-actions">
+                    <div class="rpg-view-toggle">
+                        <button class="rpg-view-btn ${viewMode === 'list' ? 'active' : ''}" data-action="switch-view" data-field="clothing" data-view="list" title="${i18n.getTranslation('global.listView')}">
+                            <i class="fa-solid fa-list"></i>
+                        </button>
+                        <button class="rpg-view-btn ${viewMode === 'grid' ? 'active' : ''}" data-action="switch-view" data-field="clothing" data-view="grid" title="${i18n.getTranslation('global.gridView')}">
+                            <i class="fa-solid fa-th"></i>
+                        </button>
+                    </div>
+                    <button class="rpg-inventory-add-btn" data-action="add-item" data-field="clothing" title="Add new item">
+                        <i class="fa-solid fa-plus"></i> <span data-i18n-key="inventory.clothing.addItemButton">${i18n.getTranslation('inventory.clothing.addItemButton')}</span>
+                    </button>
+                </div>
+            </div>
+            <div class="rpg-inventory-content">
+                <div class="rpg-inline-form" id="rpg-add-item-form-clothing" style="display: none;">
+                    <input type="text" class="rpg-inline-input" id="rpg-new-item-clothing" placeholder="${i18n.getTranslation('inventory.clothing.addItemPlaceholder')}" data-i18n-placeholder-key="inventory.clothing.addItemPlaceholder" />
+                    <div class="rpg-inline-buttons">
+                        <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-item" data-field="clothing">
+                            <i class="fa-solid fa-times"></i> <span data-i18n-key="global.cancel">${i18n.getTranslation('global.cancel')}</span>
+                        </button>
+                        <button class="rpg-inline-btn rpg-inline-save" data-action="save-add-item" data-field="clothing">
                             <i class="fa-solid fa-check"></i> <span data-i18n-key="global.add">${i18n.getTranslation('global.add')}</span>
                         </button>
                     </div>
@@ -372,6 +451,7 @@ function generateInventoryHTML(inventory, options = {}) {
         v2Inventory = {
             version: 2,
             onPerson: 'None',
+            clothing: 'None',
             stored: {},
             assets: 'None'
         };
@@ -380,6 +460,9 @@ function generateInventoryHTML(inventory, options = {}) {
     // Additional safety check: ensure required properties exist and are correct type
     if (!v2Inventory.onPerson || typeof v2Inventory.onPerson !== 'string') {
         v2Inventory.onPerson = 'None';
+    }
+    if (!v2Inventory.clothing || typeof v2Inventory.clothing !== 'string') {
+        v2Inventory.clothing = 'None';
     }
     if (!v2Inventory.stored || typeof v2Inventory.stored !== 'object' || Array.isArray(v2Inventory.stored)) {
         v2Inventory.stored = {};
@@ -397,6 +480,7 @@ function generateInventoryHTML(inventory, options = {}) {
     // Get view modes from settings (default to 'list')
     const viewModes = extensionSettings.inventoryViewModes || {
         onPerson: 'list',
+        clothing: 'list',
         stored: 'list',
         assets: 'list'
     };
@@ -405,6 +489,9 @@ function generateInventoryHTML(inventory, options = {}) {
     switch (activeSubTab) {
         case 'onPerson':
             html += renderOnPersonView(v2Inventory.onPerson, viewModes.onPerson);
+            break;
+        case 'clothing':
+            html += renderClothingView(v2Inventory.clothing, viewModes.clothing);
             break;
         case 'stored':
             html += renderStoredView(v2Inventory.stored, collapsedLocations, viewModes.stored);

@@ -70,6 +70,7 @@ import { renderInventory } from './src/systems/rendering/inventory.js';
 import { renderQuests } from './src/systems/rendering/quests.js';
 import { renderMusicPlayer } from './src/systems/rendering/musicPlayer.js';
 import { toggleSnowflakes, initSnowflakes } from './src/systems/ui/snowflakes.js';
+import { toggleDynamicWeather, initWeatherEffects, updateWeatherEffect } from './src/systems/ui/weatherEffects.js';
 
 // Interaction modules
 import { initInventoryEventListeners } from './src/systems/interaction/inventoryActions.js';
@@ -397,6 +398,12 @@ async function initUI() {
         toggleSnowflakes(extensionSettings.enableSnowflakes);
     });
 
+    $('#rpg-toggle-dynamic-weather').on('change', function() {
+        extensionSettings.enableDynamicWeather = $(this).prop('checked');
+        saveSettings();
+        toggleDynamicWeather(extensionSettings.enableDynamicWeather);
+    });
+
     $('#rpg-dismiss-promo').on('click', function() {
         extensionSettings.dismissedHolidayPromo = true;
         saveSettings();
@@ -551,6 +558,24 @@ async function initUI() {
 
     $('#rpg-toggle-show-spotify-toggle').on('change', function() {
         extensionSettings.showSpotifyToggle = $(this).prop('checked');
+        saveSettings();
+        updateFeatureTogglesVisibility();
+    });
+
+    $('#rpg-toggle-show-snowflakes-toggle').on('change', function() {
+        extensionSettings.showSnowflakesToggle = $(this).prop('checked');
+        saveSettings();
+        updateFeatureTogglesVisibility();
+    });
+
+    $('#rpg-toggle-show-dynamic-weather-toggle').on('change', function() {
+        extensionSettings.showDynamicWeatherToggle = $(this).prop('checked');
+        // Also disable the feature when hiding the toggle
+        if (!extensionSettings.showDynamicWeatherToggle) {
+            extensionSettings.enableDynamicWeather = false;
+            $('#rpg-toggle-dynamic-weather').prop('checked', false);
+            toggleDynamicWeather(false);
+        }
         saveSettings();
         updateFeatureTogglesVisibility();
     });
@@ -757,10 +782,13 @@ async function initUI() {
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
     $('#rpg-toggle-spotify-music').prop('checked', extensionSettings.enableSpotifyMusic);
     $('#rpg-toggle-snowflakes').prop('checked', extensionSettings.enableSnowflakes);
+    $('#rpg-toggle-dynamic-weather').prop('checked', extensionSettings.enableDynamicWeather);
 
     // Feature toggle visibility settings
     $('#rpg-toggle-show-html-toggle').prop('checked', extensionSettings.showHtmlToggle ?? true);
     $('#rpg-toggle-show-spotify-toggle').prop('checked', extensionSettings.showSpotifyToggle ?? true);
+    $('#rpg-toggle-show-snowflakes-toggle').prop('checked', extensionSettings.showSnowflakesToggle ?? true);
+    $('#rpg-toggle-show-dynamic-weather-toggle').prop('checked', extensionSettings.showDynamicWeatherToggle ?? true);
     $('#rpg-toggle-show-snowflakes-toggle').prop('checked', extensionSettings.showSnowflakesToggle ?? true);
 
     // Hide holiday promo if previously dismissed
@@ -825,6 +853,7 @@ async function initUI() {
     toggleAnimations();
     updateFeatureTogglesVisibility();
     togglePlotButtons(); // Initialize plot buttons and encounter button visibility
+    initWeatherEffects(); // Initialize dynamic weather effects
 
     // Setup mobile toggle button
     setupMobileToggle();
@@ -865,6 +894,12 @@ async function initUI() {
 
     // Initialize Lorebook Limiter
     initLorebookLimiter();
+
+    // Expose weather effect functions globally for cross-module access
+    if (!window.RPGCompanion) {
+        window.RPGCompanion = {};
+    }
+    window.RPGCompanion.updateWeatherEffect = updateWeatherEffect;
 }
 
 

@@ -311,6 +311,10 @@ export function renderThoughts() {
     debugLog('[RPG Thoughts] showCharacterThoughts setting:', extensionSettings.showCharacterThoughts);
     debugLog('[RPG Thoughts] Container exists:', !!$thoughtsContainer);
 
+    // Save scroll position before re-rendering
+    const scrollParent = $thoughtsContainer.closest('.rpg-content-box, .rpg-tab-content, .rpg-mobile-tab-content').filter(':visible').first();
+    const savedScrollTop = scrollParent.length > 0 ? scrollParent.scrollTop() : 0;
+
     // Add updating class for animation
     if (extensionSettings.enableAnimations) {
         $thoughtsContainer.addClass('rpg-content-updating');
@@ -474,8 +478,8 @@ export function renderThoughts() {
         const escapedDefaultName = escapeHtmlAttr(defaultName);
 
         // Determine right-click action text based on auto-generate setting
-        const defaultAvatarRightClickAction = extensionSettings.autoGenerateAvatars 
-            ? 'Right-click to regenerate avatar' 
+        const defaultAvatarRightClickAction = extensionSettings.autoGenerateAvatars
+            ? 'Right-click to regenerate avatar'
             : 'Right-click to delete avatar';
 
         html += '<div class="rpg-thoughts-content">';
@@ -541,8 +545,8 @@ export function renderThoughts() {
                 const isCurrentlyGenerating = isGenerating(char.name);
 
                 // Determine right-click action text based on auto-generate setting
-                const avatarRightClickAction = extensionSettings.autoGenerateAvatars 
-                    ? 'Right-click to regenerate avatar' 
+                const avatarRightClickAction = extensionSettings.autoGenerateAvatars
+                    ? 'Right-click to regenerate avatar'
                     : 'Right-click to delete avatar';
 
                 html += `
@@ -609,6 +613,11 @@ export function renderThoughts() {
 
     $thoughtsContainer.html(html);
 
+    // Restore scroll position to prevent UI jumping
+    if (scrollParent.length > 0 && savedScrollTop > 0) {
+        scrollParent.scrollTop(savedScrollTop);
+    }
+
     debugLog('[RPG Thoughts] ✓ HTML rendered to container');
     debugLog('[RPG Thoughts] =======================================================');
 
@@ -666,7 +675,7 @@ export function renderThoughts() {
         try {
             // Regenerate the avatar
             const newUrl = await regenerateAvatar(characterName);
-            
+
             if (newUrl) {
                 console.log(`[RPG Companion] Successfully regenerated avatar for: ${characterName}`);
             } else {

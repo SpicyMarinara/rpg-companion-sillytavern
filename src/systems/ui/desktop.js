@@ -4,6 +4,7 @@
  */
 
 import { i18n } from '../../core/i18n.js';
+import { extensionSettings } from '../../core/state.js';
 
 /**
  * Sets up desktop tab navigation for organizing content.
@@ -31,23 +32,40 @@ export function setupDesktopTabs() {
         return;
     }
 
-    // Create tab navigation
-    const $tabNav = $(`
-        <div class="rpg-tabs-nav">
-            <button class="rpg-tab-btn active" data-tab="status">
-                <i class="fa-solid fa-chart-simple"></i>
-                <span data-i18n-key="global.status">Status</span>
-            </button>
+    // Build tab navigation dynamically based on enabled settings
+    const tabButtons = [];
+    const hasInventory = $inventory.length > 0 && extensionSettings.showInventory;
+    const hasQuests = $quests.length > 0 && extensionSettings.showQuests;
+
+    // Status tab (always present if any status content exists)
+    tabButtons.push(`
+        <button class="rpg-tab-btn active" data-tab="status">
+            <i class="fa-solid fa-chart-simple"></i>
+            <span data-i18n-key="global.status">Status</span>
+        </button>
+    `);
+
+    // Inventory tab (only if enabled in settings)
+    if (hasInventory) {
+        tabButtons.push(`
             <button class="rpg-tab-btn" data-tab="inventory">
                 <i class="fa-solid fa-box"></i>
                 <span data-i18n-key="global.inventory">Inventory</span>
             </button>
+        `);
+    }
+
+    // Quests tab (only if enabled in settings)
+    if (hasQuests) {
+        tabButtons.push(`
             <button class="rpg-tab-btn" data-tab="quests">
                 <i class="fa-solid fa-scroll"></i>
                 <span data-i18n-key="global.quests">Quests</span>
             </button>
-        </div>
-    `);
+        `);
+    }
+
+    const $tabNav = $(`<div class="rpg-tabs-nav">${tabButtons.join('')}</div>`);
 
     // Create tab content containers
     const $statusTab = $('<div class="rpg-tab-content active" data-tab-content="status"></div>');
@@ -57,23 +75,25 @@ export function setupDesktopTabs() {
     // Move sections into their respective tabs (detach to preserve event handlers)
     if ($userStats.length > 0) {
         $statusTab.append($userStats.detach());
-        $userStats.show();
+        if (extensionSettings.showUserStats) $userStats.show();
     }
     if ($infoBox.length > 0) {
         $statusTab.append($infoBox.detach());
-        $infoBox.show();
+        if (extensionSettings.showInfoBox) $infoBox.show();
     }
     if ($thoughts.length > 0) {
         $statusTab.append($thoughts.detach());
-        $thoughts.show();
+        if (extensionSettings.showCharacterThoughts) $thoughts.show();
     }
     if ($inventory.length > 0) {
         $inventoryTab.append($inventory.detach());
-        $inventory.show();
+        // Only show if enabled (will be part of tab structure)
+        if (hasInventory) $inventory.show();
     }
     if ($quests.length > 0) {
         $questsTab.append($quests.detach());
-        $quests.show();
+        // Only show if enabled (will be part of tab structure)
+        if (hasQuests) $quests.show();
     }
 
     // Hide dividers on desktop tabs (tabs separate content naturally)
@@ -83,6 +103,9 @@ export function setupDesktopTabs() {
     const $tabsContainer = $('<div class="rpg-tabs-container"></div>');
     $tabsContainer.append($tabNav);
     $tabsContainer.append($statusTab);
+
+    // Always append inventory and quests tabs to preserve the elements
+    // But they'll only show if enabled (via tab button visibility)
     $tabsContainer.append($inventoryTab);
     $tabsContainer.append($questsTab);
 
@@ -103,7 +126,7 @@ export function setupDesktopTabs() {
         $(`.rpg-tab-content[data-tab-content="${tabName}"]`).addClass('active');
     });
 
-    console.log('[RPG Desktop] Desktop tabs initialized');
+
 }
 
 /**
@@ -145,12 +168,11 @@ export function removeDesktopTabs() {
         $contentBox.append($quests);
     }
 
-    // Show sections and dividers
-    $userStats.show();
-    $infoBox.show();
-    $thoughts.show();
-    $inventory.show();
+    // Show/hide sections based on settings (respect visibility settings)
+    if (extensionSettings.showUserStats) $userStats.show();
+    if (extensionSettings.showInfoBox) $infoBox.show();
+    if (extensionSettings.showCharacterThoughts) $thoughts.show();
+    if (extensionSettings.showInventory) $inventory.show();
+    if (extensionSettings.showQuests) $quests.show();
     $('.rpg-divider').show();
-
-    console.log('[RPG Desktop] Desktop tabs removed');
 }

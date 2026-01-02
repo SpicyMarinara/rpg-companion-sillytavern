@@ -15,6 +15,7 @@
 const DEFAULT_INVENTORY_V2 = {
     version: 2,
     onPerson: "None",
+    clothing: "None",
     stored: {},
     assets: "None"
 };
@@ -29,6 +30,17 @@ const DEFAULT_INVENTORY_V2 = {
 export function migrateInventory(inventory) {
     // Case 1: Already v2 format (has version property and is an object)
     if (inventory && typeof inventory === 'object' && inventory.version === 2) {
+        // Check if clothing field exists (v2.1 upgrade)
+        if (!inventory.hasOwnProperty('clothing')) {
+            // console.log('[RPG Companion Migration] Upgrading v2 inventory to v2.1 (adding clothing field)');
+            inventory.clothing = "None";
+            return {
+                inventory: inventory,
+                migrated: true,
+                source: 'v2-upgrade'
+            };
+        }
+
         // console.log('[RPG Companion Migration] Inventory already v2, no migration needed');
         return {
             inventory: inventory,
@@ -66,6 +78,7 @@ export function migrateInventory(inventory) {
             inventory: {
                 version: 2,
                 onPerson: inventory,
+                clothing: "None",
                 stored: {},
                 assets: "None"
             },

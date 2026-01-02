@@ -521,6 +521,11 @@ export function renderInfoBox() {
     if (extensionSettings.enableAnimations) {
         setTimeout(() => $infoBoxContainer.removeClass('rpg-content-updating'), 500);
     }
+
+    // Update weather effect after rendering
+    if (window.RPGCompanion?.updateWeatherEffect) {
+        window.RPGCompanion.updateWeatherEffect();
+    }
 }
 
 /**
@@ -878,6 +883,12 @@ function updateRecentEvent(field, value) {
 
         saveChatData();
         renderInfoBox();
+
+        // Update weather effect after rendering
+        if (window.RPGCompanion?.updateWeatherEffect) {
+            window.RPGCompanion.updateWeatherEffect();
+        }
+
         console.log(`[RPG Companion] Updated recent event ${field}:`, value);
     }
 }

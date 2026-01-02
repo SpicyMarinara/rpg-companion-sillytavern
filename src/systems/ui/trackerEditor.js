@@ -68,6 +68,16 @@ export function initTrackerEditor() {
     $(document).on('click', '#rpg-open-tracker-editor', function() {
         openTrackerEditor();
     });
+
+    // Export button
+    $(document).on('click', '#rpg-editor-export', function() {
+        exportTrackerPreset();
+    });
+
+    // Import button
+    $(document).on('click', '#rpg-editor-import', function() {
+        importTrackerPreset();
+    });
 }
 
 /**
@@ -186,6 +196,103 @@ function resetToDefaults() {
             }
         }
     };
+}
+
+/**
+ * Export current tracker configuration to a JSON file
+ */
+function exportTrackerPreset() {
+    try {
+        // Get the current tracker configuration
+        const config = extensionSettings.trackerConfig;
+
+        // Create a preset object with metadata
+        const preset = {
+            name: 'Custom Tracker Preset',
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            trackerConfig: JSON.parse(JSON.stringify(config)) // Deep copy
+        };
+
+        // Convert to JSON
+        const jsonString = JSON.stringify(preset, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        link.download = `rpg-tracker-preset-${timestamp}.json`;
+
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        console.log('[RPG Companion] Tracker preset exported successfully');
+        toastr.success(i18n.getTranslation('template.trackerEditorModal.messages.exportSuccess') || 'Tracker preset exported successfully!');
+    } catch (error) {
+        console.error('[RPG Companion] Error exporting tracker preset:', error);
+        toastr.error(i18n.getTranslation('template.trackerEditorModal.messages.exportError') || 'Failed to export tracker preset. Check console for details.');
+    }
+}
+
+/**
+ * Import tracker configuration from a JSON file
+ */
+function importTrackerPreset() {
+    // Create file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            // Validate the imported data
+            if (!data.trackerConfig) {
+                throw new Error('Invalid preset file: missing trackerConfig');
+            }
+
+            // Validate required sections
+            if (!data.trackerConfig.userStats || !data.trackerConfig.infoBox || !data.trackerConfig.presentCharacters) {
+                throw new Error('Invalid preset file: missing required configuration sections');
+            }
+
+            // Ask for confirmation
+            const confirmMessage = i18n.getTranslation('template.trackerEditorModal.messages.importConfirm') ||
+                'This will replace your current tracker configuration. Continue?';
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // Apply the imported configuration
+            extensionSettings.trackerConfig = JSON.parse(JSON.stringify(data.trackerConfig)); // Deep copy
+
+            // Re-render the editor UI
+            renderEditorUI();
+
+            console.log('[RPG Companion] Tracker preset imported successfully');
+            toastr.success(i18n.getTranslation('template.trackerEditorModal.messages.importSuccess') || 'Tracker preset imported successfully!');
+        } catch (error) {
+            console.error('[RPG Companion] Error importing tracker preset:', error);
+            toastr.error(i18n.getTranslation('template.trackerEditorModal.messages.importError') ||
+                `Failed to import tracker preset: ${error.message}`);
+        }
+    };
+
+    // Trigger file selection
+    input.click();
 }
 
 /**

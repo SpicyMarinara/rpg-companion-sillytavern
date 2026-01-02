@@ -10,6 +10,7 @@
  * Extension settings - persisted to SillyTavern settings
  */
 export let extensionSettings = {
+    settingsVersion: 2, // Version number for settings migrations
     enabled: true,
     autoUpdate: true,
     updateDepth: 4, // How many messages to include in the context
@@ -27,10 +28,12 @@ export let extensionSettings = {
     enableSpotifyMusic: false, // Enable Spotify music integration (asks AI for Spotify URLs)
     customSpotifyPrompt: '', // Custom Spotify prompt text (empty = use default)
     enableSnowflakes: false, // Enable festive snowflakes effect
+    enableDynamicWeather: true, // Enable dynamic weather effects based on Info Box weather field (v2: enabled by default)
     dismissedHolidayPromo: false, // User dismissed the holiday promotion banner
     showHtmlToggle: true, // Show Immersive HTML toggle in main panel
     showSpotifyToggle: true, // Show Spotify Music toggle in main panel
     showSnowflakesToggle: true, // Show Snowflakes Effect toggle in main panel
+    showDynamicWeatherToggle: true, // Show Dynamic Weather Effects toggle in main panel
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
     enablePlotButtons: true, // Show plot progression buttons above chat input
     saveTrackerHistory: false, // Save tracker data in chat history for each message

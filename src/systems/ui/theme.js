@@ -84,16 +84,19 @@ export function updateFeatureTogglesVisibility() {
     const $htmlToggle = $('#rpg-html-toggle-wrapper');
     const $spotifyToggle = $('#rpg-spotify-toggle-wrapper');
     const $snowflakesToggle = $('#rpg-snowflakes-toggle-wrapper');
+    const $dynamicWeatherToggle = $('#rpg-dynamic-weather-toggle-wrapper');
 
     // Show/hide individual toggles
     $htmlToggle.toggle(extensionSettings.showHtmlToggle);
     $spotifyToggle.toggle(extensionSettings.showSpotifyToggle);
     $snowflakesToggle.toggle(extensionSettings.showSnowflakesToggle);
+    $dynamicWeatherToggle.toggle(extensionSettings.showDynamicWeatherToggle);
 
     // Hide entire row if all toggles are hidden
     const anyVisible = extensionSettings.showHtmlToggle ||
                       extensionSettings.showSpotifyToggle ||
-                      extensionSettings.showSnowflakesToggle;
+                      extensionSettings.showSnowflakesToggle ||
+                      extensionSettings.showDynamicWeatherToggle;
     $featuresRow.toggle(anyVisible);
 }
 

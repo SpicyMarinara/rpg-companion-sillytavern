@@ -8,6 +8,7 @@
  * @typedef {Object} InventoryV2
  * @property {number} version - Schema version (always 2)
  * @property {string} onPerson - Items currently carried/worn by the character (plaintext list)
+ * @property {string} clothing - Clothing and armor currently worn (plaintext list)
  * @property {Object.<string, string>} stored - Items stored at named locations (location name → plaintext list)
  * @property {string} assets - Character's vehicles, property, and major possessions (plaintext list)
  */

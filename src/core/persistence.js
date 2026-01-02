@@ -78,6 +78,24 @@ export function loadSettings() {
             }
 
             updateExtensionSettings(savedSettings);
+
+            // Perform settings migrations based on version
+            const currentVersion = extensionSettings.settingsVersion || 1;
+            let settingsChanged = false;
+
+            // Migration to version 2: Enable dynamic weather for existing users
+            if (currentVersion < 2) {
+                console.log('[RPG Companion] Migrating settings to version 2 (enabling dynamic weather)');
+                extensionSettings.enableDynamicWeather = true;
+                extensionSettings.settingsVersion = 2;
+                settingsChanged = true;
+            }
+
+            // Save migrated settings
+            if (settingsChanged) {
+                saveSettings();
+            }
+
             // console.log('[RPG Companion] Settings loaded:', extensionSettings);
         } else {
             // console.log('[RPG Companion] No saved settings found, using defaults');

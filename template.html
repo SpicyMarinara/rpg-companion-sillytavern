@@ -98,6 +98,15 @@
                         <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.snowflakesEffect">Snowflakes Effect</span>
                     </label>
                 </div>
+
+                <!-- Dynamic Weather Toggle -->
+                <div class="rpg-toggle-container rpg-feature-col" id="rpg-dynamic-weather-toggle-wrapper">
+                    <label class="rpg-toggle-label" title="Dynamic Weather Effects">
+                        <input type="checkbox" id="rpg-toggle-dynamic-weather">
+                        <i class="fa-solid fa-cloud-sun-rain"></i>
+                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.dynamicWeatherEffects">Dynamic Weather</span>
+                    </label>
+                </div>
             </div>
 
             <!-- Manual Update Button -->
@@ -291,6 +300,11 @@
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-show-snowflakes-toggle" />
                     <span data-i18n-key="template.settingsModal.display.showSnowflakesToggle">Show Snowflakes Effect</span>
+                </label>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-show-dynamic-weather-toggle" />
+                    <span data-i18n-key="template.settingsModal.display.showDynamicWeatherToggle">Show Dynamic Weather Effects</span>
                 </label>
 
                 <label class="checkbox_label">
@@ -672,10 +686,20 @@
         </div>
 
         <footer class="rpg-settings-popup-footer">
-            <button id="rpg-editor-reset" class="rpg-btn-secondary" type="button">
-                <i class="fa-solid fa-rotate-left"></i> <span
-                    data-i18n-key="template.trackerEditorModal.buttons.reset">Reset to Defaults</span>
-            </button>
+            <div class="rpg-footer-left">
+                <button id="rpg-editor-reset" class="rpg-btn-secondary" type="button">
+                    <i class="fa-solid fa-rotate-left"></i> <span
+                        data-i18n-key="template.trackerEditorModal.buttons.reset">Reset to Defaults</span>
+                </button>
+                <button id="rpg-editor-export" class="rpg-btn-secondary" type="button">
+                    <i class="fa-solid fa-file-export"></i> <span
+                        data-i18n-key="template.trackerEditorModal.buttons.export">Export Preset</span>
+                </button>
+                <button id="rpg-editor-import" class="rpg-btn-secondary" type="button">
+                    <i class="fa-solid fa-file-import"></i> <span
+                        data-i18n-key="template.trackerEditorModal.buttons.import">Import Preset</span>
+                </button>
+            </div>
             <div class="rpg-footer-right">
                 <button id="rpg-editor-cancel" class="rpg-btn-secondary" type="button"
                     data-i18n-key="template.trackerEditorModal.buttons.cancel">Cancel</button>

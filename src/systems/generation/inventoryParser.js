@@ -28,6 +28,7 @@ export function extractInventoryData(statsText) {
     const result = {
         version: 2,
         onPerson: "None",
+        clothing: "None",
         stored: {},
         assets: "None"
     };
@@ -44,6 +45,14 @@ export function extractInventoryData(statsText) {
         const onPersonMatch = trimmed.match(/^On Person:\s*(.+)$/i);
         if (onPersonMatch) {
             result.onPerson = onPersonMatch[1].trim() || "None";
+            foundAnyInventoryData = true;
+            continue;
+        }
+
+        // Parse "Clothing: ..." line
+        const clothingMatch = trimmed.match(/^Clothing:\s*(.+)$/i);
+        if (clothingMatch) {
+            result.clothing = clothingMatch[1].trim() || "None";
             foundAnyInventoryData = true;
             continue;
         }
@@ -122,6 +131,7 @@ export function extractInventory(statsText) {
         return {
             version: 2,
             onPerson: v1Data,
+            clothing: "None",
             stored: {},
             assets: "None"
         };

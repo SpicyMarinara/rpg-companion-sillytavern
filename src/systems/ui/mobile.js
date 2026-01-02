@@ -579,8 +579,8 @@ export function setupMobileTabs() {
     const tabs = [];
     const hasStats = $userStats.length > 0;
     const hasInfo = $infoBox.length > 0 || $thoughts.length > 0;
-    const hasInventory = $inventory.length > 0;
-    const hasQuests = $quests.length > 0;
+    const hasInventory = $inventory.length > 0 && extensionSettings.showInventory;
+    const hasQuests = $quests.length > 0 && extensionSettings.showQuests;
 
     // Tab 1: Stats (User Stats only)
     if (hasStats) {
@@ -650,12 +650,12 @@ export function setupMobileTabs() {
     const $mobileContainer = $('<div class="rpg-mobile-container"></div>');
     $mobileContainer.append($tabNav);
 
-    // Only append tab content wrappers that have content
-    if (hasStats) $mobileContainer.append($statsTab);
-    if (hasInfo) $mobileContainer.append($infoTab);
-    if (hasInventory) $mobileContainer.append($inventoryTab);
-    if (hasQuests) $mobileContainer.append($questsTab);
-    if (hasInventory) $mobileContainer.append($inventoryTab);
+    // Always append all tab content wrappers to preserve elements
+    // Tab buttons control visibility
+    $mobileContainer.append($statsTab);
+    $mobileContainer.append($infoTab);
+    $mobileContainer.append($inventoryTab);
+    $mobileContainer.append($questsTab);
 
     // Insert mobile tab structure at the beginning of content box
     $contentBox.prepend($mobileContainer);
@@ -712,11 +712,12 @@ export function removeMobileTabs() {
         $contentBox.prepend($userStats);
     }
 
-    // Show sections and dividers
-    $userStats.show();
-    $infoBox.show();
-    $thoughts.show();
-    $inventory.show();
+    // Show/hide sections based on settings (respect visibility settings)
+    if (extensionSettings.showUserStats) $userStats.show();
+    if (extensionSettings.showInfoBox) $infoBox.show();
+    if (extensionSettings.showCharacterThoughts) $thoughts.show();
+    if (extensionSettings.showInventory) $inventory.show();
+    if (extensionSettings.showQuests) $quests.show();
     $('.rpg-divider').show();
 }
 

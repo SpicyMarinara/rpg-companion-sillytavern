@@ -137,6 +137,11 @@ export function buildInventorySummary(inventory) {
             summary += `On Person: ${inventory.onPerson}\n`;
         }
 
+        // Add Clothing section
+        if (inventory.clothing && inventory.clothing !== 'None') {
+            summary += `Clothing: ${inventory.clothing}\n`;
+        }
+
         // Add Stored sections for each location
         if (inventory.stored && Object.keys(inventory.stored).length > 0) {
             for (const [location, items] of Object.entries(inventory.stored)) {
