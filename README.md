@@ -5,6 +5,37 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 [![My Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da)](https://discord.com/invite/KdAkTg94ME)
 [![Support Me](https://img.shields.io/badge/Ko--fi-Support%20Creator-ff5e5b)](https://ko-fi.com/marinara_spaghetti)
 
+## 🆕 What's New in v2.1
+
+### Dynamic Weather Effects
+- Real-time weather visualization based on Info Box weather field
+- **Snow**: Falling snowflakes with varied speeds and sizes
+- **Rain**: Realistic raindrops animation
+- **Mist/Fog**: Floating fog layers
+- **Sunshine**: Sun rays streaming across the screen
+- **Storm**: Combined rain + lightning flashes for thunderstorms
+- **Wind**: Horizontal wind streaks for breezy conditions
+- **Blizzard**: Combined snow + wind effects
+- Weather effects positioned behind chat interface for atmospheric background
+- Automatically enabled for new users, manual toggle available in panel
+- Fully optimized for mobile devices
+
+### Clothing Inventory System
+- New dedicated **Clothing** tab in inventory system
+- Separate tracking for clothing and armor items
+- AI now handles clothing items independently from general inventory
+- Full list/grid view support with add/remove/edit functionality
+- Automatic migration for existing users
+
+### Bug Fixes & Improvements
+- Fixed tab visibility issues (disabled tabs now properly hide/show)
+- Fixed theme-aware borders (removed hardcoded blue colors)
+- Fixed double scrollbar in Edit Trackers window
+- Fixed scroll position jumping when editing Present Characters
+- Fixed dynamic weather toggle visibility behavior
+- Added settings migration system for smooth feature updates
+- Improved inventory schema to v2.1 with automatic migration
+
 ## 📥 Installation
 
 1. Open SillyTavern
