@@ -121,6 +121,7 @@
     "template.trackerEditorModal.infoBoxTab.locationWidget": "Location",
     "template.trackerEditorModal.infoBoxTab.recentEventsWidget": "Recent Events",
     "template.trackerEditorModal.presentCharactersTab.relationshipStatusTitle": "Relationship Status Fields",
+    "template.trackerEditorModal.presentCharactersTab.enableRelationshipStatus": "Enable Relationship Status Fields",
     "template.trackerEditorModal.presentCharactersTab.relationshipStatusHint": "Define relationship types with corresponding emojis shown on character portraits",
     "template.trackerEditorModal.presentCharactersTab.newRelationshipButton": "New Relationship",
     "template.trackerEditorModal.presentCharactersTab.appearanceDemeanorTitle": "Appearance/Demeanor Fields",

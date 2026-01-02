@@ -124,9 +124,20 @@ export let extensionSettings = {
             // Fixed fields (always shown)
             showEmoji: true,
             showName: true,
-            // Relationship fields (shown after name, separated by /)
+            // Relationship fields configuration
+            relationships: {
+                enabled: true,
+                // Relationship to emoji mapping (shown on character portraits)
+                relationshipEmojis: {
+                    'Lover': '❤️',
+                    'Friend': '⭐',
+                    'Ally': '🤝',
+                    'Enemy': '⚔️',
+                    'Neutral': '⚖️'
+                }
+            },
+            // Legacy fields kept for backward compatibility
             relationshipFields: ['Lover', 'Friend', 'Ally', 'Enemy', 'Neutral'],
-            // Relationship to emoji mapping (shown on character portraits)
             relationshipEmojis: {
                 'Lover': '❤️',
                 'Friend': '⭐',

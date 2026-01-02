@@ -325,8 +325,11 @@ export function renderThoughts() {
     const enabledFields = config?.customFields?.filter(f => f && f.enabled && f.name) || [];
     const characterStatsConfig = config?.characterStats;
     const enabledCharStats = characterStatsConfig?.enabled && characterStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
-    const relationshipFields = config?.relationshipFields || [];
-    const hasRelationshipEnabled = relationshipFields.length > 0;
+
+    // Check if relationships are enabled (new structure with fallback to legacy)
+    const relationshipsEnabled = config?.relationships?.enabled !== false; // Default to true if not set
+    const relationshipFields = relationshipsEnabled ? (config?.relationshipFields || []) : [];
+    const hasRelationshipEnabled = relationshipFields.length > 0 && relationshipsEnabled;
 
     // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
     const characterThoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts || '';
@@ -442,7 +445,8 @@ export function renderThoughts() {
     }
 
     // Get relationship emojis from config (with fallback defaults)
-    const relationshipEmojis = config?.relationshipEmojis || {
+    // Support both new and legacy structure
+    const relationshipEmojis = config?.relationships?.relationshipEmojis || config?.relationshipEmojis || {
         'Enemy': '⚔️',
         'Neutral': '⚖️',
         'Friend': '⭐',
@@ -876,7 +880,7 @@ export function updateCharacterField(characterName, field, value) {
             }
             newCharacterLines.push(`Details: ${detailsParts.join(' | ')}`);
 
-            if (presentCharsConfig?.relationshipFields?.length > 0) {
+            if (presentCharsConfig?.relationships?.enabled !== false && presentCharsConfig?.relationshipFields?.length > 0) {
                 const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
                 const relationshipValue = field === 'Relationship' ? (emojiToRelationship[value] || value) : 'Neutral';
                 newCharacterLines.push(`Relationship: ${relationshipValue}`);

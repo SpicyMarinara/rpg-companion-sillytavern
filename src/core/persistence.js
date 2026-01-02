@@ -550,6 +550,21 @@ function migrateToTrackerConfig() {
                 'Neutral': '⚖️'
             };
         }
+
+        // Migrate to new relationships structure if not already present
+        if (!pc.relationships) {
+            pc.relationships = {
+                enabled: true, // Default to enabled for backward compatibility
+                relationshipEmojis: pc.relationshipEmojis || {
+                    'Lover': '❤️',
+                    'Friend': '⭐',
+                    'Ally': '🤝',
+                    'Enemy': '⚔️',
+                    'Neutral': '⚖️'
+                }
+            };
+        }
+
         if (!pc.thoughts) {
             pc.thoughts = {
                 enabled: true,

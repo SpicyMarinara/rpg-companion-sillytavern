@@ -170,6 +170,16 @@ function resetToDefaults() {
         presentCharacters: {
             showEmoji: true,
             showName: true,
+            relationships: {
+                enabled: true,
+                relationshipEmojis: {
+                    'Lover': '❤️',
+                    'Friend': '⭐',
+                    'Ally': '🤝',
+                    'Enemy': '⚔️',
+                    'Neutral': '⚖️'
+                }
+            },
             relationshipFields: ['Lover', 'Friend', 'Ally', 'Enemy', 'Neutral'],
             relationshipEmojis: {
                 'Lover': '❤️',
@@ -645,11 +655,19 @@ function renderPresentCharactersTab() {
 
     // Relationship Fields Section
     html += `<h4><i class="fa-solid fa-heart"></i> ${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.relationshipStatusTitle')}</h4>`;
+
+    // Toggle for enabling/disabling relationships
+    const relationshipsEnabled = config.relationships?.enabled !== false; // Default to true if not set
+    html += '<div class="rpg-editor-toggle-row">';
+    html += `<input type="checkbox" id="rpg-relationships-enabled" ${relationshipsEnabled ? 'checked' : ''}>`;
+    html += `<label for="rpg-relationships-enabled">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.enableRelationshipStatus')}</label>`;
+    html += '</div>';
+
     html += `<p class="rpg-editor-hint">${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.relationshipStatusHint')}</p>`;
 
     html += '<div class="rpg-relationship-mapping-list" id="rpg-relationship-mapping-list">';
     // Show existing relationships as field → emoji pairs
-    const relationshipEmojis = config.relationshipEmojis || {
+    const relationshipEmojis = config.relationships?.relationshipEmojis || config.relationshipEmojis || {
         'Lover': '❤️',
         'Friend': '⭐',
         'Ally': '🤝',
@@ -746,16 +764,36 @@ function renderPresentCharactersTab() {
  * Set up event listeners for Present Characters tab
  */
 function setupPresentCharactersListeners() {
+    // Relationships enabled toggle
+    $('#rpg-relationships-enabled').off('change').on('change', function() {
+        if (!extensionSettings.trackerConfig.presentCharacters.relationships) {
+            extensionSettings.trackerConfig.presentCharacters.relationships = { enabled: true, relationshipEmojis: {} };
+        }
+        extensionSettings.trackerConfig.presentCharacters.relationships.enabled = $(this).is(':checked');
+    });
+
     // Add new relationship
     $('#rpg-add-relationship').off('click').on('click', function() {
+        // Ensure relationships object exists
+        if (!extensionSettings.trackerConfig.presentCharacters.relationships) {
+            extensionSettings.trackerConfig.presentCharacters.relationships = { enabled: true, relationshipEmojis: {} };
+        }
+        if (!extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis) {
+            extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis = {};
+        }
+
+        // Add to new structure
+        extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis['New Relationship'] = '😊';
+
+        // Also update legacy fields for backward compatibility
         if (!extensionSettings.trackerConfig.presentCharacters.relationshipEmojis) {
             extensionSettings.trackerConfig.presentCharacters.relationshipEmojis = {};
         }
         extensionSettings.trackerConfig.presentCharacters.relationshipEmojis['New Relationship'] = '😊';
 
         // Sync relationshipFields
-        extensionSettings.trackerConfig.presentCharacters.relationshipFields =
-            Object.keys(extensionSettings.trackerConfig.presentCharacters.relationshipEmojis);
+        const emojis = extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis;
+        extensionSettings.trackerConfig.presentCharacters.relationshipFields = Object.keys(emojis);
 
         renderPresentCharactersTab();
     });
@@ -763,13 +801,20 @@ function setupPresentCharactersListeners() {
     // Remove relationship
     $('.rpg-remove-relationship').off('click').on('click', function() {
         const relationship = $(this).data('relationship');
+
+        // Remove from new structure
+        if (extensionSettings.trackerConfig.presentCharacters.relationships?.relationshipEmojis) {
+            delete extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis[relationship];
+        }
+
+        // Remove from legacy structure
         if (extensionSettings.trackerConfig.presentCharacters.relationshipEmojis) {
             delete extensionSettings.trackerConfig.presentCharacters.relationshipEmojis[relationship];
         }
 
         // Sync relationshipFields
-        extensionSettings.trackerConfig.presentCharacters.relationshipFields =
-            Object.keys(extensionSettings.trackerConfig.presentCharacters.relationshipEmojis);
+        const emojis = extensionSettings.trackerConfig.presentCharacters.relationships?.relationshipEmojis || {};
+        extensionSettings.trackerConfig.presentCharacters.relationshipFields = Object.keys(emojis);
 
         renderPresentCharactersTab();
     });
@@ -780,28 +825,48 @@ function setupPresentCharactersListeners() {
         const $item = $(this).closest('.rpg-relationship-item');
         const emoji = $item.find('.rpg-relationship-emoji').val();
 
-        // Find the old name by matching the emoji
-        const oldName = Object.keys(extensionSettings.trackerConfig.presentCharacters.relationshipEmojis).find(
-            key => extensionSettings.trackerConfig.presentCharacters.relationshipEmojis[key] === emoji &&
-                   key !== newName
+        // Ensure structures exist
+        if (!extensionSettings.trackerConfig.presentCharacters.relationships) {
+            extensionSettings.trackerConfig.presentCharacters.relationships = { enabled: true, relationshipEmojis: {} };
+        }
+        if (!extensionSettings.trackerConfig.presentCharacters.relationshipEmojis) {
+            extensionSettings.trackerConfig.presentCharacters.relationshipEmojis = {};
+        }
+
+        // Find the old name by matching the emoji in new structure
+        const emojis = extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis;
+        const oldName = Object.keys(emojis).find(
+            key => emojis[key] === emoji && key !== newName
         );
 
         if (oldName && oldName !== newName) {
+            // Update new structure
+            delete emojis[oldName];
+            emojis[newName] = emoji;
+
+            // Update legacy structure
             delete extensionSettings.trackerConfig.presentCharacters.relationshipEmojis[oldName];
             extensionSettings.trackerConfig.presentCharacters.relationshipEmojis[newName] = emoji;
 
             // Sync relationshipFields
-            extensionSettings.trackerConfig.presentCharacters.relationshipFields =
-                Object.keys(extensionSettings.trackerConfig.presentCharacters.relationshipEmojis);
+            extensionSettings.trackerConfig.presentCharacters.relationshipFields = Object.keys(emojis);
         }
     });
 
     // Update relationship emoji
     $('.rpg-relationship-emoji').off('blur').on('blur', function() {
         const name = $(this).closest('.rpg-relationship-item').find('.rpg-relationship-name').val();
+
+        // Ensure structures exist
+        if (!extensionSettings.trackerConfig.presentCharacters.relationships) {
+            extensionSettings.trackerConfig.presentCharacters.relationships = { enabled: true, relationshipEmojis: {} };
+        }
         if (!extensionSettings.trackerConfig.presentCharacters.relationshipEmojis) {
             extensionSettings.trackerConfig.presentCharacters.relationshipEmojis = {};
         }
+
+        // Update both structures
+        extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis[name] = $(this).val();
         extensionSettings.trackerConfig.presentCharacters.relationshipEmojis[name] = $(this).val();
     });
 

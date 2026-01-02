@@ -355,7 +355,11 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         if (extensionSettings.showCharacterThoughts) {
             const presentCharsConfig = trackerConfig?.presentCharacters;
             const enabledFields = presentCharsConfig?.customFields?.filter(f => f && f.enabled && f.name) || [];
-            const relationshipFields = presentCharsConfig?.relationshipFields || [];
+
+            // Check if relationships are enabled
+            const relationshipsEnabled = presentCharsConfig?.relationships?.enabled !== false; // Default to true
+            const relationshipFields = relationshipsEnabled ? (presentCharsConfig?.relationshipFields || []) : [];
+
             const thoughtsConfig = presentCharsConfig?.thoughts;
             const characterStats = presentCharsConfig?.characterStats;
             const enabledCharStats = characterStats?.enabled && characterStats?.customStats?.filter(s => s && s.enabled && s.name) || [];
@@ -390,7 +394,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             }
 
             // Relationship line (only if relationships are enabled)
-            if (relationshipPlaceholders) {
+            if (relationshipsEnabled && relationshipPlaceholders) {
                 instructions += `Relationship: [(choose one: ${relationshipPlaceholders})]\n`;
             }
 

@@ -112,6 +112,7 @@
     "template.trackerEditorModal.infoBoxTab.locationWidget": "位置",
     "template.trackerEditorModal.infoBoxTab.recentEventsWidget": "近期事件",
     "template.trackerEditorModal.presentCharactersTab.relationshipStatusTitle": "關係狀態",
+    "template.trackerEditorModal.presentCharactersTab.enableRelationshipStatus": "啟用關係狀態欄位",
     "template.trackerEditorModal.presentCharactersTab.relationshipStatusHint": "定義關係類型，並在角色頭像上顯示對應的表情符號",
     "template.trackerEditorModal.presentCharactersTab.newRelationshipButton": "新增關係類型",
     "template.trackerEditorModal.presentCharactersTab.appearanceDemeanorTitle": "外觀與當前行為舉止",
