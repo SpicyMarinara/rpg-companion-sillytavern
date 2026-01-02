@@ -7,6 +7,11 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
+### v2.1.2
+- Added optional toggle for Relationship Status Fields in Edit Trackers
+- Relationship fields and emoji badges can now be disabled/enabled like other trackers
+- Maintains backward compatibility with existing configurations
+
 ### v2.1.1
 - Fixed a bug in together generation mode that didn't detect swipes correctly
 - Fixed combat encounter prompt to consider party members better
