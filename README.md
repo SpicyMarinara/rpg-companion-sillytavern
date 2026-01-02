@@ -5,9 +5,13 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 [![My Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da)](https://discord.com/invite/KdAkTg94ME)
 [![Support Me](https://img.shields.io/badge/Ko--fi-Support%20Creator-ff5e5b)](https://ko-fi.com/marinara_spaghetti)
 
-## 🆕 What's New in v2.1
+## 🆕 What's New
 
-### Dynamic Weather Effects
+### v2.1.1
+- Fixed a bug in together generation mode that didn't detect swipes correctly
+- Fixed combat encounter prompt to consider party members better
+
+### v2.1 - Dynamic Weather Effects
 - Real-time weather visualization based on Info Box weather field
 - **Snow**: Falling snowflakes with varied speeds and sizes
 - **Rain**: Realistic raindrops animation

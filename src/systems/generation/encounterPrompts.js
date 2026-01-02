@@ -500,7 +500,7 @@ export async function buildCombatActionPrompt(action, combatStats) {
     });
 
     stateMessage += `\n${userName}'s Action: ${action}\n\n`;
-    stateMessage += `Respond with a JSON object containing ONLY updated HP values and new status effects. DO NOT regenerate character descriptions, sprites, or environment:\n`;
+    stateMessage += `Respond with the exact JSON object as below, containing ONLY these specified values. Remember to consider the user's party and their moves. DO NOT regenerate character descriptions, sprites, or environment:\n`;
     stateMessage += `{\n`;
     stateMessage += `  "combatStats": {\n`;
     stateMessage += `    "party": [{ "name": "Name", "hp": X, "maxHp": X, "statuses": [...] }],\n`;

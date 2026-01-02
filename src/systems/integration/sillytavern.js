@@ -156,7 +156,8 @@ export async function onMessageReceived(data) {
             // console.log('[RPG Companion] Stored RPG data for swipe', currentSwipeId);
 
             // If there's no committed data yet (first time generating), automatically commit
-            if (!committedTrackerData.userStats && !committedTrackerData.infoBox && !committedTrackerData.characterThoughts) {
+            // BUT: Only commit if this is NOT a swipe (same logic as separate mode)
+            if (!lastActionWasSwipe && !committedTrackerData.userStats && !committedTrackerData.infoBox && !committedTrackerData.characterThoughts) {
                 committedTrackerData.userStats = parsedData.userStats;
                 committedTrackerData.infoBox = parsedData.infoBox;
                 committedTrackerData.characterThoughts = parsedData.characterThoughts;
