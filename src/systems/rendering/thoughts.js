@@ -1142,7 +1142,7 @@ export function createThoughtPanel($message, thoughtsArray) {
     const panelWidth = 350;
     const panelMargin = 20;
 
-    let top = avatarRect.top + (avatarRect.height / 2);
+    let top = avatarRect.top; // Align top of panel with top of avatar
     let left;
     let right;
     let useRightPosition = false;
@@ -1176,50 +1176,47 @@ export function createThoughtPanel($message, thoughtsArray) {
         });
     } else if (panelPosition === 'left') {
         // Main panel is on left, so thought bubble goes to RIGHT side
-        // Mirror the left side positioning: bubble should be same distance from avatar
-        // but on the opposite side, extending to the right
         const chatContainer = $('#chat')[0];
         const chatRect = chatContainer ? chatContainer.getBoundingClientRect() : { right: window.innerWidth };
 
-        // Position bubble starting from chat edge, extending right
-        left = chatRect.right + panelMargin; // Start at chat's right edge + margin
-        useRightPosition = false; // Use left positioning so it extends right
-        iconLeft = chatRect.right + 10; // Icon just at the chat edge
+        // Calculate how much space is available to the right of the chat
+        const spaceRight = window.innerWidth - chatRect.right;
+
+        // If there's enough space, position normally; otherwise, adjust
+        if (spaceRight >= panelWidth + panelMargin * 2) {
+            left = chatRect.right + panelMargin;
+        } else {
+            // Not enough space on the right, position closer to chat or slightly overlapping
+            left = Math.max(chatRect.right - panelWidth - panelMargin, window.innerWidth - panelWidth - 10);
+        }
+
+        useRightPosition = false;
+        iconLeft = chatRect.right + 10;
         $thoughtPanel.addClass('rpg-thought-panel-right');
         $thoughtIcon.addClass('rpg-thought-icon-right');
 
-        // Position circles to flow from left (toward chat/avatar) to right (toward panel)
-        $thoughtPanel.find('.rpg-thought-circles').css({
-            top: 'calc(50% - 50px)',
-            left: '-25px',
-            bottom: 'auto',
-            right: 'auto'
-        });
-        // Mirror the circle flow for right side (left-to-right)
-        $thoughtPanel.find('.rpg-thought-circles').css('align-items', 'flex-start');
-        $thoughtPanel.find('.rpg-circle-1').css({ 'align-self': 'flex-start', 'margin-right': '0', 'margin-left': '0' });
-        $thoughtPanel.find('.rpg-circle-2').css({ 'align-self': 'flex-start', 'margin-right': '0', 'margin-left': '4px' });
-        $thoughtPanel.find('.rpg-circle-3').css({ 'align-self': 'flex-start', 'margin-right': '0', 'margin-left': '8px' });
+        // Circles use default CSS positioning
     } else {
         // Main panel is on right, so thought bubble goes on left (near avatar)
-        left = avatarRect.left - panelWidth - panelMargin;
-        iconLeft = avatarRect.left - 40;
+        const chatContainer = $('#chat')[0];
+        const chatRect = chatContainer ? chatContainer.getBoundingClientRect() : { left: 0 };
+
+        // Calculate how much space is available to the left of the chat
+        const spaceLeft = chatRect.left;
+
+        // If there's enough space, position normally; otherwise, adjust
+        if (spaceLeft >= panelWidth + panelMargin * 2) {
+            left = avatarRect.left - panelWidth - panelMargin;
+        } else {
+            // Not enough space on the left, position it within visible area
+            left = Math.max(10, avatarRect.left - panelWidth - panelMargin);
+        }
+
+        iconLeft = Math.max(10, avatarRect.left - 40);
         $thoughtPanel.addClass('rpg-thought-panel-left');
         $thoughtIcon.addClass('rpg-thought-icon-left');
 
-        // Position circles to flow from avatar (left) to bubble (more left)
-        // Circles should flow right-to-left when bubble is on left
-        $thoughtPanel.find('.rpg-thought-circles').css({
-            top: 'calc(50% - 50px)',
-            right: '-25px',
-            bottom: 'auto',
-            left: 'auto'
-        });
-        // Keep the circle flow for left side (right-to-left) - default from CSS
-        $thoughtPanel.find('.rpg-thought-circles').css('align-items', 'flex-end');
-        $thoughtPanel.find('.rpg-circle-1').css({ 'align-self': 'flex-end', 'margin-left': '0', 'margin-right': '0' });
-        $thoughtPanel.find('.rpg-circle-2').css({ 'align-self': 'flex-end', 'margin-left': '0', 'margin-right': '4px' });
-        $thoughtPanel.find('.rpg-circle-3').css({ 'align-self': 'flex-end', 'margin-left': '0', 'margin-right': '8px' });
+        // Circles use default CSS positioning
     }
 
     if (useRightPosition) {
@@ -1298,33 +1295,46 @@ export function createThoughtPanel($message, thoughtsArray) {
         // Schedule update on next frame
         positionUpdateRaf = requestAnimationFrame(() => {
             const newAvatarRect = $avatar[0].getBoundingClientRect();
-            const newTop = newAvatarRect.top + (newAvatarRect.height / 2);
+            const newTop = newAvatarRect.top; // Align with avatar top
             const newIconTop = newAvatarRect.top;
             let newLeft, newIconLeft;
 
-            if (panelPosition === 'left') {
+            const isMobileNow = window.innerWidth <= 1000;
+
+            if (isMobileNow) {
+                newLeft = window.innerWidth / 2 - panelWidth / 2;
+                newIconLeft = newAvatarRect.left + (newAvatarRect.width / 2) - 18;
+            } else if (panelPosition === 'left') {
                 // Position at chat's right edge, extending right
                 const chatContainer = $('#chat')[0];
                 const chatRect = chatContainer ? chatContainer.getBoundingClientRect() : { right: window.innerWidth };
-                newLeft = chatRect.right + panelMargin;
-                newIconLeft = chatRect.right + 10;
+                const spaceRight = window.innerWidth - chatRect.right;
 
-                $thoughtPanel.css({
-                    top: `${newTop}px`,
-                    left: `${newLeft}px`,
-                    right: 'auto'
-                });
+                if (spaceRight >= panelWidth + panelMargin * 2) {
+                    newLeft = chatRect.right + panelMargin;
+                } else {
+                    newLeft = Math.max(chatRect.right - panelWidth - panelMargin, window.innerWidth - panelWidth - 10);
+                }
+                newIconLeft = chatRect.right + 10;
             } else {
                 // Left position relative to avatar
-                newLeft = newAvatarRect.left - panelWidth - panelMargin;
-                newIconLeft = newAvatarRect.left - 40;
+                const chatContainer = $('#chat')[0];
+                const chatRect = chatContainer ? chatContainer.getBoundingClientRect() : { left: 0 };
+                const spaceLeft = chatRect.left;
 
-                $thoughtPanel.css({
-                    top: `${newTop}px`,
-                    left: `${newLeft}px`,
-                    right: 'auto'
-                });
+                if (spaceLeft >= panelWidth + panelMargin * 2) {
+                    newLeft = newAvatarRect.left - panelWidth - panelMargin;
+                } else {
+                    newLeft = Math.max(10, newAvatarRect.left - panelWidth - panelMargin);
+                }
+                newIconLeft = Math.max(10, newAvatarRect.left - 40);
             }
+
+            $thoughtPanel.css({
+                top: `${newTop}px`,
+                left: `${newLeft}px`,
+                right: 'auto'
+            });
 
             $thoughtIcon.css({
                 top: `${newIconTop}px`,

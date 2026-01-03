@@ -4458,7 +4458,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     z-index: 1000; /* Lower z-index to stay below dropdown menus */
     pointer-events: auto;
     max-width: 15.3rem; /* 30% smaller than 21.875rem (350px → 245px) */
-    transform: translateY(-50%);
+    transform: translateY(0); /* No vertical centering - align with avatar top */
     animation: thoughtPanelFadeIn 0.4s ease-out;
 }
 
@@ -4528,9 +4528,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-thought-circles {
     position: absolute;
     display: flex;
-    flex-direction: column-reverse; /* Reverse so circles go upward */
-    align-items: flex-end; /* Align to the right side */
-    gap: 0.75em;
+    flex-direction: row-reverse; /* Horizontal layout, flipped */
+    align-items: center; /* Center vertically */
+    gap: 0.5em;
+    inset: 0px -50px auto;
     z-index: 1;
 }
 
@@ -4545,23 +4546,18 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     width: 0.5rem;
     height: 0.5rem;
     animation-delay: 0s;
-    align-self: flex-end; /* Circle 1 on the far right (at avatar) */
 }
 
 .rpg-circle-2 {
     width: 0.75rem;
     height: 0.75rem;
     animation-delay: 0.2s;
-    align-self: flex-end;
-    margin-right: 4px; /* Move slightly left from circle 1 */
 }
 
 .rpg-circle-3 {
     width: 1rem;
     height: 1rem;
     animation-delay: 0.4s;
-    align-self: flex-end;
-    margin-right: 8px; /* Move more left from circle 1 */
 }
 
 /* Thought bubble main container */

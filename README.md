@@ -7,6 +7,13 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
+### v2.1.3
+- **Improved Thought Bubble Positioning**: Thought bubbles now align with the top of the character's avatar/name
+- **Better Visibility**: Fixed issue where thought bubbles would extend above the avatar when scrolling is limited
+- **Horizontal Thought Circles**: Thought circles now display horizontally for a cleaner visual flow
+- **Responsive Positioning**: Thought bubbles dynamically adjust to screen width changes and stay visible at all resolutions
+- **Smart Viewport Detection**: Bubbles automatically reposition to avoid being cut off at narrow window widths
+
 ### v2.1.2
 - Added optional toggle for Relationship Status Fields in Edit Trackers
 - Relationship fields and emoji badges can now be disabled/enabled like other trackers
