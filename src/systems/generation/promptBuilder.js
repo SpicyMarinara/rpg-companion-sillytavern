@@ -304,6 +304,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
             if (extensionSettings.showInventory) {
                 if (FEATURE_FLAGS.useNewInventory) {
                     instructions += 'On Person: [Items currently carried/worn, or "None"]\n';
+                    instructions += 'Clothing: [Clothing/Armor currently worn, or "None"]\n';
                     instructions += 'Stored - [Location Name]: [Items stored at this location]\n';
                     instructions += '(Add multiple "Stored - [Location]:" lines as needed for different storage locations)\n';
                     instructions += 'Assets: [Vehicles, property, major possessions, or "None"]\n';
