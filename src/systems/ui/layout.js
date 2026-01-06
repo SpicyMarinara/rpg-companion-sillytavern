@@ -385,8 +385,8 @@ export function updateGenerationModeUI() {
         $('#rpg-manual-update').show();
         $('#rpg-external-api-settings').slideDown(200);
         $('#rpg-separate-mode-settings').slideUp(200);
-        // Disable auto-update toggle (not applicable in external mode)
-        $('#rpg-toggle-auto-update').prop('disabled', true);
-        $('#rpg-auto-update-container').css('opacity', '0.5');
+        // Enable auto-update toggle (works in external mode too)
+        $('#rpg-toggle-auto-update').prop('disabled', false);
+        $('#rpg-auto-update-container').css('opacity', '1');
     }
 }
