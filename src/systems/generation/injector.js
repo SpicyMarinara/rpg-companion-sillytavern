@@ -78,11 +78,11 @@ export async function onGenerationStarted(type, data) {
 
     const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
 
-    // For SEPARATE mode only: Check if we need to commit extension data
+    // For SEPARATE/EXTERNAL mode: Check if we need to commit extension data
     // BUT: Only do this for the MAIN generation, not the tracker update generation
     // If isGenerating is true, this is the tracker update generation (second call), so skip flag logic
     // console.log('[RPG Companion DEBUG] Before generating:', lastGeneratedData.characterThoughts, ' , committed - ', committedTrackerData.characterThoughts);
-    if (extensionSettings.generationMode === 'separate' && !isGenerating) {
+    if ((extensionSettings.generationMode === 'separate' || extensionSettings.generationMode === 'external') && !isGenerating) {
         if (!lastActionWasSwipe) {
             // User sent a new message - commit lastGeneratedData before generation
             // console.log('[RPG Companion] 📝 COMMIT: New message - committing lastGeneratedData');
@@ -246,8 +246,8 @@ export async function onGenerationStarted(type, data) {
             // Clear Spotify prompt if disabled
             setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
         }
-    } else if (extensionSettings.generationMode === 'separate') {
-        // In SEPARATE mode, inject the contextual summary for main roleplay generation
+    } else if (extensionSettings.generationMode === 'separate' || extensionSettings.generationMode === 'external') {
+        // In SEPARATE/EXTERNAL mode, inject the contextual summary for main roleplay generation
         const contextSummary = generateContextualSummary();
 
         if (contextSummary) {

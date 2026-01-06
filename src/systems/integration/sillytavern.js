@@ -89,8 +89,8 @@ export function onMessageSent() {
     setLastActionWasSwipe(false);
     // console.log('[RPG Companion] 🟢 EVENT: onMessageSent - lastActionWasSwipe =', lastActionWasSwipe);
 
-    // In separate mode with auto-update disabled, commit displayed tracker when user sends a message
-    if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
+    // In separate/external mode with auto-update disabled, commit displayed tracker when user sends a message
+    if ((extensionSettings.generationMode === 'separate' || extensionSettings.generationMode === 'external') && !extensionSettings.autoUpdate) {
         // Commit whatever is currently displayed in lastGeneratedData
         if (lastGeneratedData.userStats || lastGeneratedData.infoBox || lastGeneratedData.characterThoughts) {
             committedTrackerData.userStats = lastGeneratedData.userStats;
@@ -210,8 +210,8 @@ export async function onMessageReceived(data) {
             // Save to chat metadata
             saveChatData();
         }
-    } else if (extensionSettings.generationMode === 'separate') {
-        // In separate mode, also parse Spotify URLs from the main roleplay response
+    } else if (extensionSettings.generationMode === 'separate' || extensionSettings.generationMode === 'external') {
+        // In separate/external mode, also parse Spotify URLs from the main roleplay response
         const lastMessage = chat[chat.length - 1];
         if (lastMessage && !lastMessage.is_user) {
             const responseText = lastMessage.mes;
