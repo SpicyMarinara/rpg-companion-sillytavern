@@ -243,7 +243,7 @@ function exportTrackerPreset() {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        console.log('[RPG Companion] Tracker preset exported successfully');
+        // console.log('[RPG Companion] Tracker preset exported successfully');
         toastr.success(i18n.getTranslation('template.trackerEditorModal.messages.exportSuccess') || 'Tracker preset exported successfully!');
     } catch (error) {
         console.error('[RPG Companion] Error exporting tracker preset:', error);
@@ -292,7 +292,7 @@ function importTrackerPreset() {
             // Re-render the editor UI
             renderEditorUI();
 
-            console.log('[RPG Companion] Tracker preset imported successfully');
+            // console.log('[RPG Companion] Tracker preset imported successfully');
             toastr.success(i18n.getTranslation('template.trackerEditorModal.messages.importSuccess') || 'Tracker preset imported successfully!');
         } catch (error) {
             console.error('[RPG Companion] Error importing tracker preset:', error);

@@ -92,12 +92,12 @@ export function updateCollapseToggleIcon() {
         const isOpen = $panel.hasClass('rpg-mobile-open');
         const isLeftPanel = $panel.hasClass('rpg-position-left');
 
-        console.log('[RPG Mobile] updateCollapseToggleIcon:', {
-            isMobile: true,
-            isOpen,
-            isLeftPanel,
-            settingIcon: isOpen ? (isLeftPanel ? 'chevron-left' : 'chevron-right') : (isLeftPanel ? 'chevron-right' : 'chevron-left')
-        });
+        // console.log('[RPG Mobile] updateCollapseToggleIcon:', {
+        //     isMobile: true,
+        //     isOpen,
+        //     isLeftPanel,
+        //     settingIcon: isOpen ? (isLeftPanel ? 'chevron-left' : 'chevron-right') : (isLeftPanel ? 'chevron-right' : 'chevron-left')
+        // });
 
         if (isLeftPanel) {
             if (isOpen) {
@@ -157,44 +157,44 @@ export function setupCollapseToggle() {
         // On mobile: button toggles panel open/closed (same as desktop behavior)
         if (isMobile) {
             const isOpen = $panel.hasClass('rpg-mobile-open');
-            console.log('[RPG Mobile] Collapse toggle clicked. Current state:', {
-                isOpen,
-                panelClasses: $panel.attr('class'),
-                inlineStyles: $panel.attr('style'),
-                panelPosition: {
-                    top: $panel.css('top'),
-                    bottom: $panel.css('bottom'),
-                    transform: $panel.css('transform'),
-                    visibility: $panel.css('visibility')
-                }
-            });
+            // console.log('[RPG Mobile] Collapse toggle clicked. Current state:', {
+            //     isOpen,
+            //     panelClasses: $panel.attr('class'),
+            //     inlineStyles: $panel.attr('style'),
+            //     panelPosition: {
+            //         top: $panel.css('top'),
+            //         bottom: $panel.css('bottom'),
+            //         transform: $panel.css('transform'),
+            //         visibility: $panel.css('visibility')
+            //     }
+            // });
 
             if (isOpen) {
                 // Close panel with animation
-                console.log('[RPG Mobile] Closing panel');
+                // console.log('[RPG Mobile] Closing panel');
                 closeMobilePanelWithAnimation();
             } else {
                 // Open panel
-                console.log('[RPG Mobile] Opening panel');
+                // console.log('[RPG Mobile] Opening panel');
                 $panel.addClass('rpg-mobile-open');
                 const $overlay = $('<div class="rpg-mobile-overlay"></div>');
                 $('body').append($overlay);
 
                 // Debug: Check state after animation should complete
                 setTimeout(() => {
-                    console.log('[RPG Mobile] 500ms after opening:', {
-                        panelClasses: $panel.attr('class'),
-                        hasOpenClass: $panel.hasClass('rpg-mobile-open'),
-                        visibility: $panel.css('visibility'),
-                        transform: $panel.css('transform'),
-                        display: $panel.css('display'),
-                        opacity: $panel.css('opacity')
-                    });
+                    // console.log('[RPG Mobile] 500ms after opening:', {
+                    //     panelClasses: $panel.attr('class'),
+                    //     hasOpenClass: $panel.hasClass('rpg-mobile-open'),
+                    //     visibility: $panel.css('visibility'),
+                    //     transform: $panel.css('transform'),
+                    //     display: $panel.css('display'),
+                    //     opacity: $panel.css('opacity')
+                    // });
                 }, 500);
 
                 // Close when clicking overlay
                 $overlay.on('click', function() {
-                    console.log('[RPG Mobile] Overlay clicked - closing panel');
+                    // console.log('[RPG Mobile] Overlay clicked - closing panel');
                     closeMobilePanelWithAnimation();
                     updateCollapseToggleIcon();
                 });
@@ -203,20 +203,20 @@ export function setupCollapseToggle() {
             // Update icon to reflect new state
             updateCollapseToggleIcon();
 
-            console.log('[RPG Mobile] After toggle:', {
-                panelClasses: $panel.attr('class'),
-                inlineStyles: $panel.attr('style'),
-                panelPosition: {
-                    top: $panel.css('top'),
-                    bottom: $panel.css('bottom'),
-                    transform: $panel.css('transform'),
-                    visibility: $panel.css('visibility')
-                },
-                gameContainer: {
-                    opacity: $('.rpg-game-container').css('opacity'),
-                    visibility: $('.rpg-game-container').css('visibility')
-                }
-            });
+            // console.log('[RPG Mobile] After toggle:', {
+            //     panelClasses: $panel.attr('class'),
+            //     inlineStyles: $panel.attr('style'),
+            //     panelPosition: {
+            //         top: $panel.css('top'),
+            //         bottom: $panel.css('bottom'),
+            //         transform: $panel.css('transform'),
+            //         visibility: $panel.css('visibility')
+            //     },
+            //     gameContainer: {
+            //         opacity: $('.rpg-game-container').css('opacity'),
+            //         visibility: $('.rpg-game-container').css('visibility')
+            //     }
+            // });
             return;
         }
 

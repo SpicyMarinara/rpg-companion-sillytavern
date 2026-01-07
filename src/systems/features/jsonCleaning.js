@@ -32,11 +32,11 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
         );
 
         if (alreadyExists) {
-            console.log('[RPG Companion] JSON cleaning regex already exists, skipping import');
+            // console.log('[RPG Companion] JSON cleaning regex already exists, skipping import');
             return;
         }
 
-        console.log('[RPG Companion] Importing JSON cleaning regex for Together mode...');
+        // console.log('[RPG Companion] Importing JSON cleaning regex for Together mode...');
 
         // Generate a UUID for the script
         const uuidv4 = () => {
@@ -82,8 +82,8 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
             console.warn('[RPG Companion] saveSettingsDebounced is not a function, cannot save JSON cleaning regex');
         }
 
-        console.log('[RPG Companion] ✅ JSON cleaning regex imported successfully');
-        console.log('[RPG Companion] This regex will automatically remove tracker JSON from Together mode messages');
+        // console.log('[RPG Companion] ✅ JSON cleaning regex imported successfully');
+        // console.log('[RPG Companion] This regex will automatically remove tracker JSON from Together mode messages');
     } catch (error) {
         console.error('[RPG Companion] Failed to import JSON cleaning regex:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);
@@ -111,7 +111,7 @@ export function removeJsonCleaningRegex(st_extension_settings, saveSettingsDebou
         );
 
         if (st_extension_settings.regex.length < initialLength) {
-            console.log('[RPG Companion] Removed JSON cleaning regex');
+            // console.log('[RPG Companion] Removed JSON cleaning regex');
             if (typeof saveSettingsDebounced === 'function') {
                 saveSettingsDebounced();
             }

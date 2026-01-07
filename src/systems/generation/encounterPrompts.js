@@ -97,14 +97,14 @@ export async function buildEncounterInitPrompt() {
 
     try {
         // Debug logging
-        console.log('[RPG Companion] Checking world info:', {
-            hasWindowGetWorldInfoPrompt: typeof window.getWorldInfoPrompt === 'function',
-            hasContextGetWorldInfoPrompt: typeof context.getWorldInfoPrompt === 'function',
-            chatLength: chat?.length,
-            contextChatLength: context.chat?.length,
-            hasActivatedWorldInfo: !!context.activatedWorldInfo,
-            activatedWorldInfoLength: context.activatedWorldInfo?.length
-        });
+        // console.log('[RPG Companion] Checking world info:', {
+        //     hasWindowGetWorldInfoPrompt: typeof window.getWorldInfoPrompt === 'function',
+        //     hasContextGetWorldInfoPrompt: typeof context.getWorldInfoPrompt === 'function',
+        //     chatLength: chat?.length,
+        //     contextChatLength: context.chat?.length,
+        //     hasActivatedWorldInfo: !!context.activatedWorldInfo,
+        //     activatedWorldInfoLength: context.activatedWorldInfo?.length
+        // });
 
         // Use SillyTavern's getWorldInfoPrompt to get activated lorebook entries
         // Try context.getWorldInfoPrompt first, then window.getWorldInfoPrompt
@@ -114,20 +114,20 @@ export async function buildEncounterInitPrompt() {
         if (typeof getWorldInfoFn === 'function' && currentChat && currentChat.length > 0) {
             const chatForWI = currentChat.map(x => x.mes || x.message || x).filter(m => m && typeof m === 'string');
 
-            console.log('[RPG Companion] Calling getWorldInfoPrompt with', chatForWI.length, 'messages');
+            // console.log('[RPG Companion] Calling getWorldInfoPrompt with', chatForWI.length, 'messages');
 
             const result = await getWorldInfoFn(chatForWI, 8000, false);
             const worldInfoString = result?.worldInfoString || result;
 
-            console.log('[RPG Companion] World info result:', { worldInfoString, length: worldInfoString?.length });
+            // console.log('[RPG Companion] World info result:', { worldInfoString, length: worldInfoString?.length });
 
             if (worldInfoString && worldInfoString.trim()) {
                 systemMessage += worldInfoString.trim();
                 worldInfoAdded = true;
-                console.log('[RPG Companion] ✅ Added world info from getWorldInfoPrompt');
+                // console.log('[RPG Companion] ✅ Added world info from getWorldInfoPrompt');
             }
         } else {
-            console.log('[RPG Companion] getWorldInfoPrompt not available or no chat');
+            // console.log('[RPG Companion] getWorldInfoPrompt not available or no chat');
         }
     } catch (e) {
         console.warn('[RPG Companion] Failed to get world info from getWorldInfoPrompt:', e);
@@ -135,7 +135,7 @@ export async function buildEncounterInitPrompt() {
 
     // Fallback to activatedWorldInfo
     if (!worldInfoAdded && context.activatedWorldInfo && Array.isArray(context.activatedWorldInfo) && context.activatedWorldInfo.length > 0) {
-        console.log('[RPG Companion] Using fallback activatedWorldInfo:', context.activatedWorldInfo.length, 'entries');
+        // console.log('[RPG Companion] Using fallback activatedWorldInfo:', context.activatedWorldInfo.length, 'entries');
         context.activatedWorldInfo.forEach((entry) => {
             if (entry && entry.content) {
                 systemMessage += `${entry.content}\n\n`;
@@ -745,7 +745,7 @@ export function parseEncounterJSON(response) {
             const repaired = repairJSON(cleaned);
 
             if (repaired) {
-                console.log('[RPG Companion] ✓ Successfully repaired encounter JSON');
+                // console.log('[RPG Companion] ✓ Successfully repaired encounter JSON');
                 return repaired;
             }
 

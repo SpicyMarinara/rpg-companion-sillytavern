@@ -86,7 +86,7 @@ export function loadSettings() {
 
             // Migration to version 2: Enable dynamic weather for existing users
             if (currentVersion < 2) {
-                console.log('[RPG Companion] Migrating settings to version 2 (enabling dynamic weather)');
+                // console.log('[RPG Companion] Migrating settings to version 2 (enabling dynamic weather)');
                 extensionSettings.enableDynamicWeather = true;
                 extensionSettings.settingsVersion = 2;
                 settingsChanged = true;
@@ -94,7 +94,7 @@ export function loadSettings() {
 
             // Migration to version 3: Convert text trackers to JSON format
             if (currentVersion < 3) {
-                console.log('[RPG Companion] Migrating settings to version 3 (JSON tracker format)');
+                // console.log('[RPG Companion] Migrating settings to version 3 (JSON tracker format)');
                 migrateToV3JSON();
                 extensionSettings.settingsVersion = 3;
                 settingsChanged = true;
@@ -114,7 +114,7 @@ export function loadSettings() {
         if (FEATURE_FLAGS.useNewInventory) {
             const migrationResult = migrateInventory(extensionSettings.userStats.inventory);
             if (migrationResult.migrated) {
-                console.log(`[RPG Companion] Inventory migrated from ${migrationResult.source} to v2 format`);
+                // console.log(`[RPG Companion] Inventory migrated from ${migrationResult.source} to v2 format`);
                 extensionSettings.userStats.inventory = migrationResult.inventory;
                 saveSettings(); // Persist migrated inventory
             }
@@ -122,7 +122,7 @@ export function loadSettings() {
 
         // Migrate to trackerConfig if it doesn't exist
         if (!extensionSettings.trackerConfig) {
-            console.log('[RPG Companion] Migrating to trackerConfig format');
+            // console.log('[RPG Companion] Migrating to trackerConfig format');
             migrateToTrackerConfig();
             saveSettings(); // Persist migration
         }
@@ -161,13 +161,13 @@ export function saveChatData() {
         return;
     }
 
-    console.log('[RPG Companion] 💾 saveChatData called - committedTrackerData:', {
-        userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
-        infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-        characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-    });
-    console.log('[RPG Companion] 💾 saveChatData RAW committedTrackerData:', committedTrackerData);
-    console.log('[RPG Companion] 💾 saveChatData RAW lastGeneratedData:', lastGeneratedData);
+    // console.log('[RPG Companion] 💾 saveChatData called - committedTrackerData:', {
+    //     userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+    //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+    //     characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
+    // });
+    // console.log('[RPG Companion] 💾 saveChatData RAW committedTrackerData:', committedTrackerData);
+    // console.log('[RPG Companion] 💾 saveChatData RAW lastGeneratedData:', lastGeneratedData);
 
     chat_metadata.rpg_companion = {
         userStats: extensionSettings.userStats,
@@ -284,34 +284,34 @@ export function loadChatData() {
 
     // Restore committed tracker data first
     if (savedData.committedTrackerData) {
-        console.log('[RPG Companion] 📥 loadChatData restoring committedTrackerData:', {
-            userStats: savedData.committedTrackerData.userStats ? `${savedData.committedTrackerData.userStats.substring(0, 50)}...` : 'null',
-            infoBox: savedData.committedTrackerData.infoBox ? 'exists' : 'null',
-            characterThoughts: savedData.committedTrackerData.characterThoughts ? 'exists' : 'null'
-        });
-        console.log('[RPG Companion] 📥 RAW savedData.committedTrackerData:', savedData.committedTrackerData);
-        console.log('[RPG Companion] 📥 Type check:', {
-            userStatsType: typeof savedData.committedTrackerData.userStats,
-            infoBoxType: typeof savedData.committedTrackerData.infoBox,
-            characterThoughtsType: typeof savedData.committedTrackerData.characterThoughts
-        });
+        // console.log('[RPG Companion] 📥 loadChatData restoring committedTrackerData:', {
+        //     userStats: savedData.committedTrackerData.userStats ? `${savedData.committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+        //     infoBox: savedData.committedTrackerData.infoBox ? 'exists' : 'null',
+        //     characterThoughts: savedData.committedTrackerData.characterThoughts ? 'exists' : 'null'
+        // });
+        // console.log('[RPG Companion] 📥 RAW savedData.committedTrackerData:', savedData.committedTrackerData);
+        // console.log('[RPG Companion] 📥 Type check:', {
+        //     userStatsType: typeof savedData.committedTrackerData.userStats,
+        //     infoBoxType: typeof savedData.committedTrackerData.infoBox,
+        //     characterThoughtsType: typeof savedData.committedTrackerData.characterThoughts
+        // });
         setCommittedTrackerData({ ...savedData.committedTrackerData });
     }
 
     // Restore last generated data (for display)
     // Always prefer lastGeneratedData as it contains the most recent generation (including swipes)
     if (savedData.lastGeneratedData) {
-        console.log('[RPG Companion] 📥 loadChatData restoring lastGeneratedData');
+        // console.log('[RPG Companion] 📥 loadChatData restoring lastGeneratedData');
         setLastGeneratedData({ ...savedData.lastGeneratedData });
     } else {
-        console.log('[RPG Companion] ⚠️ No lastGeneratedData found in save');
+        // console.log('[RPG Companion] ⚠️ No lastGeneratedData found in save');
     }
 
     // Migrate inventory in chat data if feature flag enabled
     if (FEATURE_FLAGS.useNewInventory && extensionSettings.userStats.inventory) {
         const migrationResult = migrateInventory(extensionSettings.userStats.inventory);
         if (migrationResult.migrated) {
-            console.log(`[RPG Companion] Chat inventory migrated from ${migrationResult.source} to v2 format`);
+            // console.log(`[RPG Companion] Chat inventory migrated from ${migrationResult.source} to v2 format`);
             extensionSettings.userStats.inventory = migrationResult.inventory;
             saveChatData(); // Persist migrated inventory to chat metadata
         }
@@ -401,7 +401,7 @@ function validateInventoryStructure(inventory, source) {
 
     // Persist repairs if needed
     if (needsSave) {
-        console.log(`[RPG Companion] Repaired inventory structure from ${source}, saving...`);
+        // console.log(`[RPG Companion] Repaired inventory structure from ${source}, saving...`);
         saveSettings();
         if (source === 'chat') {
             saveChatData();
@@ -473,7 +473,7 @@ function migrateToTrackerConfig() {
             name: extensionSettings.statNames[id] || id.charAt(0).toUpperCase() + id.slice(1),
             enabled: true
         }));
-        console.log('[RPG Companion] Migrated statNames to customStats array');
+        // console.log('[RPG Companion] Migrated statNames to customStats array');
     }
 
     // Ensure all stats have corresponding values in userStats
@@ -497,7 +497,7 @@ function migrateToTrackerConfig() {
             { id: 'cha', name: 'CHA', enabled: shouldShow }
         ];
         delete extensionSettings.trackerConfig.userStats.showRPGAttributes;
-        console.log('[RPG Companion] Migrated showRPGAttributes to rpgAttributes array');
+        // console.log('[RPG Companion] Migrated showRPGAttributes to rpgAttributes array');
     }
 
     // Ensure rpgAttributes exists even if no migration was needed
@@ -535,7 +535,7 @@ function migrateToTrackerConfig() {
             const hasOldFormat = pc.customFields.some(f => f.label || f.placeholder || f.type === 'relationship');
 
             if (hasOldFormat) {
-                console.log('[RPG Companion] Migrating Present Characters to new structure');
+                // console.log('[RPG Companion] Migrating Present Characters to new structure');
 
                 // Extract relationship fields from old customFields
                 const relationshipFields = ['Lover', 'Friend', 'Ally', 'Enemy', 'Neutral'];
@@ -563,7 +563,7 @@ function migrateToTrackerConfig() {
                 pc.customFields = newCustomFields;
                 pc.thoughts = thoughts;
 
-                console.log('[RPG Companion] Present Characters migration complete');
+                // console.log('[RPG Companion] Present Characters migration complete');
                 saveSettings(); // Persist the migration
             }
         }

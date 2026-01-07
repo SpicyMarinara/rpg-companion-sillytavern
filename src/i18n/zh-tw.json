@@ -193,5 +193,8 @@
     "quests.optional.empty": "當前無支線任務 (ʘ̆ʚʘ̆)",
     "quests.optional.hint": "支線任務是補充主線劇情的支線目標。",
     "musicPlayer.title": "場景音樂",
-    "musicPlayer.noMusic": "AI 會在適當時為場景建議音樂"
+    "musicPlayer.noMusic": "AI 會在適當時為場景建議音樂",
+    "errors.parsingError": "RPG Companion 追蹤器解析錯誤！模型返回了不正確的格式。如果問題持續存在，請考慮更換生成模型。",
+    "settings.recommendedModels.title": "推薦模型",
+    "settings.recommendedModels.description": "為了讓擴充功能正常運作，**不建議使用任何小於 20B 的模型，尤其是舊模型。**它最適合使用 SOTA 模型，例如 Deepseek、Claude、GPT 或 Gemini。"
 }

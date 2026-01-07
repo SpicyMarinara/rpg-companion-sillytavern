@@ -62,7 +62,7 @@ export async function generateWithExternalAPI(messages) {
     const normalizedBaseUrl = baseUrl.trim().replace(/\/+$/, '');
     const endpoint = `${normalizedBaseUrl}/chat/completions`;
 
-    console.log(`[RPG Companion] Calling external API: ${normalizedBaseUrl} with model: ${model}`);
+    // console.log(`[RPG Companion] Calling external API: ${normalizedBaseUrl} with model: ${model}`);
 
     try {
         const response = await fetch(endpoint, {
@@ -103,7 +103,7 @@ export async function generateWithExternalAPI(messages) {
         }
 
         const content = data.choices[0].message.content;
-        console.log('[RPG Companion] External API response received successfully');
+        // console.log('[RPG Companion] External API response received successfully');
 
         return content;
     } catch (error) {
@@ -242,7 +242,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         let response;
         if (isExternalMode) {
             // External mode: Use external OpenAI-compatible API directly
-            console.log('[RPG Companion] Using external API for tracker generation');
+            // console.log('[RPG Companion] Using external API for tracker generation');
             response = await generateWithExternalAPI(prompt);
         } else {
             // Separate mode: Use SillyTavern's generateRaw
@@ -255,6 +255,11 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         if (response) {
             // console.log('[RPG Companion] Raw AI response:', response);
             const parsedData = parseResponse(response);
+
+            // Check if parsing completely failed (no tracker data found)
+            if (parsedData.parsingFailed) {
+                toastr.error(i18n.getTranslation('errors.parsingError'), '', { timeOut: 5000 });
+            }
 
             // Remove locks from parsed data (JSON format only, text format is unaffected)
             if (parsedData.userStats) {
@@ -358,17 +363,17 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             if (extensionSettings.autoGenerateAvatars) {
                 const charactersNeedingAvatars = parseCharactersFromThoughts(parsedData.characterThoughts);
                 if (charactersNeedingAvatars.length > 0) {
-                    console.log('[RPG Companion] Generating avatars for:', charactersNeedingAvatars);
+                    // console.log('[RPG Companion] Generating avatars for:', charactersNeedingAvatars);
 
                     // Generate avatars - this awaits completion
                     await generateAvatarsForCharacters(charactersNeedingAvatars, (names) => {
                         // Callback when generation starts - re-render to show loading spinners
-                        console.log('[RPG Companion] Avatar generation started, showing spinners...');
+                        // console.log('[RPG Companion] Avatar generation started, showing spinners...');
                         renderThoughts();
                     });
 
                     // Re-render once all avatars are generated
-                    console.log('[RPG Companion] All avatars generated, re-rendering...');
+                    // console.log('[RPG Companion] All avatars generated, re-rendering...');
                     renderThoughts();
                 }
             }

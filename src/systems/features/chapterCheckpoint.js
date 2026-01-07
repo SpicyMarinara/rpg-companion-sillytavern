@@ -49,7 +49,7 @@ export async function setChapterCheckpoint(messageId) {
     if (previousCheckpoint !== null && previousCheckpoint !== undefined && previousCheckpoint !== messageId && currentlyHiddenRange !== null) {
         const { start, end } = currentlyHiddenRange;
         await executeSlashCommandsOnChatInput(`/unhide ${start}-${end}`, { quiet: true });
-        console.log(`[RPG Companion] Unhid previous range: ${start}-${end}`);
+        // console.log(`[RPG Companion] Unhid previous range: ${start}-${end}`);
     }
 
     // Store in chat metadata (this automatically overrides any previous checkpoint)
@@ -61,13 +61,13 @@ export async function setChapterCheckpoint(messageId) {
         const rangeEnd = messageId - 1;
         await executeSlashCommandsOnChatInput(`/hide 0-${rangeEnd}`, { quiet: true });
         currentlyHiddenRange = { start: 0, end: rangeEnd };
-        console.log(`[RPG Companion] Hidden messages 0-${rangeEnd} (checkpoint at ${messageId})`);
+        // console.log(`[RPG Companion] Hidden messages 0-${rangeEnd} (checkpoint at ${messageId})`);
     }
 
     if (previousCheckpoint !== null && previousCheckpoint !== undefined && previousCheckpoint !== messageId) {
-        console.log(`[RPG Companion] Chapter checkpoint moved from message ${previousCheckpoint} to ${messageId}`);
+        // console.log(`[RPG Companion] Chapter checkpoint moved from message ${previousCheckpoint} to ${messageId}`);
     } else {
-        console.log('[RPG Companion] Chapter checkpoint set at message', messageId);
+        // console.log('[RPG Companion] Chapter checkpoint set at message', messageId);
     }
 
     // Emit event for UI updates
@@ -91,14 +91,14 @@ export async function clearChapterCheckpoint() {
     if (currentlyHiddenRange !== null) {
         const { start, end } = currentlyHiddenRange;
         await executeSlashCommandsOnChatInput(`/unhide ${start}-${end}`, { quiet: true });
-        console.log(`[RPG Companion] Unhid messages ${start}-${end}`);
+        // console.log(`[RPG Companion] Unhid messages ${start}-${end}`);
         currentlyHiddenRange = null;
     }
 
     delete chat_metadata.rpg_companion_chapter_checkpoint;
     saveChatDebounced();
 
-    console.log('[RPG Companion] Chapter checkpoint cleared');
+    // console.log('[RPG Companion] Chapter checkpoint cleared');
 
     // Emit event for UI updates
     if (typeof document !== 'undefined') {
@@ -173,7 +173,7 @@ export async function restoreCheckpointOnLoad() {
                         if (needsRestore) {
                             await executeSlashCommandsOnChatInput(`/hide 0-${rangeEnd}`, { quiet: true });
                             currentlyHiddenRange = { start: 0, end: rangeEnd };
-                            console.log(`[RPG Companion] Restored checkpoint: Hidden messages 0-${rangeEnd}`);
+                            // console.log(`[RPG Companion] Restored checkpoint: Hidden messages 0-${rangeEnd}`);
                         } else {
                             currentlyHiddenRange = { start: 0, end: rangeEnd };
                         }

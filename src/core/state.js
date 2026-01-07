@@ -376,24 +376,24 @@ export function updateLastGeneratedData(updates) {
 }
 
 export function setCommittedTrackerData(data) {
-    console.log('[RPG State] setCommittedTrackerData called with:', data);
-    console.log('[RPG State] Type check on input:', {
-        userStatsType: typeof data.userStats,
-        infoBoxType: typeof data.infoBox,
-        characterThoughtsType: typeof data.characterThoughts,
-        userStatsValue: data.userStats,
-        infoBoxValue: data.infoBox,
-        characterThoughtsValue: data.characterThoughts
-    });
+    // console.log('[RPG State] setCommittedTrackerData called with:', data);
+    // console.log('[RPG State] Type check on input:', {
+    //     userStatsType: typeof data.userStats,
+    //     infoBoxType: typeof data.infoBox,
+    //     characterThoughtsType: typeof data.characterThoughts,
+    //     userStatsValue: data.userStats,
+    //     infoBoxValue: data.infoBox,
+    //     characterThoughtsValue: data.characterThoughts
+    // });
     committedTrackerData = data;
-    console.log('[RPG State] committedTrackerData after assignment:', committedTrackerData);
+    // console.log('[RPG State] committedTrackerData after assignment:', committedTrackerData);
 }
 
 export function updateCommittedTrackerData(updates) {
-    console.log('[RPG State] updateCommittedTrackerData called with:', updates);
-    console.log('[RPG State] committedTrackerData before update:', committedTrackerData);
+    // console.log('[RPG State] updateCommittedTrackerData called with:', updates);
+    // console.log('[RPG State] committedTrackerData before update:', committedTrackerData);
     Object.assign(committedTrackerData, updates);
-    console.log('[RPG State] committedTrackerData after update:', committedTrackerData);
+    // console.log('[RPG State] committedTrackerData after update:', committedTrackerData);
 }
 
 export function setLastActionWasSwipe(value) {

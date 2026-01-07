@@ -253,7 +253,7 @@ async function initUI() {
 
     // Only initialize UI if extension is enabled
     if (!extensionSettings.enabled) {
-        console.log('[RPG Companion] Extension disabled - skipping UI initialization');
+        // console.log('[RPG Companion] Extension disabled - skipping UI initialization');
         return;
     }
 
@@ -941,11 +941,11 @@ jQuery(async () => {
         // Check if migration to v3 JSON format is needed
         try {
             if (extensionSettings.settingsVersion < 3) {
-                console.log('[RPG Companion] Detected v2 format, migrating to v3 JSON...');
+                // console.log('[RPG Companion] Detected v2 format, migrating to v3 JSON...');
                 await migrateToV3JSON();
                 updateExtensionSettings({ settingsVersion: 3 });
                 await saveSettings();
-                console.log('[RPG Companion] ✅ Migration to v3 complete');
+                // console.log('[RPG Companion] ✅ Migration to v3 complete');
             }
         } catch (error) {
             console.error('[RPG Companion] Migration to v3 failed:', error);
@@ -1014,9 +1014,9 @@ jQuery(async () => {
         try {
             const conflicts = detectConflictingRegexScripts(st_extension_settings);
             if (conflicts.length > 0) {
-                console.log('[RPG Companion] ⚠️ Detected old manual formatting regex scripts that may conflict:');
-                conflicts.forEach(name => console.log(`  - ${name}`));
-                console.log('[RPG Companion] Consider disabling these regexes as the extension now handles formatting automatically.');
+                // console.log('[RPG Companion] ⚠️ Detected old manual formatting regex scripts that may conflict:');
+                // conflicts.forEach(name => console.log(`  - ${name}`));
+                // console.log('[RPG Companion] Consider disabling these regexes as the extension now handles formatting automatically.');
 
                 // Show user-friendly warning (non-blocking)
                 // toastr.warning(
@@ -1067,7 +1067,7 @@ jQuery(async () => {
             // Non-critical - continue without it
         }
 
-        console.log('[RPG Companion] ✅ Extension loaded successfully');
+        // console.log('[RPG Companion] ✅ Extension loaded successfully');
     } catch (error) {
         console.error('[RPG Companion] ❌ Critical initialization failure:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);

@@ -100,7 +100,7 @@ export function renderMusicPlayer(container) {
     // Find the chat form container and insert widget before (above) it
     const $chatForm = $('#send_form');
 
-    console.log('[RPG Companion] Music Player: Found #send_form:', $chatForm.length > 0);
+    // console.log('[RPG Companion] Music Player: Found #send_form:', $chatForm.length > 0);
 
     if ($chatForm.length === 0) {
         console.error('[RPG Companion] Music Player: Could not find #send_form - cannot render widget!');
@@ -108,17 +108,17 @@ export function renderMusicPlayer(container) {
     }
 
     // Insert widget inside (at top of) the chat form
-    console.log('[RPG Companion] Music Player: Prepending widget to #send_form');
+    // console.log('[RPG Companion] Music Player: Prepending widget to #send_form');
     $chatForm.prepend(musicPlayerHtml);
 
-    console.log('[RPG Companion] Music Player: Widget inserted, checking if visible...');
+    // console.log('[RPG Companion] Music Player: Widget inserted, checking if visible...');
     const $widget = $('#rpg-chat-music-player');
-    console.log('[RPG Companion] Music Player: Widget exists:', $widget.length > 0);
+    // console.log('[RPG Companion] Music Player: Widget exists:', $widget.length > 0);
     if ($widget.length > 0) {
-        console.log('[RPG Companion] Music Player: Widget position:', $widget.offset());
-        console.log('[RPG Companion] Music Player: Widget dimensions:', { width: $widget.width(), height: $widget.height() });
-        console.log('[RPG Companion] Music Player: Widget CSS display:', $widget.css('display'));
-        console.log('[RPG Companion] Music Player: Widget CSS visibility:', $widget.css('visibility'));
+        // console.log('[RPG Companion] Music Player: Widget position:', $widget.offset());
+        // console.log('[RPG Companion] Music Player: Widget dimensions:', { width: $widget.width(), height: $widget.height() });
+        // console.log('[RPG Companion] Music Player: Widget CSS display:', $widget.css('display'));
+        // console.log('[RPG Companion] Music Player: Widget CSS visibility:', $widget.css('visibility'));
     }
 
     // Bind play button click

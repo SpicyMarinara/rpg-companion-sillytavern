@@ -129,7 +129,7 @@ function stripBrackets(text) {
  * Helper to log to both console and debug logs array
  */
 function debugLog(message, data = null) {
-    console.log(message, data || '');
+    // console.log(message, data || '');
     if (extensionSettings.debugMode) {
         addDebugLog(message, data);
     }
@@ -209,30 +209,30 @@ export function parseResponse(responseText) {
     }
 
     if (extractedObjects.length > 0) {
-        console.log(`[RPG Parser] ✓ Found ${extractedObjects.length} raw JSON objects (v3 format)`);
+        // console.log(`[RPG Parser] ✓ Found ${extractedObjects.length} raw JSON objects (v3 format)`);
         debugLog(`[RPG Parser] ✓ Found ${extractedObjects.length} raw JSON objects (v3 format)`);
 
         // First, try to parse as unified JSON structure (new v3.1 format)
         if (extractedObjects.length === 1) {
             const parsed = repairJSON(extractedObjects[0]);
             if (parsed && (parsed.userStats || parsed.infoBox || parsed.characters)) {
-                console.log('[RPG Parser] ✓ Detected unified JSON structure (v3.1 format)');
+                // console.log('[RPG Parser] ✓ Detected unified JSON structure (v3.1 format)');
 
                 if (parsed.userStats) {
                     result.userStats = JSON.stringify(parsed.userStats);
-                    console.log('[RPG Parser] ✓ Extracted userStats from unified structure');
+                    // console.log('[RPG Parser] ✓ Extracted userStats from unified structure');
                 }
                 if (parsed.infoBox) {
                     result.infoBox = JSON.stringify(parsed.infoBox);
-                    console.log('[RPG Parser] ✓ Extracted infoBox from unified structure');
+                    // console.log('[RPG Parser] ✓ Extracted infoBox from unified structure');
                 }
                 if (parsed.characters) {
                     result.characterThoughts = JSON.stringify(parsed.characters);
-                    console.log('[RPG Parser] ✓ Extracted characters from unified structure');
+                    // console.log('[RPG Parser] ✓ Extracted characters from unified structure');
                 }
 
                 if (result.userStats || result.infoBox || result.characterThoughts) {
-                    console.log('[RPG Parser] ✓ Returning unified JSON parse results');
+                    // console.log('[RPG Parser] ✓ Returning unified JSON parse results');
                     debugLog('[RPG Parser] Returning unified JSON parse results');
                     return result;
                 }
@@ -242,13 +242,13 @@ export function parseResponse(responseText) {
         // Fall back to parsing multiple separate JSON objects (legacy v3.0 format)
         for (let idx = 0; idx < extractedObjects.length; idx++) {
             const jsonContent = extractedObjects[idx];
-            console.log(`[RPG Parser] Parsing object ${idx + 1}:`, jsonContent.substring(0, 100) + '...');
-            console.log(`[RPG Parser] Full object ${idx + 1} length:`, jsonContent.length);
+            // console.log(`[RPG Parser] Parsing object ${idx + 1}:`, jsonContent.substring(0, 100) + '...');
+            // console.log(`[RPG Parser] Full object ${idx + 1} length:`, jsonContent.length);
 
             const parsed = repairJSON(jsonContent);
 
             if (parsed) {
-                console.log(`[RPG Parser] Object ${idx + 1} parsed successfully, keys:`, Object.keys(parsed));
+                // console.log(`[RPG Parser] Object ${idx + 1} parsed successfully, keys:`, Object.keys(parsed));
 
                 // Check if object is wrapped (e.g., {"userStats": {...}})
                 // Unwrap single-key objects that match our tracker types
@@ -257,22 +257,22 @@ export function parseResponse(responseText) {
                     const key = Object.keys(parsed)[0];
                     if (key === 'userStats' || key === 'infoBox' || key === 'characters') {
                         unwrapped = parsed[key];
-                        console.log(`[RPG Parser] ✓ Unwrapped ${key} object`);
+                        // console.log(`[RPG Parser] ✓ Unwrapped ${key} object`);
                     }
                 }
 
                 // Detect tracker type by checking for top-level fields
                 if (unwrapped.stats || unwrapped.status || unwrapped.skills || unwrapped.inventory || unwrapped.quests) {
                     result.userStats = jsonContent;
-                    console.log('[RPG Parser] ✓ Assigned to User Stats');
+                    // console.log('[RPG Parser] ✓ Assigned to User Stats');
                     debugLog('[RPG Parser] ✓ Extracted raw JSON User Stats');
                 } else if (unwrapped.date || unwrapped.location || unwrapped.weather || unwrapped.temperature || unwrapped.time) {
                     result.infoBox = jsonContent;
-                    console.log('[RPG Parser] ✓ Assigned to Info Box');
+                    // console.log('[RPG Parser] ✓ Assigned to Info Box');
                     debugLog('[RPG Parser] ✓ Extracted raw JSON Info Box');
                 } else if (unwrapped.characters || Array.isArray(unwrapped)) {
                     result.characterThoughts = jsonContent;
-                    console.log('[RPG Parser] ✓ Assigned to Characters');
+                    // console.log('[RPG Parser] ✓ Assigned to Characters');
                     debugLog('[RPG Parser] ✓ Extracted raw JSON Characters');
                 } else {
                     console.warn('[RPG Parser] ⚠️ Could not categorize object with keys:', Object.keys(parsed));
@@ -283,11 +283,11 @@ export function parseResponse(responseText) {
         }
 
         if (result.userStats || result.infoBox || result.characterThoughts) {
-            console.log('[RPG Parser] ✓ Returning raw JSON parse results:', {
-                hasUserStats: !!result.userStats,
-                hasInfoBox: !!result.infoBox,
-                hasCharacters: !!result.characterThoughts
-            });
+            // console.log('[RPG Parser] ✓ Returning raw JSON parse results:', {
+            //     hasUserStats: !!result.userStats,
+            //     hasInfoBox: !!result.infoBox,
+            //     hasCharacters: !!result.characterThoughts
+            // });
             debugLog('[RPG Parser] Returning raw JSON parse results');
             return result;
         } else {
@@ -301,31 +301,31 @@ export function parseResponse(responseText) {
     const jsonMatches = [...cleanedResponse.matchAll(jsonBlockRegex)];
 
     if (jsonMatches.length > 0) {
-        console.log('[RPG Parser] ✓ Found', jsonMatches.length, 'JSON code blocks (v3 format with fences)');
+        // console.log('[RPG Parser] ✓ Found', jsonMatches.length, 'JSON code blocks (v3 format with fences)');
         debugLog('[RPG Parser] ✓ Found JSON code blocks (v3 format), parsing as JSON');
 
         for (let idx = 0; idx < jsonMatches.length; idx++) {
             const match = jsonMatches[idx];
             const jsonContent = match[1].trim();
-            console.log(`[RPG Parser] Parsing JSON block ${idx + 1}:`, jsonContent.substring(0, 100) + '...');
+            // console.log(`[RPG Parser] Parsing JSON block ${idx + 1}:`, jsonContent.substring(0, 100) + '...');
 
             const parsed = repairJSON(jsonContent);
 
             if (parsed) {
-                console.log(`[RPG Parser] JSON block ${idx + 1} parsed successfully, keys:`, Object.keys(parsed));
+                // console.log(`[RPG Parser] JSON block ${idx + 1} parsed successfully, keys:`, Object.keys(parsed));
 
                 // Detect tracker type by checking for top-level fields
                 if (parsed.stats || parsed.status || parsed.skills || parsed.inventory || parsed.quests) {
                     result.userStats = jsonContent;
-                    console.log('[RPG Parser] ✓ Assigned to User Stats');
+                    // console.log('[RPG Parser] ✓ Assigned to User Stats');
                     debugLog('[RPG Parser] ✓ Extracted JSON User Stats');
                 } else if (parsed.date || parsed.location || parsed.weather || parsed.temperature || parsed.time) {
                     result.infoBox = jsonContent;
-                    console.log('[RPG Parser] ✓ Assigned to Info Box');
+                    // console.log('[RPG Parser] ✓ Assigned to Info Box');
                     debugLog('[RPG Parser] ✓ Extracted JSON Info Box');
                 } else if (parsed.characters || Array.isArray(parsed)) {
                     result.characterThoughts = jsonContent;
-                    console.log('[RPG Parser] ✓ Assigned to Characters');
+                    // console.log('[RPG Parser] ✓ Assigned to Characters');
                     debugLog('[RPG Parser] ✓ Extracted JSON Characters');
                 } else {
                     console.warn('[RPG Parser] ⚠️ Could not categorize JSON block with keys:', Object.keys(parsed));
@@ -339,11 +339,11 @@ export function parseResponse(responseText) {
         // If we found at least one valid JSON block, return the result
         // Mixed formats (some JSON, some text) will still work
         if (result.userStats || result.infoBox || result.characterThoughts) {
-            console.log('[RPG Parser] ✓ Returning JSON code block parse results:', {
-                hasUserStats: !!result.userStats,
-                hasInfoBox: !!result.infoBox,
-                hasCharacters: !!result.characterThoughts
-            });
+            // console.log('[RPG Parser] ✓ Returning JSON code block parse results:', {
+            //     hasUserStats: !!result.userStats,
+            //     hasInfoBox: !!result.infoBox,
+            //     hasCharacters: !!result.characterThoughts
+            // });
             debugLog('[RPG Parser] Returning JSON parse results');
             return result;
         } else {
@@ -500,6 +500,12 @@ export function parseResponse(responseText) {
     debugLog('[RPG Parser] Found Characters:', !!result.characterThoughts);
     debugLog('[RPG Parser] =======================================================');
 
+    // Check if we found at least one section - if not, mark as parsing failure
+    if (!result.userStats && !result.infoBox && !result.characterThoughts) {
+        result.parsingFailed = true;
+        console.error('[RPG Parser] ❌ No tracker data found in response - parsing failed');
+    }
+
     return result;
 } // End parseResponse
 
@@ -525,25 +531,25 @@ export function parseUserStats(statsText) {
 
                 // Extract stats from v3 JSON structure
                 if (statsData.stats && Array.isArray(statsData.stats)) {
-                    console.log('[RPG Parser] ✓ Extracting stats array, count:', statsData.stats.length);
+                    // console.log('[RPG Parser] ✓ Extracting stats array, count:', statsData.stats.length);
                     statsData.stats.forEach(stat => {
                         if (stat.id && typeof stat.value !== 'undefined') {
                             extensionSettings.userStats[stat.id] = stat.value;
-                            console.log(`[RPG Parser] ✓ Set ${stat.id} = ${stat.value}`);
+                            // console.log(`[RPG Parser] ✓ Set ${stat.id} = ${stat.value}`);
                         }
                     });
                 }
 
                 // Extract status
                 if (statsData.status) {
-                    console.log('[RPG Parser] ✓ Extracting status:', statsData.status);
+                    // console.log('[RPG Parser] ✓ Extracting status:', statsData.status);
                     if (statsData.status.mood) {
                         extensionSettings.userStats.mood = statsData.status.mood;
-                        console.log('[RPG Parser] ✓ Set mood =', statsData.status.mood);
+                        // console.log('[RPG Parser] ✓ Set mood =', statsData.status.mood);
                     }
                     if (statsData.status.conditions) {
                         extensionSettings.userStats.conditions = statsData.status.conditions;
-                        console.log('[RPG Parser] ✓ Set conditions =', statsData.status.conditions);
+                        // console.log('[RPG Parser] ✓ Set conditions =', statsData.status.conditions);
                     }
                 }
 
@@ -587,7 +593,7 @@ export function parseUserStats(statsText) {
                         stored: convertStoredInventory(inv.stored),
                         assets: convertItems(inv.assets)
                     };
-                    console.log('[RPG Parser] ✓ Converted v3 inventory:', extensionSettings.userStats.inventory);
+                    // console.log('[RPG Parser] ✓ Converted v3 inventory:', extensionSettings.userStats.inventory);
                 }
 
                 // Extract quests (convert v3 object format to v2 string format)
@@ -609,13 +615,13 @@ export function parseUserStats(statsText) {
                             ? statsData.quests.optional.map(convertQuest)
                             : []
                     };
-                    console.log('[RPG Parser] ✓ Converted v3 quests:', extensionSettings.quests);
+                    // console.log('[RPG Parser] ✓ Converted v3 quests:', extensionSettings.quests);
                 }
 
                 // Extract skills if present (store as object, not JSON string)
                 if (statsData.skills && Array.isArray(statsData.skills)) {
                     extensionSettings.userStats.skills = statsData.skills;
-                    console.log('[RPG Parser] ✓ Set skills:', extensionSettings.userStats.skills);
+                    // console.log('[RPG Parser] ✓ Set skills:', extensionSettings.userStats.skills);
                 }
 
                 debugLog('[RPG Parser] ✓ Successfully extracted v3 JSON data');

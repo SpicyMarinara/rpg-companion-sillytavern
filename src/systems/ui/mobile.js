@@ -55,13 +55,13 @@ export function setupMobileToggle() {
     const $overlay = $('<div class="rpg-mobile-overlay"></div>');
 
     // DIAGNOSTIC: Check if elements exist and log setup state
-    console.log('[RPG Mobile] ========================================');
-    console.log('[RPG Mobile] setupMobileToggle called');
-    console.log('[RPG Mobile] Button exists:', $mobileToggle.length > 0, 'jQuery object:', $mobileToggle);
-    console.log('[RPG Mobile] Panel exists:', $panel.length > 0);
-    console.log('[RPG Mobile] Window width:', window.innerWidth);
-    console.log('[RPG Mobile] Is mobile viewport (<=1000):', window.innerWidth <= 1000);
-    console.log('[RPG Mobile] ========================================');
+    // console.log('[RPG Mobile] ========================================');
+    // console.log('[RPG Mobile] setupMobileToggle called');
+    // console.log('[RPG Mobile] Button exists:', $mobileToggle.length > 0, 'jQuery object:', $mobileToggle);
+    // console.log('[RPG Mobile] Panel exists:', $panel.length > 0);
+    // console.log('[RPG Mobile] Window width:', window.innerWidth);
+    // console.log('[RPG Mobile] Is mobile viewport (<=1000):', window.innerWidth <= 1000);
+    // console.log('[RPG Mobile] ========================================');
 
     if ($mobileToggle.length === 0) {
         console.error('[RPG Mobile] ERROR: Mobile toggle button not found in DOM!');
@@ -72,7 +72,7 @@ export function setupMobileToggle() {
     // Load and apply saved FAB position
     if (extensionSettings.mobileFabPosition) {
         const pos = extensionSettings.mobileFabPosition;
-        console.log('[RPG Mobile] Loading saved FAB position:', pos);
+        // console.log('[RPG Mobile] Loading saved FAB position:', pos);
 
         // Apply saved position
         if (pos.top) $mobileToggle.css('top', pos.top);
@@ -250,7 +250,7 @@ export function setupMobileToggle() {
             extensionSettings.mobileFabPosition = newPosition;
             saveSettings();
 
-            console.log('[RPG Mobile] Saved new FAB position (mouse):', newPosition);
+            // console.log('[RPG Mobile] Saved new FAB position (mouse):', newPosition);
 
             // Constrain to viewport bounds (now that position is saved)
             setTimeout(() => constrainFabToViewport(), 10);
@@ -291,7 +291,7 @@ export function setupMobileToggle() {
             extensionSettings.mobileFabPosition = newPosition;
             saveSettings();
 
-            console.log('[RPG Mobile] Saved new FAB position:', newPosition);
+            // console.log('[RPG Mobile] Saved new FAB position:', newPosition);
 
             // Constrain to viewport bounds (now that position is saved)
             setTimeout(() => constrainFabToViewport(), 10);
@@ -304,7 +304,7 @@ export function setupMobileToggle() {
             isDragging = false;
         } else {
             // Was a tap - toggle panel
-            console.log('[RPG Mobile] Quick tap detected - toggling panel');
+            // console.log('[RPG Mobile] Quick tap detected - toggling panel');
 
             if ($panel.hasClass('rpg-mobile-open')) {
                 // Close panel with animation
@@ -327,28 +327,28 @@ export function setupMobileToggle() {
     $mobileToggle.on('click', function(e) {
         // Skip if we just finished dragging
         if ($mobileToggle.data('just-dragged')) {
-            console.log('[RPG Mobile] Click blocked - just finished dragging');
+            // console.log('[RPG Mobile] Click blocked - just finished dragging');
             return;
         }
 
-        console.log('[RPG Mobile] >>> CLICK EVENT FIRED <<<', {
-            windowWidth: window.innerWidth,
-            isMobileViewport: window.innerWidth <= 1000,
-            panelOpen: $panel.hasClass('rpg-mobile-open')
-        });
+        // console.log('[RPG Mobile] >>> CLICK EVENT FIRED <<<', {
+        //     windowWidth: window.innerWidth,
+        //     isMobileViewport: window.innerWidth <= 1000,
+        //     panelOpen: $panel.hasClass('rpg-mobile-open')
+        // });
 
         // Work on both mobile and desktop (removed viewport check)
         if ($panel.hasClass('rpg-mobile-open')) {
-            console.log('[RPG Mobile] Click: Closing panel');
+            // console.log('[RPG Mobile] Click: Closing panel');
             closeMobilePanelWithAnimation();
         } else {
-            console.log('[RPG Mobile] Click: Opening panel');
+            // console.log('[RPG Mobile] Click: Opening panel');
             $panel.addClass('rpg-mobile-open');
             $('body').append($overlay);
             $mobileToggle.addClass('active');
 
             $overlay.on('click', function() {
-                console.log('[RPG Mobile] Overlay clicked - closing panel');
+                // console.log('[RPG Mobile] Overlay clicked - closing panel');
                 closeMobilePanelWithAnimation();
             });
         }
@@ -367,7 +367,7 @@ export function setupMobileToggle() {
 
         // Transitioning from desktop to mobile - handle immediately for smooth transition
         if (!wasMobile && isMobile) {
-            console.log('[RPG Mobile] Transitioning desktop -> mobile');
+            // console.log('[RPG Mobile] Transitioning desktop -> mobile');
 
             // Show mobile toggle button
             $mobileToggle.show();
@@ -391,16 +391,16 @@ export function setupMobileToggle() {
             // Clear any inline styles that might be overriding CSS
             $panel.attr('style', '');
 
-            console.log('[RPG Mobile] After cleanup:', {
-                panelClasses: $panel.attr('class'),
-                inlineStyles: $panel.attr('style'),
-                panelPosition: {
-                    top: $panel.css('top'),
-                    bottom: $panel.css('bottom'),
-                    transform: $panel.css('transform'),
-                    visibility: $panel.css('visibility')
-                }
-            });
+            // console.log('[RPG Mobile] After cleanup:', {
+            //     panelClasses: $panel.attr('class'),
+            //     inlineStyles: $panel.attr('style'),
+            //     panelPosition: {
+            //         top: $panel.css('top'),
+            //         bottom: $panel.css('bottom'),
+            //         transform: $panel.css('transform'),
+            //         visibility: $panel.css('visibility')
+            //     }
+            // });
 
             // Set up mobile tabs IMMEDIATELY (no debounce delay)
             setupMobileTabs();
@@ -462,17 +462,14 @@ export function setupMobileToggle() {
         // Clear any inline styles
         $panel.attr('style', '');
 
-        console.log('[RPG Mobile] Initial load on mobile viewport:', {
-            panelClasses: $panel.attr('class'),
-            inlineStyles: $panel.attr('style'),
-            panelPosition: {
-                top: $panel.css('top'),
-                bottom: $panel.css('top'),
-                transform: $panel.css('transform'),
-                visibility: $panel.css('visibility')
-            }
-        });
-        setupMobileTabs();
+        // console.log('[RPG Mobile] Initial load on mobile viewport:', {
+        //     panelClasses: $panel.attr('class'),
+        //     inlineStyles: $panel.attr('style'),
+        //     panelPosition: {
+        //         top: $panel.css('top'),
+        //         bottom: $panel.css('top'),
+        //         transform: $panel.css('transform'),
+        //         visibility: $panel.css('visibility')\n        //     }\n        // });\n        setupMobileTabs();
         // Set initial icon for mobile
         updateCollapseToggleIcon();
         // Show mobile toggle on mobile viewport
@@ -491,7 +488,7 @@ export function setupMobileToggle() {
 export function constrainFabToViewport() {
     // Only constrain if user has set a custom position
     if (!extensionSettings.mobileFabPosition) {
-        console.log('[RPG Mobile] Skipping viewport constraint - using CSS defaults');
+        // console.log('[RPG Mobile] Skipping viewport constraint - using CSS defaults');
         return;
     }
 
@@ -500,7 +497,7 @@ export function constrainFabToViewport() {
 
     // Skip if button is not visible
     if (!$mobileToggle.is(':visible')) {
-        console.log('[RPG Mobile] Skipping viewport constraint - button not visible');
+        // console.log('[RPG Mobile] Skipping viewport constraint - button not visible');
         return;
     }
 
@@ -530,12 +527,12 @@ export function constrainFabToViewport() {
 
     // Only update if position changed
     if (newX !== currentX || newY !== currentY) {
-        console.log('[RPG Mobile] Constraining FAB to viewport:', {
-            old: { x: currentX, y: currentY },
-            new: { x: newX, y: newY },
-            viewport: { width: window.innerWidth, height: window.innerHeight },
-            topBarHeight
-        });
+        // console.log('[RPG Mobile] Constraining FAB to viewport:', {
+        //     old: { x: currentX, y: currentY },
+        //     new: { x: newX, y: newY },
+        //     viewport: { width: window.innerWidth, height: window.innerHeight },
+        //     topBarHeight
+        // });
 
         // Apply new position
         $mobileToggle.css({
@@ -816,12 +813,12 @@ export function setupRefreshButtonDrag() {
         return;
     }
 
-    console.log('[RPG Mobile] setupRefreshButtonDrag called');
+    // console.log('[RPG Mobile] setupRefreshButtonDrag called');
 
     // Load and apply saved position
     if (extensionSettings.mobileRefreshPosition) {
         const pos = extensionSettings.mobileRefreshPosition;
-        console.log('[RPG Mobile] Loading saved refresh button position:', pos);
+        // console.log('[RPG Mobile] Loading saved refresh button position:', pos);
 
         // Apply saved position
         if (pos.top) $refreshBtn.css('top', pos.top);
@@ -1031,12 +1028,12 @@ export function setupDebugButtonDrag() {
         return;
     }
 
-    console.log('[RPG Mobile] setupDebugButtonDrag called');
+    // console.log('[RPG Mobile] setupDebugButtonDrag called');
 
     // Load and apply saved position
     if (extensionSettings.debugFabPosition) {
         const pos = extensionSettings.debugFabPosition;
-        console.log('[RPG Mobile] Loading saved debug button position:', pos);
+        // console.log('[RPG Mobile] Loading saved debug button position:', pos);
 
         // Apply saved position
         if (pos.top) $debugBtn.css('top', pos.top);

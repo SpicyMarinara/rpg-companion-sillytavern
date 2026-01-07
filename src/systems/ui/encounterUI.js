@@ -1001,7 +1001,7 @@ export class EncounterModal {
                         { clearChatInput: false }
                     );
 
-                    console.log(`[RPG Companion] Added combat summary to chat as "${speakerName}"`);
+                    // console.log(`[RPG Companion] Added combat summary to chat as "${speakerName}"`);
 
                     // Update combat over screen
                     this.updateCombatOverScreen(true, speakerName);
@@ -1259,7 +1259,7 @@ export class EncounterModal {
             return;
         }
 
-        console.log('[RPG Companion] Regenerating request:', this.lastRequest.type);
+        // console.log('[RPG Companion] Regenerating request:', this.lastRequest.type);
 
         if (this.lastRequest.type === 'init') {
             // Retry initialization
@@ -1327,7 +1327,7 @@ export class EncounterModal {
             return;
         }
 
-        console.log('[RPG Companion] Regenerating request:', this.lastRequest.type);
+        // console.log('[RPG Companion] Regenerating request:', this.lastRequest.type);
 
         if (this.lastRequest.type === 'init') {
             // Retry initialization
@@ -1369,7 +1369,7 @@ export class EncounterModal {
             this.modal.setAttribute('data-weather', weather.toLowerCase());
         }
 
-        console.log('[RPG Companion] Applied environment styling:', styleNotes);
+        // console.log('[RPG Companion] Applied environment styling:', styleNotes);
     }
 
     /**

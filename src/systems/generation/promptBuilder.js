@@ -85,7 +85,7 @@ async function getCharacterCardsInfo() {
 
             // Filter out disabled (muted) members
             const disabledMembers = group?.disabled_members || [];
-            console.log('[RPG Companion] 🔍 Group ID:', selected_group, '| Disabled members:', disabledMembers);
+            // console.log('[RPG Companion] 🔍 Group ID:', selected_group, '| Disabled members:', disabledMembers);
             let characterIndex = 0;
 
             groupMembers.forEach((member) => {
@@ -93,7 +93,7 @@ async function getCharacterCardsInfo() {
 
                 // Skip muted characters - check against avatar filename
                 if (member.avatar && disabledMembers.includes(member.avatar)) {
-                    console.log(`[RPG Companion] ❌ Skipping muted: ${member.name} (${member.avatar})`);
+                    // console.log(`[RPG Companion] ❌ Skipping muted: ${member.name} (${member.avatar})`);
                     return;
                 }
 
@@ -236,16 +236,16 @@ export function generateTrackerExample() {
     // Build unified JSON structure with proper wrapper keys
     const parts = [];
 
-    console.log('[RPG Companion] generateTrackerExample - enabled modules:', {
-        showUserStats: extensionSettings.showUserStats,
-        showInfoBox: extensionSettings.showInfoBox,
-        showCharacterThoughts: extensionSettings.showCharacterThoughts
-    });
-    console.log('[RPG Companion] generateTrackerExample - committed data:', {
-        hasUserStats: !!committedTrackerData.userStats,
-        hasInfoBox: !!committedTrackerData.infoBox,
-        hasCharacterThoughts: !!committedTrackerData.characterThoughts
-    });
+    // console.log('[RPG Companion] generateTrackerExample - enabled modules:', {
+    //     showUserStats: extensionSettings.showUserStats,
+    //     showInfoBox: extensionSettings.showInfoBox,
+    //     showCharacterThoughts: extensionSettings.showCharacterThoughts
+    // // });
+    // console.log('[RPG Companion] generateTrackerExample - committed data:', {
+    //     hasUserStats: !!committedTrackerData.userStats,
+    //     hasInfoBox: !!committedTrackerData.infoBox,
+    //     hasCharacterThoughts: !!committedTrackerData.characterThoughts
+    // });
 
     if (extensionSettings.showUserStats && committedTrackerData.userStats) {
         // Try to parse as JSON first, otherwise treat as text
@@ -285,7 +285,7 @@ export function generateTrackerExample() {
         example = '{\n' + parts.join(',\n') + '\n}';
     }
 
-    console.log('[RPG Companion] generateTrackerExample - result length:', example.length, 'parts:', parts.length);
+    // console.log('[RPG Companion] generateTrackerExample - result length:', example.length, 'parts:', parts.length);
 
     return example.trim();
 }

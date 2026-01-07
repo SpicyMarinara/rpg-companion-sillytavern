@@ -63,7 +63,7 @@ export async function ensureHtmlCleaningRegex(st_extension_settings, saveSetting
         );
 
         if (alreadyExists) {
-            console.log('[RPG Companion] HTML cleaning regex already exists, skipping import');
+            // console.log('[RPG Companion] HTML cleaning regex already exists, skipping import');
             return;
         }
 
@@ -107,7 +107,7 @@ export async function ensureHtmlCleaningRegex(st_extension_settings, saveSetting
             console.warn('[RPG Companion] saveSettingsDebounced is not a function, cannot save HTML regex');
         }
 
-        console.log('[RPG Companion] ✅ HTML cleaning regex imported successfully');
+        // console.log('[RPG Companion] ✅ HTML cleaning regex imported successfully');
     } catch (error) {
         console.error('[RPG Companion] Failed to import HTML cleaning regex:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);
@@ -145,7 +145,7 @@ export async function ensureTrackerCleaningRegex(st_extension_settings, saveSett
         );
 
         if (alreadyExists) {
-            console.log('[RPG Companion] Tracker cleaning regex already exists, skipping import');
+            // console.log('[RPG Companion] Tracker cleaning regex already exists, skipping import');
             return;
         }
 
@@ -190,7 +190,7 @@ export async function ensureTrackerCleaningRegex(st_extension_settings, saveSett
             console.warn('[RPG Companion] saveSettingsDebounced is not a function, cannot save tracker cleaning regex');
         }
 
-        console.log('[RPG Companion] ✅ Tracker cleaning regex imported successfully');
+        // console.log('[RPG Companion] ✅ Tracker cleaning regex imported successfully');
     } catch (error) {
         console.error('[RPG Companion] Failed to import tracker cleaning regex:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);

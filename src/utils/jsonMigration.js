@@ -357,7 +357,7 @@ export function migrateCharactersToJSON(textData) {
  * @returns {Promise<void>}
  */
 export async function migrateToV3JSON() {
-    console.log('[RPG Migration] Starting migration to v3 JSON format...');
+    // console.log('[RPG Migration] Starting migration to v3 JSON format...');
 
     const migrated = {
         userStats: null,
@@ -367,28 +367,28 @@ export async function migrateToV3JSON() {
 
     // Migrate User Stats
     if (committedTrackerData.userStats && typeof committedTrackerData.userStats === 'string') {
-        console.log('[RPG Migration] Migrating User Stats...');
+        // console.log('[RPG Migration] Migrating User Stats...');
         migrated.userStats = migrateUserStatsToJSON(committedTrackerData.userStats);
         if (migrated.userStats) {
-            console.log('[RPG Migration] ✓ User Stats migrated');
+            // console.log('[RPG Migration] ✓ User Stats migrated');
         }
     }
 
     // Migrate Info Box
     if (committedTrackerData.infoBox && typeof committedTrackerData.infoBox === 'string') {
-        console.log('[RPG Migration] Migrating Info Box...');
+        // console.log('[RPG Migration] Migrating Info Box...');
         migrated.infoBox = migrateInfoBoxToJSON(committedTrackerData.infoBox);
         if (migrated.infoBox) {
-            console.log('[RPG Migration] ✓ Info Box migrated');
+            // console.log('[RPG Migration] ✓ Info Box migrated');
         }
     }
 
     // Migrate Present Characters
     if (committedTrackerData.characterThoughts && typeof committedTrackerData.characterThoughts === 'string') {
-        console.log('[RPG Migration] Migrating Present Characters...');
+        // console.log('[RPG Migration] Migrating Present Characters...');
         migrated.characterThoughts = migrateCharactersToJSON(committedTrackerData.characterThoughts);
         if (migrated.characterThoughts) {
-            console.log('[RPG Migration] ✓ Present Characters migrated');
+            // console.log('[RPG Migration] ✓ Present Characters migrated');
         }
     }
 
@@ -397,7 +397,7 @@ export async function migrateToV3JSON() {
 
     // Initialize lockedItems if not present
     if (!extensionSettings.lockedItems) {
-        console.log('[RPG Migration] Initializing lockedItems structure...');
+        // console.log('[RPG Migration] Initializing lockedItems structure...');
         updateExtensionSettings({
             lockedItems: {
                 stats: [],
@@ -429,5 +429,5 @@ export async function migrateToV3JSON() {
     await saveChatData();
     await saveSettings();
 
-    console.log('[RPG Migration] ✅ Migration to v3 JSON format complete');
+    // console.log('[RPG Migration] ✅ Migration to v3 JSON format complete');
 }

@@ -355,7 +355,7 @@ export function setupSettingsPopup() {
 
     // Clear cache button
     $('#rpg-clear-cache').on('click', function() {
-        console.log('[RPG Companion] Clear Cache button clicked');
+        // console.log('[RPG Companion] Clear Cache button clicked');
 
         // Clear the data (set to null so panels show "not generated yet")
         lastGeneratedData.userStats = null;
@@ -375,7 +375,7 @@ export function setupSettingsPopup() {
         const context = getContext();
         if (context.chat_metadata && context.chat_metadata.rpg_companion) {
             delete context.chat_metadata.rpg_companion;
-            console.log('[RPG Companion] Cleared chat_metadata.rpg_companion for current chat');
+            // console.log('[RPG Companion] Cleared chat_metadata.rpg_companion for current chat');
         }
 
         // Clear all message swipe data
@@ -495,7 +495,7 @@ export function setupSettingsPopup() {
         renderInventory();
         renderQuests();
 
-        console.log('[RPG Companion] Cache cleared successfully');
+        // console.log('[RPG Companion] Cache cleared successfully');
     });
 
     return settingsModal;

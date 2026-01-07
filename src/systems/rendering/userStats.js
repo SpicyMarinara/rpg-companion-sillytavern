@@ -181,12 +181,12 @@ export function renderUserStats() {
 
     // Don't render if no data exists (e.g., after cache clear)
     // Check both lastGeneratedData and committedTrackerData
-    console.log('[RPG UserStats Render] Checking data:', {
-        hasLastGenerated: !!lastGeneratedData.userStats,
-        hasCommitted: !!committedTrackerData.userStats,
-        lastGeneratedPreview: lastGeneratedData.userStats ? lastGeneratedData.userStats.substring(0, 100) : 'null',
-        committedPreview: committedTrackerData.userStats ? committedTrackerData.userStats.substring(0, 100) : 'null'
-    });
+    // console.log('[RPG UserStats Render] Checking data:', {
+    //     hasLastGenerated: !!lastGeneratedData.userStats,
+    //     hasCommitted: !!committedTrackerData.userStats,
+    //     lastGeneratedPreview: lastGeneratedData.userStats ? lastGeneratedData.userStats.substring(0, 100) : 'null',
+    //     committedPreview: committedTrackerData.userStats ? committedTrackerData.userStats.substring(0, 100) : 'null'
+    // });
 
     if (!lastGeneratedData.userStats && !committedTrackerData.userStats) {
         // Always render to the #rpg-user-stats container (mobile layout just moves it around in DOM)
@@ -200,15 +200,15 @@ export function renderUserStats() {
     }
 
     const stats = extensionSettings.userStats;
-    console.log('[RPG UserStats Render] Current extensionSettings.userStats:', {
-        health: stats.health,
-        satiety: stats.satiety,
-        energy: stats.energy,
-        hygiene: stats.hygiene,
-        arousal: stats.arousal,
-        mood: stats.mood,
-        conditions: stats.conditions
-    });
+    // console.log('[RPG UserStats Render] Current extensionSettings.userStats:', {
+    //     health: stats.health,
+    //     satiety: stats.satiety,
+    //     energy: stats.energy,
+    //     hygiene: stats.hygiene,
+    //     arousal: stats.arousal,
+    //     mood: stats.mood,
+    //     conditions: stats.conditions
+    // });
     const config = extensionSettings.trackerConfig?.userStats || {
         customStats: [
             { id: 'health', name: 'Health', enabled: true },
@@ -394,13 +394,13 @@ export function renderUserStats() {
 
     html += '</div>'; // Close rpg-stats-content
 
-    console.log('[RPG UserStats Render] Generated HTML length:', html.length);
-    console.log('[RPG UserStats Render] HTML preview:', html.substring(0, 300));
-    console.log('[RPG UserStats Render] Container exists:', !!$userStatsContainer, '$userStatsContainer length:', $userStatsContainer?.length);
+    // console.log('[RPG UserStats Render] Generated HTML length:', html.length);
+    // console.log('[RPG UserStats Render] HTML preview:', html.substring(0, 300));
+    // console.log('[RPG UserStats Render] Container exists:', !!$userStatsContainer, '$userStatsContainer length:', $userStatsContainer?.length);
 
     // Always render to the #rpg-user-stats container (mobile layout just moves it around in DOM)
     $userStatsContainer.html(html);
-    console.log('[RPG UserStats Render] ✓ HTML rendered to #rpg-user-stats container');
+    // console.log('[RPG UserStats Render] ✓ HTML rendered to #rpg-user-stats container');
 
     // Add event listeners for editable stat values
     $('.rpg-editable-stat').on('blur', function() {

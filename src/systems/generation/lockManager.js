@@ -214,9 +214,9 @@ function applyInfoBoxLocks(data, lockedItems) {
  * @returns {string} JSON string with locks applied
  */
 function applyCharactersLocks(data, lockedItems) {
-    console.log('[Lock Manager] applyCharactersLocks called');
-    console.log('[Lock Manager] Locked items:', JSON.stringify(lockedItems, null, 2));
-    console.log('[Lock Manager] Input data:', JSON.stringify(data, null, 2));
+    // console.log('[Lock Manager] applyCharactersLocks called');
+    // console.log('[Lock Manager] Locked items:', JSON.stringify(lockedItems, null, 2));
+    // console.log('[Lock Manager] Input data:', JSON.stringify(data, null, 2));
 
     // Handle both array format and object format
     let characters = Array.isArray(data) ? data : (data.characters || []);
@@ -226,7 +226,7 @@ function applyCharactersLocks(data, lockedItems) {
 
         // Check if entire character is locked (index-based)
         if (lockedItems[index] === true) {
-            console.log('[Lock Manager] Locking entire character by index:', index);
+            // console.log('[Lock Manager] Locking entire character by index:', index);
             return { ...char, locked: true };
         }
 
@@ -235,7 +235,7 @@ function applyCharactersLocks(data, lockedItems) {
 
         if (charLocks === true) {
             // Entire character is locked
-            console.log('[Lock Manager] Locking entire character:', charName);
+            // console.log('[Lock Manager] Locking entire character:', charName);
             return { ...char, locked: true };
         } else if (charLocks && typeof charLocks === 'object') {
             // Character has field-level locks
@@ -255,14 +255,14 @@ function applyCharactersLocks(data, lockedItems) {
 
                     // Check at root level first (backward compatibility)
                     if (modifiedChar[fieldName] !== undefined) {
-                        console.log('[Lock Manager] Applying lock to field:', `${charName}.${fieldName}`);
+                        // console.log('[Lock Manager] Applying lock to field:', `${charName}.${fieldName}`);
                         modifiedChar[fieldName] = {
                             value: modifiedChar[fieldName],
                             locked: true
                         };
                         locked = true;
                     } else if (modifiedChar[snakeCaseFieldName] !== undefined) {
-                        console.log('[Lock Manager] Applying lock to snake_case field:', `${charName}.${snakeCaseFieldName} (from ${fieldName})`);
+                        // console.log('[Lock Manager] Applying lock to snake_case field:', `${charName}.${snakeCaseFieldName} (from ${fieldName})`);
                         modifiedChar[snakeCaseFieldName] = {
                             value: modifiedChar[snakeCaseFieldName],
                             locked: true
@@ -273,7 +273,7 @@ function applyCharactersLocks(data, lockedItems) {
                     // Check in nested objects (details, relationship, thoughts)
                     if (!locked && modifiedChar.details) {
                         if (modifiedChar.details[fieldName] !== undefined) {
-                            console.log('[Lock Manager] Applying lock to details field:', `${charName}.details.${fieldName}`);
+                            // console.log('[Lock Manager] Applying lock to details field:', `${charName}.details.${fieldName}`);
                             if (!modifiedChar.details || typeof modifiedChar.details !== 'object') {
                                 modifiedChar.details = {};
                             } else {
@@ -285,7 +285,7 @@ function applyCharactersLocks(data, lockedItems) {
                             };
                             locked = true;
                         } else if (modifiedChar.details[snakeCaseFieldName] !== undefined) {
-                            console.log('[Lock Manager] Applying lock to details snake_case field:', `${charName}.details.${snakeCaseFieldName} (from ${fieldName})`);
+                            // console.log('[Lock Manager] Applying lock to details snake_case field:', `${charName}.details.${snakeCaseFieldName} (from ${fieldName})`);
                             if (!modifiedChar.details || typeof modifiedChar.details !== 'object') {
                                 modifiedChar.details = {};
                             } else {
@@ -302,7 +302,7 @@ function applyCharactersLocks(data, lockedItems) {
                     // Check in relationship object
                     if (!locked && modifiedChar.relationship) {
                         if (modifiedChar.relationship[fieldName] !== undefined) {
-                            console.log('[Lock Manager] Applying lock to relationship field:', `${charName}.relationship.${fieldName}`);
+                            // console.log('[Lock Manager] Applying lock to relationship field:', `${charName}.relationship.${fieldName}`);
                             modifiedChar.relationship = { ...modifiedChar.relationship };
                             modifiedChar.relationship[fieldName] = {
                                 value: modifiedChar.relationship[fieldName],
@@ -310,7 +310,7 @@ function applyCharactersLocks(data, lockedItems) {
                             };
                             locked = true;
                         } else if (modifiedChar.relationship[snakeCaseFieldName] !== undefined) {
-                            console.log('[Lock Manager] Applying lock to relationship snake_case field:', `${charName}.relationship.${snakeCaseFieldName} (from ${fieldName})`);
+                            // console.log('[Lock Manager] Applying lock to relationship snake_case field:', `${charName}.relationship.${snakeCaseFieldName} (from ${fieldName})`);
                             modifiedChar.relationship = { ...modifiedChar.relationship };
                             modifiedChar.relationship[snakeCaseFieldName] = {
                                 value: modifiedChar.relationship[snakeCaseFieldName],
@@ -323,7 +323,7 @@ function applyCharactersLocks(data, lockedItems) {
                     // Check in thoughts object
                     if (!locked && modifiedChar.thoughts) {
                         if (modifiedChar.thoughts[fieldName] !== undefined) {
-                            console.log('[Lock Manager] Applying lock to thoughts field:', `${charName}.thoughts.${fieldName}`);
+                            // console.log('[Lock Manager] Applying lock to thoughts field:', `${charName}.thoughts.${fieldName}`);
                             modifiedChar.thoughts = { ...modifiedChar.thoughts };
                             modifiedChar.thoughts[fieldName] = {
                                 value: modifiedChar.thoughts[fieldName],
@@ -331,7 +331,7 @@ function applyCharactersLocks(data, lockedItems) {
                             };
                             locked = true;
                         } else if (modifiedChar.thoughts[snakeCaseFieldName] !== undefined) {
-                            console.log('[Lock Manager] Applying lock to thoughts snake_case field:', `${charName}.thoughts.${snakeCaseFieldName} (from ${fieldName})`);
+                            // console.log('[Lock Manager] Applying lock to thoughts snake_case field:', `${charName}.thoughts.${snakeCaseFieldName} (from ${fieldName})`);
                             modifiedChar.thoughts = { ...modifiedChar.thoughts };
                             modifiedChar.thoughts[snakeCaseFieldName] = {
                                 value: modifiedChar.thoughts[snakeCaseFieldName],
@@ -354,7 +354,7 @@ function applyCharactersLocks(data, lockedItems) {
         ? JSON.stringify(characters, null, 2)
         : JSON.stringify({ ...data, characters }, null, 2);
 
-    console.log('[Lock Manager] Output data:', result);
+    // console.log('[Lock Manager] Output data:', result);
     return result;
 }
 
@@ -429,7 +429,7 @@ export function isItemLocked(trackerType, itemPath) {
  * @param {boolean} locked - New lock state
  */
 export function setItemLock(trackerType, itemPath, locked) {
-    console.log('[Lock Manager] setItemLock called:', { trackerType, itemPath, locked });
+    // console.log('[Lock Manager] setItemLock called:', { trackerType, itemPath, locked });
 
     if (!extensionSettings.lockedItems) {
         extensionSettings.lockedItems = {};
@@ -459,5 +459,5 @@ export function setItemLock(trackerType, itemPath, locked) {
         delete current[finalKey];
     }
 
-    console.log('[Lock Manager] Locked items after set:', JSON.stringify(extensionSettings.lockedItems, null, 2));
+    // console.log('[Lock Manager] Locked items after set:', JSON.stringify(extensionSettings.lockedItems, null, 2));
 }

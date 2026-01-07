@@ -21,6 +21,7 @@ import {
     $musicPlayerContainer
 } from '../../core/state.js';
 import { saveChatData, loadChatData } from '../../core/persistence.js';
+import { i18n } from '../../core/i18n.js';
 
 // Generation & Parsing
 import { parseResponse, parseUserStats } from '../generation/parser.js';
@@ -88,7 +89,7 @@ export function commitTrackerData() {
 export function onMessageSent() {
     if (!extensionSettings.enabled) return;
 
-    console.log('[RPG Companion] 🟢 EVENT: onMessageSent - lastActionWasSwipe =', lastActionWasSwipe);
+    // console.log('[RPG Companion] 🟢 EVENT: onMessageSent - lastActionWasSwipe =', lastActionWasSwipe);
 
     // Check if this is a streaming placeholder message (content = "...")
     // When streaming is on, ST sends a "..." placeholder before generation starts
@@ -97,12 +98,12 @@ export function onMessageSent() {
     const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
 
     if (lastMessage && lastMessage.mes === '...') {
-        console.log('[RPG Companion] 🟢 Ignoring onMessageSent: streaming placeholder message');
+        // console.log('[RPG Companion] 🟢 Ignoring onMessageSent: streaming placeholder message');
         return;
     }
 
-    console.log('[RPG Companion] 🟢 EVENT: onMessageSent (after placeholder check)');
-    console.log('[RPG Companion] 🟢 NOTE: lastActionWasSwipe will be reset in onMessageReceived after generation completes');
+    // console.log('[RPG Companion] 🟢 EVENT: onMessageSent (after placeholder check)');
+    // console.log('[RPG Companion] 🟢 NOTE: lastActionWasSwipe will be reset in onMessageReceived after generation completes');
 
     // For separate mode with auto-update disabled, commit displayed tracker
     if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
@@ -111,7 +112,7 @@ export function onMessageSent() {
             committedTrackerData.infoBox = lastGeneratedData.infoBox;
             committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
 
-            console.log('[RPG Companion] 💾 SEPARATE MODE: Committed displayed tracker (auto-update disabled)');
+            // console.log('[RPG Companion] 💾 SEPARATE MODE: Committed displayed tracker (auto-update disabled)');
         }
     }
 }
@@ -120,7 +121,7 @@ export function onMessageSent() {
  * Event handler for when a message is generated.
  */
 export async function onMessageReceived(data) {
-    console.log('[RPG Companion] onMessageReceived called, lastActionWasSwipe:', lastActionWasSwipe);
+    // console.log('[RPG Companion] onMessageReceived called, lastActionWasSwipe:', lastActionWasSwipe);
 
     if (!extensionSettings.enabled) {
         return;
@@ -129,7 +130,7 @@ export async function onMessageReceived(data) {
     // Reset swipe flag after generation completes
     // This ensures next user message (whether from original or swipe) triggers commit
     setLastActionWasSwipe(false);
-    console.log('[RPG Companion] 🟢 Reset lastActionWasSwipe = false (generation completed)');
+    // console.log('[RPG Companion] 🟢 Reset lastActionWasSwipe = false (generation completed)');
 
     if (extensionSettings.generationMode === 'together') {
         // In together mode, parse the response to extract RPG data
@@ -138,6 +139,11 @@ export async function onMessageReceived(data) {
         if (lastMessage && !lastMessage.is_user) {
             const responseText = lastMessage.mes;
             const parsedData = parseResponse(responseText);
+
+            // Check if parsing completely failed (no tracker data found)
+            if (parsedData.parsingFailed) {
+                toastr.error(i18n.getTranslation('errors.parsingError'), '', { timeOut: 5000 });
+            }
 
             // Remove locks from parsed data (JSON format only, text format is unaffected)
             if (parsedData.userStats) {
@@ -154,7 +160,7 @@ export async function onMessageReceived(data) {
             parseAndStoreSpotifyUrl(responseText);
 
             // Update display data with newly parsed response
-            console.log('[RPG Companion] 📝 TOGETHER MODE: Updating lastGeneratedData with parsed response');
+            // console.log('[RPG Companion] 📝 TOGETHER MODE: Updating lastGeneratedData with parsed response');
             if (parsedData.userStats) {
                 lastGeneratedData.userStats = parsedData.userStats;
                 parseUserStats(parsedData.userStats);
@@ -227,8 +233,8 @@ export async function onMessageReceived(data) {
             // Save to chat metadata
             saveChatData();
         }
-    } else if (extensionSettings.generationMode === 'separate') {
-        // In separate mode, also parse Spotify URLs from the main roleplay response
+    } else if (extensionSettings.generationMode === 'separate' || extensionSettings.generationMode === 'external') {
+        // In separate/external mode, also parse Spotify URLs from the main roleplay response
         const lastMessage = chat[chat.length - 1];
         if (lastMessage && !lastMessage.is_user) {
             const responseText = lastMessage.mes;
@@ -243,7 +249,7 @@ export async function onMessageReceived(data) {
             }
         }
 
-        // Trigger auto-update if enabled
+        // Trigger auto-update if enabled (for both separate and external modes)
         if (extensionSettings.autoUpdate) {
             setTimeout(async () => {
                 await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
@@ -313,12 +319,12 @@ export function onMessageSwiped(messageIndex) {
         return;
     }
 
-    console.log('[RPG Companion] 🔵 EVENT: onMessageSwiped at index:', messageIndex);
+    // console.log('[RPG Companion] 🔵 EVENT: onMessageSwiped at index:', messageIndex);
 
     // Get the message that was swiped
     const message = chat[messageIndex];
     if (!message || message.is_user) {
-        console.log('[RPG Companion] 🔵 Ignoring swipe - message is user or undefined');
+        // console.log('[RPG Companion] 🔵 Ignoring swipe - message is user or undefined');
         return;
     }
 
@@ -334,10 +340,10 @@ export function onMessageSwiped(messageIndex) {
     if (!isExistingSwipe) {
         // This is a NEW swipe that will trigger generation
         setLastActionWasSwipe(true);
-        console.log('[RPG Companion] 🔵 NEW swipe detected - Set lastActionWasSwipe = true');
+        // console.log('[RPG Companion] 🔵 NEW swipe detected - Set lastActionWasSwipe = true');
     } else {
         // This is navigating to an EXISTING swipe - don't change the flag
-        console.log('[RPG Companion] 🔵 EXISTING swipe navigation - lastActionWasSwipe unchanged =', lastActionWasSwipe);
+        // console.log('[RPG Companion] 🔵 EXISTING swipe navigation - lastActionWasSwipe unchanged =', lastActionWasSwipe);
     }
 
     // console.log('[RPG Companion] Loading data for swipe', currentSwipeId);
@@ -358,9 +364,9 @@ export function onMessageSwiped(messageIndex) {
             parseUserStats(swipeData.userStats);
         }
 
-        console.log('[RPG Companion] 🔄 Loaded swipe data into lastGeneratedData for display:', currentSwipeId);
+        // console.log('[RPG Companion] 🔄 Loaded swipe data into lastGeneratedData for display:', currentSwipeId);
     } else {
-        console.log('[RPG Companion] ℹ️ No stored data for swipe:', currentSwipeId);
+        // console.log('[RPG Companion] ℹ️ No stored data for swipe:', currentSwipeId);
     }
 
     // Re-render the panels
@@ -428,7 +434,7 @@ export function clearExtensionPrompts() {
  * Re-applies checkpoint if SillyTavern unhid messages
  */
 export async function onGenerationEnded() {
-    console.log('[RPG Companion] 🏁 onGenerationEnded called');
+    // console.log('[RPG Companion] 🏁 onGenerationEnded called');
 
     // Note: isGenerating flag is cleared in onMessageReceived after parsing (together mode)
     // or in apiClient.js after separate generation completes (separate mode)

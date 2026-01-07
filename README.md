@@ -7,34 +7,20 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
+### v3.1.0
+
+- Added toastr notification when the model returns an incorrect tracker format that cannot be parsed.
+- Added guidance in settings about which models work best with the extension (I'm tired of people asking me why this doesn't work with their Q4 MythoMax 13B).
+- Fixed auto-update after messages to work with External API generation mode.
+- Fixed mobile UI.
+- Fixed a minor bug with the thought bubble icon appearing in the wrong place on mobiles.
+
 ### v3.0.1
 
 - Small bug fix where you couldn't edit the thought bubble.
 
-### v3.0.0
-
-**What's new?**
-- Switched to the JSON format for the trackers.
-- You can now lock/unlock trackers that you don't want the model to change between generations.
-- Removed features that were half-baked or didn't work.
-- Organized Settings and Edit Trackers windows.
-- All features of the extension are now accessible from the main panel view.
-- Added Colored Dialogues option that makes the model color dialogue lines differently depending on the speaker.
-- Introduced Dynamic Weather Effects that add visual effects to your SillyTavern window depending on the current weather from the trackers.
-- All prompts used for the extension's features are now editable.
-- Made the user's level optional in the Edit Trackers.
-
-**Bug Fixes:**
-- Fixed tracker logic in Together generation mode.
-- Fixed various UI bugs (too many to count).
-- Upgraded mobile view.
-- Spotify Music widget is more visible now, plus it works in the mobile view.
-- Auto-update after messages option is now available for External API generation mode.
-- Fixed the display of the thoughts window and its mobile display.
-- Fixed smaller bugs.
-
 **Special thanks to all the other contributors for this project:**
-Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis!
+Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis.
 
 ## 📥 Installation
 
@@ -287,7 +273,7 @@ If you enjoy this extension, consider supporting development:
 ## 🙏 Credits
 
 **Contributors:**
-SpicyMarinara, Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis
+SpicyMarinara, Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis.
 
 ## 🚀 Planned Features
 

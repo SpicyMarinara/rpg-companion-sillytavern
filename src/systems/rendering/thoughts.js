@@ -39,7 +39,7 @@ function getLockIconHtml(tracker, path) {
  * Helper to log to both console and debug logs array
  */
 function debugLog(message, data = null) {
-    console.log(message, data || '');
+    // console.log(message, data || '');
     if (extensionSettings.debugMode) {
         addDebugLog(message, data);
     }
@@ -592,7 +592,7 @@ export function renderThoughts() {
         const character = $(this).data('character');
         const field = $(this).data('field');
         const value = $(this).text().trim();
-        console.log('[RPG Companion] Character stat edit:', { character, field, value });
+        // console.log('[RPG Companion] Character stat edit:', { character, field, value });
         updateCharacterField(character, field, value);
     });
 
@@ -723,7 +723,7 @@ export function updateCharacterField(characterName, field, value) {
             else if (isThoughtsField && line.startsWith(thoughtsFieldName + ':')) {
                 // Update thoughts field
                 lines[i] = `${thoughtsFieldName}: ${value}`;
-                console.log('[RPG Companion] Updated thoughts:', lines[i]);
+                // console.log('[RPG Companion] Updated thoughts:', lines[i]);
             }
         }
 
@@ -737,7 +737,7 @@ export function updateCharacterField(characterName, field, value) {
             }
             numValue = Math.max(0, Math.min(100, numValue));
 
-            console.log('[RPG Companion] Updating stat:', { field, rawValue: value, cleanValue, numValue });
+            // console.log('[RPG Companion] Updating stat:', { field, rawValue: value, cleanValue, numValue });
 
             if (statsLineExists) {
                 // Update existing Stats line
@@ -750,7 +750,7 @@ export function updateCharacterField(characterName, field, value) {
                     if (statParts[j].startsWith(field + ':')) {
                         statParts[j] = `${field}: ${numValue}%`;
                         statFound = true;
-                        console.log('[RPG Companion] Updated stat part:', statParts[j]);
+                        // console.log('[RPG Companion] Updated stat part:', statParts[j]);
                         break;
                     }
                 }
@@ -758,11 +758,11 @@ export function updateCharacterField(characterName, field, value) {
                 // If stat wasn't found in existing parts, add it
                 if (!statFound) {
                     statParts.push(`${field}: ${numValue}%`);
-                    console.log('[RPG Companion] Added new stat to existing line:', `${field}: ${numValue}%`);
+                    // console.log('[RPG Companion] Added new stat to existing line:', `${field}: ${numValue}%`);
                 }
 
                 lines[statsLineIndex] = `Stats: ${statParts.join(' | ')}`;
-                console.log('[RPG Companion] Updated stats line:', lines[statsLineIndex]);
+                // console.log('[RPG Companion] Updated stats line:', lines[statsLineIndex]);
             } else {
                 // Create new Stats line with all enabled stats (defaulting to 0% except the one being edited)
                 const statsParts = enabledCharStats.map(s => {
@@ -785,7 +785,7 @@ export function updateCharacterField(characterName, field, value) {
                 }
 
                 lines.splice(insertIndex, 0, newStatsLine);
-                console.log('[RPG Companion] Created new stats line:', newStatsLine);
+                // console.log('[RPG Companion] Created new stats line:', newStatsLine);
                 characterEndIndex++; // Adjust end index since we inserted a line
             }
         }
@@ -831,7 +831,7 @@ export function updateCharacterField(characterName, field, value) {
     lastGeneratedData.characterThoughts = lines.join('\n');
     committedTrackerData.characterThoughts = lines.join('\n');
 
-    console.log('[RPG Companion] Updated characterThoughts data:', lastGeneratedData.characterThoughts);
+    // console.log('[RPG Companion] Updated characterThoughts data:', lastGeneratedData.characterThoughts);
 
     const chat = getContext().chat;
     if (chat && chat.length > 0) {
@@ -1075,12 +1075,12 @@ function initThoughtIconDragHandlers() {
     if (thoughtIconDragHandlersInitialized) return;
     thoughtIconDragHandlersInitialized = true;
 
-    console.log('[Thought Icon] Initializing drag handlers ONCE - will attach to icon when created');
+    // console.log('[Thought Icon] Initializing drag handlers ONCE - will attach to icon when created');
 }
 
 // Function to attach drag handlers to a specific icon element
 function attachDragHandlersToIcon($icon) {
-    console.log('[Thought Icon] Attaching handlers to icon element');
+    // console.log('[Thought Icon] Attaching handlers to icon element');
 
     // Remove any existing handlers
     $icon.off('.thoughtIconDrag');
@@ -1089,20 +1089,20 @@ function attachDragHandlersToIcon($icon) {
     $icon.on('click.thoughtIconDrag', function(e) {
         // Check global flag set immediately after drag completes
         if (justFinishedDragging) {
-            console.log('[Thought Icon] CLICK blocked - just finished dragging');
+            // console.log('[Thought Icon] CLICK blocked - just finished dragging');
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
             return false;
         }
-        console.log('[Thought Icon] CLICK detected on icon!');
+        // console.log('[Thought Icon] CLICK detected on icon!');
     });
 
     // Touch drag support - mobile only
     $icon.on('touchstart.thoughtIconDrag', function(e) {
         if (window.innerWidth > 1000) return;
 
-        console.log('[Thought Icon] touchstart');
+        // console.log('[Thought Icon] touchstart');
         touchMoved = false;
         dragStartTime = Date.now();
         const touch = e.originalEvent.touches[0];
@@ -1120,7 +1120,7 @@ function attachDragHandlersToIcon($icon) {
         if (window.innerWidth > 1000) return;
 
         if (!touchMoved) {
-            console.log('[Thought Icon] touchmove - first movement');
+            // console.log('[Thought Icon] touchmove - first movement');
         }
         touchMoved = true;
         const touch = e.originalEvent.touches[0];
@@ -1160,7 +1160,7 @@ function attachDragHandlersToIcon($icon) {
     });
 
     $icon.on('touchend.thoughtIconDrag', function(e) {
-        console.log('[Thought Icon] touchend - isDragging:', isDragging, 'touchMoved:', touchMoved);
+        // console.log('[Thought Icon] touchend - isDragging:', isDragging, 'touchMoved:', touchMoved);
 
         if (isDragging) {
             const offset = $(this).offset();
@@ -1193,7 +1193,7 @@ function attachDragHandlersToIcon($icon) {
             e.preventDefault();
             e.stopPropagation();
         } else if (!touchMoved) {
-            console.log('[Thought Icon] Opening panel - was a tap');
+            // console.log('[Thought Icon] Opening panel - was a tap');
             const $panel = $('#rpg-thought-panel');
             const iconOffset = $(this).offset();
             if (iconOffset) {
@@ -1207,7 +1207,7 @@ function attachDragHandlersToIcon($icon) {
             $(this).addClass('rpg-hidden');
             $panel.fadeIn(200);
         } else {
-            console.log('[Thought Icon] Did nothing - touchMoved but not isDragging');
+            // console.log('[Thought Icon] Did nothing - touchMoved but not isDragging');
         }
     });
 
@@ -1217,7 +1217,7 @@ function attachDragHandlersToIcon($icon) {
     $icon.on('mousedown.thoughtIconDrag', function(e) {
         if (window.innerWidth > 1000) return;
 
-        console.log('[Thought Icon] mousedown');
+        // console.log('[Thought Icon] mousedown');
         e.preventDefault();
 
         mouseDown = true;
@@ -1237,7 +1237,7 @@ function attachDragHandlersToIcon($icon) {
         if (!mouseDown || window.innerWidth > 1000) return;
 
         if (!touchMoved) {
-            console.log('[Thought Icon] mousemove - first movement');
+            // console.log('[Thought Icon] mousemove - first movement');
         }
         touchMoved = true;
 
@@ -1280,7 +1280,7 @@ function attachDragHandlersToIcon($icon) {
     $(document).on('mouseup.thoughtIconDrag', function(e) {
         if (!mouseDown) return;
 
-        console.log('[Thought Icon] mouseup - isDragging:', isDragging, 'touchMoved:', touchMoved);
+        // console.log('[Thought Icon] mouseup - isDragging:', isDragging, 'touchMoved:', touchMoved);
 
         mouseDown = false;
 
@@ -1568,22 +1568,82 @@ export function createThoughtPanel($message, thoughtsArray) {
         // Load saved icon position in mobile, or default to center of viewport
         if (extensionSettings.thoughtIconPosition && extensionSettings.thoughtIconPosition.top && extensionSettings.thoughtIconPosition.left) {
             const pos = extensionSettings.thoughtIconPosition;
-            $thoughtIcon.css({
-                top: pos.top,
-                left: pos.left,
-                transform: 'none',
-                right: 'auto',
-                bottom: 'auto'
-            });
+
+            // Validate saved position - check if it's not at the very top (likely invalid)
+            const savedTop = parseInt(pos.top);
+            const topBar = $('#top-settings-holder');
+            const topBarHeight = topBar.length ? topBar.outerHeight() : 60;
+
+            // If saved position is above or too close to top bar, recalculate default
+            if (savedTop < topBarHeight + 50) {
+                // console.log('[Thought Icon] Saved position invalid (too close to top), recalculating default');
+                // Clear invalid saved position
+                delete extensionSettings.thoughtIconPosition;
+                saveSettings();
+
+                // Calculate new default position
+                setTimeout(() => {
+                    const viewportHeight = window.innerHeight;
+                    const viewportWidth = window.innerWidth;
+
+                    const defaultTop = topBarHeight + ((viewportHeight - topBarHeight) / 2) - 22;
+                    const defaultLeft = (viewportWidth * 0.75) - 22;
+
+                    // console.log('[Thought Icon] Setting new default position:', {
+                    //     topBarHeight,
+                    //     viewportHeight,
+                    //     viewportWidth,
+                    //     calculatedTop: defaultTop,
+                    //     calculatedLeft: defaultLeft
+                    // });
+
+                    $thoughtIcon.css({
+                        top: `${defaultTop}px`,
+                        left: `${defaultLeft}px`,
+                        transform: 'none',
+                        right: 'auto',
+                        bottom: 'auto'
+                    });
+                }, 100);
+            } else {
+                // Position is valid, use it
+                $thoughtIcon.css({
+                    top: pos.top,
+                    left: pos.left,
+                    transform: 'none',
+                    right: 'auto',
+                    bottom: 'auto'
+                });
+            }
         } else {
-            // Default position: center of viewport
-            $thoughtIcon.css({
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                right: 'auto',
-                bottom: 'auto'
-            });
+            // Default position: center-right of viewport, accounting for top bar
+            // Use setTimeout to ensure DOM is fully rendered before calculating positions
+            setTimeout(() => {
+                const topBar = $('#top-settings-holder');
+                const topBarHeight = topBar.length ? topBar.outerHeight() : 60;
+                const viewportHeight = window.innerHeight;
+                const viewportWidth = window.innerWidth;
+
+                // Position in the center vertically (accounting for top bar) and slightly right
+                const defaultTop = topBarHeight + ((viewportHeight - topBarHeight) / 2) - 22; // 22 = half of icon height
+                const defaultLeft = (viewportWidth * 0.75) - 22; // 75% from left, minus half icon width
+
+                // console.log('[Thought Icon] Setting default position:', {
+                //     topBarHeight,
+                //     viewportHeight,
+                //     viewportWidth,
+                //     calculatedTop: defaultTop,
+                //     calculatedLeft: defaultLeft
+                // });
+
+                $thoughtIcon.css({
+                    top: `${defaultTop}px`,
+                    left: `${defaultLeft}px`,
+                    transform: 'none',
+                    right: 'auto',
+                    bottom: 'auto'
+                });
+            }, 100);
         }
     } else {
         // Desktop: show panel, hide icon with class

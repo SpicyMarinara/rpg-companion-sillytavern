@@ -52,11 +52,11 @@ export function parseAndStoreSpotifyUrl(responseText) {
     if (!extensionSettings.enableSpotifyMusic) return false;
 
     const songData = extractSpotifyUrl(responseText);
-    console.log('[RPG Companion] Spotify Parser: Found song:', songData);
+    // console.log('[RPG Companion] Spotify Parser: Found song:', songData);
     if (songData) {
         // Store in committed tracker data
         committedTrackerData.spotifyUrl = songData;
-        console.log('[RPG Companion] Spotify Parser: Stored song in committedTrackerData:', committedTrackerData.spotifyUrl);
+        // console.log('[RPG Companion] Spotify Parser: Stored song in committedTrackerData:', committedTrackerData.spotifyUrl);
         return true;
     }
 

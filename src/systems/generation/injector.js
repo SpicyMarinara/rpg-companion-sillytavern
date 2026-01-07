@@ -44,15 +44,15 @@ let lastCommittedChatLength = -1;
 export async function onGenerationStarted(type, data, dryRun) {
     // Skip dry runs (page reload, prompt manager preview, etc.)
     if (dryRun) {
-        console.log('[RPG Companion] Skipping onGenerationStarted: dry run detected');
+        // console.log('[RPG Companion] Skipping onGenerationStarted: dry run detected');
         return;
     }
 
-    console.log('[RPG Companion] onGenerationStarted called');
-    console.log('[RPG Companion] enabled:', extensionSettings.enabled);
-    console.log('[RPG Companion] generationMode:', extensionSettings.generationMode);
-    console.log('[RPG Companion] ⚡ EVENT: onGenerationStarted - lastActionWasSwipe =', lastActionWasSwipe, '| isGenerating =', isGenerating);
-    console.log('[RPG Companion] Committed Prompt:', committedTrackerData);
+    // console.log('[RPG Companion] onGenerationStarted called');
+    // console.log('[RPG Companion] enabled:', extensionSettings.enabled);
+    // console.log('[RPG Companion] generationMode:', extensionSettings.generationMode);
+    // console.log('[RPG Companion] ⚡ EVENT: onGenerationStarted - lastActionWasSwipe =', lastActionWasSwipe, '| isGenerating =', isGenerating);
+    // console.log('[RPG Companion] Committed Prompt:', committedTrackerData);
 
     // Skip tracker injection for image generation requests
     if (data?.quietImage) {
@@ -115,18 +115,18 @@ export async function onGenerationStarted(type, data, dryRun) {
         const shouldCommit = isUserMessage && !lastActionWasSwipe && currentChatLength !== lastCommittedChatLength;
 
         if (shouldCommit) {
-            console.log('[RPG Companion] 📝 TOGETHER MODE COMMIT: User sent message - committing data from BEFORE user message');
-            console.log('[RPG Companion]   Chat length:', currentChatLength, 'Last committed:', lastCommittedChatLength);
-            console.log('[RPG Companion]   BEFORE: committedTrackerData =', {
-                userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
-                infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-                characterThoughts: committedTrackerData.characterThoughts ? `${committedTrackerData.characterThoughts.substring(0, 100)}...` : 'null'
-            });
-            console.log('[RPG Companion]   BEFORE: lastGeneratedData =', {
-                userStats: lastGeneratedData.userStats ? `${lastGeneratedData.userStats.substring(0, 50)}...` : 'null',
-                infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
-                characterThoughts: lastGeneratedData.characterThoughts ? `${lastGeneratedData.characterThoughts.substring(0, 100)}...` : 'null'
-            });
+            // console.log('[RPG Companion] 📝 TOGETHER MODE COMMIT: User sent message - committing data from BEFORE user message');
+            // console.log('[RPG Companion]   Chat length:', currentChatLength, 'Last committed:', lastCommittedChatLength);
+            // console.log('[RPG Companion]   BEFORE: committedTrackerData =', {
+            //     userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+            //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+            //     characterThoughts: committedTrackerData.characterThoughts ? `${committedTrackerData.characterThoughts.substring(0, 100)}...` : 'null'
+            // // });
+            // console.log('[RPG Companion]   BEFORE: lastGeneratedData =', {
+            //     userStats: lastGeneratedData.userStats ? `${lastGeneratedData.userStats.substring(0, 50)}...` : 'null',
+            //     infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
+            //     characterThoughts: lastGeneratedData.characterThoughts ? `${lastGeneratedData.characterThoughts.substring(0, 100)}...` : 'null'
+            // });
 
             // Commit displayed data (from before user sent message)
             committedTrackerData.userStats = lastGeneratedData.userStats;
@@ -136,23 +136,23 @@ export async function onGenerationStarted(type, data, dryRun) {
             // Track chat length to prevent duplicate commits
             lastCommittedChatLength = currentChatLength;
 
-            console.log('[RPG Companion]   AFTER: committedTrackerData =', {
-                userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
-                infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-                characterThoughts: committedTrackerData.characterThoughts ? `${committedTrackerData.characterThoughts.substring(0, 100)}...` : 'null'
-            });
+            // console.log('[RPG Companion]   AFTER: committedTrackerData =', {
+            //     userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+            //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+            //     characterThoughts: committedTrackerData.characterThoughts ? `${committedTrackerData.characterThoughts.substring(0, 100)}...` : 'null'
+            // });
         } else if (lastActionWasSwipe) {
-            console.log('[RPG Companion] ⏭️ Skipping commit: swipe (using previous committed data)');
+            // console.log('[RPG Companion] ⏭️ Skipping commit: swipe (using previous committed data)');
         } else if (!isUserMessage) {
-            console.log('[RPG Companion] ⏭️ Skipping commit: second-to-last message is not user message (likely swipe or continuation)');
+            // console.log('[RPG Companion] ⏭️ Skipping commit: second-to-last message is not user message (likely swipe or continuation)');
         }
 
-        console.log('[RPG Companion] 📦 TOGETHER MODE: Injecting committed tracker data into prompt');
-        console.log('[RPG Companion]   committedTrackerData =', {
-            userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
-            infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-            characterThoughts: committedTrackerData.characterThoughts ? `${committedTrackerData.characterThoughts.substring(0, 100)}...` : 'null'
-        });
+        // console.log('[RPG Companion] 📦 TOGETHER MODE: Injecting committed tracker data into prompt');
+        // console.log('[RPG Companion]   committedTrackerData =', {
+        //     userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+        //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+        //     characterThoughts: committedTrackerData.characterThoughts ? `${committedTrackerData.characterThoughts.substring(0, 100)}...` : 'null'
+        // });
     }
 
     // For SEPARATE mode only: Check if we need to commit extension data
@@ -162,35 +162,35 @@ export async function onGenerationStarted(type, data, dryRun) {
     if (extensionSettings.generationMode === 'separate' && !isGenerating) {
         if (!lastActionWasSwipe) {
             // User sent a new message - commit lastGeneratedData before generation
-            console.log('[RPG Companion] 📝 COMMIT: New message - committing lastGeneratedData');
-            console.log('[RPG Companion]   BEFORE commit - committedTrackerData:', {
-                 userStats: committedTrackerData.userStats ? 'exists' : 'null',
-                 infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-                 characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-            });
-            console.log('[RPG Companion]   BEFORE commit - lastGeneratedData:', {
-                 userStats: lastGeneratedData.userStats ? 'exists' : 'null',
-                 infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
-                 characterThoughts: lastGeneratedData.characterThoughts ? 'exists' : 'null'
-            });
+            // console.log('[RPG Companion] 📝 COMMIT: New message - committing lastGeneratedData');
+            // console.log('[RPG Companion]   BEFORE commit - committedTrackerData:', {
+            //      userStats: committedTrackerData.userStats ? 'exists' : 'null',
+            //      infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+            //      characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
+            // // });
+            // console.log('[RPG Companion]   BEFORE commit - lastGeneratedData:', {
+            //      userStats: lastGeneratedData.userStats ? 'exists' : 'null',
+            //      infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
+            //      characterThoughts: lastGeneratedData.characterThoughts ? 'exists' : 'null'
+            // });
             committedTrackerData.userStats = lastGeneratedData.userStats;
             committedTrackerData.infoBox = lastGeneratedData.infoBox;
             committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
-            console.log('[RPG Companion]   AFTER commit - committedTrackerData:', {
-                 userStats: committedTrackerData.userStats ? 'exists' : 'null',
-                 infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-                 characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-            });
+            // console.log('[RPG Companion]   AFTER commit - committedTrackerData:', {
+            //      userStats: committedTrackerData.userStats ? 'exists' : 'null',
+            //      infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+            //      characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
+            // });
 
             // Reset flag after committing (ready for next cycle)
 
         } else {
-            console.log('[RPG Companion] 🔄 SWIPE: Using existing committedTrackerData (no commit)');
-            console.log('[RPG Companion]   committedTrackerData:', {
-                 userStats: committedTrackerData.userStats ? 'exists' : 'null',
-                 infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-                 characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-            });
+            // console.log('[RPG Companion] 🔄 SWIPE: Using existing committedTrackerData (no commit)');
+            // console.log('[RPG Companion]   committedTrackerData:', {
+            //      userStats: committedTrackerData.userStats ? 'exists' : 'null',
+            //      infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+            //      characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
+            // });
             // Reset flag after using it (swipe generation complete, ready for next action)
         }
     }

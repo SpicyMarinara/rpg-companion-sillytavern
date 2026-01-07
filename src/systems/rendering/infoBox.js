@@ -75,23 +75,23 @@ function separateEmojiFromText(str) {
  * Includes event listeners for editable fields.
  */
 export function renderInfoBox() {
-    console.log('[RPG InfoBox Render] ==================== RENDERING INFO BOX ====================');
-    console.log('[RPG InfoBox Render] showInfoBox setting:', extensionSettings.showInfoBox);
-    console.log('[RPG InfoBox Render] Container exists:', !!$infoBoxContainer);
+    // console.log('[RPG InfoBox Render] ==================== RENDERING INFO BOX ====================');
+    // console.log('[RPG InfoBox Render] showInfoBox setting:', extensionSettings.showInfoBox);
+    // console.log('[RPG InfoBox Render] Container exists:', !!$infoBoxContainer);
 
     if (!extensionSettings.showInfoBox || !$infoBoxContainer) {
-        console.log('[RPG InfoBox Render] Exiting: showInfoBox or container is false');
+        // console.log('[RPG InfoBox Render] Exiting: showInfoBox or container is false');
         return;
     }
 
     // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
     const infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox;
-    console.log('[RPG InfoBox Render] infoBoxData length:', infoBoxData ? infoBoxData.length : 'null');
-    console.log('[RPG InfoBox Render] infoBoxData preview:', infoBoxData ? infoBoxData.substring(0, 200) : 'null');
+    // console.log('[RPG InfoBox Render] infoBoxData length:', infoBoxData ? infoBoxData.length : 'null');
+    // console.log('[RPG InfoBox Render] infoBoxData preview:', infoBoxData ? infoBoxData.substring(0, 200) : 'null');
 
     // If no data yet, hide the container (e.g., after cache clear)
     if (!infoBoxData) {
-        console.log('[RPG InfoBox Render] No data, hiding container');
+        // console.log('[RPG InfoBox Render] No data, hiding container');
         $infoBoxContainer.empty().hide();
         return;
     }
@@ -574,6 +574,19 @@ export function renderInfoBox() {
 
     $infoBoxContainer.html(html);
 
+    // Add dynamic text scaling for location field
+    const updateLocationTextSize = ($element) => {
+        const text = $element.text();
+        const charCount = text.length;
+        $element.css('--char-count', Math.min(charCount, 100));
+    };
+
+    // Initial size update for location
+    const $locationText = $infoBoxContainer.find('[data-field="location"]');
+    if ($locationText.length) {
+        updateLocationTextSize($locationText);
+    }
+
     // Add event handlers for editable Info Box fields
     $infoBoxContainer.find('.rpg-editable').on('blur', function() {
         const $this = $(this);
@@ -591,12 +604,22 @@ export function renderInfoBox() {
             }
         }
 
+        // Update location text size dynamically
+        if (field === 'location') {
+            updateLocationTextSize($this);
+        }
+
         // Handle recent events separately
         if (field === 'event1' || field === 'event2' || field === 'event3') {
             updateRecentEvent(field, value);
         } else {
             updateInfoBoxField(field, value);
         }
+    });
+
+    // Update location size on input as well (real-time)
+    $infoBoxContainer.find('[data-field="location"]').on('input', function() {
+        updateLocationTextSize($(this));
     });
 
     // For date fields, show full value on focus
@@ -707,7 +730,7 @@ export function updateInfoBoxField(field, value) {
             committedTrackerData.infoBox = lastGeneratedData.infoBox;
             saveChatData();
             renderInfoBox();
-            console.log('[RPG Companion] Updated info box field (v3 JSON):', { field, value });
+            // console.log('[RPG Companion] Updated info box field (v3 JSON):', { field, value });
             return;
         }
     }
@@ -1061,6 +1084,6 @@ function updateRecentEvent(field, value) {
             window.RPGCompanion.updateWeatherEffect();
         }
 
-        console.log(`[RPG Companion] Updated recent event ${field}:`, value);
+        // console.log(`[RPG Companion] Updated recent event ${field}:`, value);
     }
 }

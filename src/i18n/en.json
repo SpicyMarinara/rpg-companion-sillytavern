@@ -230,5 +230,8 @@
     "checkpoint.indicator": "Chapter Start",
     "checkpoint.tooltip": "Messages before this point are excluded from context",
     "musicPlayer.title": "Scene Music",
-    "musicPlayer.noMusic": "AI will suggest music when appropriate for the scene"
+    "musicPlayer.noMusic": "AI will suggest music when appropriate for the scene",
+    "errors.parsingError": "RPG Companion Trackers' parsing error! The model returned an incorrect format. If the issue persists, consider changing the model for generations.",
+    "settings.recommendedModels.title": "Recommended Models",
+    "settings.recommendedModels.description": "For the extension to work properly, **it is not recommended to use any models below 20B, especially if they're old.** It works best with the SOTA models such as Deepseek, Claude, GPT, or Gemini."
 }

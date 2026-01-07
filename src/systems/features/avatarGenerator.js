@@ -147,7 +147,7 @@ export async function generateAvatarsForCharacters(characterNames, onStarted = n
         return;
     }
 
-    console.log('[RPG Avatar] Starting batch generation for:', needsGeneration);
+    // console.log('[RPG Avatar] Starting batch generation for:', needsGeneration);
 
     // Mark all as pending IMMEDIATELY (before any async work)
     for (const name of needsGeneration) {
@@ -192,7 +192,7 @@ export async function generateAvatarsForCharacters(characterNames, onStarted = n
         }
     }
 
-    console.log('[RPG Avatar] Batch generation complete');
+    // console.log('[RPG Avatar] Batch generation complete');
 }
 
 /**
@@ -204,7 +204,7 @@ export async function generateAvatarsForCharacters(characterNames, onStarted = n
  * @returns {Promise<string|null>} New avatar URL or null if failed
  */
 export async function regenerateAvatar(characterName) {
-    console.log('[RPG Avatar] Regenerating avatar for:', characterName);
+    // console.log('[RPG Avatar] Regenerating avatar for:', characterName);
 
     // Mark as pending immediately
     pendingGenerations.add(characterName);
@@ -245,13 +245,13 @@ async function generateAvatarPrompt(characterName) {
     }
 
     try {
-        console.log('[RPG Avatar] Generating LLM prompt for:', characterName);
+        // console.log('[RPG Avatar] Generating LLM prompt for:', characterName);
 
         const promptMessages = await generateAvatarPromptGenerationPrompt(characterName);
         let response;
 
         if (extensionSettings.generationMode === 'external') {
-            console.log('[RPG Avatar] Using external API for avatar prompt generation');
+            // console.log('[RPG Avatar] Using external API for avatar prompt generation');
             response = await generateWithExternalAPI(promptMessages);
         } else {
             response = await generateRaw({
@@ -262,7 +262,7 @@ async function generateAvatarPrompt(characterName) {
 
         if (response) {
             const prompt = response.trim();
-            console.log(`[RPG Avatar] Generated prompt for ${characterName}:`, prompt);
+            // console.log(`[RPG Avatar] Generated prompt for ${characterName}:`, prompt);
 
             // Store prompt in session storage
             setSessionAvatarPrompt(characterName, prompt);
@@ -313,11 +313,11 @@ async function generateSingleAvatar(characterName, prompt = null) {
     }
 
     if (!prompt) {
-        console.log(`[RPG Avatar] No LLM prompt for ${characterName}, using fallback prompt`);
+        // console.log(`[RPG Avatar] No LLM prompt for ${characterName}, using fallback prompt`);
         prompt = buildFallbackPrompt(characterName);
     }
 
-    console.log(`[RPG Avatar] Starting image generation for: ${characterName}`);
+    // console.log(`[RPG Avatar] Starting image generation for: ${characterName}`);
 
     try {
         // Execute /sd command with quiet=true to suppress chat output
@@ -337,7 +337,7 @@ async function generateSingleAvatar(characterName, prompt = null) {
             extensionSettings.npcAvatars[characterName] = imageUrl;
             saveSettings();
 
-            console.log(`[RPG Avatar] Successfully generated avatar for: ${characterName}`);
+            // console.log(`[RPG Avatar] Successfully generated avatar for: ${characterName}`);
             return imageUrl;
         } else {
             console.warn(`[RPG Avatar] Failed to extract image URL for ${characterName}:`, result);

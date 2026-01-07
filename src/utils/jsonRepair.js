@@ -81,7 +81,7 @@ export function repairJSON(jsonString) {
         const result = fn();
         // Validate it's actually an object or array
         if (result && (typeof result === 'object')) {
-            console.log('[RPG JSON Repair] ✓ Repaired using Function constructor');
+            // console.log('[RPG JSON Repair] ✓ Repaired using Function constructor');
             return result;
         }
     } catch (e) {
