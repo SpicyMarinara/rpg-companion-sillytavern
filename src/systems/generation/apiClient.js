@@ -23,6 +23,7 @@ import { parseResponse, parseUserStats } from './parser.js';
 import { parseAndStoreSpotifyUrl } from '../features/musicPlayer.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
+import { removeLocks } from './lockManager.js';
 import { renderThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
@@ -235,22 +236,6 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         const updatingText = i18n.getTranslation('template.mainPanel.updating') || 'Updating...';
         $updateBtn.html(`<i class="fa-solid fa-spinner fa-spin"></i> ${updatingText}`).prop('disabled', true);
 
-        // Save current preset name before switching (if we're going to switch)
-        // Note: Preset switching is only used in separate mode, not external mode
-        if (!isExternalMode && extensionSettings.useSeparatePreset) {
-            originalPresetName = await getCurrentPresetName();
-            console.log(`[RPG Companion] Saved original preset: "${originalPresetName}"`);
-        }
-
-        // Switch to separate preset if enabled (separate mode only)
-        if (!isExternalMode && extensionSettings.useSeparatePreset) {
-            const switched = await switchToPreset('RPG Companion Trackers');
-            if (!switched) {
-                console.warn('[RPG Companion] Failed to switch to RPG Companion Trackers preset. Using current preset.');
-                originalPresetName = null; // Don't try to restore if we didn't switch
-            }
-        }
-
         const prompt = await generateSeparateUpdatePrompt();
 
         // Generate response based on mode
@@ -270,6 +255,18 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         if (response) {
             // console.log('[RPG Companion] Raw AI response:', response);
             const parsedData = parseResponse(response);
+
+            // Remove locks from parsed data (JSON format only, text format is unaffected)
+            if (parsedData.userStats) {
+                parsedData.userStats = removeLocks(parsedData.userStats);
+            }
+            if (parsedData.infoBox) {
+                parsedData.infoBox = removeLocks(parsedData.infoBox);
+            }
+            if (parsedData.characterThoughts) {
+                parsedData.characterThoughts = removeLocks(parsedData.characterThoughts);
+            }
+
             // Parse and store Spotify URL if feature is enabled
             parseAndStoreSpotifyUrl(response);
             // console.log('[RPG Companion] Parsed data:', parsedData);
@@ -383,13 +380,6 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             toastr.error(error.message, 'RPG Companion External API Error');
         }
     } finally {
-        // Restore original preset if we switched to a separate one
-        if (originalPresetName && extensionSettings.useSeparatePreset) {
-            console.log(`[RPG Companion] Restoring original preset: "${originalPresetName}"`);
-            await switchToPreset(originalPresetName);
-            originalPresetName = null; // Clear after restoring
-        }
-
         setIsGenerating(false);
 
         // Restore button to original state

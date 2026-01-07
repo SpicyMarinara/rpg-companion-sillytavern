@@ -1,11 +1,13 @@
 /**
  * Parser Module
  * Handles parsing of AI responses to extract tracker data
+ * Supports both legacy text format and new v3 JSON format
  */
 
 import { extensionSettings, FEATURE_FLAGS, addDebugLog } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 import { extractInventory } from './inventoryParser.js';
+import { repairJSON } from '../../utils/jsonRepair.js';
 
 /**
  * Helper to separate emoji from text in a string
@@ -159,36 +161,246 @@ export function parseResponse(responseText) {
     cleanedResponse = cleanedResponse.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
     debugLog('[RPG Parser] Removed thinking tags, new length:', cleanedResponse.length + ' chars');
 
-    // Check if response uses XML <trackers> tags (new format)
+    // Remove "FORMAT:" markers that the model might accidentally output
+    cleanedResponse = cleanedResponse.replace(/FORMAT:\s*/gi, '');
+    debugLog('[RPG Parser] Removed FORMAT: markers, new length:', cleanedResponse.length + ' chars');
+
+    // First, try to extract raw JSON objects (v3 format)
+    // Note: Prompts now instruct models to use ```json``` code blocks, but we extract
+    // from any JSON found using brace-matching for maximum compatibility
+    // Use brace-matching to find complete JSON objects
+    const extractedObjects = [];
+    let i = 0;
+    while (i < cleanedResponse.length) {
+        if (cleanedResponse[i] === '{') {
+            // Found opening brace, find matching closing brace
+            let depth = 1;
+            let j = i + 1;
+            let inString = false;
+            let escapeNext = false;
+
+            while (j < cleanedResponse.length && depth > 0) {
+                const char = cleanedResponse[j];
+
+                if (escapeNext) {
+                    escapeNext = false;
+                } else if (char === '\\') {
+                    escapeNext = true;
+                } else if (char === '"') {
+                    inString = !inString;
+                } else if (!inString) {
+                    if (char === '{') depth++;
+                    else if (char === '}') depth--;
+                }
+                j++;
+            }
+
+            if (depth === 0) {
+                // Found complete JSON object
+                const jsonContent = cleanedResponse.substring(i, j).trim();
+                extractedObjects.push(jsonContent);
+                i = j;
+            } else {
+                i++;
+            }
+        } else {
+            i++;
+        }
+    }
+
+    if (extractedObjects.length > 0) {
+        console.log(`[RPG Parser] ✓ Found ${extractedObjects.length} raw JSON objects (v3 format)`);
+        debugLog(`[RPG Parser] ✓ Found ${extractedObjects.length} raw JSON objects (v3 format)`);
+
+        // First, try to parse as unified JSON structure (new v3.1 format)
+        if (extractedObjects.length === 1) {
+            const parsed = repairJSON(extractedObjects[0]);
+            if (parsed && (parsed.userStats || parsed.infoBox || parsed.characters)) {
+                console.log('[RPG Parser] ✓ Detected unified JSON structure (v3.1 format)');
+
+                if (parsed.userStats) {
+                    result.userStats = JSON.stringify(parsed.userStats);
+                    console.log('[RPG Parser] ✓ Extracted userStats from unified structure');
+                }
+                if (parsed.infoBox) {
+                    result.infoBox = JSON.stringify(parsed.infoBox);
+                    console.log('[RPG Parser] ✓ Extracted infoBox from unified structure');
+                }
+                if (parsed.characters) {
+                    result.characterThoughts = JSON.stringify(parsed.characters);
+                    console.log('[RPG Parser] ✓ Extracted characters from unified structure');
+                }
+
+                if (result.userStats || result.infoBox || result.characterThoughts) {
+                    console.log('[RPG Parser] ✓ Returning unified JSON parse results');
+                    debugLog('[RPG Parser] Returning unified JSON parse results');
+                    return result;
+                }
+            }
+        }
+
+        // Fall back to parsing multiple separate JSON objects (legacy v3.0 format)
+        for (let idx = 0; idx < extractedObjects.length; idx++) {
+            const jsonContent = extractedObjects[idx];
+            console.log(`[RPG Parser] Parsing object ${idx + 1}:`, jsonContent.substring(0, 100) + '...');
+            console.log(`[RPG Parser] Full object ${idx + 1} length:`, jsonContent.length);
+
+            const parsed = repairJSON(jsonContent);
+
+            if (parsed) {
+                console.log(`[RPG Parser] Object ${idx + 1} parsed successfully, keys:`, Object.keys(parsed));
+
+                // Check if object is wrapped (e.g., {"userStats": {...}})
+                // Unwrap single-key objects that match our tracker types
+                let unwrapped = parsed;
+                if (Object.keys(parsed).length === 1) {
+                    const key = Object.keys(parsed)[0];
+                    if (key === 'userStats' || key === 'infoBox' || key === 'characters') {
+                        unwrapped = parsed[key];
+                        console.log(`[RPG Parser] ✓ Unwrapped ${key} object`);
+                    }
+                }
+
+                // Detect tracker type by checking for top-level fields
+                if (unwrapped.stats || unwrapped.status || unwrapped.skills || unwrapped.inventory || unwrapped.quests) {
+                    result.userStats = jsonContent;
+                    console.log('[RPG Parser] ✓ Assigned to User Stats');
+                    debugLog('[RPG Parser] ✓ Extracted raw JSON User Stats');
+                } else if (unwrapped.date || unwrapped.location || unwrapped.weather || unwrapped.temperature || unwrapped.time) {
+                    result.infoBox = jsonContent;
+                    console.log('[RPG Parser] ✓ Assigned to Info Box');
+                    debugLog('[RPG Parser] ✓ Extracted raw JSON Info Box');
+                } else if (unwrapped.characters || Array.isArray(unwrapped)) {
+                    result.characterThoughts = jsonContent;
+                    console.log('[RPG Parser] ✓ Assigned to Characters');
+                    debugLog('[RPG Parser] ✓ Extracted raw JSON Characters');
+                } else {
+                    console.warn('[RPG Parser] ⚠️ Could not categorize object with keys:', Object.keys(parsed));
+                }
+            } else {
+                console.error('[RPG Parser] ✗ Failed to parse raw JSON object', idx + 1);
+            }
+        }
+
+        if (result.userStats || result.infoBox || result.characterThoughts) {
+            console.log('[RPG Parser] ✓ Returning raw JSON parse results:', {
+                hasUserStats: !!result.userStats,
+                hasInfoBox: !!result.infoBox,
+                hasCharacters: !!result.characterThoughts
+            });
+            debugLog('[RPG Parser] Returning raw JSON parse results');
+            return result;
+        } else {
+            console.warn('[RPG Parser] ⚠️ No tracker data extracted from', extractedObjects.length, 'objects');
+        }
+    }
+
+    // Check for JSON code blocks (legacy v3 format with ```json fences)
+    // Look for ```json code blocks which indicate JSON format
+    const jsonBlockRegex = /```json\s*\n([\s\S]*?)```/g;
+    const jsonMatches = [...cleanedResponse.matchAll(jsonBlockRegex)];
+
+    if (jsonMatches.length > 0) {
+        console.log('[RPG Parser] ✓ Found', jsonMatches.length, 'JSON code blocks (v3 format with fences)');
+        debugLog('[RPG Parser] ✓ Found JSON code blocks (v3 format), parsing as JSON');
+
+        for (let idx = 0; idx < jsonMatches.length; idx++) {
+            const match = jsonMatches[idx];
+            const jsonContent = match[1].trim();
+            console.log(`[RPG Parser] Parsing JSON block ${idx + 1}:`, jsonContent.substring(0, 100) + '...');
+
+            const parsed = repairJSON(jsonContent);
+
+            if (parsed) {
+                console.log(`[RPG Parser] JSON block ${idx + 1} parsed successfully, keys:`, Object.keys(parsed));
+
+                // Detect tracker type by checking for top-level fields
+                if (parsed.stats || parsed.status || parsed.skills || parsed.inventory || parsed.quests) {
+                    result.userStats = jsonContent;
+                    console.log('[RPG Parser] ✓ Assigned to User Stats');
+                    debugLog('[RPG Parser] ✓ Extracted JSON User Stats');
+                } else if (parsed.date || parsed.location || parsed.weather || parsed.temperature || parsed.time) {
+                    result.infoBox = jsonContent;
+                    console.log('[RPG Parser] ✓ Assigned to Info Box');
+                    debugLog('[RPG Parser] ✓ Extracted JSON Info Box');
+                } else if (parsed.characters || Array.isArray(parsed)) {
+                    result.characterThoughts = jsonContent;
+                    console.log('[RPG Parser] ✓ Assigned to Characters');
+                    debugLog('[RPG Parser] ✓ Extracted JSON Characters');
+                } else {
+                    console.warn('[RPG Parser] ⚠️ Could not categorize JSON block with keys:', Object.keys(parsed));
+                }
+            } else {
+                console.error('[RPG Parser] ✗ Failed to parse JSON code block', idx + 1);
+                debugLog('[RPG Parser] ✗ Failed to parse JSON block, will try text fallback');
+            }
+        }
+
+        // If we found at least one valid JSON block, return the result
+        // Mixed formats (some JSON, some text) will still work
+        if (result.userStats || result.infoBox || result.characterThoughts) {
+            console.log('[RPG Parser] ✓ Returning JSON code block parse results:', {
+                hasUserStats: !!result.userStats,
+                hasInfoBox: !!result.infoBox,
+                hasCharacters: !!result.characterThoughts
+            });
+            debugLog('[RPG Parser] Returning JSON parse results');
+            return result;
+        } else {
+            console.warn('[RPG Parser] ⚠️ No tracker data extracted from', jsonMatches.length, 'JSON blocks');
+        }
+    }
+
+    // Check if response uses XML <trackers> tags (hybrid format)
     const xmlMatch = cleanedResponse.match(/<trackers>([\s\S]*?)<\/trackers>/i);
     if (xmlMatch) {
         debugLog('[RPG Parser] ✓ Found XML <trackers> tags, using XML parser');
         const trackersContent = xmlMatch[1].trim();
 
-        // Extract sections from XML content (sections are not in code blocks)
-        const statsMatch = trackersContent.match(/(User )?Stats\s*\n\s*---[\s\S]*?(?=\n\s*\n\s*(Info Box|Present Characters)|$)/i);
-        if (statsMatch) {
-            result.userStats = stripBrackets(statsMatch[0].trim());
-            debugLog('[RPG Parser] ✓ Extracted Stats from XML');
-        }
+        // Try to parse JSON blocks within XML first
+        const xmlJsonMatches = [...trackersContent.matchAll(jsonBlockRegex)];
+        if (xmlJsonMatches.length > 0) {
+            debugLog('[RPG Parser] Found JSON blocks within XML tags');
+            for (const match of xmlJsonMatches) {
+                const jsonContent = match[1].trim();
+                const parsed = repairJSON(jsonContent);
 
-        const infoBoxMatch = trackersContent.match(/Info Box\s*\n\s*---[\s\S]*?(?=\n\s*\n\s*Present Characters|$)/i);
-        if (infoBoxMatch) {
-            result.infoBox = stripBrackets(infoBoxMatch[0].trim());
-            debugLog('[RPG Parser] ✓ Extracted Info Box from XML');
-        }
+                if (parsed) {
+                    if (parsed.type === 'userStats' || parsed.stats) {
+                        result.userStats = jsonContent;
+                    } else if (parsed.type === 'infoBox' || parsed.date || parsed.location) {
+                        result.infoBox = jsonContent;
+                    } else if (parsed.type === 'characters' || parsed.characters || Array.isArray(parsed)) {
+                        result.characterThoughts = jsonContent;
+                    }
+                }
+            }
+        } else {
+            // Fallback to text extraction from XML content (legacy v2 text format)
+            const statsMatch = trackersContent.match(/(User )?Stats\s*\n\s*---[\s\S]*?(?=\n\s*\n\s*(Info Box|Present Characters)|$)/i);
+            if (statsMatch) {
+                result.userStats = stripBrackets(statsMatch[0].trim());
+                debugLog('[RPG Parser] ✓ Extracted Stats from XML (text format)');
+            }
 
-        const charactersMatch = trackersContent.match(/Present Characters\s*\n\s*---[\s\S]*$/i);
-        if (charactersMatch) {
-            result.characterThoughts = stripBrackets(charactersMatch[0].trim());
-            debugLog('[RPG Parser] ✓ Extracted Present Characters from XML');
+            const infoBoxMatch = trackersContent.match(/Info Box\s*\n\s*---[\s\S]*?(?=\n\s*\n\s*Present Characters|$)/i);
+            if (infoBoxMatch) {
+                result.infoBox = stripBrackets(infoBoxMatch[0].trim());
+                debugLog('[RPG Parser] ✓ Extracted Info Box from XML (text format)');
+            }
+
+            const charactersMatch = trackersContent.match(/Present Characters\s*\n\s*---[\s\S]*$/i);
+            if (charactersMatch) {
+                result.characterThoughts = stripBrackets(charactersMatch[0].trim());
+                debugLog('[RPG Parser] ✓ Extracted Present Characters from XML (text format)');
+            }
         }
 
         debugLog('[RPG Parser] Parsed from XML:', result);
         return result;
     }
 
-    // Fallback to markdown code block parsing (old format)
+    // Fallback to markdown code block parsing (old text format or mixed format)
     debugLog('[RPG Parser] No XML tags found, using code block parser');
 
     // Extract code blocks
@@ -289,7 +501,7 @@ export function parseResponse(responseText) {
     debugLog('[RPG Parser] =======================================================');
 
     return result;
-}
+} // End parseResponse
 
 /**
  * Parses user stats from the text and updates the extensionSettings.
@@ -303,6 +515,118 @@ export function parseUserStats(statsText) {
     debugLog('[RPG Parser] Stats text preview:', statsText.substring(0, 200));
 
     try {
+        // Check if this is v3 JSON format - try to parse it first
+        let statsData = null;
+        const trimmed = statsText.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            statsData = repairJSON(statsText);
+            if (statsData) {
+                debugLog('[RPG Parser] ✓ Parsed as v3 JSON format');
+
+                // Extract stats from v3 JSON structure
+                if (statsData.stats && Array.isArray(statsData.stats)) {
+                    console.log('[RPG Parser] ✓ Extracting stats array, count:', statsData.stats.length);
+                    statsData.stats.forEach(stat => {
+                        if (stat.id && typeof stat.value !== 'undefined') {
+                            extensionSettings.userStats[stat.id] = stat.value;
+                            console.log(`[RPG Parser] ✓ Set ${stat.id} = ${stat.value}`);
+                        }
+                    });
+                }
+
+                // Extract status
+                if (statsData.status) {
+                    console.log('[RPG Parser] ✓ Extracting status:', statsData.status);
+                    if (statsData.status.mood) {
+                        extensionSettings.userStats.mood = statsData.status.mood;
+                        console.log('[RPG Parser] ✓ Set mood =', statsData.status.mood);
+                    }
+                    if (statsData.status.conditions) {
+                        extensionSettings.userStats.conditions = statsData.status.conditions;
+                        console.log('[RPG Parser] ✓ Set conditions =', statsData.status.conditions);
+                    }
+                }
+
+                // Extract inventory (convert v3 array format to v2 string format)
+                if (statsData.inventory) {
+                    const inv = statsData.inventory;
+
+                    // Convert arrays of {name, quantity} objects to comma-separated strings
+                    const convertItems = (items) => {
+                        if (!items || !Array.isArray(items)) return '';
+                        return items.map(item => {
+                            if (typeof item === 'object' && item.name) {
+                                // Include quantity if > 1
+                                return item.quantity && item.quantity > 1
+                                    ? `${item.quantity}x ${item.name}`
+                                    : item.name;
+                            }
+                            return String(item);
+                        }).join(', ');
+                    };
+
+                    // Convert stored object {location: [items]} to {location: "item1, item2"}
+                    const convertStoredInventory = (stored) => {
+                        if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
+                        const result = {};
+                        for (const [location, items] of Object.entries(stored)) {
+                            if (Array.isArray(items)) {
+                                result[location] = convertItems(items);
+                            } else if (typeof items === 'string') {
+                                result[location] = items;
+                            } else {
+                                result[location] = '';
+                            }
+                        }
+                        return result;
+                    };
+
+                    extensionSettings.userStats.inventory = {
+                        onPerson: convertItems(inv.onPerson),
+                        clothing: convertItems(inv.clothing),
+                        stored: convertStoredInventory(inv.stored),
+                        assets: convertItems(inv.assets)
+                    };
+                    console.log('[RPG Parser] ✓ Converted v3 inventory:', extensionSettings.userStats.inventory);
+                }
+
+                // Extract quests (convert v3 object format to v2 string format)
+                if (statsData.quests) {
+                    // Convert quest objects to strings
+                    const convertQuest = (quest) => {
+                        if (!quest) return '';
+                        if (typeof quest === 'string') return quest;
+                        if (typeof quest === 'object') {
+                            // v3 format: {title, description, status}
+                            return quest.title || quest.description || JSON.stringify(quest);
+                        }
+                        return String(quest);
+                    };
+
+                    extensionSettings.quests = {
+                        main: convertQuest(statsData.quests.main),
+                        optional: Array.isArray(statsData.quests.optional)
+                            ? statsData.quests.optional.map(convertQuest)
+                            : []
+                    };
+                    console.log('[RPG Parser] ✓ Converted v3 quests:', extensionSettings.quests);
+                }
+
+                // Extract skills if present (store as object, not JSON string)
+                if (statsData.skills && Array.isArray(statsData.skills)) {
+                    extensionSettings.userStats.skills = statsData.skills;
+                    console.log('[RPG Parser] ✓ Set skills:', extensionSettings.userStats.skills);
+                }
+
+                debugLog('[RPG Parser] ✓ Successfully extracted v3 JSON data');
+                saveSettings();
+                return; // Done processing v3 format
+            }
+        }
+
+        // Fall back to v2 text format parsing if JSON parsing failed
+        debugLog('[RPG Parser] Falling back to v2 text format parsing');
+
         // Get custom stat configuration
         const trackerConfig = extensionSettings.trackerConfig;
         const customStats = trackerConfig?.userStats?.customStats || [];

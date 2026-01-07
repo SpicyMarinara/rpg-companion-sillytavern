@@ -17,6 +17,7 @@ import {
 } from './state.js';
 import { migrateInventory } from '../utils/migration.js';
 import { validateStoredInventory, cleanItemString } from '../utils/security.js';
+import { migrateToV3JSON } from '../utils/jsonMigration.js';
 
 const extensionName = 'third-party/rpg-companion-sillytavern';
 
@@ -91,6 +92,14 @@ export function loadSettings() {
                 settingsChanged = true;
             }
 
+            // Migration to version 3: Convert text trackers to JSON format
+            if (currentVersion < 3) {
+                console.log('[RPG Companion] Migrating settings to version 3 (JSON tracker format)');
+                migrateToV3JSON();
+                extensionSettings.settingsVersion = 3;
+                settingsChanged = true;
+            }
+
             // Save migrated settings
             if (settingsChanged) {
                 saveSettings();
@@ -151,6 +160,14 @@ export function saveChatData() {
     if (!chat_metadata) {
         return;
     }
+
+    console.log('[RPG Companion] 💾 saveChatData called - committedTrackerData:', {
+        userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+        infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+        characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
+    });
+    console.log('[RPG Companion] 💾 saveChatData RAW committedTrackerData:', committedTrackerData);
+    console.log('[RPG Companion] 💾 saveChatData RAW lastGeneratedData:', lastGeneratedData);
 
     chat_metadata.rpg_companion = {
         userStats: extensionSettings.userStats,
@@ -265,14 +282,29 @@ export function loadChatData() {
         };
     }
 
-    // Restore last generated data
-    if (savedData.lastGeneratedData) {
-        setLastGeneratedData({ ...savedData.lastGeneratedData });
+    // Restore committed tracker data first
+    if (savedData.committedTrackerData) {
+        console.log('[RPG Companion] 📥 loadChatData restoring committedTrackerData:', {
+            userStats: savedData.committedTrackerData.userStats ? `${savedData.committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+            infoBox: savedData.committedTrackerData.infoBox ? 'exists' : 'null',
+            characterThoughts: savedData.committedTrackerData.characterThoughts ? 'exists' : 'null'
+        });
+        console.log('[RPG Companion] 📥 RAW savedData.committedTrackerData:', savedData.committedTrackerData);
+        console.log('[RPG Companion] 📥 Type check:', {
+            userStatsType: typeof savedData.committedTrackerData.userStats,
+            infoBoxType: typeof savedData.committedTrackerData.infoBox,
+            characterThoughtsType: typeof savedData.committedTrackerData.characterThoughts
+        });
+        setCommittedTrackerData({ ...savedData.committedTrackerData });
     }
 
-    // Restore committed tracker data
-    if (savedData.committedTrackerData) {
-        setCommittedTrackerData({ ...savedData.committedTrackerData });
+    // Restore last generated data (for display)
+    // Always prefer lastGeneratedData as it contains the most recent generation (including swipes)
+    if (savedData.lastGeneratedData) {
+        console.log('[RPG Companion] 📥 loadChatData restoring lastGeneratedData');
+        setLastGeneratedData({ ...savedData.lastGeneratedData });
+    } else {
+        console.log('[RPG Companion] ⚠️ No lastGeneratedData found in save');
     }
 
     // Migrate inventory in chat data if feature flag enabled

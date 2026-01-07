@@ -14,7 +14,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* CSS Variables for Theming - Default uses SillyTavern's variables */
 .rpg-panel,
 #rpg-thought-panel,
-#rpg-thought-icon {
+#rpg-thought-icon,
+.rpg-mobile-toggle {
     --rpg-bg: var(--SmartThemeBlurTintColor, rgba(26, 26, 46, 0.9));
     --rpg-accent: var(--black30a, rgba(22, 33, 62, 0.9));
     --rpg-text: var(--SmartThemeBodyColor, #eaeaea);
@@ -192,19 +193,39 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 }
 
-@media (max-width: 480px) {
-    .rpg-panel.rpg-position-right,
-    .rpg-panel.rpg-position-left {
+@media (max-width: 768px) {
+    /* Left position on mobile/tablet */
+    body.rpg-panel-position-left #rpg-companion-panel.rpg-panel,
+    #rpg-companion-panel.rpg-panel.rpg-position-left {
         left: 0 !important;
-        right: 0 !important;
-        width: 100%;
-        height: 50vh;
-        top: auto;
-        bottom: 0;
+        right: auto !important;
+        width: 85% !important;
+        max-width: 320px !important;
+        height: 100vh !important;
+        top: 0 !important;
+        bottom: 0 !important;
     }
 
-    .rpg-panel.rpg-position-top {
-        max-height: 40vh;
+    /* Right position on mobile/tablet */
+    body.rpg-panel-position-right #rpg-companion-panel.rpg-panel,
+    #rpg-companion-panel.rpg-panel.rpg-position-right {
+        left: auto !important;
+        right: 0 !important;
+        width: 85% !important;
+        max-width: 320px !important;
+        height: 100vh !important;
+        top: 0 !important;
+        bottom: 0 !important;
+    }
+
+    /* Top position on mobile */
+    #rpg-companion-panel.rpg-panel.rpg-position-top {
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-height: 40vh !important;
+        top: 0 !important;
+        bottom: auto !important;
     }
 }
 
@@ -564,6 +585,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* ============================================
    USER STATS SECTION
    ============================================ */
+#rpg-user-stats {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
 .rpg-stats-section {
     text-align: center;
     display: flex;
@@ -681,6 +710,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    position: relative; /* For absolute positioning of lock icon */
 }
 
 /* Stats Left - Portrait, Bars and mood */
@@ -800,6 +830,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     flex-direction: column;
     gap: clamp(3px, 0.5vh, 6px);
     flex: 1 1 auto;
+    position: relative; /* For lock icon positioning */
+    overflow: visible;
 }
 
 .rpg-stats-grid::-webkit-scrollbar {
@@ -838,26 +870,104 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: var(--rpg-text);
 }
 
+/* Section-level lock icon styling - appears on hover in top-right corner */
+.rpg-section-lock-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.1s ease;
+    user-select: none;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Show lock icon on hover or when section is locked */
+.rpg-stats-content:hover .rpg-section-lock-icon,
+.rpg-dashboard-widget:hover .rpg-section-lock-icon,
+.rpg-character-card:hover .rpg-section-lock-icon,
+.rpg-item-card:hover .rpg-section-lock-icon,
+.rpg-item-row:hover .rpg-section-lock-icon,
+.rpg-quest-item:hover .rpg-section-lock-icon,
+.rpg-section-lock-icon.locked {
+    opacity: 0.7;
+    pointer-events: auto;
+}
+
+.rpg-section-lock-icon:hover {
+    opacity: 1;
+    transform: scale(1.15);
+}
+
+/* Mobile: always show lock icons since there's no hover */
+@media (max-width: 1000px) {
+    .rpg-section-lock-icon {
+        opacity: 0.6 !important;
+        pointer-events: auto !important;
+    }
+
+    .rpg-section-lock-icon.locked {
+        opacity: 0.9 !important;
+    }
+}
+
+/* Make containers relative for absolute positioning of lock icon */
+.rpg-stats-content,
+.rpg-dashboard-widget,
+.rpg-character-content,
+.rpg-item-card,
+.rpg-item-row,
+.rpg-quest-item {
+    position: relative;
+}
+
 .rpg-stat-row {
     display: flex;
     align-items: center;
     gap: 0.25em;
     flex: 1 1 0;
+    min-width: fit-content;
+    max-width: 100%;
+    width: 100%;
     min-height: clamp(12px, 1.8vh, 16px);
+    transition: background-color 0.2s ease;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+/* Old per-field lock styling - remove */
+.rpg-lock-icon {
+    display: none;
+}
+
+.rpg-stat-row.rpg-locked {
+    background-color: transparent;
+    border-left: none;
+    padding-left: 0;
 }
 
 .rpg-stat-label {
-    min-width: 4.062rem;
+    flex: 0 0 auto;
+    min-width: 3rem;
+    max-width: 30%;
     font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: 600;
     text-align: left;
     color: var(--rpg-text);
     text-transform: uppercase;
     letter-spacing: 0.019em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .rpg-stat-bar {
     flex: 1;
+    min-width: 3.75rem;
+    max-width: 100%;
+    width: 100%;
     height: clamp(9px, 1.3vh, 11px);
     min-height: 9px;
     position: relative;
@@ -865,6 +975,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     overflow: hidden;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    box-sizing: border-box;
 }
 
 .rpg-stat-fill {
@@ -886,7 +997,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 /* Compact layout for high zoom / small viewports */
-@media (max-height: 750px), (max-width: 500px) {
+@media (max-height: 750px), (max-width: 1500px) {
     .rpg-stat-row {
         position: relative;
         min-height: clamp(16px, 2.5vh, 20px);
@@ -899,14 +1010,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         transform: translateY(-50%);
         z-index: 2;
         min-width: auto;
-        font-size: clamp(0.75rem, 0.7vw, 0.875rem);
+        max-width: calc(100% - 3rem);
+        font-size: min(0.7vw, 0.875rem);
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        overflow: hidden;
+        white-space: nowrap;
     }
 
     .rpg-stat-bar {
-        width: 100%;
+        width: 100% !important;
+        max-width: 100% !important;
         height: 100%;
         min-height: clamp(16px, 2.5vh, 20px);
+        box-sizing: border-box;
     }
 
     .rpg-stat-value {
@@ -917,6 +1033,22 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         z-index: 2;
         min-width: auto;
         font-size: clamp(0.75rem, 0.7vw, 0.875rem);
+    }
+
+    .rpg-mood {
+        font-size: clamp(0.625rem, 1vw, 0.75rem);
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+    .rpg-mood-emoji {
+        font-size: clamp(0.875rem, 2vw, 1.125rem);
+    }
+
+    .rpg-mood-conditions {
+        font-size: clamp(0.625rem, 1vw, 0.75rem);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 }
 
@@ -930,6 +1062,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border-radius: 0.25em;
     border: 1px solid var(--rpg-border);
     flex-shrink: 0;
+    position: relative; /* For lock icon positioning */
 }
 
 .rpg-mood-emoji {
@@ -944,6 +1077,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     line-height: 1.2;
     color: var(--rpg-text);
     font-weight: 600;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 /* Skills Section */
@@ -958,6 +1094,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border: 1px solid var(--rpg-border);
     flex-shrink: 0;
     margin-top: 0.375em;
+    position: relative; /* For lock icon positioning */
 }
 
 .rpg-skills-label {
@@ -972,6 +1109,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     line-height: 1.2;
     color: var(--rpg-text);
     font-weight: 600;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 /* Classic RPG Stats - Will match height of stats box automatically */
@@ -1114,7 +1254,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0.25em;
     align-items: stretch;
     width: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Scrollable content wrapper inside info section */
@@ -1202,28 +1343,44 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* Location widget - flexible height */
 .rpg-location-widget {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125em;
+    padding: 0.25em;
+    overflow: hidden;
 }
 
 /* Calendar Widget */
 .rpg-calendar-widget {
     padding: 0.188em;
+    container-type: size;
+    height: 100%;
+    overflow: hidden;
 }
 
 .rpg-calendar-top {
     background: var(--rpg-highlight);
     color: var(--rpg-bg);
-    font-size: clamp(0.563rem, 0.55vw, 0.625rem);
+    font-size: clamp(0.5rem, 3.5cqh, 0.625rem);
     font-weight: bold;
     padding: 0.125em 0.375em;
     border-radius: 3px 3px 0 0;
     width: 100%;
     text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 100%;
+    line-height: 1.2;
+    overflow: hidden;
 }
 
 .rpg-calendar-day {
     background: rgba(255, 255, 255, 0.1);
     color: var(--rpg-text);
-    font-size: clamp(0.625rem, 0.7vw, 0.875rem);
+    font-size: clamp(0.625rem, 5cqh, 0.875rem);
     font-weight: bold;
     padding: 0.25em;
     width: 100%;
@@ -1234,17 +1391,28 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 100%;
+    line-height: 1.2;
     min-width: 0;
+    overflow: hidden;
 }
 
 .rpg-calendar-year {
-    font-size: clamp(0.563rem, 0.55vw, 0.625rem);
+    font-size: clamp(0.5rem, 3.5cqh, 0.625rem);
     color: var(--rpg-text);
     opacity: 0.7;
     margin-top: 0.062em;
+    width: 100%;
+    text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    max-width: 100%;
+    line-height: 1.2;
+    overflow: hidden;
 }
 
 /* Weather Widget */
@@ -1255,6 +1423,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     justify-content: center;
     gap: 0.188em;
     padding: 0.25em;
+    max-width: 100%;
+    height: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+    container-type: size;
 }
 
 /* Weather Widget Icon */
@@ -1266,19 +1439,25 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-weather-forecast {
-    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
+    font-size: clamp(0.5rem, 4cqh, 0.75rem);
     text-align: center;
     margin: 0;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.013em;
     opacity: 0.85;
-    line-height: 1.2;
+    line-height: 1.1;
     word-wrap: break-word;
     overflow-wrap: break-word;
     max-width: 100%;
+    width: 100%;
     white-space: normal;
     flex-shrink: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    hyphens: auto;
 }
 
 .rpg-weather-forecast.rpg-editable {
@@ -1396,14 +1575,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: bold;
     color: var(--rpg-text);
+    text-align: center;
+    margin-top: 0.25em;
 }
 
 /* Location Widget - Map */
 .rpg-map-bg {
     width: 100%;
-    height: 1.875rem;
+    height: auto;
+    max-height: 60%;
+    padding: 0.5em 0;
     margin: 0;
-    margin-bottom: 0 !important;
     background:
         linear-gradient(45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
         linear-gradient(-45deg, rgba(255,255,255,0.05) 25%, transparent 25%),
@@ -1418,15 +1600,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: center;
     justify-content: center;
     position: relative;
-    overflow: hidden;
-    flex-shrink: 0;
-    margin-bottom: 0.188em;
+    flex: 0 0 auto;
 }
 
 .rpg-map-marker {
-    font-size: clamp(0.875rem, 1vw, 1rem);
+    font-size: clamp(0.875rem, 2.5vw, 1.25rem);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
     animation: markerPulse 2s ease-in-out infinite;
+    line-height: 1;
 }
 
 @keyframes markerPulse {
@@ -1440,11 +1621,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     color: var(--rpg-text);
     text-align: center;
     line-height: 1.2;
-    padding: 0.125em 0.25em;
+    padding: 0;
     margin: 0;
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 /* Row 3: Recent Events */
@@ -2408,6 +2595,25 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: var(--rpg-bg);
     cursor: pointer;
     transition: all 0.3s ease;
+    /* Ensure color picker works on all browsers */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Remove padding for better color swatch display */
+.rpg-setting-row input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.rpg-setting-row input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 0.25em;
+}
+
+.rpg-setting-row input[type="color"]::-moz-color-swatch {
+    border: none;
+    border-radius: 0.25em;
 }
 
 .rpg-setting-row input[type="color"]:hover {
@@ -2437,6 +2643,136 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     margin: 0.625em 0;
     cursor: pointer;
     transition: all 0.3s ease;
+}
+
+.checkbox_label input[type="checkbox"] {
+    accent-color: #666 !important;
+}
+
+.checkbox_label input[type="checkbox"]:checked {
+    background-color: #666 !important;
+}
+
+.rpg-panel[data-theme="sci-fi"] .checkbox_label input[type="checkbox"],
+.rpg-settings-popup[data-theme="sci-fi"] .checkbox_label input[type="checkbox"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="sci-fi"] .checkbox_label input[type="checkbox"]:checked,
+.rpg-settings-popup[data-theme="sci-fi"] .checkbox_label input[type="checkbox"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="fantasy"] .checkbox_label input[type="checkbox"],
+.rpg-settings-popup[data-theme="fantasy"] .checkbox_label input[type="checkbox"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="fantasy"] .checkbox_label input[type="checkbox"]:checked,
+.rpg-settings-popup[data-theme="fantasy"] .checkbox_label input[type="checkbox"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="cyberpunk"] .checkbox_label input[type="checkbox"],
+.rpg-settings-popup[data-theme="cyberpunk"] .checkbox_label input[type="checkbox"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="cyberpunk"] .checkbox_label input[type="checkbox"]:checked,
+.rpg-settings-popup[data-theme="cyberpunk"] .checkbox_label input[type="checkbox"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="custom"] .checkbox_label input[type="checkbox"],
+.rpg-settings-popup[data-theme="custom"] .checkbox_label input[type="checkbox"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="custom"] .checkbox_label input[type="checkbox"]:checked,
+.rpg-settings-popup[data-theme="custom"] .checkbox_label input[type="checkbox"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+/* Tracker Editor checkboxes (not wrapped in checkbox_label) */
+#rpg-tracker-editor-popup input[type="checkbox"] {
+    accent-color: #666 !important;
+}
+
+#rpg-tracker-editor-popup input[type="checkbox"]:checked {
+    background-color: #666 !important;
+}
+
+#rpg-tracker-editor-popup[data-theme="sci-fi"] input[type="checkbox"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+#rpg-tracker-editor-popup[data-theme="sci-fi"] input[type="checkbox"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+#rpg-tracker-editor-popup[data-theme="fantasy"] input[type="checkbox"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+#rpg-tracker-editor-popup[data-theme="fantasy"] input[type="checkbox"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+#rpg-tracker-editor-popup[data-theme="cyberpunk"] input[type="checkbox"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+#rpg-tracker-editor-popup[data-theme="cyberpunk"] input[type="checkbox"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+#rpg-tracker-editor-popup[data-theme="custom"] input[type="checkbox"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+#rpg-tracker-editor-popup[data-theme="custom"] input[type="checkbox"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+/* Panel checkboxes (not wrapped in checkbox_label) */
+.rpg-panel input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]) {
+    accent-color: #666 !important;
+}
+
+.rpg-panel input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]):checked {
+    background-color: #666 !important;
+}
+
+.rpg-panel[data-theme="sci-fi"] input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]) {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="sci-fi"] input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]):checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="fantasy"] input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]) {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="fantasy"] input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]):checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="cyberpunk"] input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]) {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="cyberpunk"] input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]):checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="custom"] input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]) {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+.rpg-panel[data-theme="custom"] input[type="checkbox"]:not(.checkbox_label input[type="checkbox"]):checked {
+    background-color: var(--rpg-highlight) !important;
 }
 
 .checkbox_label:hover {
@@ -2530,20 +2866,15 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transform: translateY(0);
 }
 
-/* ============================================
-   MEMORY RECOLLECTION STYLES
-   ============================================ */
-
-/* Memory Recollection Button */
-.rpg-memory-recollection-btn {
+/* Customize Prompts Button - Neutral gray style */
+.rpg-btn-customize-prompts {
     width: 100%;
-    padding: 0.75em 1em;
-    margin-bottom: 10px;
-    background: linear-gradient(135deg, var(--rpg-border, #4a7ba7) 0%, var(--rpg-highlight, #e94560) 100%);
-    border: 2px solid var(--rpg-border-transparent, rgba(74, 123, 167, 0.5));
+    padding: 0.625em;
+    background: rgba(128, 128, 128, 0.2);
+    border: 2px solid rgba(128, 128, 128, 0.5);
     border-radius: 0.5em;
-    color: #ffffff;
-    font-size: 14px;
+    color: #aaa;
+    font-size: clamp(0.938rem, 1.2vw, 1.2rem);
     font-weight: 600;
     cursor: pointer;
     display: flex;
@@ -2553,66 +2884,18 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transition: all 0.3s ease;
 }
 
-.rpg-memory-recollection-btn:hover {
-    background: linear-gradient(135deg, var(--rpg-highlight, #e94560) 0%, var(--rpg-border, #4a7ba7) 100%);
-    border-color: var(--rpg-border-opaque, rgba(74, 123, 167, 0.8));
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--rpg-border-transparent, rgba(74, 123, 167, 0.3));
+.rpg-btn-customize-prompts:hover {
+    background: rgba(128, 128, 128, 0.3);
+    border-color: rgba(128, 128, 128, 0.8);
+    color: #ccc;
+    transform: translateY(-0.062rem);
 }
 
-.rpg-memory-recollection-btn:active {
+.rpg-btn-customize-prompts:active {
     transform: translateY(0);
 }
 
-/* Modal Overlay */
-.rpg-memory-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(5px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* Modal Container */
-.rpg-memory-modal {
-    background: var(--SmartThemeBlurTintColor, #1a1a2e);
-    border: 2px solid var(--rpg-border, var(--SmartThemeBorderColor, #4a7ba7));
-    border-radius: 12px;
-    max-width: 500px;
-    width: 90%;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    animation: modalSlideIn 0.3s ease;
-}
-
-@keyframes modalSlideIn {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-/* Modal Header */
-.rpg-memory-modal-header {
-    padding: 1.25em;
-    border-bottom: 1px solid var(--rpg-border, var(--SmartThemeBorderColor, #4a7ba7));
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-}
+/* Memory Recollection styles removed - feature deprecated */
 
 .rpg-memory-modal-header h3 {
     margin: 0;
@@ -2728,77 +3011,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     box-shadow: 0 4px 12px var(--rpg-border-transparent, rgba(74, 123, 167, 0.3));
 }
 
-/* ============================================
-   LOREBOOK LIMITER STYLING
-   ============================================ */
-
-.rpg-lorebook-limiter-container {
-    width: 100%;
-    padding: 0.75em 1em;
-    margin-bottom: 10px;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-    border: 2px solid rgba(102, 126, 234, 0.3);
-    border-radius: 0.5em;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5em;
-}
-
-.rpg-lorebook-limiter-label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1em;
-    cursor: pointer;
-}
-
-.rpg-lorebook-limiter-title {
-    color: rgba(102, 126, 234, 1);
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.rpg-lorebook-limiter-input {
-    width: 120px;
-    padding: 0.5em;
-    background: rgba(0, 0, 0, 0.3);
-    border: 2px solid rgba(102, 126, 234, 0.4);
-    border-radius: 0.3em;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.rpg-lorebook-limiter-input:focus {
-    outline: none;
-    border-color: rgba(102, 126, 234, 0.8);
-    background: rgba(0, 0, 0, 0.5);
-    box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
-}
-
-.rpg-lorebook-limiter-input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-    font-weight: 400;
-}
-
-.rpg-lorebook-limiter-hint {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 12px;
-    font-style: italic;
-}
-
-.rpg-memory-close {
-    background: rgba(52, 152, 219, 0.2);
-    color: #5dade2;
-    border: 2px solid rgba(52, 152, 219, 0.5);
-}
-
-.rpg-memory-close:hover {
-    background: rgba(52, 152, 219, 0.3);
-    border-color: rgba(52, 152, 219, 0.8);
-}
+/* Lorebook Limiter styles removed - feature deprecated */
 
 /* ============================================
    THEME VARIATIONS
@@ -2816,7 +3029,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Apply sci-fi theme to thought panel */
 #rpg-thought-panel[data-theme="sci-fi"],
-#rpg-thought-icon[data-theme="sci-fi"] {
+#rpg-thought-icon[data-theme="sci-fi"],
+.rpg-mobile-toggle[data-theme="sci-fi"] {
     --rpg-bg: #0a0e27;
     --rpg-accent: #1a1f3a;
     --rpg-text: #00fff9;
@@ -2863,7 +3077,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Apply fantasy theme to thought panel */
 #rpg-thought-panel[data-theme="fantasy"],
-#rpg-thought-icon[data-theme="fantasy"] {
+#rpg-thought-icon[data-theme="fantasy"],
+.rpg-mobile-toggle[data-theme="fantasy"] {
     --rpg-bg: #2b1810;
     --rpg-accent: #3d2414;
     --rpg-text: #f4e8d0;
@@ -2919,7 +3134,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Apply cyberpunk theme to thought panel */
 #rpg-thought-panel[data-theme="cyberpunk"],
-#rpg-thought-icon[data-theme="cyberpunk"] {
+#rpg-thought-icon[data-theme="cyberpunk"],
+.rpg-mobile-toggle[data-theme="cyberpunk"] {
     --rpg-bg: #000000;
     --rpg-accent: #0d0d0d;
     --rpg-text: #00ff41;
@@ -4457,9 +4673,60 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     position: fixed;
     z-index: 1000; /* Lower z-index to stay below dropdown menus */
     pointer-events: auto;
-    max-width: 15.3rem; /* 30% smaller than 21.875rem (350px → 245px) */
+    max-width: 350px; /* Fixed max like panels, will be constrained by viewport */
+    width: auto;
     transform: translateY(0); /* No vertical centering - align with avatar top */
     animation: thoughtPanelFadeIn 0.4s ease-out;
+}
+
+/* Collapsed thought icon */
+#rpg-thought-icon {
+    position: fixed;
+    z-index: 1000; /* Lower z-index to stay below dropdown menus */
+    display: none; /* Hidden by default in desktop */
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--rpg-bg, rgba(30, 30, 50, 0.95));
+    border: 2px solid var(--rpg-highlight, #e94560);
+    color: var(--rpg-text, #ecf0f1);
+    font-size: clamp(1.25rem, 1.85vw, 1.875rem);
+    cursor: move;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Show icon only in mobile view */
+@media (max-width: 1000px) {
+    #rpg-thought-icon {
+        display: flex;
+    }
+}
+
+/* Force hide class for desktop mode - overrides media query */
+#rpg-thought-icon.rpg-force-hide {
+    display: none !important;
+}
+
+/* Hidden state that allows transitions */
+#rpg-thought-icon.rpg-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#rpg-thought-icon.dragging {
+    transition: none !important;
+    cursor: grabbing;
+}
+
+#rpg-thought-icon:not(.dragging):hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
 }
 
 /* Close button */
@@ -4489,28 +4756,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     color: var(--rpg-highlight, #e94560);
 }
 
-/* Collapsed thought icon */
-#rpg-thought-icon {
-    position: fixed;
-    z-index: 1000; /* Lower z-index to stay below dropdown menus */
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 50%;
-    background: var(--rpg-bg, rgba(30, 30, 50, 0.95));
-    border: 2px solid var(--rpg-highlight, #e94560);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: clamp(1.3rem, 1.4rem, 1.5rem);
-    cursor: pointer;
-    animation: thoughtIconPulse 2s ease-in-out infinite;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-}
-
-#rpg-thought-icon:hover {
-    transform: scale(1.1);
-    animation: none;
+/* Hide close button in desktop view (panel doesn't close) */
+@media (min-width: 1001px) {
+    .rpg-thought-close {
+        display: none !important;
+    }
 }
 
 @keyframes thoughtIconPulse {
@@ -4533,6 +4783,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0.5em;
     inset: 0px -50px auto;
     z-index: 1;
+}
+
+/* Flip thought circles to left side when panel is on left */
+.rpg-thought-panel-right .rpg-thought-circles {
+    inset: 0px auto auto -50px;
+    flex-direction: row; /* Normal order for left side */
 }
 
 .rpg-thought-circle {
@@ -4569,7 +4825,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     position: relative;
     backdrop-filter: blur(15px);
-    max-height: 30vh;
+    max-height: calc(100vh - 120px); /* Scale with viewport height */
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -4717,12 +4973,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 /* Responsive positioning for mobile/narrow screens */
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
     #rpg-thought-panel {
         position: fixed !important;
         max-width: 90vw !important;
+        width: 90vw !important;
         left: 50% !important;
-        transform: translateX(-50%) translateY(-50%) !important;
+        transform: translateX(-50%) !important;
+        max-height: calc(100vh - 80px) !important;
+    }
+
+    #rpg-thought-panel .rpg-thought-bubble {
+        max-height: calc(100vh - 100px) !important;
+        overflow-y: auto !important;
     }
 
     .rpg-thought-circles {
@@ -4754,28 +5017,39 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: var(--SmartThemeBlurTintColor);
-    border: 2px solid var(--SmartThemeBorderColor);
+    background: var(--rpg-bg, rgba(30, 30, 50, 0.95));
+    border: 2px solid var(--rpg-highlight, #e94560);
     color: var(--rpg-text, #ecf0f1);
     font-size: clamp(1.25rem, 1.85vw, 1.875rem);
-    cursor: grab;
+    cursor: move;
     z-index: 10002;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    transition: opacity 0.3s ease, transform 0.2s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease;
     user-select: none; /* Prevent text selection while dragging */
     -webkit-user-select: none;
     will-change: top, left; /* Optimize for position changes */
 }
 
-/* Disable transitions while actively dragging */
-.rpg-mobile-toggle.dragging {
-    transition: none;
-    cursor: grabbing;
+/* Center the icon inside */
+.rpg-mobile-toggle i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
 }
 
-.rpg-mobile-toggle:hover {
+/* Disable transitions while actively dragging */
+.rpg-mobile-toggle.dragging {
+    transition: none !important;
+    cursor: grabbing;
+    animation: none;
+}
+
+.rpg-mobile-toggle:not(.dragging):hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
 }
 
 .rpg-mobile-toggle:active {
@@ -4855,7 +5129,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         /* Hidden by default - completely removed from layout */
         display: none !important;
 
-        overflow-y: auto !important;
+        overflow: visible !important;
         -webkit-overflow-scrolling: touch;
 
         /* Styling */
@@ -4864,6 +5138,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         border-top: 1px solid var(--SmartThemeBorderColor);
         backdrop-filter: blur(calc(var(--SmartThemeBlurStrength) * 2));
         box-shadow: -5px 0 20px var(--rpg-shadow);
+    }
+
+    /* Allow collapse button to show outside panel */
+    .rpg-game-container {
+        overflow: visible !important;
+    }
+
+    /* But keep content scrollable */
+    #rpg-panel-content {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
     }
 
     /* Show panel when opened with slide-in animation */
@@ -4900,6 +5185,45 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         }
     }
 
+    /* Slide-in animation from left */
+    @keyframes rpgSlideInFromLeft {
+        from {
+            transform: translateX(-100%);
+        }
+        to {
+            transform: translateX(0);
+        }
+    }
+
+    /* Slide-out animation to left */
+    @keyframes rpgSlideOutToLeft {
+        from {
+            transform: translateX(0);
+        }
+        to {
+            transform: translateX(-100%);
+        }
+    }
+
+    /* Left-side mobile panel positioning */
+    .rpg-panel.rpg-position-left {
+        right: auto !important;
+        left: 0 !important;
+        border-radius: 0 20px 0 0;
+        border-left: none;
+        border-right: 1px solid var(--SmartThemeBorderColor);
+        box-shadow: 5px 0 20px var(--rpg-shadow);
+    }
+
+    /* Left-side panel animations */
+    .rpg-panel.rpg-position-left.rpg-mobile-open {
+        animation: rpgSlideInFromLeft 0.3s ease-in-out;
+    }
+
+    .rpg-panel.rpg-position-left.rpg-mobile-closing {
+        animation: rpgSlideOutToLeft 0.3s ease-in-out;
+    }
+
     /* ========================================
        MOBILE KEYBOARD HANDLING
        ======================================== */
@@ -4934,15 +5258,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         pointer-events: auto !important;
     }
 
-    /* Collapse toggle on mobile - right side, always visible */
+    /* Collapse toggle on mobile - positioned on panel edge and vertically centered */
     .rpg-collapse-toggle {
         display: flex !important;
         align-items: center;
         justify-content: center;
-        position: fixed !important;
-        top: calc(var(--topBarBlockSize) + 120px) !important;
-        left: 12px !important;
-        right: auto !important;
+        position: absolute !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
         width: 44px;
         height: 44px;
         min-width: 44px;
@@ -4950,20 +5273,33 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         border-radius: 50%;
         background: var(--SmartThemeBlurTintColor);
         border: 2px solid var(--SmartThemeBorderColor);
-        z-index: 9999 !important;
+        z-index: 10000 !important;
         transition: all 0.2s ease;
-        transform: none !important;
         pointer-events: auto !important;
         cursor: pointer !important;
     }
 
+    /* Position on right edge when panel is on left */
+    body.rpg-panel-position-left .rpg-collapse-toggle,
+    .rpg-panel.rpg-position-left .rpg-collapse-toggle {
+        left: auto !important;
+        right: -22px !important;
+    }
+
+    /* Position on left edge when panel is on right */
+    body.rpg-panel-position-right .rpg-collapse-toggle,
+    .rpg-panel.rpg-position-right .rpg-collapse-toggle {
+        left: -22px !important;
+        right: auto !important;
+    }
+
     .rpg-collapse-toggle:hover {
         background: rgba(255, 255, 255, 0.1);
-        transform: scale(1.05) !important;
+        transform: translateY(-50%) scale(1.05) !important;
     }
 
     .rpg-collapse-toggle:active {
-        transform: scale(0.95) !important;
+        transform: translateY(-50%) scale(0.95) !important;
     }
 
     /* Mobile icon styling - use chevrons for drawer UX */
@@ -5050,6 +5386,25 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         padding: 12px;
     }
 
+    /* Center empty state messages in mobile tabs - only when empty */
+    .rpg-mobile-tab-content #rpg-user-stats:has(> .rpg-inventory-empty) {
+        display: flex !important;
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* When empty state is shown, center it in the full panel */
+    .rpg-mobile-tab-content #rpg-user-stats > .rpg-inventory-empty {
+        margin: auto;
+    }
+
+    .rpg-mobile-tab-content .rpg-inventory-empty {
+        text-align: center;
+        width: auto !important;
+    }
+
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -5126,7 +5481,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     .rpg-calendar-day {
-        font-size: clamp(10px, 2.9vw, 14px) !important;
+        font-size: min(2.5vw, 14px) !important;
     }
 
     .rpg-calendar-year {
@@ -5134,19 +5489,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     .rpg-weather-forecast {
-        font-size: clamp(0.5625rem, 2.2vw, 0.6875rem) !important;
+        font-size: min(2.2vw, 0.6875rem) !important;
     }
 
     .rpg-temp-value {
-        font-size: clamp(0.625rem, 2.5vw, 0.8125rem) !important;
+        font-size: min(2.5vw, 0.8125rem) !important;
     }
 
     .rpg-time-value {
-        font-size: clamp(0.625rem, 2.5vw, 0.8125rem) !important;
+        font-size: min(2.5vw, 0.8125rem) !important;
     }
 
     .rpg-location-text {
-        font-size: clamp(0.6875rem, 2.8vw, 0.875rem) !important;
+        font-size: min(2.8vw, 0.875rem) !important;
     }
 
     .rpg-map-marker {
@@ -5173,20 +5528,22 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     .rpg-event-text {
-        font-size: clamp(8px, 2vw, 10px) !important;
+        font-size: clamp(11px, 2.8vw, 14px) !important;
     }
 
     /* ========================================
        MOBILE STATS TAB LAYOUT IMPROVEMENTS
        ======================================== */
 
-    /* Make the entire stats section a grid */
+    /* Make the entire stats section a single column grid */
     .rpg-stats-section {
         display: grid !important;
-        grid-template-columns: 40% 60%; /* Left for inventory/mood, right for attributes */
-        grid-template-rows: auto auto auto auto auto; /* Portrait, bars, inventory, mood, attributes */
+        grid-template-columns: 1fr !important; /* Single column */
+        grid-template-rows: auto !important; /* Auto rows - everything stacked */
         gap: 12px;
         padding: 16px 12px;
+        overflow-y: auto !important; /* Enable scrolling on the grid container */
+        min-height: 0;
     }
 
     /* Use display: contents so children participate in grid */
@@ -5195,19 +5552,31 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         display: contents !important;
     }
 
-    /* Portrait row - centered at top, full width */
-    .rpg-stats-header-left {
-        grid-column: 1 / 3;
-        grid-row: 1;
+    /* Portrait row - centered at top, row 1 */
+    .rpg-stats-header-left,
+    .rpg-user-info-row {
         display: flex !important;
+        grid-column: 1 !important;
+        grid-row: 1 !important;
         justify-content: center;
         align-items: center;
-        gap: 4px;
+        gap: 8px;
     }
 
+    /* Make user portrait visible and sized for mobile */
     .rpg-user-portrait {
-        width: 64px;
-        height: 64px;
+        width: clamp(32px, 8vw, 48px) !important;
+        height: clamp(32px, 8vw, 48px) !important;
+    }
+
+    /* Make user name and level readable */
+    .rpg-user-name {
+        font-size: clamp(13px, 3.2vw, 16px) !important;
+    }
+
+    .rpg-level-label,
+    .rpg-level-value {
+        font-size: clamp(12px, 3vw, 14px) !important;
     }
 
     /* Hide stats title on mobile */
@@ -5215,43 +5584,18 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         display: none;
     }
 
-    /* Stat bars row - full width */
+    /* Stats left container must use contents to unwrap its children */
     .rpg-stats-left {
-        grid-column: 1 / 3;
-        grid-row: 2;
         display: contents !important;
     }
 
-    /* User info row on mobile */
-    .rpg-user-info-row {
-        grid-column: 1 / 3;
-        grid-row: 1;
-        justify-content: center !important;
-        font-size: clamp(11px, 2.8vw, 14px) !important;
-        gap: clamp(6px, 1.5vw, 10px) !important;
-    }
-
-    /* Make user portrait larger on mobile */
-    .rpg-user-portrait {
-        width: clamp(24px, 6vw, 32px) !important;
-        height: clamp(24px, 6vw, 32px) !important;
-    }
-
-    /* Make user name and level more readable on mobile */
-    .rpg-user-name {
-        font-size: clamp(12px, 3vw, 16px) !important;
-    }
-
-    .rpg-level-label,
-    .rpg-level-value {
-        font-size: clamp(11px, 2.8vw, 14px) !important;
-    }
-
+    /* Stat bars - full width, row 2 */
     .rpg-stats-grid {
-        grid-column: 1 / 3;
-        grid-row: 2;
-        min-height: 180px; /* Stretch vertically to fill more space */
-        gap: clamp(8px, 2vw, 12px); /* Increase gap between stat rows */
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: clamp(6px, 1.5vw, 8px);
     }
 
     /* Increase stat bar text sizes for mobile readability */
@@ -5263,28 +5607,60 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         font-size: clamp(12px, 3.1vw, 16px) !important;
     }
 
-    /* Inventory - expand to fill horizontal space in flex container */
+    /* Everything else stacked below - full width, auto rows */
+    .rpg-mood,
+    .rpg-inventory-box,
+    .rpg-skills-section,
+    .rpg-custom-field {
+        grid-column: 1 !important;
+        grid-row: auto !important;
+    }
+
+    /* Attributes container - use contents to unwrap */
+    .rpg-stats-right {
+        display: contents !important;
+    }
+
+    /* Compact 2x3 or 3x2 grid for mobile */
+    .rpg-classic-stats-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-rows: repeat(2, 1fr) !important;
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+    }
+
+    /* Everything else below - full width stacked */
     .rpg-inventory-box {
-        flex: 1 !important; /* Grow to fill all available space */
-        min-width: 0 !important; /* Allow flexbox to work properly */
-        max-width: none !important; /* Remove desktop width restrictions */
-        width: auto !important; /* Don't force a specific width */
-        min-height: 60px; /* Give it decent height */
-        max-height: none; /* Remove height restriction */
+        flex: 1 !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+        grid-row: auto !important;
+    }
+
+    /* Inventory box */
+    .rpg-inventory-box {
+        flex: 1 !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        width: auto !important;
+        min-height: 60px;
+        max-height: none;
     }
 
     /* Increase inventory text size for readability on mobile */
     .rpg-inventory-items {
         font-size: clamp(11px, 2.8vw, 14px) !important;
         line-height: 1.4;
-        width: 100% !important; /* Fill the inventory box */
-        white-space: normal !important; /* Allow text wrapping */
+        width: 100% !important;
+        white-space: normal !important;
     }
 
-    /* Mood - row 4, aligned with attributes top */
+    /* Mood */
     .rpg-mood {
-        grid-column: 1;
-        grid-row: 3;
         display: flex;
         flex-direction: column;
         gap: 6px;
@@ -5295,28 +5671,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     .rpg-mood-conditions {
         font-size: clamp(11px, 2.8vw, 14px);
         line-height: 1.3;
-    }
-
-    /* Attributes - right side, rows 4-6 aligned with mood */
-    .rpg-stats-right {
-        grid-column: 2;
-        grid-row: 3;
-        display: contents !important;
-    }
-
-    .rpg-classic-stats {
-        grid-column: 2;
-        grid-row: 3; /* Align with mood */
-    }
-
-    /* Attributes as ultra-compact 2x3 grid for mobile */
-    .rpg-classic-stats-grid {
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        grid-template-rows: repeat(3, 1fr) !important;
-        gap: 3px;
-        margin: 4px 5px 4px 0;
-        padding-right: 5px;
     }
 
     /* Each attribute - ULTRA COMPACT with vertical stack layout */
@@ -5417,14 +5771,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Position thought icon above avatar on mobile to prevent off-screen clipping */
     /* JavaScript will calculate position, but add transform to move it above and right */
     #rpg-thought-icon {
-        /* 20% larger than desktop for better visibility on mobile */
-        width: 2.7rem !important;
-        height: 2.7rem !important;
-        font-size: clamp(1.5rem, 2.2vw, 1.875rem) !important;
-        /* Use transform to shift icon above and to the right of avatar */
-        transform: translate(50px, -45px) !important;
+        /* Match mobile toggle size */
+        width: 44px !important;
+        height: 44px !important;
+        font-size: clamp(1.25rem, 1.85vw, 1.875rem) !important;
         /* Smooth animation for position changes during scroll */
-        transition: top 0.2s ease-out, left 0.2s ease-out !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
         will-change: top, left;
     }
 
@@ -5577,8 +5929,238 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
     /* Readable clear cache button */
     .rpg-btn-clear-cache,
-    .rpg-btn-reset-fab {
+    .rpg-btn-reset-fab,
+    .rpg-btn-customize-prompts {
         font-size: clamp(13px, 3.3vw, 17px) !important;
+    }
+
+    /* ========================================
+       MOBILE TRACKER EDITOR FOOTER
+       ======================================== */
+
+    /* Make footer wrap and stack buttons on mobile */
+    .rpg-settings-popup-footer {
+        flex-direction: column;
+        gap: 0.5em;
+        padding: 0.75em;
+    }
+
+    .rpg-footer-left,
+    .rpg-footer-right {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        flex-wrap: nowrap;
+    }
+
+    /* Prevent buttons from shrinking in scroll container */
+    .rpg-footer-left button,
+    .rpg-footer-right button {
+        flex-shrink: 0;
+        white-space: nowrap;
+        font-size: clamp(12px, 3.1vw, 15px) !important;
+        padding: 0.5em 0.75em !important;
+    }
+
+    /* ========================================
+       MOBILE TRACKER EDITOR HEADER
+       ======================================== */
+
+    /* Make header text smaller and wrap properly */
+    .rpg-settings-popup-header h3 {
+        font-size: clamp(16px, 4.1vw, 20px) !important;
+        word-break: break-word;
+    }
+
+    .rpg-settings-popup-header h3 i {
+        font-size: clamp(14px, 3.6vw, 18px) !important;
+    }
+
+    /* ========================================
+       MOBILE TRACKER EDITOR TABS
+       ======================================== */
+
+    /* Make tabs wrap and stack if needed */
+    .rpg-editor-tabs {
+        flex-wrap: wrap;
+        gap: 0;
+    }
+
+    .rpg-editor-tab {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 0.5em 0.5em;
+        font-size: clamp(11px, 2.8vw, 14px) !important;
+        gap: 0.25em;
+    }
+
+    .rpg-editor-tab i {
+        font-size: clamp(12px, 3.1vw, 15px) !important;
+    }
+
+    /* ========================================
+       MOBILE TRACKER EDITOR CONTENT
+       ======================================== */
+
+    /* Reduce popup body padding on mobile */
+    .rpg-settings-popup-body {
+        padding: 0.75em !important;
+    }
+
+    /* Make section headers smaller */
+    .rpg-editor-section h4 {
+        font-size: clamp(13px, 3.3vw, 16px) !important;
+        gap: 0.25em;
+    }
+
+    .rpg-editor-section h4 i {
+        font-size: clamp(12px, 3.1vw, 15px) !important;
+    }
+
+    /* Make hint text smaller */
+    .rpg-editor-hint {
+        font-size: clamp(11px, 2.8vw, 14px) !important;
+    }
+
+    /* ========================================
+       MOBILE TRACKER EDITOR STAT ITEMS
+       ======================================== */
+
+    /* Make stat items wrap on mobile */
+    .rpg-editor-stat-item {
+        flex-wrap: wrap;
+        gap: 0.5em;
+        padding: 0.5em;
+    }
+
+    /* Make stat name input full width on mobile */
+    .rpg-stat-name,
+    .rpg-attr-name {
+        width: 100%;
+        flex: 1 1 100%;
+        font-size: clamp(13px, 3.3vw, 16px) !important;
+    }
+
+    /* Make toggle and remove button stay on same row */
+    .rpg-stat-toggle,
+    .rpg-attr-toggle {
+        flex: 0 0 auto;
+    }
+
+    .rpg-stat-remove,
+    .rpg-attr-remove {
+        flex: 0 0 auto;
+        font-size: clamp(12px, 3.1vw, 15px) !important;
+        padding: 0.5em 0.75em !important;
+    }
+
+    /* ========================================
+       MOBILE RELATIONSHIP MAPPING
+       ======================================== */
+
+    /* Make relationship items stack vertically on mobile */
+    .rpg-relationship-item {
+        grid-template-columns: 1fr;
+        gap: 0.5em;
+        padding: 0.75em 0.5em;
+    }
+
+    /* Hide arrow on mobile since items are stacked */
+    .rpg-relationship-item .rpg-arrow {
+        display: none;
+    }
+
+    /* Make relationship inputs full width */
+    .rpg-relationship-name,
+    .rpg-relationship-emoji {
+        width: 100%;
+        font-size: clamp(13px, 3.3vw, 16px) !important;
+    }
+
+    .rpg-remove-relationship {
+        font-size: clamp(12px, 3.1vw, 15px) !important;
+        padding: 0.5em 0.75em !important;
+    }
+
+    /* ========================================
+       MOBILE TRACKER EDITOR INPUTS & CONTROLS
+       ======================================== */
+
+    /* Make all input fields readable on mobile */
+    .rpg-editor-tab-content input[type="text"],
+    .rpg-editor-tab-content input[type="number"],
+    .rpg-editor-tab-content select,
+    .rpg-editor-tab-content textarea {
+        font-size: clamp(13px, 3.3vw, 16px) !important;
+        padding: 0.5em !important;
+    }
+
+    /* Make add buttons full width on mobile */
+    .rpg-editor-section button[id*="add"],
+    .rpg-editor-section button[id*="Add"] {
+        width: 100%;
+        font-size: clamp(13px, 3.3vw, 16px) !important;
+        padding: 0.5em !important;
+    }
+
+    /* Make checkboxes with labels easier to tap */
+    .rpg-editor-tab-content label {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        font-size: clamp(13px, 3.3vw, 16px) !important;
+    }
+
+    .rpg-editor-tab-content input[type="checkbox"] {
+        min-width: 20px;
+        min-height: 20px;
+        margin-right: 0.5em;
+    }
+
+    /* ========================================
+       MOBILE WIDGET ROWS (DATE/TEMPERATURE)
+       ======================================== */
+
+    /* Make widget rows wrap on mobile */
+    .rpg-editor-widget-row {
+        flex-wrap: wrap;
+        gap: 0.5em;
+        padding: 0.75em 0.5em;
+    }
+
+    /* Checkbox and main label on first row */
+    .rpg-editor-widget-row > input[type="checkbox"],
+    .rpg-editor-widget-row > label {
+        flex: 0 0 auto;
+    }
+
+    /* Format dropdown full width on second row */
+    .rpg-editor-widget-row .rpg-select-mini {
+        flex: 1 1 100%;
+        width: 100%;
+        font-size: clamp(13px, 3.3vw, 16px) !important;
+        padding: 0.5em !important;
+    }
+
+    /* Radio group full width on second row */
+    .rpg-editor-widget-row .rpg-radio-group {
+        flex: 1 1 100%;
+        width: 100%;
+        gap: 1.5em;
+        justify-content: flex-start;
+        margin-top: 0.25em;
+    }
+
+    .rpg-radio-group label {
+        font-size: clamp(13px, 3.3vw, 16px) !important;
+        gap: 0.5em;
+    }
+
+    .rpg-radio-group input[type="radio"] {
+        min-width: 18px;
+        min-height: 18px;
     }
 }
 
@@ -5718,6 +6300,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transition: all 0.2s ease;
     font-weight: 500;
     text-align: center;
+    font-size: clamp(0.75rem, 1vw, 0.9rem);
 }
 
 .rpg-inventory-subtab:hover {
@@ -5741,6 +6324,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-inventory-header {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -5865,7 +6449,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-storage-content {
-    padding: 0.75rem;
+    padding: 0.5rem;
     background: var(--SmartThemeBlurTintColor);
 }
 
@@ -6059,11 +6643,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-item-row {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+    padding: 0.75rem;
     background: transparent;
     border: 2px solid var(--rpg-highlight);
     border-radius: 0.25rem;
@@ -6079,9 +6663,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 .rpg-item-row .rpg-item-name {
     flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .rpg-item-row .rpg-item-remove {
@@ -6371,6 +6955,28 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0.5rem;
     border-bottom: 2px solid var(--SmartThemeBorderColor);
     padding-bottom: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: var(--SmartThemeBorderColor) transparent;
+}
+
+.rpg-quests-subtabs::-webkit-scrollbar {
+    height: 6px;
+}
+
+.rpg-quests-subtabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rpg-quests-subtabs::-webkit-scrollbar-thumb {
+    background: var(--SmartThemeBorderColor);
+    border-radius: 3px;
+}
+
+.rpg-quests-subtabs::-webkit-scrollbar-thumb:hover {
+    background: var(--rpg-accent);
 }
 
 .rpg-quests-subtab {
@@ -6384,6 +6990,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transition: all 0.2s ease;
     font-weight: 500;
     text-align: center;
+    font-size: clamp(0.75rem, 1vw, 0.9rem);
+    min-width: fit-content;
+    white-space: nowrap;
 }
 
 .rpg-quests-subtab:hover {
@@ -6407,6 +7016,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-quest-header {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -8372,7 +8982,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 50%;
     color: #1DB954;
     font-size: 20px;
@@ -8466,36 +9076,84 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 /* Mobile Responsive Styles */
-@media (max-width: 600px) {
+@media (max-width: 1000px) {
+    .rpg-music-widget {
+        width: calc(100% - 20px);
+        max-width: none;
+        left: 50%;
+        transform: translate(-50%, calc(-100% - 8px));
+    }
+
     .rpg-music-widget-content {
-        padding: 8px 12px;
-        gap: 10px;
+        padding: 8px 10px;
+        gap: 8px;
     }
 
     .rpg-music-widget-icon {
-        width: 36px;
-        height: 36px;
-        font-size: 18px;
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+
+    .rpg-music-widget-info {
+        gap: 1px;
     }
 
     .rpg-music-widget-title {
-        font-size: 13px;
-    }
-
-    .rpg-music-widget-artist {
-        font-size: 11px;
-    }
-
-    .rpg-music-widget-play {
-        width: 32px;
-        height: 32px;
         font-size: 12px;
     }
 
-    .rpg-music-widget-close {
-        width: 22px;
-        height: 22px;
+    .rpg-music-widget-artist {
+        font-size: 10px;
+    }
+
+    .rpg-music-widget-play {
+        width: 30px;
+        height: 30px;
         font-size: 11px;
+    }
+
+    .rpg-music-widget-close {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 600px) {
+    .rpg-music-widget {
+        width: calc(100% - 12px);
+    }
+
+    .rpg-music-widget-content {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .rpg-music-widget-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+    }
+
+    .rpg-music-widget-title {
+        font-size: 11px;
+    }
+
+    .rpg-music-widget-artist {
+        font-size: 9px;
+    }
+
+    .rpg-music-widget-play {
+        width: 28px;
+        height: 28px;
+        font-size: 10px;
+    }
+
+    .rpg-music-widget-close {
+        width: 18px;
+        height: 18px;
+        font-size: 9px;
     }
 }
 
@@ -8869,16 +9527,47 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
     display: flex;
     gap: 8px;
     margin-bottom: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    padding: 0 4px; /* Prevent first/last items from being cut off */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* Center items when they fit, allow scrolling when they don't */
+.rpg-features-row::before,
+.rpg-features-row::after {
+    content: '';
+    margin: auto;
+}
+
+/* Hide scrollbar for cleaner look while maintaining functionality */
+.rpg-features-row::-webkit-scrollbar {
+    height: 4px;
+}
+
+.rpg-features-row::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rpg-features-row::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 2px;
+}
+
+.rpg-features-row::-webkit-scrollbar-thumb:hover {
+    background: rgba(128, 128, 128, 0.5);
 }
 
 /* Each feature column */
 .rpg-feature-col {
-    flex: 1;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: 60px;
 }
 
 .rpg-feature-col .rpg-toggle-label {
     justify-content: center;
+    align-items: center;
 }
 
 /* Always hide text, show only checkbox + icon */
@@ -8887,8 +9576,11 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
 }
 
 .rpg-feature-col .rpg-toggle-label i {
-    font-size: 1.125rem;
+    font-size: 0.95rem;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Tablet and below: Hide text, show only checkbox + icon */
@@ -8898,15 +9590,14 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
     }
 
     .rpg-feature-col .rpg-toggle-label i {
-        font-size: 1.cally with icons only */
-@media (max-width: 400px) {
-    .rpg-features-row {
-        flex-direction: column;
-        gap: 0.5rem;
+        font-size: 1rem;
     }
+}
 
+/* Very small screens: Remove column layout since we have horizontal scroll */
+@media (max-width: 400px) {
     .rpg-feature-col .rpg-toggle-label i {
-        font-size: 1.25rem;
+        font-size: 1rem;
     }
 }
 

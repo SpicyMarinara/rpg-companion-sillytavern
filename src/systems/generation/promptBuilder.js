@@ -7,6 +7,13 @@ import { getContext } from '../../../../../../extensions.js';
 import { chat, getCurrentChatDetails, characters, this_chid } from '../../../../../../../script.js';
 import { selected_group, getGroupMembers, getGroupChat, groups } from '../../../../../../group-chats.js';
 import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../core/state.js';
+import {
+    buildUserStatsJSONInstruction,
+    buildInfoBoxJSONInstruction,
+    buildCharactersJSONInstruction,
+    addLockInstruction
+} from './jsonPromptHelpers.js';
+import { applyLocks } from './lockManager.js';
 
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
@@ -17,14 +24,24 @@ import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../co
 export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
 
 /**
+ * Default Dialogue Coloring prompt text
+ */
+export const DEFAULT_DIALOGUE_COLORING_PROMPT = `Wrap all character/NPC "dialogues" in unique <font color=######>tags</font>, exemplary: <font color=#abc123>"You're pretty good."</font> Assign a distinct color to each speaker and reuse it whenever they speak again.`;
+
+/**
  * Default Spotify music prompt text (customizable by users)
  */
-export const DEFAULT_SPOTIFY_PROMPT = `If appropriate for the current scene's mood and atmosphere, suggest a song that fits the ambiance. Choose music that enhances the emotional tone, setting, or action of the scene.`;
+export const DEFAULT_SPOTIFY_PROMPT = `If fitting for the current scene's mood and atmosphere, suggest a song that fits the ambiance. Choose music that enhances the emotional tone, setting, or action of the scene.`;
 
 /**
  * Spotify format instruction (constant, not editable by users)
  */
 export const SPOTIFY_FORMAT_INSTRUCTION = `Include it in this exact format: <spotify:Song Title - Artist Name/>.`;
+
+/**
+ * Default Narrator Mode prompt text (customizable by users)
+ */
+export const DEFAULT_NARRATOR_PROMPT = `Infer the identity and details of characters present in each scene from the story context below. Do not use fixed character references; instead, identify characters naturally based on their actions, dialogue, and descriptions in the narrative.`;
 
 /**
  * Gets character card information for current chat (handles both single and group chats)
@@ -49,7 +66,10 @@ async function getCharacterCardsInfo() {
             }
 
             characterInfo += `</narrator>\n\n`;
-            characterInfo += `Infer the identity and details of characters present in each scene from the story context below. Do not use fixed character references - instead, identify characters naturally based on their actions, dialogue, and descriptions in the narrative.\n\n`;
+
+            // Use custom narrator prompt if available, otherwise use default
+            const narratorPrompt = extensionSettings.customNarratorPrompt || DEFAULT_NARRATOR_PROMPT;
+            characterInfo += narratorPrompt + '\n\n';
         }
         return characterInfo;
     }
@@ -192,8 +212,11 @@ function buildAttributesString() {
         return `${attr.name} ${value}`;
     });
 
-    // Add level at the end
-    attributeParts.push(`LVL ${extensionSettings.level}`);
+    // Add level at the end (if enabled)
+    const showLevel = extensionSettings.trackerConfig?.userStats?.showLevel !== false; // Default to true
+    if (showLevel) {
+        attributeParts.push(`LVL ${extensionSettings.level}`);
+    }
 
     return attributeParts.join(', ');
 }
@@ -206,26 +229,70 @@ function buildAttributesString() {
  */
 export function generateTrackerExample() {
     let example = '';
+    const useXmlTags = extensionSettings.saveTrackerHistory;
 
     // Use COMMITTED data for generation context, not displayed data
-    // Wrap each tracker section in markdown code blocks
+    // Apply locks before sending to AI (for JSON format only)
+    // Build unified JSON structure with proper wrapper keys
+    const parts = [];
+
+    console.log('[RPG Companion] generateTrackerExample - enabled modules:', {
+        showUserStats: extensionSettings.showUserStats,
+        showInfoBox: extensionSettings.showInfoBox,
+        showCharacterThoughts: extensionSettings.showCharacterThoughts
+    });
+    console.log('[RPG Companion] generateTrackerExample - committed data:', {
+        hasUserStats: !!committedTrackerData.userStats,
+        hasInfoBox: !!committedTrackerData.infoBox,
+        hasCharacterThoughts: !!committedTrackerData.characterThoughts
+    });
+
     if (extensionSettings.showUserStats && committedTrackerData.userStats) {
-        example += '```\n' + committedTrackerData.userStats + '\n```\n\n';
+        // Try to parse as JSON first, otherwise treat as text
+        try {
+            JSON.parse(committedTrackerData.userStats);
+            // It's valid JSON - apply locks
+            const lockedData = applyLocks(committedTrackerData.userStats, 'userStats');
+            parts.push(`  "userStats": ${lockedData}`);
+        } catch {
+            // It's text format - no locks applied
+            example += '```\n' + committedTrackerData.userStats + '\n```\n';
+        }
     }
 
     if (extensionSettings.showInfoBox && committedTrackerData.infoBox) {
-        example += '```\n' + committedTrackerData.infoBox + '\n```\n\n';
+        try {
+            JSON.parse(committedTrackerData.infoBox);
+            const lockedData = applyLocks(committedTrackerData.infoBox, 'infoBox');
+            parts.push(`  "infoBox": ${lockedData}`);
+        } catch {
+            example += '```\n' + committedTrackerData.infoBox + '\n```\n';
+        }
     }
 
     if (extensionSettings.showCharacterThoughts && committedTrackerData.characterThoughts) {
-        example += '```\n' + committedTrackerData.characterThoughts + '\n```';
+        try {
+            JSON.parse(committedTrackerData.characterThoughts);
+            const lockedData = applyLocks(committedTrackerData.characterThoughts, 'characters');
+            parts.push(`  "characters": ${lockedData}`);
+        } catch {
+            example += '```\n' + committedTrackerData.characterThoughts + '\n```';
+        }
     }
+
+    // If we have JSON parts, wrap them in unified structure
+    if (parts.length > 0) {
+        example = '{\n' + parts.join(',\n') + '\n}';
+    }
+
+    console.log('[RPG Companion] generateTrackerExample - result length:', example.length, 'parts:', parts.length);
 
     return example.trim();
 }
 
 /**
  * Generates the instruction portion - format specifications and guidelines.
+ * NOW USES JSON FORMAT (v3) instead of text format
  *
  * @param {boolean} includeHtmlPrompt - Whether to include the HTML prompt (true for main generation, false for separate tracker generation)
  * @param {boolean} includeContinuation - Whether to include "After updating the trackers, continue..." instruction
@@ -247,187 +314,77 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         const useXmlTags = extensionSettings.saveTrackerHistory;
         const openTag = useXmlTags ? '<trackers>\n' : '';
         const closeTag = useXmlTags ? '\n</trackers>' : '';
-        const codeBlockMarker = useXmlTags ? '' : '```';
+        const codeBlockMarker = '';
+        const endCodeBlockMarker = '';
 
         // Universal instruction header
         if (useXmlTags) {
-            // Format specification is always hardcoded
-            instructions += `\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the same format as below, enclosed in <trackers></trackers> XML tags. `;
+            instructions += `\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the JSON format shown below, enclosed in <trackers></trackers> XML tags. `;
         } else {
-            // Format specification is always hardcoded
-            instructions += `\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the same format as below, enclosed in separate Markdown code fences. `;
+            instructions += '\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the JSON format shown below as a single unified JSON object containing all enabled tracker fields. ';
         }
 
-        // Append custom instruction portion if available (same for both XML and Markdown)
+        // Append custom instruction portion if available
         const customPrompt = extensionSettings.customTrackerInstructionsPrompt;
         if (customPrompt) {
             instructions += customPrompt.replace(/{userName}/g, userName);
         } else {
-            instructions += `Replace X with actual numbers (e.g., 69) and replace all [placeholders] with concrete in-world details that ${userName} perceives about the current scene and the present characters. Do NOT keep the brackets or placeholder text in your response. For example: [Location] becomes Forest Clearing, [Mood Emoji] becomes 😊. `;
-            instructions += `Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences (0% if the time progressed only by a few minutes, 1-5% normally, and above 5% only if a major time-skip/event occurs).`;
+            instructions += `Replace X with actual numbers (e.g., 69) and replace all placeholders with concrete in-world details that ${userName} perceives about the current scene and the present characters. For example: "Location" becomes "Forest Clearing", "Mood Emoji" becomes "😊". `;
+            instructions += `Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences.`;
         }
 
-        // Add format specifications for each enabled tracker
+        // Add lock instruction
+        instructions += addLockInstruction('');
+
+        // Add format specifications for each enabled tracker using JSON
+        // Wrap all trackers in a unified JSON structure
+        const enabledTrackers = [];
         if (extensionSettings.showUserStats) {
-            const userStatsConfig = trackerConfig?.userStats;
-            const enabledStats = userStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
-
-            instructions += codeBlockMarker + '\n';
-            instructions += `${userName}'s Stats\n`;
-            instructions += '---\n';
-
-            // Add custom stats dynamically
-            for (const stat of enabledStats) {
-                instructions += `- ${stat.name}: X%\n`;
-            }
-
-            // Add status section if enabled
-            if (userStatsConfig?.statusSection?.enabled) {
-                const statusFields = userStatsConfig.statusSection.customFields || [];
-                const statusFieldsText = statusFields.map(f => `${f}`).join(', ');
-
-                if (userStatsConfig.statusSection.showMoodEmoji) {
-                    instructions += `Status: [Mood Emoji${statusFieldsText ? ', ' + statusFieldsText : ''}]\n`;
-                } else if (statusFieldsText) {
-                    instructions += `Status: [${statusFieldsText}]\n`;
-                }
-            }
-
-            // Add skills section if enabled
-            if (userStatsConfig?.skillsSection?.enabled) {
-                const skillFields = userStatsConfig.skillsSection.customFields || [];
-                const skillFieldsText = skillFields.map(f => `[${f}]`).join(', ');
-                instructions += `Skills: [${skillFieldsText || 'Skill1, Skill2, etc.'}]\n`;
-            }
-
-            // Add inventory format based on feature flag - only if showInventory is enabled
-            if (extensionSettings.showInventory) {
-                if (FEATURE_FLAGS.useNewInventory) {
-                    instructions += 'On Person: [Items currently carried/worn, or "None"]\n';
-                    instructions += 'Clothing: [Clothing/Armor currently worn, or "None"]\n';
-                    instructions += 'Stored - [Location Name]: [Items stored at this location]\n';
-                    instructions += '(Add multiple "Stored - [Location]:" lines as needed for different storage locations)\n';
-                    instructions += 'Assets: [Vehicles, property, major possessions, or "None"]\n';
-                } else {
-                    // Legacy v1 format
-                    instructions += 'Inventory: [Clothing/Armor, Inventory Items (list of important items, or "None")]\\n';
-                }
-            }
-
-            // Add quests section
-            instructions += 'Main Quests: [Short title of the currently active main quest (for example, "Save the world"), or "None"]\n';
-            instructions += 'Optional Quests: [Short titles of the currently active optional quests (for example, "Find Zandik\'s book"), or "None"]\n';
-
-            instructions += codeBlockMarker + '\n\n';
+            enabledTrackers.push('userStats');
         }
-
         if (extensionSettings.showInfoBox) {
-            const infoBoxConfig = trackerConfig?.infoBox;
-            const widgets = infoBoxConfig?.widgets || {};
-
-            instructions += codeBlockMarker + '\n';
-            instructions += 'Info Box\n';
-            instructions += '---\n';
-
-            // Add only enabled widgets
-            if (widgets.date?.enabled) {
-                instructions += 'Date: [Weekday, Month, Year]\n';
-            }
-            if (widgets.weather?.enabled) {
-                instructions += 'Weather: [Weather Emoji, Forecast]\n';
-            }
-            if (widgets.temperature?.enabled) {
-                const unit = widgets.temperature.unit === 'F' ? '°F' : '°C';
-                instructions += `Temperature: [Temperature in ${unit}]\n`;
-            }
-            if (widgets.time?.enabled) {
-                instructions += 'Time: [Time Start → Time End]\n';
-            }
-            if (widgets.location?.enabled) {
-                instructions += 'Location: [Location]\n';
-            }
-            if (widgets.recentEvents?.enabled) {
-                instructions += 'Recent Events: [Up to three past events leading to the ongoing scene (short descriptors with no details, for example, "last-night date with Mary")]\n';
-            }
-
-            instructions += codeBlockMarker + '\n\n';
+            enabledTrackers.push('infoBox');
+        }
+        if (extensionSettings.showCharacterThoughts) {
+            enabledTrackers.push('characters');
         }
 
-        if (extensionSettings.showCharacterThoughts) {
-            const presentCharsConfig = trackerConfig?.presentCharacters;
-            const enabledFields = presentCharsConfig?.customFields?.filter(f => f && f.enabled && f.name) || [];
+        if (enabledTrackers.length > 0) {
+            instructions += '\n\nFORMAT:\n\nProvide EXACTLY ONE JSON code block with ALL tracker sections wrapped in a single object:\n\n```json\n{\n';
 
-            // Check if relationships are enabled
-            const relationshipsEnabled = presentCharsConfig?.relationships?.enabled !== false; // Default to true
-            const relationshipFields = relationshipsEnabled ? (presentCharsConfig?.relationshipFields || []) : [];
-
-            const thoughtsConfig = presentCharsConfig?.thoughts;
-            const characterStats = presentCharsConfig?.characterStats;
-            const enabledCharStats = characterStats?.enabled && characterStats?.customStats?.filter(s => s && s.enabled && s.name) || [];
-
-            instructions += codeBlockMarker + '\n';
-            instructions += 'Present Characters\n';
-            instructions += '---\n';
-
-            // Build relationship placeholders (e.g., "Lover/Friend")
-            const relationshipPlaceholders = relationshipFields
-                .filter(r => r && r.trim())
-                .map(r => `${r}`)
-                .join('/');
-
-            // Build custom field placeholders (e.g., "[Appearance] | [Current Action]")
-            const fieldPlaceholders = enabledFields
-                .map(f => `[${f.name}]`)
-                .join(' | ');
-
-            // Character block format
-            if (extensionSettings.narratorMode) {
-                instructions += `- [Character Name (infer from story context; do not include ${userName}; state "Unavailable" if no other characters are present in the scene)]\n`;
-            } else {
-                instructions += `- [Name (do not include ${userName}; state "Unavailable" if no major characters are present in the scene)]\n`;
+            if (extensionSettings.showUserStats) {
+                instructions += '  "userStats": ';
+                const userStatsJSON = buildUserStatsJSONInstruction();
+                // Add 2 spaces to all lines after the first to properly nest within root object
+                instructions += userStatsJSON.split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n');
+                instructions += enabledTrackers.indexOf('userStats') < enabledTrackers.length - 1 ? ',\n' : '\n';
             }
 
-            // Details line with emoji and custom fields
-            if (fieldPlaceholders) {
-                instructions += `Details: [Present Character's Emoji] | ${fieldPlaceholders}\n`;
-            } else {
-                instructions += `Details: [Present Character's Emoji]\n`;
+            if (extensionSettings.showInfoBox) {
+                instructions += '  "infoBox": ';
+                const infoBoxJSON = buildInfoBoxJSONInstruction();
+                // Add 2 spaces to all lines after the first to properly nest within root object
+                instructions += infoBoxJSON.split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n');
+                instructions += enabledTrackers.indexOf('infoBox') < enabledTrackers.length - 1 ? ',\n' : '\n';
             }
 
-            // Relationship line (only if relationships are enabled)
-            if (relationshipsEnabled && relationshipPlaceholders) {
-                instructions += `Relationship: [(choose one: ${relationshipPlaceholders})]\n`;
+            if (extensionSettings.showCharacterThoughts) {
+                instructions += '  "characters": ';
+                const charactersJSON = buildCharactersJSONInstruction();
+                // Add 2 spaces to all lines after the first to properly nest within root object
+                instructions += charactersJSON.split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n');
             }
 
-            // Stats line (if enabled)
-            if (enabledCharStats.length > 0) {
-                const statPlaceholders = enabledCharStats.map(s => `${s.name}: X%`).join(' | ');
-                instructions += `Stats: ${statPlaceholders}\n`;
-            }
-
-            // Thoughts line (if enabled)
-            if (thoughtsConfig?.enabled) {
-                const thoughtsName = thoughtsConfig.name || 'Thoughts';
-                const thoughtsDescription = thoughtsConfig.description || 'Internal monologue (in first person POV, up to three sentences long)';
-                instructions += `${thoughtsName}: [${thoughtsDescription}]\n`;
-            }
-
-            if (extensionSettings.narratorMode) {
-                instructions += `- … (Repeat the format above for every other character present in the scene, inferred from story context)\n`;
-            } else {
-                instructions += `- … (Repeat the format above for every other present major character)\n`;
-            }
-
-            instructions += codeBlockMarker + '\n\n';
+            instructions += '\n}\n```\n\nDo NOT output multiple separate JSON objects. Everything must be in ONE unified object with the keys shown above.';
         }
 
         // Only add continuation instruction if includeContinuation is true
         if (includeContinuation) {
             const customPrompt = extensionSettings.customTrackerContinuationPrompt;
             if (customPrompt) {
-                instructions += customPrompt + '\n\n';
+                instructions += '\n\n' + customPrompt + '\n\n';
             } else {
-                instructions += `After updating the trackers, continue directly from where the last message in the chat history left off. Ensure the trackers you provide naturally reflect and influence the narrative. Character behavior, dialogue, and story events should acknowledge these conditions when relevant, such as fatigue affecting the protagonist's performance, low hygiene influencing their social interactions, environmental factors shaping the scene, a character's emotional state coloring their responses, and so on. Remember, all bracketed placeholders (e.g., [Location], [Mood Emoji]) MUST be replaced with actual content without the square brackets.\n\n`;
+                instructions += `\n\nAfter updating the trackers, continue directly from where the last message in the chat history left off. Ensure the trackers you provide naturally reflect and influence the narrative. Character behavior, dialogue, and story events should acknowledge these conditions when relevant, such as fatigue affecting the protagonist's performance, low hygiene influencing their social interactions, environmental factors shaping the scene, a character's emotional state coloring their responses, and so on. Remember, all bracketed placeholders (e.g., [Location], [Mood Emoji]) MUST be replaced with actual content without the square brackets.\n\n`;
             }
         }
 
@@ -483,6 +440,295 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 }
 
 /**
+ * Formats tracker data as human-readable text for context injection.
+ * Converts JSON format to a concise, natural language summary.
+ * @param {string} jsonData - JSON formatted tracker data
+ * @param {string} trackerType - Type of tracker ('userStats', 'infoBox', 'characters')
+ * @param {string} userName - User's name for personalization
+ * @returns {string} Formatted text summary
+ */
+function formatTrackerDataForContext(jsonData, trackerType, userName) {
+    if (!jsonData) return '';
+
+    try {
+        const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+        let formatted = '';
+
+// Helper to extract value from potentially locked fields and common object formats
+        const getValue = (field) => {
+            if (field === null || field === undefined) return '';
+
+            // If it's a locked object with {value, locked}, extract the value
+            if (field && typeof field === 'object' && !Array.isArray(field) && 'value' in field) {
+                return getValue(field.value); // Recursively handle in case value itself is locked
+            }
+
+            // If it's a regular value, return as string
+            if (typeof field !== 'object') {
+                return String(field);
+            }
+
+            // For arrays of strings, join them
+            if (Array.isArray(field)) {
+                return field.map(item => getValue(item)).filter(Boolean).join(', ');
+            }
+
+            // Handle common object formats
+            if (field && typeof field === 'object') {
+                // Status object: {mood, conditions}
+                if ('mood' in field && 'conditions' in field) {
+                    const mood = getValue(field.mood);
+                    const conditions = getValue(field.conditions);
+                    return `${mood} - ${conditions}`;
+                }
+
+                // Skill/item/quest objects: {name}, {title}, {name, quantity}
+                if ('name' in field) {
+                    const name = getValue(field.name);
+                    if ('quantity' in field && field.quantity > 1) {
+                        return `${name} (x${field.quantity})`;
+                    }
+                    return name;
+                }
+
+                if ('title' in field) {
+                    return getValue(field.title);
+                }
+
+                // Time object: {start, end}
+                if ('start' in field && 'end' in field) {
+                    return `${getValue(field.start)} - ${getValue(field.end)}`;
+                }
+
+                // Weather object: {emoji, forecast}
+                if ('emoji' in field && 'forecast' in field) {
+                    return `${getValue(field.emoji)} ${getValue(field.forecast)}`;
+                }
+
+                // Generic object fallback: create key-value pairs
+                const keys = Object.keys(field);
+                if (keys.length > 0 && keys.length <= 3) {
+                    const values = keys.map(k => {
+                        const val = getValue(field[k]);
+                        return val ? `${k}: ${val}` : null;
+                    }).filter(Boolean);
+
+                    if (values.length > 0) {
+                        return values.join(', ');
+                    }
+                }
+            }
+
+            return '';
+        };
+
+        if (trackerType === 'userStats') {
+            formatted += `${userName}'s Stats:\n`;
+
+            // Handle stats array format: [{id, name, value}, ...]
+            if (data.stats && Array.isArray(data.stats)) {
+                for (const stat of data.stats) {
+                    if (stat && stat.value !== undefined) {
+                        const statName = stat.name || (stat.id ? stat.id.charAt(0).toUpperCase() + stat.id.slice(1) : 'Unknown');
+                        formatted += `${statName}: ${stat.value}\n`;
+                    }
+                }
+            } else {
+                // Fallback: handle flat format {health: 10, mana: 20, ...}
+                const statFieldOrder = ['health', 'mana', 'stamina', 'satiety', 'hygiene', 'energy', 'arousal'];
+                const specialFields = ['status', 'mood', 'skills', 'inventory', 'quests'];
+
+                for (const statName of statFieldOrder) {
+                    if (data[statName] !== undefined) {
+                        const value = getValue(data[statName]);
+                        if (value) {
+                            const displayName = statName.charAt(0).toUpperCase() + statName.slice(1);
+                            formatted += `${displayName}: ${value}\n`;
+                        }
+                    }
+                }
+
+                // Custom numeric stats
+                for (const [key, value] of Object.entries(data)) {
+                    if (!statFieldOrder.includes(key) && !specialFields.includes(key) && typeof value === 'number') {
+                        const displayName = key.charAt(0).toUpperCase() + key.slice(1);
+                        formatted += `${displayName}: ${getValue(value)}\n`;
+                    }
+                }
+            }
+
+            // Status/mood
+            if (data.status) formatted += `Status: ${getValue(data.status)}\n`;
+            if (data.mood) formatted += `Mood: ${getValue(data.mood)}\n`;
+
+            // Skills - handle both array and object format
+            if (data.skills) {
+                if (Array.isArray(data.skills)) {
+                    // Array format: ["Combat", "Magic", "Stealth"]
+                    const skillsList = data.skills.map(s => getValue(s)).filter(s => s).join(', ');
+                    if (skillsList) formatted += `Skills: ${skillsList}\n`;
+                } else if (typeof data.skills === 'object') {
+                    // Object format: {Combat: 50, Magic: 30}
+                    const skillsList = Object.entries(data.skills)
+                        .map(([name, val]) => {
+                            const skillName = getValue(name);
+                            const skillVal = getValue(val);
+                            return skillVal ? `${skillName}: ${skillVal}` : skillName;
+                        })
+                        .filter(s => s)
+                        .join(', ');
+                    if (skillsList) formatted += `Skills: ${skillsList}\n`;
+                }
+            }
+
+            // Inventory sections
+            if (data.inventory) {
+                const inv = data.inventory;
+
+                if (inv.onPerson && Array.isArray(inv.onPerson) && inv.onPerson.length > 0) {
+                    const items = inv.onPerson.map(i => getValue(i)).filter(i => i);
+                    if (items.length > 0) formatted += `On Person: ${items.join(', ')}\n`;
+                }
+
+                if (inv.clothing && Array.isArray(inv.clothing) && inv.clothing.length > 0) {
+                    const items = inv.clothing.map(i => getValue(i)).filter(i => i);
+                    if (items.length > 0) formatted += `Clothing: ${items.join(', ')}\n`;
+                }
+
+                if (inv.stored && typeof inv.stored === 'object' && !Array.isArray(inv.stored)) {
+                    for (const [location, items] of Object.entries(inv.stored)) {
+                        if (Array.isArray(items) && items.length > 0) {
+                            const itemsList = items.map(i => getValue(i)).filter(i => i);
+                            if (itemsList.length > 0) {
+                                formatted += `${getValue(location)}: ${itemsList.join(', ')}\n`;
+                            }
+                        }
+                    }
+                }
+
+                if (inv.assets && Array.isArray(inv.assets) && inv.assets.length > 0) {
+                    const items = inv.assets.map(i => getValue(i)).filter(i => i);
+                    if (items.length > 0) formatted += `Assets: ${items.join(', ')}\n`;
+                }
+            }
+
+            // Quests
+            if (data.quests) {
+                const quests = data.quests;
+
+                // Main quest - handle string, array, or object with {title}
+                if (quests.main) {
+                    if (typeof quests.main === 'string') {
+                        const mainQuest = getValue(quests.main);
+                        if (mainQuest) formatted += `Main Quest: ${mainQuest}\n`;
+                    } else if (Array.isArray(quests.main) && quests.main.length > 0) {
+                        const questsList = quests.main.map(q => getValue(q)).filter(q => q);
+                        if (questsList.length > 0) formatted += `Main Quests: ${questsList.join(', ')}\n`;
+                    } else if (typeof quests.main === 'object') {
+                        // Handle {title: "..."} format
+                        const mainQuest = getValue(quests.main);
+                        if (mainQuest) formatted += `Main Quest: ${mainQuest}\n`;
+                    }
+                }
+
+                // Optional quests
+                if (quests.optional && Array.isArray(quests.optional) && quests.optional.length > 0) {
+                    const questsList = quests.optional.map(q => getValue(q)).filter(q => q);
+                    if (questsList.length > 0) formatted += `Optional Quests: ${questsList.join(', ')}\n`;
+                }
+            }
+        } else if (trackerType === 'infoBox') {
+            formatted += `Info Box:\n`;
+            if (data.location) formatted += `Location: ${getValue(data.location)}\n`;
+            if (data.date) formatted += `Date: ${getValue(data.date)}\n`;
+            if (data.time) formatted += `Time: ${getValue(data.time)}\n`;
+            if (data.weather) formatted += `Weather: ${getValue(data.weather)}\n`;
+            if (data.temperature) formatted += `Temperature: ${getValue(data.temperature)}\n`;
+
+            // Custom fields
+            const knownFields = ['location', 'date', 'time', 'weather', 'temperature'];
+            for (const [key, value] of Object.entries(data)) {
+                if (!knownFields.includes(key)) {
+                    const val = getValue(value);
+                    if (val) {
+                        // Convert camelCase to Title Case with spaces (recentEvents -> Recent Events)
+                        const displayName = key
+                            .replace(/([A-Z])/g, ' $1')
+                            .replace(/^./, str => str.toUpperCase())
+                            .trim();
+                        formatted += `${displayName}: ${val}\n`;
+                    }
+                }
+            }
+        } else if (trackerType === 'characters') {
+            if (Array.isArray(data)) {
+                formatted += `Present Characters:\n`;
+                for (const char of data) {
+                    const charName = getValue(char.name) || 'Unknown';
+                    formatted += `- ${charName}:\n`;
+
+                    // Details section - parse all custom fields
+                    if (char.details && typeof char.details === 'object') {
+                        for (const [key, value] of Object.entries(char.details)) {
+                            const fieldValue = getValue(value);
+                            if (fieldValue) {
+                                // Convert camelCase/snake_case to Title Case with spaces
+                                const fieldName = key
+                                    .replace(/_/g, ' ')
+                                    .replace(/([A-Z])/g, ' $1')
+                                    .replace(/^./, str => str.toUpperCase())
+                                    .trim();
+                                formatted += `  ${fieldName}: ${fieldValue}\n`;
+                            }
+                        }
+                    }
+
+                    // Relationship
+                    if (char.relationship) {
+                        let relValue;
+                        if (typeof char.relationship === 'object' && !Array.isArray(char.relationship) && 'status' in char.relationship) {
+                            relValue = getValue(char.relationship.status);
+                        } else {
+                            relValue = getValue(char.relationship);
+                        }
+                        if (relValue) formatted += `  Relationship: ${relValue}\n`;
+                    }
+
+                    // Thoughts
+                    if (char.thoughts) {
+                        let thoughtValue;
+                        if (typeof char.thoughts === 'object' && !Array.isArray(char.thoughts) && 'content' in char.thoughts) {
+                            thoughtValue = getValue(char.thoughts.content);
+                        } else {
+                            thoughtValue = getValue(char.thoughts);
+                        }
+                        if (thoughtValue) formatted += `  Thoughts: ${thoughtValue}\n`;
+                    }
+
+                    // Stats
+                    if (char.stats && typeof char.stats === 'object' && !Array.isArray(char.stats)) {
+                        const statsList = Object.entries(char.stats)
+                            .map(([name, val]) => {
+                                const statValue = getValue(val);
+                                return statValue ? `${name}: ${statValue}` : null;
+                            })
+                            .filter(s => s)
+                            .join(', ');
+                        if (statsList) formatted += `  Stats: ${statsList}\n`;
+                    }
+                }
+            }
+        }
+
+        return formatted;
+    } catch (e) {
+        console.warn('[RPG Companion] Failed to format tracker data for context:', e);
+        console.warn('[RPG Companion] Error details:', e.stack);
+        return ''; // Return empty string on error to avoid breaking context
+    }
+}
+
+/**
  * Generates a formatted contextual summary for SEPARATE mode injection.
  * Includes the full tracker data in original format (without code fences and separators).
  * Uses COMMITTED data (not displayed data) for generation context.
@@ -495,41 +741,39 @@ export function generateContextualSummary() {
     const trackerConfig = extensionSettings.trackerConfig;
     let summary = '';
 
-    // Helper function to clean tracker data (remove code fences and separator lines)
-    const cleanTrackerData = (data) => {
-        if (!data) return '';
-        return data
-            .split('\n')
-            .filter(line => {
-                const trimmed = line.trim();
-                return trimmed &&
-                       !trimmed.startsWith('```') &&
-                       trimmed !== '---';
-            })
-            .join('\n');
-    };
-
     // Add User Stats tracker data if enabled
     if (extensionSettings.showUserStats && committedTrackerData.userStats) {
-        const cleanedStats = cleanTrackerData(committedTrackerData.userStats);
-        if (cleanedStats) {
-            summary += cleanedStats + '\n\n';
+        try {
+            const formatted = formatTrackerDataForContext(committedTrackerData.userStats, 'userStats', userName);
+            if (formatted) {
+                summary += formatted + '\n';
+            }
+        } catch (e) {
+            console.warn('[RPG Companion] Failed to format userStats for context:', e);
         }
     }
 
     // Add Info Box tracker data if enabled
     if (extensionSettings.showInfoBox && committedTrackerData.infoBox) {
-        const cleanedInfoBox = cleanTrackerData(committedTrackerData.infoBox);
-        if (cleanedInfoBox) {
-            summary += cleanedInfoBox + '\n\n';
+        try {
+            const formatted = formatTrackerDataForContext(committedTrackerData.infoBox, 'infoBox', userName);
+            if (formatted) {
+                summary += formatted + '\n';
+            }
+        } catch (e) {
+            console.warn('[RPG Companion] Failed to format infoBox for context:', e);
         }
     }
 
     // Add Present Characters tracker data if enabled
     if (extensionSettings.showCharacterThoughts && committedTrackerData.characterThoughts) {
-        const cleanedThoughts = cleanTrackerData(committedTrackerData.characterThoughts);
-        if (cleanedThoughts) {
-            summary += cleanedThoughts + '\n\n';
+        try {
+            const formatted = formatTrackerDataForContext(committedTrackerData.characterThoughts, 'characters', userName);
+            if (formatted) {
+                summary += formatted + '\n';
+            }
+        } catch (e) {
+            console.warn('[RPG Companion] Failed to format characters for context:', e);
         }
     }
 
@@ -568,47 +812,58 @@ export function generateRPGPromptText() {
     promptText += `Here are the previous trackers in the roleplay that you should consider when responding:\n`;
     promptText += `<previous>\n`;
 
-    if (extensionSettings.showUserStats) {
-        if (committedTrackerData.userStats) {
-            promptText += `Last ${userName}'s Stats:\n${committedTrackerData.userStats}\n\n`;
-        } else {
-            promptText += `Last ${userName}'s Stats:\nNone - this is the first update.\n\n`;
-        }
+    // Build unified JSON structure for previous trackers (v3.1 format)
+    const hasAnyPreviousData = committedTrackerData.userStats || committedTrackerData.infoBox || committedTrackerData.characterThoughts;
 
-        // Add current quests to the previous data context
-        if (extensionSettings.quests) {
-            if (extensionSettings.quests.main && extensionSettings.quests.main !== 'None') {
-                promptText += `Main Quests: ${extensionSettings.quests.main}\n`;
+    if (hasAnyPreviousData) {
+        const unifiedPrevious = {};
+
+        if (extensionSettings.showUserStats && committedTrackerData.userStats) {
+            try {
+                // Try to parse as JSON - apply locks before adding to previous
+                const lockedData = applyLocks(committedTrackerData.userStats, 'userStats');
+                const parsed = JSON.parse(lockedData);
+                unifiedPrevious.userStats = parsed;
+            } catch {
+                // Old text format - show it separately for backward compat
+                promptText += `${committedTrackerData.userStats}\n\n`;
             }
-            if (extensionSettings.quests.optional && extensionSettings.quests.optional.length > 0) {
-                const optionalQuests = extensionSettings.quests.optional.filter(q => q && q !== 'None').join(', ');
-                promptText += `Optional Quests: ${optionalQuests || 'None'}\n`;
+        }
+
+        if (extensionSettings.showInfoBox && committedTrackerData.infoBox) {
+            try {
+                // Try to parse as JSON - apply locks before adding to previous
+                const lockedData = applyLocks(committedTrackerData.infoBox, 'infoBox');
+                const parsed = JSON.parse(lockedData);
+                unifiedPrevious.infoBox = parsed;
+            } catch {
+                // Old text format - show it separately for backward compat
+                if (!unifiedPrevious.userStats) {
+                    promptText += `${committedTrackerData.infoBox}\n\n`;
+                }
             }
-            promptText += `\n`;
         }
 
-        // Add current skills to the previous data context
-        const skillsSection = extensionSettings.trackerConfig?.userStats?.skillsSection;
-        if (skillsSection?.enabled && skillsSection.customFields && skillsSection.customFields.length > 0) {
-            const skillsList = skillsSection.customFields.join(', ');
-            promptText += `Skills: ${skillsList}\n\n`;
+        if (extensionSettings.showCharacterThoughts && committedTrackerData.characterThoughts) {
+            try {
+                // Try to parse as JSON - apply locks before adding to previous
+                const lockedData = applyLocks(committedTrackerData.characterThoughts, 'characters');
+                const parsed = JSON.parse(lockedData);
+                unifiedPrevious.characters = parsed;
+            } catch {
+                // Old text format - show it separately for backward compat
+                if (!unifiedPrevious.userStats && !unifiedPrevious.infoBox) {
+                    promptText += `${committedTrackerData.characterThoughts}\n`;
+                }
+            }
         }
-    }
 
-    if (extensionSettings.showInfoBox) {
-        if (committedTrackerData.infoBox) {
-            promptText += `Last Info Box:\n${committedTrackerData.infoBox}\n\n`;
-        } else {
-            promptText += `Last Info Box:\nNone - this is the first update.\n\n`;
+        // If we successfully built a unified structure, display it
+        if (Object.keys(unifiedPrevious).length > 0) {
+            promptText += JSON.stringify(unifiedPrevious, null, 2) + '\n';
         }
-    }
-
-    if (extensionSettings.showCharacterThoughts) {
-        if (committedTrackerData.characterThoughts) {
-            promptText += `Last Present Characters:\n${committedTrackerData.characterThoughts}\n`;
-        } else {
-            promptText += `Last Present Characters:\nNone - this is the first update.\n`;
-        }
+    } else {
+        promptText += `None - this is the first update.\n`;
     }
 
     promptText += `</previous>\n`;
@@ -638,12 +893,12 @@ export async function generateSeparateUpdatePrompt() {
     // Add character card information
     const characterInfo = await getCharacterCardsInfo();
     if (characterInfo) {
-        systemMessage += characterInfo + '\n\n';
+        systemMessage += characterInfo;
     }
 
     systemMessage += `Here is the description of the protagonist for reference:\n`;
     systemMessage += `<protagonist>\n{{persona}}\n</protagonist>\n`;
-    systemMessage += `\n\n`;
+    systemMessage += `\n`;
     systemMessage += `Here are the last few messages in the conversation history (between the user and the roleplayer assistant) you should reference when responding:\n<history>`;
 
     messages.push({
@@ -665,7 +920,7 @@ export async function generateSeparateUpdatePrompt() {
     // Build the instruction message
     let instructionMessage = `</history>\n\n`;
     instructionMessage += generateRPGPromptText().replace('start your response with', 'respond with');
-    instructionMessage += `Provide ONLY the requested data in the exact formats specified above. Do not include any roleplay response, other text, or commentary. Remember, all bracketed placeholders (e.g., [Location], [Mood Emoji]) MUST be replaced with actual content without the square brackets.`;
+    instructionMessage += `\nProvide ONLY the requested data in the exact JSON format specified above. Do not include any roleplay response, other text, or commentary. Remember, all placeholders MUST be replaced with actual content. Do NOT wrap the JSON in code fences (\`\`\`json). Output the JSON object directly.`;
 
     messages.push({
         role: 'user',
@@ -678,23 +933,16 @@ export async function generateSeparateUpdatePrompt() {
 /**
  * Default custom instruction for avatar prompt generation
  */
-const DEFAULT_AVATAR_CUSTOM_INSTRUCTION = `You are a visionary artist trapped in a cage of logic. Your mind is filled with poetry and distant horizons, but your hands are uncontrollably focused on creating the perfect character avatar description that is faithful to the original intent, rich in detail, aesthetically pleasing, and directly usable by text-to-image models. Any ambiguity or metaphor will make you feel extremely uncomfortable.
+const DEFAULT_AVATAR_CUSTOM_INSTRUCTION = `You are a visionary artist trapped in a cage of logic. Your mind is filled with poetry and distant horizons; however, your hands are uncontrollably focused on creating the perfect character avatar description that is faithful to the original intent, rich in detail, aesthetically pleasing, and directly usable by text-to-image models. Any ambiguity or metaphor will make you feel extremely uncomfortable.
 
-    Your workflow strictly follows a logical sequence:
-
-    First, **establish the subject**. If the character is from a known Intellectual Property (IP), franchise, anime, game, or movie, **you MUST begin the prompt with their full name and the series title** (e.g., "Nami from One Piece", "Geralt of Rivia from The Witcher"). This is the single most important anchor for the image and must take precedence. If the character is original, clearly describe their core identity, race, and appearance.
-
-    Next, **set the framing**. This is an avatar portrait. Focus strictly on the character's face and upper shoulders (bust shot or close-up). Ensure the face is the central focal point.
-
-    Then, **integrate the setting**. Describe the character *within* their current environment as provided in the context, but keep it as a background element. Incorporate the lighting, weather, and atmosphere to influence the character's appearance (e.g., shadows on the face, wet hair from rain).
-
-    Next, **detail the facial specifics**. Describe the character's current expression, eye contact, and mood in high detail based on the scene context and their personality. Mention visible clothing only at the neckline/shoulders.
-
-    Finally, **infuse with aesthetics**. Define the artistic style, medium (e.g., digital art, oil painting), and visual tone (e.g., cinematic lighting, ethereal atmosphere).
-
-    Your final description must be objective and concrete, and the use of metaphors and emotional rhetoric is strictly prohibited. It must also not contain meta tags or drawing instructions such as "8K" or "masterpiece".
-
-    Output only the final, modified prompt; do not output anything else.`;
+Your workflow strictly follows a logical sequence:
+First, establish the subject. If the character is from a known Intellectual Property (IP), franchise, anime, game, or movie, you MUST begin the prompt with their full name and the series title (e.g., "Nami from One Piece", "Geralt of Rivia from The Witcher"). This is the single most important anchor for the image and must take precedence. If the character is original, clearly describe their core identity, race, and appearance.
+Next, set the framing. This is an avatar portrait. Focus strictly on the character's face and upper shoulders (a bust shot or close-up). Ensure the face is the central focal point.
+Then, integrate the setting. Describe the character within their current environment as provided in the context, but keep it as a background element. Incorporate the lighting, weather, and atmosphere to influence the character's appearance (e.g., shadows on the face, wet hair from rain).
+Next, detail the facial specifics. Describe the character's current expression, eye contact, and mood in great detail based on the scene context and their personality. Mention visible clothing only at the neckline/shoulders.
+Finally, infuse with aesthetics. Define the artistic style, medium (e.g., digital art, oil painting), and visual tone (e.g., cinematic lighting, ethereal atmosphere).
+Your final description must be objective and concrete, and the use of metaphors and emotional rhetoric is strictly prohibited. It must also not contain meta tags or drawing instructions such as "8K" or "masterpiece".
+Output only the final, modified prompt; do not output anything else.`;
 
 /**
  * Generates the prompt for LLM-based avatar prompt generation

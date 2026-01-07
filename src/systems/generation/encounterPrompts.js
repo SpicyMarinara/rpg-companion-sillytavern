@@ -8,7 +8,9 @@ import { chat, characters, this_chid, substituteParams } from '../../../../../..
 import { selected_group, getGroupMembers, groups } from '../../../../../../group-chats.js';
 import { extensionSettings, committedTrackerData } from '../../core/state.js';
 import { currentEncounter } from '../features/encounterState.js';
+import { repairJSON } from '../../utils/jsonRepair.js';
 import { buildInventorySummary, generateTrackerInstructions, generateTrackerExample } from './promptBuilder.js';
+import { applyLocks } from './lockManager.js';
 
 /**
  * Gets character information from the current chat
@@ -233,7 +235,9 @@ export async function buildEncounterInitPrompt() {
     if (extensionSettings.classicStats) {
         const stats = extensionSettings.classicStats;
         userStatsInfo += `${userName}'s Attributes: `;
-        userStatsInfo += `STR ${stats.str}, DEX ${stats.dex}, CON ${stats.con}, INT ${stats.int}, WIS ${stats.wis}, CHA ${stats.cha}, LVL ${extensionSettings.level}\n\n`;
+        const showLevel = extensionSettings.trackerConfig?.userStats?.showLevel !== false;
+        const levelStr = showLevel ? `, LVL ${extensionSettings.level}` : '';
+        userStatsInfo += `STR ${stats.str}, DEX ${stats.dex}, CON ${stats.con}, INT ${stats.int}, WIS ${stats.wis}, CHA ${stats.cha}${levelStr}\n\n`;
     }
 
     // Add present characters info for party members
@@ -417,7 +421,18 @@ export async function buildCombatActionPrompt(action, combatStats) {
         // Add ONLY classic stats/attributes if enabled
         if (extensionSettings.classicStats) {
             const stats = extensionSettings.classicStats;
-            systemMessage += `\nAttributes: STR ${stats.str}, DEX ${stats.dex}, CON ${stats.con}, INT ${stats.int}, WIS ${stats.wis}, CHA ${stats.cha}, LVL ${extensionSettings.level}\n`;
+            const config = extensionSettings.trackerConfig?.userStats;
+            const rpgAttributes = (config?.rpgAttributes && config.rpgAttributes.length > 0) ? config.rpgAttributes : [
+                { id: 'str', name: 'STR', enabled: true },
+                { id: 'dex', name: 'DEX', enabled: true },
+                { id: 'con', name: 'CON', enabled: true },
+                { id: 'int', name: 'INT', enabled: true },
+                { id: 'wis', name: 'WIS', enabled: true },
+                { id: 'cha', name: 'CHA', enabled: true }
+            ];
+            const enabledAttributes = rpgAttributes.filter(attr => attr && attr.enabled && attr.name && attr.id);
+            const attributeStrings = enabledAttributes.map(attr => `${attr.name} ${stats[attr.id] || 10}`);
+            systemMessage += `\nAttributes: ${attributeStrings.join(', ')}, LVL ${extensionSettings.level}\n`;
         }
 
         systemMessage += `</persona>\n\n`;
@@ -658,15 +673,24 @@ export async function buildCombatSummaryPrompt(combatLog, result) {
             summaryMessage += `<previous>\n`;
 
             if (committedTrackerData.userStats) {
-                summaryMessage += `${userName}'s Stats:\n${committedTrackerData.userStats}\n\n`;
+                const statsJSON = typeof committedTrackerData.userStats === 'object'
+                    ? JSON.stringify(committedTrackerData.userStats, null, 2)
+                    : committedTrackerData.userStats;
+                summaryMessage += statsJSON + '\n';
             }
 
             if (committedTrackerData.infoBox) {
-                summaryMessage += `Info Box:\n${committedTrackerData.infoBox}\n\n`;
+                const infoBoxJSON = typeof committedTrackerData.infoBox === 'object'
+                    ? JSON.stringify(committedTrackerData.infoBox, null, 2)
+                    : committedTrackerData.infoBox;
+                summaryMessage += infoBoxJSON + '\n';
             }
 
             if (committedTrackerData.characterThoughts) {
-                summaryMessage += `Present Characters:\n${committedTrackerData.characterThoughts}\n\n`;
+                const charactersJSON = typeof committedTrackerData.characterThoughts === 'object'
+                    ? JSON.stringify(committedTrackerData.characterThoughts, null, 2)
+                    : committedTrackerData.characterThoughts;
+                summaryMessage += charactersJSON + '\n';
             }
 
             summaryMessage += `</previous>\n\n`;
@@ -712,7 +736,22 @@ export function parseEncounterJSON(response) {
             cleaned = cleaned.substring(firstBrace, lastBrace + 1);
         }
 
-        return JSON.parse(cleaned);
+        // Try to parse directly first
+        try {
+            return JSON.parse(cleaned);
+        } catch (initialError) {
+            // If direct parsing fails, try JSON repair
+            console.warn('[RPG Companion] Initial parse failed, attempting JSON repair...');
+            const repaired = repairJSON(cleaned);
+
+            if (repaired) {
+                console.log('[RPG Companion] ✓ Successfully repaired encounter JSON');
+                return repaired;
+            }
+
+            // If repair also failed, throw the original error
+            throw initialError;
+        }
     } catch (error) {
         console.error('[RPG Companion] Failed to parse encounter JSON:', error);
         console.error('[RPG Companion] Response was:', response);

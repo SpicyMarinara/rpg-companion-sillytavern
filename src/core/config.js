@@ -26,14 +26,13 @@ export const defaultSettings = {
     autoUpdate: true,
     updateDepth: 4, // How many messages to include in the context
     generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
-    useSeparatePreset: false, // Use 'RPG Companion Trackers' preset for tracker generation instead of main API model
     showUserStats: true,
     showInfoBox: true,
     showCharacterThoughts: true,
     showInventory: true, // Show inventory section (v2 system)
     showQuests: true, // Show quests section
+    showLockIcons: true, // Show lock/unlock icons on tracker items
     showThoughtsInChat: true, // Show thoughts overlay in chat
-    alwaysShowThoughtBubble: false, // Auto-expand thought bubble without clicking icon
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     enableSpotifyMusic: false, // Enable Spotify music integration (asks AI for Spotify URLs)
     customSpotifyPrompt: '', // Custom Spotify prompt text (empty = use default)
@@ -86,7 +85,5 @@ export const defaultSettings = {
         cha: 10
     },
     lastDiceRoll: null, // Store last dice roll result
-    collapsedInventoryLocations: [], // Array of collapsed storage location names
-    debugMode: false, // Enable debug logging visible in UI (for mobile debugging)
-    memoryMessagesToProcess: 16 // Number of messages to process per batch in memory recollection
+    collapsedInventoryLocations: [] // Array of collapsed storage location names
 };

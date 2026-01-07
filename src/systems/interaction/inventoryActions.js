@@ -39,15 +39,56 @@ let openForms = {
 
 /**
  * Updates lastGeneratedData.userStats AND committedTrackerData.userStats to include
- * current inventory in text format.
+ * current inventory.
+ * Maintains JSON format if current data is JSON, otherwise uses text format.
  * This ensures manual edits are immediately visible to AI in next generation.
  */
 function updateLastGeneratedDataInventory() {
-    // Rebuild the userStats text format using custom stat names
-    const statsText = buildUserStatsText();
+    // Check if current data is in JSON format
+    const currentData = lastGeneratedData.userStats || committedTrackerData.userStats;
+    if (currentData) {
+        const trimmed = currentData.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            // Maintain JSON format
+            try {
+                const jsonData = JSON.parse(currentData);
+                if (jsonData && typeof jsonData === 'object') {
+                    // Update inventory in JSON
+                    const stats = extensionSettings.userStats;
 
-    // Update BOTH lastGeneratedData AND committedTrackerData
-    // This makes manual edits immediately visible to AI
+                    // Convert inventory back to v3 format (arrays of {name, quantity})
+                    const convertToV3Items = (itemString) => {
+                        if (!itemString) return [];
+                        const items = itemString.split(',').map(s => s.trim()).filter(s => s);
+                        return items.map(item => {
+                            const qtyMatch = item.match(/^(\d+)x\s+(.+)$/);
+                            if (qtyMatch) {
+                                return { name: qtyMatch[2].trim(), quantity: parseInt(qtyMatch[1]) };
+                            }
+                            return { name: item, quantity: 1 };
+                        });
+                    };
+
+                    jsonData.inventory = {
+                        onPerson: convertToV3Items(stats.inventory.onPerson),
+                        clothing: convertToV3Items(stats.inventory.clothing),
+                        stored: stats.inventory.stored || {},
+                        assets: convertToV3Items(stats.inventory.assets)
+                    };
+
+                    const updatedJSON = JSON.stringify(jsonData, null, 2);
+                    lastGeneratedData.userStats = updatedJSON;
+                    committedTrackerData.userStats = updatedJSON;
+                    return;
+                }
+            } catch (e) {
+                console.warn('[RPG Companion] Failed to parse JSON, falling back to text format:', e);
+            }
+        }
+    }
+
+    // Fall back to text format
+    const statsText = buildUserStatsText();
     lastGeneratedData.userStats = statsText;
     committedTrackerData.userStats = statsText;
 }

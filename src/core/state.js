@@ -10,12 +10,11 @@
  * Extension settings - persisted to SillyTavern settings
  */
 export let extensionSettings = {
-    settingsVersion: 2, // Version number for settings migrations
+    settingsVersion: 3, // Version number for settings migrations (v3 = JSON format)
     enabled: true,
-    autoUpdate: true,
+    autoUpdate: false,
     updateDepth: 4, // How many messages to include in the context
     generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
-    useSeparatePreset: false, // Use 'RPG Companion Trackers' preset for tracker generation instead of main API model
     showUserStats: true,
     showInfoBox: true,
     showCharacterThoughts: true,
@@ -23,19 +22,26 @@ export let extensionSettings = {
     showQuests: true, // Show quests section
     showThoughtsInChat: true, // Show thoughts overlay in chat
     narratorMode: false, // Use character card as narrator instead of fixed character references
+    customNarratorPrompt: '', // Custom narrator mode prompt text (empty = use default)
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
+    enableDialogueColoring: false, // Enable dialogue coloring prompt injection
+    customDialogueColoringPrompt: '', // Custom dialogue coloring prompt text (empty = use default)
     enableSpotifyMusic: false, // Enable Spotify music integration (asks AI for Spotify URLs)
     customSpotifyPrompt: '', // Custom Spotify prompt text (empty = use default)
-    enableSnowflakes: false, // Enable festive snowflakes effect
+
     enableDynamicWeather: true, // Enable dynamic weather effects based on Info Box weather field (v2: enabled by default)
     dismissedHolidayPromo: false, // User dismissed the holiday promotion banner
     showHtmlToggle: true, // Show Immersive HTML toggle in main panel
+    showDialogueColoringToggle: true, // Show Dialogue Coloring toggle in main panel (enabled by default)
     showSpotifyToggle: true, // Show Spotify Music toggle in main panel
-    showSnowflakesToggle: true, // Show Snowflakes Effect toggle in main panel
+
     showDynamicWeatherToggle: true, // Show Dynamic Weather Effects toggle in main panel
+    showNarratorMode: true, // Show Narrator Mode toggle in main panel
+    showAutoAvatars: true, // Show Auto-generate Avatars toggle in main panel
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
-    enablePlotButtons: true, // Show plot progression buttons above chat input
+    enableRandomizedPlot: true, // Show randomized plot progression button above chat input
+    enableNaturalPlot: true, // Show natural plot progression button above chat input
     saveTrackerHistory: false, // Save tracker data in chat history for each message
     panelPosition: 'right', // 'left', 'right', or 'top'
     theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom
@@ -52,22 +58,27 @@ export let extensionSettings = {
         top: 'calc(var(--topBarBlockSize) + 60px)',
         right: '12px'
     }, // Saved position for mobile FAB button
-    userStats: {
-        health: 100,
-        satiety: 100,
-        energy: 100,
-        hygiene: 100,
-        arousal: 0,
-        mood: '😐',
-        conditions: 'None',
-        /** @type {InventoryV2} */
+    userStats: JSON.stringify({
+        stats: [
+            { id: 'health', name: 'Health', value: 100 },
+            { id: 'satiety', name: 'Satiety', value: 100 },
+            { id: 'energy', name: 'Energy', value: 100 },
+            { id: 'hygiene', name: 'Hygiene', value: 100 },
+            { id: 'arousal', name: 'Arousal', value: 0 }
+        ],
+        status: {
+            mood: '😐',
+            conditions: 'None'
+        },
         inventory: {
-            version: 2,
-            onPerson: "None",
-            stored: {},
-            assets: "None"
+            onPerson: [],
+            stored: []
+        },
+        quests: {
+            active: [],
+            completed: []
         }
-    },
+    }, null, 2),
     statNames: {
         health: 'Health',
         satiety: 'Satiety',
@@ -88,6 +99,7 @@ export let extensionSettings = {
             ],
             // RPG Attributes (customizable D&D-style attributes)
             showRPGAttributes: true,
+            showLevel: true, // Show/hide level in UI and prompts
             alwaysSendAttributes: false, // If true, always send attributes; if false, only send with dice rolls
             rpgAttributes: [
                 { id: 'str', name: 'STR', enabled: true },
@@ -170,6 +182,16 @@ export let extensionSettings = {
         main: "None",        // Current main quest title
         optional: []         // Array of optional quest titles
     },
+    infoBox: JSON.stringify({
+        date: { value: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) },
+        weather: { emoji: '☀️', forecast: 'Clear skies' },
+        temperature: { value: 20, unit: 'C' },
+        time: { start: '00:00', end: '00:00' },
+        location: { value: 'Unknown Location' }
+    }, null, 2),
+    characterThoughts: JSON.stringify({
+        characters: []
+    }, null, 2),
     level: 1, // User's character level
     classicStats: {
         str: 10,
@@ -187,11 +209,15 @@ export let extensionSettings = {
         stored: 'list',   // 'list' or 'grid' view mode for Stored section
         assets: 'list'    // 'list' or 'grid' view mode for Assets section
     },
-    debugMode: false, // Enable debug logging visible in UI (for mobile debugging)
-    memoryMessagesToProcess: 16, // Number of messages to process per batch in memory recollection
     npcAvatars: {}, // Store custom avatar images for NPCs (key: character name, value: base64 data URI)
+    // Combat encounter settings
+    encounterSettings: {
+        enabled: true, // Show Start Encounter button above chat input
+        historyDepth: 8, // Number of recent messages to include in combat initialization
+        autoSaveLogs: false // Save detailed combat logs to file
+    },
     // Auto avatar generation settings
-    autoGenerateAvatars: false, // Master toggle for auto-generating avatars
+    autoGenerateAvatars: true, // Master toggle for auto-generating avatars
     avatarLLMCustomInstruction: '', // Custom instruction for LLM prompt generation
     // External API settings for 'external' generation mode
     externalApiSettings: {
@@ -200,6 +226,30 @@ export let extensionSettings = {
         model: '',             // Model identifier (e.g., "gpt-4o-mini")
         maxTokens: 8192,       // Maximum tokens for generation
         temperature: 0.7       // Temperature setting for generation
+    },
+    // Lock state for tracker items (v3 JSON format feature)
+    lockedItems: {
+        stats: [],              // Array of locked stat IDs (e.g., ["health", "satiety"])
+        skills: [],             // Array of locked skill names (e.g., ["Cooking", "Swordsmanship"])
+        inventory: {
+            onPerson: [],       // Array of locked item indices (e.g., [0, 2])
+            clothing: [],       // Array of locked item indices
+            stored: {},         // Object with location keys, each containing array of locked indices (e.g., {"Home": [0, 1]})
+            assets: []          // Array of locked asset indices
+        },
+        quests: {
+            main: false,        // Boolean for main quest lock
+            optional: []        // Array of locked optional quest indices (e.g., [0, 2])
+        },
+        infoBox: {
+            date: false,        // Boolean for date widget lock
+            weather: false,     // Boolean for weather widget lock
+            temperature: false, // Boolean for temperature widget lock
+            time: false,        // Boolean for time widget lock
+            location: false,    // Boolean for location widget lock
+            recentEvents: false // Boolean for recent events widget lock
+        },
+        characters: {}          // Object mapping character names to their locked fields (e.g., {"Sarah": {relationship: true, thoughts: false}})
     }
 };
 
@@ -326,11 +376,24 @@ export function updateLastGeneratedData(updates) {
 }
 
 export function setCommittedTrackerData(data) {
+    console.log('[RPG State] setCommittedTrackerData called with:', data);
+    console.log('[RPG State] Type check on input:', {
+        userStatsType: typeof data.userStats,
+        infoBoxType: typeof data.infoBox,
+        characterThoughtsType: typeof data.characterThoughts,
+        userStatsValue: data.userStats,
+        infoBoxValue: data.infoBox,
+        characterThoughtsValue: data.characterThoughts
+    });
     committedTrackerData = data;
+    console.log('[RPG State] committedTrackerData after assignment:', committedTrackerData);
 }
 
 export function updateCommittedTrackerData(updates) {
+    console.log('[RPG State] updateCommittedTrackerData called with:', updates);
+    console.log('[RPG State] committedTrackerData before update:', committedTrackerData);
     Object.assign(committedTrackerData, updates);
+    console.log('[RPG State] committedTrackerData after update:', committedTrackerData);
 }
 
 export function setLastActionWasSwipe(value) {

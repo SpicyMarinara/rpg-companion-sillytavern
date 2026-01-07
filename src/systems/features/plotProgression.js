@@ -5,7 +5,7 @@
 
 import { togglePlotButtons } from '../ui/layout.js';
 import { extensionSettings, setIsPlotProgression } from '../../core/state.js';
-import { DEFAULT_HTML_PROMPT } from '../generation/promptBuilder.js';
+import { DEFAULT_HTML_PROMPT, DEFAULT_DIALOGUE_COLORING_PROMPT } from '../generation/promptBuilder.js';
 import { Generate } from '../../../../../../../script.js';
 
 /**
@@ -34,8 +34,8 @@ export function setupPlotButtons(handlePlotClick, handleEncounterClick) {
                 font-size: 13px;
                 cursor: pointer;
                 margin: 0 2px;
-            " tabindex="0" role="button">
-                <i class="fa-solid fa-dice"></i> <span class="rpg-btn-text">Randomized Plot</span>
+            " tabindex="0" role="button" title="Generate a random plot twist or event">
+                <i class="fa-solid fa-dice"></i>&nbsp;<span class="rpg-btn-text">Randomized Plot</span>
             </button>
             <button id="rpg-plot-natural" class="menu_button interactable" style="
                 background-color: #4a90e2;
@@ -46,8 +46,8 @@ export function setupPlotButtons(handlePlotClick, handleEncounterClick) {
                 font-size: 13px;
                 cursor: pointer;
                 margin: 0 2px;
-            " tabindex="0" role="button">
-                <i class="fa-solid fa-forward"></i> <span class="rpg-btn-text">Natural Plot</span>
+            " tabindex="0" role="button" title="Continue the story naturally without twists">
+                <i class="fa-solid fa-forward"></i>&nbsp;<span class="rpg-btn-text">Natural Plot</span>
             </button>
             <button id="rpg-encounter-button" class="menu_button interactable" style="
                 background-color: #cc3333;
@@ -59,7 +59,7 @@ export function setupPlotButtons(handlePlotClick, handleEncounterClick) {
                 cursor: pointer;
                 margin: 0 2px;
             " tabindex="0" role="button" title="Enter combat encounter">
-                <i class="fa-solid fa-fire"></i> <span class="rpg-btn-text">Enter Encounter</span>
+                <i class="fa-solid fa-fire"></i>&nbsp;<span class="rpg-btn-text">Enter Encounter</span>
             </button>
         </span>
     `;
@@ -112,6 +112,13 @@ export async function sendPlotProgression(type) {
             // Use custom HTML prompt if set, otherwise use default
             const htmlPromptText = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
             prompt += '\n\n' + htmlPromptText;
+        }
+
+        // Add Dialogue Coloring prompt if enabled
+        if (extensionSettings.enableDialogueColoring) {
+            // Use custom Dialogue Coloring prompt if set, otherwise use default
+            const dialogueColoringPromptText = extensionSettings.customDialogueColoringPrompt || DEFAULT_DIALOGUE_COLORING_PROMPT;
+            prompt += '\n\n' + dialogueColoringPromptText;
         }
 
         // Set flag to indicate we're doing plot progression

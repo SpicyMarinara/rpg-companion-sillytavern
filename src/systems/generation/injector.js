@@ -11,7 +11,8 @@ import {
     lastGeneratedData,
     isGenerating,
     lastActionWasSwipe,
-    setLastActionWasSwipe
+    setLastActionWasSwipe,
+    setIsGenerating
 } from '../../core/state.js';
 import { evaluateSuppression } from './suppression.js';
 import { parseUserStats } from './parser.js';
@@ -20,10 +21,17 @@ import {
     generateTrackerInstructions,
     generateContextualSummary,
     DEFAULT_HTML_PROMPT,
+    DEFAULT_DIALOGUE_COLORING_PROMPT,
     DEFAULT_SPOTIFY_PROMPT,
     SPOTIFY_FORMAT_INSTRUCTION
 } from './promptBuilder.js';
 import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
+
+// Type imports
+/** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
+
+// Track last chat length we committed at to prevent duplicate commits from streaming
+let lastCommittedChatLength = -1;
 
 /**
  * Event handler for generation start.
@@ -31,13 +39,20 @@ import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
  *
  * @param {string} type - Event type
  * @param {Object} data - Event data
+ * @param {boolean} dryRun - If true, this is a dry run (page reload, prompt preview, etc.) - skip all logic
  */
-export async function onGenerationStarted(type, data) {
-    // console.log('[RPG Companion] onGenerationStarted called');
-    // console.log('[RPG Companion] enabled:', extensionSettings.enabled);
-    // console.log('[RPG Companion] generationMode:', extensionSettings.generationMode);
-    // console.log('[RPG Companion] ⚡ EVENT: onGenerationStarted - lastActionWasSwipe =', lastActionWasSwipe, '| isGenerating =', isGenerating);
-    // console.log('[RPG Companion] Committed Prompt:', committedTrackerData);
+export async function onGenerationStarted(type, data, dryRun) {
+    // Skip dry runs (page reload, prompt manager preview, etc.)
+    if (dryRun) {
+        console.log('[RPG Companion] Skipping onGenerationStarted: dry run detected');
+        return;
+    }
+
+    console.log('[RPG Companion] onGenerationStarted called');
+    console.log('[RPG Companion] enabled:', extensionSettings.enabled);
+    console.log('[RPG Companion] generationMode:', extensionSettings.generationMode);
+    console.log('[RPG Companion] ⚡ EVENT: onGenerationStarted - lastActionWasSwipe =', lastActionWasSwipe, '| isGenerating =', isGenerating);
+    console.log('[RPG Companion] Committed Prompt:', committedTrackerData);
 
     // Skip tracker injection for image generation requests
     if (data?.quietImage) {
@@ -46,6 +61,13 @@ export async function onGenerationStarted(type, data) {
     }
 
     if (!extensionSettings.enabled) {
+        // Extension is disabled - clear any existing prompts to ensure nothing is injected
+        setExtensionPrompt('rpg-companion-inject', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-dialogue-coloring', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
         return;
     }
 
@@ -76,7 +98,62 @@ export async function onGenerationStarted(type, data) {
     // Ensure checkpoint is applied before generation
     await restoreCheckpointOnLoad();
 
+    const currentChatLength = chat ? chat.length : 0;
     const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
+
+    // For TOGETHER mode: Commit when user sends message (before first generation)
+    if (extensionSettings.generationMode === 'together') {
+        // By the time onGenerationStarted fires, ST has already added the placeholder AI message
+        // So we check the second-to-last message to see if user just sent a message
+        const secondToLastMessage = chat && chat.length > 1 ? chat[chat.length - 2] : null;
+        const isUserMessage = secondToLastMessage && secondToLastMessage.is_user;
+
+        // Commit if:
+        // 1. Second-to-last message is from USER (user just sent message)
+        // 2. Not a swipe (lastActionWasSwipe = false)
+        // 3. Haven't already committed for this chat length (prevent streaming duplicates)
+        const shouldCommit = isUserMessage && !lastActionWasSwipe && currentChatLength !== lastCommittedChatLength;
+
+        if (shouldCommit) {
+            console.log('[RPG Companion] 📝 TOGETHER MODE COMMIT: User sent message - committing data from BEFORE user message');
+            console.log('[RPG Companion]   Chat length:', currentChatLength, 'Last committed:', lastCommittedChatLength);
+            console.log('[RPG Companion]   BEFORE: committedTrackerData =', {
+                userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+                infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+                characterThoughts: committedTrackerData.characterThoughts ? `${committedTrackerData.characterThoughts.substring(0, 100)}...` : 'null'
+            });
+            console.log('[RPG Companion]   BEFORE: lastGeneratedData =', {
+                userStats: lastGeneratedData.userStats ? `${lastGeneratedData.userStats.substring(0, 50)}...` : 'null',
+                infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
+                characterThoughts: lastGeneratedData.characterThoughts ? `${lastGeneratedData.characterThoughts.substring(0, 100)}...` : 'null'
+            });
+
+            // Commit displayed data (from before user sent message)
+            committedTrackerData.userStats = lastGeneratedData.userStats;
+            committedTrackerData.infoBox = lastGeneratedData.infoBox;
+            committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+
+            // Track chat length to prevent duplicate commits
+            lastCommittedChatLength = currentChatLength;
+
+            console.log('[RPG Companion]   AFTER: committedTrackerData =', {
+                userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+                infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+                characterThoughts: committedTrackerData.characterThoughts ? `${committedTrackerData.characterThoughts.substring(0, 100)}...` : 'null'
+            });
+        } else if (lastActionWasSwipe) {
+            console.log('[RPG Companion] ⏭️ Skipping commit: swipe (using previous committed data)');
+        } else if (!isUserMessage) {
+            console.log('[RPG Companion] ⏭️ Skipping commit: second-to-last message is not user message (likely swipe or continuation)');
+        }
+
+        console.log('[RPG Companion] 📦 TOGETHER MODE: Injecting committed tracker data into prompt');
+        console.log('[RPG Companion]   committedTrackerData =', {
+            userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
+            infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+            characterThoughts: committedTrackerData.characterThoughts ? `${committedTrackerData.characterThoughts.substring(0, 100)}...` : 'null'
+        });
+    }
 
     // For SEPARATE mode only: Check if we need to commit extension data
     // BUT: Only do this for the MAIN generation, not the tracker update generation
@@ -85,80 +162,36 @@ export async function onGenerationStarted(type, data) {
     if (extensionSettings.generationMode === 'separate' && !isGenerating) {
         if (!lastActionWasSwipe) {
             // User sent a new message - commit lastGeneratedData before generation
-            // console.log('[RPG Companion] 📝 COMMIT: New message - committing lastGeneratedData');
-            // console.log('[RPG Companion]   BEFORE commit - committedTrackerData:', {
-            //     userStats: committedTrackerData.userStats ? 'exists' : 'null',
-            //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-            //     characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-            // });
-            // console.log('[RPG Companion]   BEFORE commit - lastGeneratedData:', {
-            //     userStats: lastGeneratedData.userStats ? 'exists' : 'null',
-            //     infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
-            //     characterThoughts: lastGeneratedData.characterThoughts ? 'exists' : 'null'
-            // });
+            console.log('[RPG Companion] 📝 COMMIT: New message - committing lastGeneratedData');
+            console.log('[RPG Companion]   BEFORE commit - committedTrackerData:', {
+                 userStats: committedTrackerData.userStats ? 'exists' : 'null',
+                 infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+                 characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
+            });
+            console.log('[RPG Companion]   BEFORE commit - lastGeneratedData:', {
+                 userStats: lastGeneratedData.userStats ? 'exists' : 'null',
+                 infoBox: lastGeneratedData.infoBox ? 'exists' : 'null',
+                 characterThoughts: lastGeneratedData.characterThoughts ? 'exists' : 'null'
+            });
             committedTrackerData.userStats = lastGeneratedData.userStats;
             committedTrackerData.infoBox = lastGeneratedData.infoBox;
             committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
-            // console.log('[RPG Companion]   AFTER commit - committedTrackerData:', {
-            //     userStats: committedTrackerData.userStats ? 'exists' : 'null',
-            //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-            //     characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-            // });
+            console.log('[RPG Companion]   AFTER commit - committedTrackerData:', {
+                 userStats: committedTrackerData.userStats ? 'exists' : 'null',
+                 infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+                 characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
+            });
 
             // Reset flag after committing (ready for next cycle)
 
         } else {
-            // console.log('[RPG Companion] 🔄 SWIPE: Using existing committedTrackerData (no commit)');
-            // console.log('[RPG Companion]   committedTrackerData:', {
-            //     userStats: committedTrackerData.userStats ? 'exists' : 'null',
-            //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-            //     characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-            // });
+            console.log('[RPG Companion] 🔄 SWIPE: Using existing committedTrackerData (no commit)');
+            console.log('[RPG Companion]   committedTrackerData:', {
+                 userStats: committedTrackerData.userStats ? 'exists' : 'null',
+                 infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
+                 characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
+            });
             // Reset flag after using it (swipe generation complete, ready for next action)
-        }
-    }
-
-    // For TOGETHER mode: Check if we need to commit extension data
-    // Only commit when user sends a new message (not on swipes)
-    if (extensionSettings.generationMode === 'together') {
-        if (!lastActionWasSwipe) {
-            // User sent a new message - commit data from the last assistant message they replied to
-            // This ensures swipes use consistent data from before the first swipe
-            console.log('[RPG Companion] 📝 TOGETHER MODE COMMIT: New message - committing from last assistant message');
-
-            // Find the last assistant message (before the user's new message)
-            const chat = getContext().chat;
-            let foundAssistantMessage = false;
-
-            for (let i = chat.length - 1; i >= 0; i--) {
-                const message = chat[i];
-                if (!message.is_user) {
-                    // Found last assistant message - commit its stored tracker data
-                    if (message.extra && message.extra.rpg_companion_swipes) {
-                        const swipeId = message.swipe_id || 0;
-                        const swipeData = message.extra.rpg_companion_swipes[swipeId];
-
-                        if (swipeData) {
-                            committedTrackerData.userStats = swipeData.userStats || null;
-                            committedTrackerData.infoBox = swipeData.infoBox || null;
-                            committedTrackerData.characterThoughts = swipeData.characterThoughts || null;
-                            foundAssistantMessage = true;
-                            console.log('[RPG Companion] ✓ Committed tracker data from message swipe', swipeId);
-                        }
-                    }
-                    break;
-                }
-            }
-
-            // Fallback: if no stored data found, use lastGeneratedData (for first message)
-            if (!foundAssistantMessage) {
-                committedTrackerData.userStats = lastGeneratedData.userStats;
-                committedTrackerData.infoBox = lastGeneratedData.infoBox;
-                committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
-                console.log('[RPG Companion] ⚠ No stored message data found, using lastGeneratedData as fallback');
-            }
-        } else {
-            console.log('[RPG Companion] 🔄 TOGETHER MODE SWIPE: Using existing committedTrackerData (no commit)');
         }
     }
 
@@ -175,7 +208,10 @@ export async function onGenerationStarted(type, data) {
 
     if (extensionSettings.generationMode === 'together') {
         // console.log('[RPG Companion] In together mode, generating prompts...');
-        const example = generateTrackerExample();
+        const exampleRaw = generateTrackerExample();
+        // Wrap example in ```json``` code blocks for consistency with format instructions
+        // Add only 1 newline after the closing ``` (ST adds its own newline when injecting)
+        const example = exampleRaw ? `\`\`\`json\n${exampleRaw}\n\`\`\`\n` : null;
         // Don't include HTML prompt in instructions - inject it separately to avoid duplication on swipes
         const instructions = generateTrackerInstructions(false, true);
 
@@ -232,6 +268,19 @@ export async function onGenerationStarted(type, data) {
         } else {
             // Clear HTML prompt if disabled
             setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
+        }
+
+        // Inject Dialogue Coloring prompt separately at depth 0 if enabled
+        if (extensionSettings.enableDialogueColoring && !shouldSuppress) {
+            // Use custom Dialogue Coloring prompt if set, otherwise use default
+            const dialogueColoringPromptText = extensionSettings.customDialogueColoringPrompt || DEFAULT_DIALOGUE_COLORING_PROMPT;
+            const dialogueColoringPrompt = `\n${dialogueColoringPromptText}`;
+
+            setExtensionPrompt('rpg-companion-dialogue-coloring', dialogueColoringPrompt, extension_prompt_types.IN_CHAT, 0, false);
+            // console.log('[RPG Companion] Injected Dialogue Coloring prompt at depth 0 for together mode');
+        } else {
+            // Clear Dialogue Coloring prompt if disabled
+            setExtensionPrompt('rpg-companion-dialogue-coloring', '', extension_prompt_types.IN_CHAT, 0, false);
         }
 
         // Inject Spotify prompt separately at depth 0 if enabled

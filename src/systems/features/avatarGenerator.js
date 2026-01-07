@@ -174,10 +174,10 @@ export async function generateAvatarsForCharacters(characterNames, onStarted = n
 
             // Generate LLM prompt for this character
             const prompt = await generateAvatarPrompt(characterName);
-            
+
             // Generate the image using the prompt
             await generateSingleAvatar(characterName, prompt);
-            
+
             pendingGenerations.delete(characterName);
 
             // Small delay between generations to avoid overwhelming the API
@@ -220,16 +220,6 @@ export async function regenerateAvatar(characterName) {
         delete sessionAvatarPrompts[characterName];
     }
 
-    // Save current preset and switch to RPG Companion Trackers if enabled
-    let originalPresetName = null;
-    if (extensionSettings.useSeparatePreset) {
-        originalPresetName = await getCurrentPresetName();
-        if (originalPresetName) {
-            console.log(`[RPG Avatar] Switching from "${originalPresetName}" to RPG Companion Trackers preset`);
-            await switchToPreset('RPG Companion Trackers');
-        }
-    }
-
     try {
         // Generate new LLM prompt
         const prompt = await generateAvatarPrompt(characterName);
@@ -237,12 +227,6 @@ export async function regenerateAvatar(characterName) {
         // Generate the avatar
         return await generateSingleAvatar(characterName, prompt);
     } finally {
-        // Restore original preset if we switched
-        if (originalPresetName && extensionSettings.useSeparatePreset) {
-            console.log(`[RPG Avatar] Restoring original preset: "${originalPresetName}"`);
-            await switchToPreset(originalPresetName);
-        }
-
         // Remove from pending when done
         pendingGenerations.delete(characterName);
     }
@@ -327,7 +311,7 @@ async function generateSingleAvatar(characterName, prompt = null) {
     if (!prompt) {
         prompt = sessionAvatarPrompts[characterName];
     }
-    
+
     if (!prompt) {
         console.log(`[RPG Avatar] No LLM prompt for ${characterName}, using fallback prompt`);
         prompt = buildFallbackPrompt(characterName);

@@ -6,6 +6,7 @@ import { power_user } from '../../../power-user.js';
 // Core modules
 import { extensionName, extensionFolderPath } from './src/core/config.js';
 import { i18n } from './src/core/i18n.js';
+import { migrateToV3JSON } from './src/utils/jsonMigration.js';
 import {
     extensionSettings,
     lastGeneratedData,
@@ -92,7 +93,8 @@ import {
     setupSettingsPopup,
     updateDiceDisplay,
     addDiceQuickReply,
-    getSettingsModal
+    getSettingsModal,
+    showWelcomeModalIfNeeded
 } from './src/systems/ui/modals.js';
 import {
     initTrackerEditor
@@ -133,9 +135,8 @@ import {
 // Feature modules
 import { setupPlotButtons, sendPlotProgression } from './src/systems/features/plotProgression.js';
 import { setupClassicStatsButtons } from './src/systems/features/classicStats.js';
-import { ensureHtmlCleaningRegex, detectConflictingRegexScripts } from './src/systems/features/htmlCleaning.js';
-import { setupMemoryRecollectionButton, updateMemoryRecollectionButton } from './src/systems/features/memoryRecollection.js';
-import { initLorebookLimiter } from './src/systems/features/lorebookLimiter.js';
+import { ensureHtmlCleaningRegex, detectConflictingRegexScripts, ensureTrackerCleaningRegex } from './src/systems/features/htmlCleaning.js';
+import { ensureJsonCleaningRegex, removeJsonCleaningRegex } from './src/systems/features/jsonCleaning.js';
 import { parseAndStoreSpotifyUrl } from './src/systems/features/musicPlayer.js';
 import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
 import { openEncounterModal } from './src/systems/ui/encounterUI.js';
@@ -212,12 +213,13 @@ async function addExtensionSettings() {
             updateChatThoughts(); // Remove thought bubbles
             cleanupCheckpointUI(); // Remove checkpoint buttons and indicators
 
+            // Disable dynamic weather effects
+            toggleDynamicWeather(false);
+
             // Remove panel and toggle buttons
             $('#rpg-companion-panel').remove();
             $('#rpg-mobile-toggle').remove();
             $('#rpg-collapse-toggle').remove();
-            $('#rpg-debug-toggle').remove();
-            $('#rpg-debug-panel').remove();
             $('#rpg-plot-buttons').remove(); // Remove plot buttons
         } else if (extensionSettings.enabled && !wasEnabled) {
             // Enabling extension - initialize UI
@@ -227,9 +229,6 @@ async function addExtensionSettings() {
             injectCheckpointButton(); // Re-add checkpoint buttons
             updateAllCheckpointIndicators(); // Update button states
         }
-
-        // Update Memory Recollection button visibility
-        updateMemoryRecollectionButton();
     });
 
     // Set up language selector
@@ -265,8 +264,9 @@ async function initUI() {
     $('body').append(templateHtml);
 
     // Add mobile toggle button (FAB - Floating Action Button)
+    const theme = extensionSettings.theme || 'default';
     const mobileToggleHtml = `
-        <button id="rpg-mobile-toggle" class="rpg-mobile-toggle" title="Toggle RPG Panel">
+        <button id="rpg-mobile-toggle" class="rpg-mobile-toggle" data-theme="${theme}" title="Toggle RPG Panel">
             <i class="fa-solid fa-dice-d20"></i>
         </button>
     `;
@@ -309,21 +309,21 @@ async function initUI() {
         saveSettings();
     });
 
-    $('#rpg-memory-messages').on('change', function() {
-        const value = $(this).val();
-        extensionSettings.memoryMessagesToProcess = parseInt(String(value));
-        saveSettings();
-    });
-
-    $('#rpg-generation-mode').on('change', function() {
+    $('#rpg-generation-mode').on('change', async function() {
         extensionSettings.generationMode = String($(this).val());
         saveSettings();
         updateGenerationModeUI();
-    });
 
-    $('#rpg-use-separate-preset').on('change', function() {
-        extensionSettings.useSeparatePreset = $(this).prop('checked');
-        saveSettings();
+        // Add or remove JSON cleaning regex based on mode
+        try {
+            if (extensionSettings.generationMode === 'together') {
+                await ensureJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
+            } else {
+                removeJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
+            }
+        } catch (error) {
+            console.error('[RPG Companion] JSON cleaning regex update failed:', error);
+        }
     });
 
     $('#rpg-toggle-user-stats').on('change', function() {
@@ -344,11 +344,6 @@ async function initUI() {
         updateSectionVisibility();
     });
 
-    $('#rpg-toggle-narrator-mode').on('change', function() {
-        extensionSettings.narratorMode = $(this).prop('checked');
-        saveSettings();
-    });
-
     $('#rpg-toggle-inventory').on('change', function() {
         extensionSettings.showInventory = $(this).prop('checked');
         saveSettings();
@@ -361,6 +356,17 @@ async function initUI() {
         updateSectionVisibility();
     });
 
+    $('#rpg-toggle-lock-icons').on('change', function() {
+        extensionSettings.showLockIcons = $(this).prop('checked');
+        saveSettings();
+        // Re-render all sections to show/hide lock icons
+        renderUserStats();
+        renderInfoBox();
+        renderThoughts();
+        renderInventory();
+        renderQuests();
+    });
+
     $('#rpg-toggle-thoughts-in-chat').on('change', function() {
         extensionSettings.showThoughtsInChat = $(this).prop('checked');
         // console.log('[RPG Companion] Toggle showThoughtsInChat changed to:', extensionSettings.showThoughtsInChat);
@@ -368,20 +374,15 @@ async function initUI() {
         updateChatThoughts();
     });
 
-    $('#rpg-toggle-always-show-bubble').on('change', function() {
-        extensionSettings.alwaysShowThoughtBubble = $(this).prop('checked');
-        saveSettings();
-        // Force immediate save to ensure setting is persisted before any other code runs
-        const context = getContext();
-        const extension_settings = context.extension_settings || context.extensionSettings;
-        extension_settings[extensionName] = extensionSettings;
-        // Re-render thoughts to apply the setting
-        updateChatThoughts();
-    });
-
     $('#rpg-toggle-html-prompt').on('change', function() {
         extensionSettings.enableHtmlPrompt = $(this).prop('checked');
         // console.log('[RPG Companion] Toggle enableHtmlPrompt changed to:', extensionSettings.enableHtmlPrompt);
+        saveSettings();
+    });
+
+    $('#rpg-toggle-dialogue-coloring').on('change', function() {
+        extensionSettings.enableDialogueColoring = $(this).prop('checked');
+        // console.log('[RPG Companion] Toggle enableDialogueColoring changed to:', extensionSettings.enableDialogueColoring);
         saveSettings();
     });
 
@@ -392,16 +393,17 @@ async function initUI() {
         renderMusicPlayer($musicPlayerContainer[0]);
     });
 
-    $('#rpg-toggle-snowflakes').on('change', function() {
-        extensionSettings.enableSnowflakes = $(this).prop('checked');
-        saveSettings();
-        toggleSnowflakes(extensionSettings.enableSnowflakes);
-    });
+
 
     $('#rpg-toggle-dynamic-weather').on('change', function() {
         extensionSettings.enableDynamicWeather = $(this).prop('checked');
         saveSettings();
         toggleDynamicWeather(extensionSettings.enableDynamicWeather);
+    });
+
+    $('#rpg-toggle-narrator').on('change', function() {
+        extensionSettings.narratorMode = $(this).prop('checked');
+        saveSettings();
     });
 
     $('#rpg-dismiss-promo').on('click', function() {
@@ -420,9 +422,14 @@ async function initUI() {
         saveSettings();
     });
 
-    $('#rpg-toggle-plot-buttons').on('change', function() {
-        extensionSettings.enablePlotButtons = $(this).prop('checked');
-        // console.log('[RPG Companion] Toggle enablePlotButtons changed to:', extensionSettings.enablePlotButtons);
+    $('#rpg-toggle-randomized-plot').on('change', function() {
+        extensionSettings.enableRandomizedPlot = $(this).prop('checked');
+        saveSettings();
+        togglePlotButtons();
+    });
+
+    $('#rpg-toggle-natural-plot').on('change', function() {
+        extensionSettings.enableNaturalPlot = $(this).prop('checked');
         saveSettings();
         togglePlotButtons();
     });
@@ -543,12 +550,6 @@ async function initUI() {
         saveSettings();
     });
 
-    $('#rpg-toggle-animations').on('change', function() {
-        extensionSettings.enableAnimations = $(this).prop('checked');
-        saveSettings();
-        toggleAnimations();
-    });
-
     // Feature toggle visibility controls
     $('#rpg-toggle-show-html-toggle').on('change', function() {
         extensionSettings.showHtmlToggle = $(this).prop('checked');
@@ -556,14 +557,14 @@ async function initUI() {
         updateFeatureTogglesVisibility();
     });
 
-    $('#rpg-toggle-show-spotify-toggle').on('change', function() {
-        extensionSettings.showSpotifyToggle = $(this).prop('checked');
+    $('#rpg-toggle-show-dialogue-coloring-toggle').on('change', function() {
+        extensionSettings.showDialogueColoringToggle = $(this).prop('checked');
         saveSettings();
         updateFeatureTogglesVisibility();
     });
 
-    $('#rpg-toggle-show-snowflakes-toggle').on('change', function() {
-        extensionSettings.showSnowflakesToggle = $(this).prop('checked');
+    $('#rpg-toggle-show-spotify-toggle').on('change', function() {
+        extensionSettings.showSpotifyToggle = $(this).prop('checked');
         saveSettings();
         updateFeatureTogglesVisibility();
     });
@@ -580,14 +581,30 @@ async function initUI() {
         updateFeatureTogglesVisibility();
     });
 
-    $('#rpg-toggle-show-snowflakes-toggle').on('change', function() {
-        extensionSettings.showSnowflakesToggle = $(this).prop('checked');
+    $('#rpg-toggle-show-narrator-mode').on('change', function() {
+        extensionSettings.showNarratorMode = $(this).prop('checked');
+        // Also disable the feature when hiding the toggle
+        if (!extensionSettings.showNarratorMode) {
+            extensionSettings.narratorMode = false;
+            $('#rpg-toggle-narrator').prop('checked', false);
+        }
         saveSettings();
         updateFeatureTogglesVisibility();
     });
 
-    // Auto avatar generation settings
-    $('#rpg-toggle-auto-avatars').on('change', function() {
+    $('#rpg-toggle-show-auto-avatars').on('change', function() {
+        extensionSettings.showAutoAvatars = $(this).prop('checked');
+        // Also disable the feature when hiding the toggle
+        if (!extensionSettings.showAutoAvatars) {
+            extensionSettings.autoGenerateAvatars = false;
+            $('#rpg-toggle-auto-avatars-panel').prop('checked', false);
+        }
+        saveSettings();
+        updateFeatureTogglesVisibility();
+    });
+
+    // Auto avatar generation panel toggle
+    $('#rpg-toggle-auto-avatars-panel').on('change', function() {
         extensionSettings.autoGenerateAvatars = $(this).prop('checked');
         saveSettings();
 
@@ -769,34 +786,35 @@ async function initUI() {
     $('#rpg-toggle-auto-update').prop('checked', extensionSettings.autoUpdate);
     $('#rpg-position-select').val(extensionSettings.panelPosition);
     $('#rpg-update-depth').val(extensionSettings.updateDepth);
-    $('#rpg-memory-messages').val(extensionSettings.memoryMessagesToProcess || 16);
-    $('#rpg-use-separate-preset').prop('checked', extensionSettings.useSeparatePreset);
     $('#rpg-toggle-user-stats').prop('checked', extensionSettings.showUserStats);
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
-    $('#rpg-toggle-narrator-mode').prop('checked', extensionSettings.narratorMode);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
     $('#rpg-toggle-quests').prop('checked', extensionSettings.showQuests);
+    $('#rpg-toggle-lock-icons').prop('checked', extensionSettings.showLockIcons ?? true);
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
-    $('#rpg-toggle-always-show-bubble').prop('checked', extensionSettings.alwaysShowThoughtBubble);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
+    $('#rpg-toggle-dialogue-coloring').prop('checked', extensionSettings.enableDialogueColoring);
     $('#rpg-toggle-spotify-music').prop('checked', extensionSettings.enableSpotifyMusic);
-    $('#rpg-toggle-snowflakes').prop('checked', extensionSettings.enableSnowflakes);
+
     $('#rpg-toggle-dynamic-weather').prop('checked', extensionSettings.enableDynamicWeather);
+    $('#rpg-toggle-narrator').prop('checked', extensionSettings.narratorMode);
 
     // Feature toggle visibility settings
     $('#rpg-toggle-show-html-toggle').prop('checked', extensionSettings.showHtmlToggle ?? true);
+    $('#rpg-toggle-show-dialogue-coloring-toggle').prop('checked', extensionSettings.showDialogueColoringToggle ?? true);
     $('#rpg-toggle-show-spotify-toggle').prop('checked', extensionSettings.showSpotifyToggle ?? true);
-    $('#rpg-toggle-show-snowflakes-toggle').prop('checked', extensionSettings.showSnowflakesToggle ?? true);
     $('#rpg-toggle-show-dynamic-weather-toggle').prop('checked', extensionSettings.showDynamicWeatherToggle ?? true);
-    $('#rpg-toggle-show-snowflakes-toggle').prop('checked', extensionSettings.showSnowflakesToggle ?? true);
+    $('#rpg-toggle-show-narrator-mode').prop('checked', extensionSettings.showNarratorMode ?? true);
+    $('#rpg-toggle-show-auto-avatars').prop('checked', extensionSettings.showAutoAvatars ?? true);
 
     // Hide holiday promo if previously dismissed
     if (extensionSettings.dismissedHolidayPromo) {
         $('#rpg-holiday-promo').hide();
     }
 
-    $('#rpg-toggle-plot-buttons').prop('checked', extensionSettings.enablePlotButtons);
+    $('#rpg-toggle-randomized-plot').prop('checked', extensionSettings.enableRandomizedPlot ?? true);
+    $('#rpg-toggle-natural-plot').prop('checked', extensionSettings.enableNaturalPlot ?? true);
     $('#rpg-toggle-encounters').prop('checked', extensionSettings.encounterSettings?.enabled ?? true);
     $('#rpg-encounter-history-depth').val(extensionSettings.encounterSettings?.historyDepth ?? 8);
     $('#rpg-toggle-autosave-logs').prop('checked', extensionSettings.encounterSettings?.autoSaveLogs ?? true);
@@ -813,10 +831,8 @@ async function initUI() {
     $('#rpg-summary-narration').val(extensionSettings.encounterSettings?.summaryNarrative?.narration ?? 'omniscient');
     $('#rpg-summary-pov').val(extensionSettings.encounterSettings?.summaryNarrative?.pov ?? 'narrator');
 
-    $('#rpg-toggle-animations').prop('checked', extensionSettings.enableAnimations);
-
-    // Initialize avatar options
-    $('#rpg-toggle-auto-avatars').prop('checked', extensionSettings.autoGenerateAvatars || false);
+    // Initialize avatar options (panel toggle)
+    $('#rpg-toggle-auto-avatars-panel').prop('checked', extensionSettings.autoGenerateAvatars || false);
 
     $('#rpg-toggle-dice-display').prop('checked', extensionSettings.showDiceDisplay);
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
@@ -889,12 +905,6 @@ async function initUI() {
     initChapterCheckpointUI();
     injectCheckpointButton();
 
-    // Setup Memory Recollection button in World Info
-    setupMemoryRecollectionButton();
-
-    // Initialize Lorebook Limiter
-    initLorebookLimiter();
-
     // Expose weather effect functions globally for cross-module access
     if (!window.RPGCompanion) {
         window.RPGCompanion = {};
@@ -915,70 +925,6 @@ async function initUI() {
 //  onMessageSwiped, updatePersonaAvatar, clearExtensionPrompts)
 
 /**
- * Ensures the "RPG Companion Trackers" preset exists in the user's OpenAI Settings.
- * Imports the preset file from the extension folder if it doesn't exist.
- */
-async function ensureTrackerPresetExists() {
-    try {
-        const presetName = 'RPG Companion Trackers';
-
-        // Check if preset already exists by fetching settings
-        const checkResponse = await fetch('/api/settings/get', {
-            method: 'POST',
-            headers: getRequestHeaders()
-        });
-
-        if (checkResponse.ok) {
-            const settings = await checkResponse.json();
-            // openai_setting_names is an array of preset names
-            if (settings.openai_setting_names && settings.openai_setting_names.includes(presetName)) {
-                console.log(`[RPG Companion] Preset "${presetName}" already exists`);
-                return;
-            }
-        }
-
-        // Preset doesn't exist - import it from extension folder
-        console.log(`[RPG Companion] Importing preset "${presetName}"...`);
-
-        // Load preset from extension folder
-        const extensionPresetPath = `${extensionFolderPath}/${presetName}.json`;
-        const presetResponse = await fetch(`/${extensionPresetPath}`);
-
-        if (!presetResponse.ok) {
-            console.warn(`[RPG Companion] Could not load preset template from ${extensionPresetPath}`);
-            return;
-        }
-
-        const presetData = await presetResponse.json();
-
-        // Save preset to user's OpenAI Settings folder using SillyTavern's API
-        const saveResponse = await fetch('/api/presets/save', {
-            method: 'POST',
-            headers: getRequestHeaders(),
-            body: JSON.stringify({
-                apiId: 'openai',
-                name: presetName,
-                preset: presetData
-            })
-        });
-
-        if (saveResponse.ok) {
-            console.log(`[RPG Companion] ✅ Successfully imported preset "${presetName}"`);
-            toastr.success(
-                `The "RPG Companion Trackers" preset has been imported to your OpenAI Settings.`,
-                'RPG Companion',
-                { timeOut: 5000 }
-            );
-        } else {
-            console.warn(`[RPG Companion] Failed to save preset: ${saveResponse.statusText}`);
-        }
-    } catch (error) {
-        console.error('[RPG Companion] Error importing tracker preset:', error);
-        // Non-critical - users can manually import if needed
-    }
-}
-
-/**
  * Main initialization function.
  */
 jQuery(async () => {
@@ -990,6 +936,20 @@ jQuery(async () => {
             loadSettings();
         } catch (error) {
             console.error('[RPG Companion] Settings load failed, continuing with defaults:', error);
+        }
+
+        // Check if migration to v3 JSON format is needed
+        try {
+            if (extensionSettings.settingsVersion < 3) {
+                console.log('[RPG Companion] Detected v2 format, migrating to v3 JSON...');
+                await migrateToV3JSON();
+                updateExtensionSettings({ settingsVersion: 3 });
+                await saveSettings();
+                console.log('[RPG Companion] ✅ Migration to v3 complete');
+            }
+        } catch (error) {
+            console.error('[RPG Companion] Migration to v3 failed:', error);
+            // Non-critical - extension can still work with v2 format
         }
 
         // Initialize i18n early for the settings panel
@@ -1029,12 +989,25 @@ jQuery(async () => {
             // Non-critical - continue without it
         }
 
-        // Import the RPG Companion Trackers preset if needed
+        // Import the tracker cleaning regex (removes old together mode JSON from prompts)
         try {
-            await ensureTrackerPresetExists();
+            await ensureTrackerCleaningRegex(st_extension_settings, saveSettingsDebounced);
         } catch (error) {
-            console.error('[RPG Companion] Preset import failed:', error);
-            // Non-critical - users can manually import if needed
+            console.error('[RPG Companion] Tracker cleaning regex import failed:', error);
+            // Non-critical - continue without it
+        }
+
+        // Import the JSON cleaning regex for Together mode if enabled
+        try {
+            if (extensionSettings.generationMode === 'together') {
+                await ensureJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
+            } else {
+                // Remove the regex if switching to separate mode
+                removeJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
+            }
+        } catch (error) {
+            console.error('[RPG Companion] JSON cleaning regex setup failed:', error);
+            // Non-critical - continue without it
         }
 
         // Detect conflicting regex scripts from old manual formatters
@@ -1083,6 +1056,14 @@ jQuery(async () => {
             initSnowflakes();
         } catch (error) {
             console.error('[RPG Companion] Snowflakes initialization failed:', error);
+            // Non-critical - continue without it
+        }
+
+        // Show welcome modal for v3.0 on first launch
+        try {
+            showWelcomeModalIfNeeded();
+        } catch (error) {
+            console.error('[RPG Companion] Welcome modal failed:', error);
             // Non-critical - continue without it
         }
 

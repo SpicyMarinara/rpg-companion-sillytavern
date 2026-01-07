@@ -375,8 +375,12 @@ export function setupMobileToggle() {
             // Remove desktop tabs first
             removeDesktopTabs();
 
-            // Remove desktop positioning classes
+            // Apply mobile positioning based on panelPosition setting
             $panel.removeClass('rpg-position-right rpg-position-left rpg-position-top');
+            $('body').removeClass('rpg-panel-position-right rpg-panel-position-left rpg-panel-position-top');
+            const position = extensionSettings.panelPosition || 'right';
+            $panel.addClass('rpg-position-' + position);
+            $('body').addClass('rpg-panel-position-' + position);
 
             // Clear collapsed state - mobile doesn't use collapse
             $panel.removeClass('rpg-collapsed');
@@ -424,7 +428,8 @@ export function setupMobileToggle() {
                 // Hide mobile toggle button on desktop
                 $mobileToggle.hide();
 
-                // Restore desktop positioning class
+                // Restore desktop positioning class and remove body mobile classes
+                $('body').removeClass('rpg-panel-position-right rpg-panel-position-left rpg-panel-position-top');
                 const position = extensionSettings.panelPosition || 'right';
                 $panel.addClass('rpg-position-' + position);
 
@@ -561,6 +566,14 @@ export function setupMobileTabs() {
     if ($('.rpg-mobile-tabs').length > 0) return;
 
     const $panel = $('#rpg-companion-panel');
+
+    // Apply mobile positioning based on panelPosition setting
+    $panel.removeClass('rpg-position-right rpg-position-left rpg-position-top');
+    $('body').removeClass('rpg-panel-position-right rpg-panel-position-left rpg-panel-position-top');
+    const position = extensionSettings.panelPosition || 'right';
+    $panel.addClass('rpg-position-' + position);
+    $('body').addClass('rpg-panel-position-' + position);
+
     const $contentBox = $panel.find('.rpg-content-box');
 
     // Get existing sections
@@ -624,7 +637,9 @@ export function setupMobileTabs() {
     // Info tab: Info Box + Character Thoughts
     if ($infoBox.length > 0) {
         $infoTab.append($infoBox.detach());
-        $infoBox.show();
+        // Only show if has data
+        const infoBoxData = window.lastGeneratedData?.infoBox || window.committedTrackerData?.infoBox;
+        if (infoBoxData) $infoBox.show();
     }
     if ($thoughts.length > 0) {
         $infoTab.append($thoughts.detach());
@@ -714,7 +729,10 @@ export function removeMobileTabs() {
 
     // Show/hide sections based on settings (respect visibility settings)
     if (extensionSettings.showUserStats) $userStats.show();
-    if (extensionSettings.showInfoBox) $infoBox.show();
+    if (extensionSettings.showInfoBox) {
+        const infoBoxData = window.lastGeneratedData?.infoBox || window.committedTrackerData?.infoBox;
+        if (infoBoxData) $infoBox.show();
+    }
     if (extensionSettings.showCharacterThoughts) $thoughts.show();
     if (extensionSettings.showInventory) $inventory.show();
     if (extensionSettings.showQuests) $quests.show();

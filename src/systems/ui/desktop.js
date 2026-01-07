@@ -79,7 +79,11 @@ export function setupDesktopTabs() {
     }
     if ($infoBox.length > 0) {
         $statusTab.append($infoBox.detach());
-        if (extensionSettings.showInfoBox) $infoBox.show();
+        // Only show if enabled and has data
+        if (extensionSettings.showInfoBox) {
+            const infoBoxData = window.lastGeneratedData?.infoBox || window.committedTrackerData?.infoBox;
+            if (infoBoxData) $infoBox.show();
+        }
     }
     if ($thoughts.length > 0) {
         $statusTab.append($thoughts.detach());
@@ -170,7 +174,10 @@ export function removeDesktopTabs() {
 
     // Show/hide sections based on settings (respect visibility settings)
     if (extensionSettings.showUserStats) $userStats.show();
-    if (extensionSettings.showInfoBox) $infoBox.show();
+    if (extensionSettings.showInfoBox) {
+        const infoBoxData = window.lastGeneratedData?.infoBox || window.committedTrackerData?.infoBox;
+        if (infoBoxData) $infoBox.show();
+    }
     if (extensionSettings.showCharacterThoughts) $thoughts.show();
     if (extensionSettings.showInventory) $inventory.show();
     if (extensionSettings.showQuests) $quests.show();

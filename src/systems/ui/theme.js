@@ -36,6 +36,35 @@ export function applyTheme() {
     }
     // For 'default', we do nothing - it will use the CSS variables from .rpg-panel class
     // which fall back to SillyTavern's theme variables
+
+    // Apply theme to mobile toggle and thought elements as well
+    const $mobileToggle = $('#rpg-mobile-toggle');
+    const $thoughtIcon = $('#rpg-thought-icon');
+    const $thoughtPanel = $('#rpg-thought-panel');
+
+    if ($mobileToggle.length) {
+        if (theme === 'default') {
+            $mobileToggle.removeAttr('data-theme');
+        } else {
+            $mobileToggle.attr('data-theme', theme);
+        }
+    }
+
+    if ($thoughtIcon.length) {
+        if (theme === 'default') {
+            $thoughtIcon.removeAttr('data-theme');
+        } else {
+            $thoughtIcon.attr('data-theme', theme);
+        }
+    }
+
+    if ($thoughtPanel.length) {
+        if (theme === 'default') {
+            $thoughtPanel.removeAttr('data-theme');
+        } else {
+            $thoughtPanel.attr('data-theme', theme);
+        }
+    }
 }
 
 /**
@@ -46,7 +75,7 @@ export function applyCustomTheme() {
 
     const colors = extensionSettings.customColors;
 
-    // Apply custom CSS variables as inline styles
+    // Apply custom CSS variables as inline styles to main panel
     $panelContainer.css({
         '--rpg-bg': colors.bg,
         '--rpg-accent': colors.accent,
@@ -55,6 +84,32 @@ export function applyCustomTheme() {
         '--rpg-border': colors.highlight,
         '--rpg-shadow': `${colors.highlight}80` // Add alpha for shadow
     });
+
+    // Apply custom colors to mobile toggle and thought elements
+    const customStyles = {
+        '--rpg-bg': colors.bg,
+        '--rpg-accent': colors.accent,
+        '--rpg-text': colors.text,
+        '--rpg-highlight': colors.highlight,
+        '--rpg-border': colors.highlight,
+        '--rpg-shadow': `${colors.highlight}80`
+    };
+
+    const $mobileToggle = $('#rpg-mobile-toggle');
+    const $thoughtIcon = $('#rpg-thought-icon');
+    const $thoughtPanel = $('#rpg-thought-panel');
+
+    if ($mobileToggle.length) {
+        $mobileToggle.attr('data-theme', 'custom').css(customStyles);
+    }
+
+    if ($thoughtIcon.length) {
+        $thoughtIcon.attr('data-theme', 'custom').css(customStyles);
+    }
+
+    if ($thoughtPanel.length) {
+        $thoughtPanel.attr('data-theme', 'custom').css(customStyles);
+    }
 }
 
 /**
@@ -82,21 +137,29 @@ export function toggleAnimations() {
 export function updateFeatureTogglesVisibility() {
     const $featuresRow = $('#rpg-features-row');
     const $htmlToggle = $('#rpg-html-toggle-wrapper');
+    const $dialogueColoringToggle = $('#rpg-dialogue-coloring-toggle-wrapper');
     const $spotifyToggle = $('#rpg-spotify-toggle-wrapper');
-    const $snowflakesToggle = $('#rpg-snowflakes-toggle-wrapper');
+
     const $dynamicWeatherToggle = $('#rpg-dynamic-weather-toggle-wrapper');
+    const $narratorToggle = $('#rpg-narrator-toggle-wrapper');
+    const $autoAvatarsToggle = $('#rpg-auto-avatars-toggle-wrapper');
 
     // Show/hide individual toggles
     $htmlToggle.toggle(extensionSettings.showHtmlToggle);
+    $dialogueColoringToggle.toggle(extensionSettings.showDialogueColoringToggle);
     $spotifyToggle.toggle(extensionSettings.showSpotifyToggle);
-    $snowflakesToggle.toggle(extensionSettings.showSnowflakesToggle);
+
     $dynamicWeatherToggle.toggle(extensionSettings.showDynamicWeatherToggle);
+    $narratorToggle.toggle(extensionSettings.showNarratorMode);
+    $autoAvatarsToggle.toggle(extensionSettings.showAutoAvatars);
 
     // Hide entire row if all toggles are hidden
     const anyVisible = extensionSettings.showHtmlToggle ||
+                      extensionSettings.showDialogueColoringToggle ||
                       extensionSettings.showSpotifyToggle ||
-                      extensionSettings.showSnowflakesToggle ||
-                      extensionSettings.showDynamicWeatherToggle;
+                      extensionSettings.showDynamicWeatherToggle ||
+                      extensionSettings.showNarratorMode ||
+                      extensionSettings.showAutoAvatars;
     $featuresRow.toggle(anyVisible);
 }
 

@@ -56,20 +56,20 @@ function openInSpotify(songData) {
  * @param {HTMLElement} container - Container element to render into
  */
 export function renderMusicPlayer(container) {
-    console.log('[RPG Companion] Music Player: renderMusicPlayer called');
+    // console.log('[RPG Companion] Music Player: renderMusicPlayer called');
 
     // Remove old chat-attached player if it exists
     $('#rpg-chat-music-player').remove();
 
-    console.log('[RPG Companion] Music Player: enableSpotifyMusic =', extensionSettings.enableSpotifyMusic);
+    // console.log('[RPG Companion] Music Player: enableSpotifyMusic =', extensionSettings.enableSpotifyMusic);
 
     if (!extensionSettings.enableSpotifyMusic) {
-        console.warn('[RPG Companion] Music Player: Spotify music is disabled');
+        // console.warn('[RPG Companion] Music Player: Spotify music is disabled');
         return;
     }
 
     const songData = committedTrackerData.spotifyUrl;
-    console.log('[RPG Companion] Music Player: Rendering with song:', songData);
+    // console.log('[RPG Companion] Music Player: Rendering with song:', songData);
 
     if (!songData || !songData.displayText) {
         // No song - don't show anything

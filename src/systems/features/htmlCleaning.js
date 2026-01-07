@@ -114,3 +114,86 @@ export async function ensureHtmlCleaningRegex(st_extension_settings, saveSetting
         // Don't throw - this is a nice-to-have feature
     }
 }
+
+/**
+ * Automatically imports a regex script to clean tracker JSON from outgoing prompts.
+ * This is useful when switching from together mode to separate mode mid-roleplay,
+ * as it prevents old tracker JSON from chat history being sent to the AI.
+ * @param {Object} st_extension_settings - SillyTavern extension settings object
+ * @param {Function} saveSettingsDebounced - Function to save settings
+ */
+export async function ensureTrackerCleaningRegex(st_extension_settings, saveSettingsDebounced) {
+    try {
+        // Validate extension settings structure
+        if (!st_extension_settings || typeof st_extension_settings !== 'object') {
+            console.warn('[RPG Companion] Invalid extension_settings object, skipping tracker cleaning regex import');
+            return;
+        }
+
+        // Check if the tracker cleaning regex already exists
+        const scriptName = 'Clean RPG Trackers (From Outgoing Prompt)';
+        const existingScripts = st_extension_settings?.regex || [];
+
+        // Validate regex array
+        if (!Array.isArray(existingScripts)) {
+            console.warn('[RPG Companion] extension_settings.regex is not an array, resetting to empty array');
+            st_extension_settings.regex = [];
+        }
+
+        const alreadyExists = existingScripts.some(script =>
+            script && typeof script === 'object' && script.scriptName === scriptName
+        );
+
+        if (alreadyExists) {
+            console.log('[RPG Companion] Tracker cleaning regex already exists, skipping import');
+            return;
+        }
+
+        // Generate a UUID for the script
+        const uuidv4 = () => {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        };
+
+        // Create the regex script to remove ```json...``` blocks containing tracker data
+        // This regex matches markdown code blocks with "json" language tag
+        const regexScript = {
+            id: uuidv4(),
+            scriptName: scriptName,
+            findRegex: '/```json\\s*\\n\\{[\\s\\S]*?(?:\"userStats\"|\"infoBox\"|\"characters\")[\\s\\S]*?\\}\\s*\\n```/gm',
+            replaceString: '',
+            trimStrings: [],
+            placement: [2], // 2 = Input (affects outgoing prompt)
+            disabled: false,
+            markdownOnly: false,
+            promptOnly: true,
+            runOnEdit: true,
+            substituteRegex: 0,
+            minDepth: null,
+            maxDepth: null
+        };
+
+        // Add to global regex scripts
+        if (!Array.isArray(st_extension_settings.regex)) {
+            st_extension_settings.regex = [];
+        }
+
+        st_extension_settings.regex.push(regexScript);
+
+        // Save the changes
+        if (typeof saveSettingsDebounced === 'function') {
+            saveSettingsDebounced();
+        } else {
+            console.warn('[RPG Companion] saveSettingsDebounced is not a function, cannot save tracker cleaning regex');
+        }
+
+        console.log('[RPG Companion] ✅ Tracker cleaning regex imported successfully');
+    } catch (error) {
+        console.error('[RPG Companion] Failed to import tracker cleaning regex:', error);
+        console.error('[RPG Companion] Error details:', error.message, error.stack);
+        // Don't throw - this is a nice-to-have feature
+    }
+}

@@ -348,6 +348,13 @@ function renderUserStatsTab() {
     html += `<label for="rpg-show-rpg-attrs">${i18n.getTranslation('template.trackerEditorModal.userStatsTab.enableRpgAttributes')}</label>`;
     html += '</div>';
 
+    // Show/hide level toggle
+    const showLevel = config.showLevel !== undefined ? config.showLevel : true;
+    html += '<div class="rpg-editor-toggle-row">';
+    html += `<input type="checkbox" id="rpg-show-level" ${showLevel ? 'checked' : ''}>`;
+    html += `<label for="rpg-show-level">Show Level</label>`;
+    html += '</div>';
+
     // Always send attributes toggle
     const alwaysSendAttributes = config.alwaysSendAttributes !== undefined ? config.alwaysSendAttributes : false;
     html += '<div class="rpg-editor-toggle-row">';
@@ -508,6 +515,11 @@ function setupUserStatsListeners() {
     // Enable/disable RPG Attributes section toggle
     $('#rpg-show-rpg-attrs').off('change').on('change', function() {
         extensionSettings.trackerConfig.userStats.showRPGAttributes = $(this).is(':checked');
+    });
+
+    // Show/hide level toggle
+    $('#rpg-show-level').off('change').on('change', function() {
+        extensionSettings.trackerConfig.userStats.showLevel = $(this).is(':checked');
     });
 
     // Always send attributes toggle

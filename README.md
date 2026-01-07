@@ -7,50 +7,30 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v2.1.3
-- **Improved Thought Bubble Positioning**: Thought bubbles now align with the top of the character's avatar/name
-- **Better Visibility**: Fixed issue where thought bubbles would extend above the avatar when scrolling is limited
-- **Horizontal Thought Circles**: Thought circles now display horizontally for a cleaner visual flow
-- **Responsive Positioning**: Thought bubbles dynamically adjust to screen width changes and stay visible at all resolutions
-- **Smart Viewport Detection**: Bubbles automatically reposition to avoid being cut off at narrow window widths
+### v3.0.0
 
-### v2.1.2
-- Added optional toggle for Relationship Status Fields in Edit Trackers
-- Relationship fields and emoji badges can now be disabled/enabled like other trackers
-- Maintains backward compatibility with existing configurations
+**What's new?**
+- Switched to the JSON format for the trackers.
+- You can now lock/unlock trackers that you don't want the model to change between generations.
+- Removed features that were half-baked or didn't work.
+- Organized Settings and Edit Trackers windows.
+- All features of the extension are now accessible from the main panel view.
+- Added Colored Dialogues option that makes the model color dialogue lines differently depending on the speaker.
+- Introduced Dynamic Weather Effects that add visual effects to your SillyTavern window depending on the current weather from the trackers.
+- All prompts used for the extension's features are now editable.
+- Made the user's level optional in the Edit Trackers.
 
-### v2.1.1
-- Fixed a bug in together generation mode that didn't detect swipes correctly
-- Fixed combat encounter prompt to consider party members better
+**Bug Fixes:**
+- Fixed tracker logic in Together generation mode.
+- Fixed various UI bugs (too many to count).
+- Upgraded mobile view.
+- Spotify Music widget is more visible now, plus it works in the mobile view.
+- Auto-update after messages option is now available for External API generation mode.
+- Fixed the display of the thoughts window and its mobile display.
+- Fixed smaller bugs.
 
-### v2.1 - Dynamic Weather Effects
-- Real-time weather visualization based on Info Box weather field
-- **Snow**: Falling snowflakes with varied speeds and sizes
-- **Rain**: Realistic raindrops animation
-- **Mist/Fog**: Floating fog layers
-- **Sunshine**: Sun rays streaming across the screen
-- **Storm**: Combined rain + lightning flashes for thunderstorms
-- **Wind**: Horizontal wind streaks for breezy conditions
-- **Blizzard**: Combined snow + wind effects
-- Weather effects positioned behind chat interface for atmospheric background
-- Automatically enabled for new users, manual toggle available in panel
-- Fully optimized for mobile devices
-
-### Clothing Inventory System
-- New dedicated **Clothing** tab in inventory system
-- Separate tracking for clothing and armor items
-- AI now handles clothing items independently from general inventory
-- Full list/grid view support with add/remove/edit functionality
-- Automatic migration for existing users
-
-### Bug Fixes & Improvements
-- Fixed tab visibility issues (disabled tabs now properly hide/show)
-- Fixed theme-aware borders (removed hardcoded blue colors)
-- Fixed double scrollbar in Edit Trackers window
-- Fixed scroll position jumping when editing Present Characters
-- Fixed dynamic weather toggle visibility behavior
-- Added settings migration system for smooth feature updates
-- Improved inventory schema to v2.1 with automatic migration
+**Special thanks to all the other contributors for this project:**
+Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis!
 
 ## 📥 Installation
 
@@ -104,8 +84,6 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 ### To-Do
 
 1. Allow users to use a different model for the separate trackers generation
-2. ~~Make all trackers and fields customizable~~ ✅ Done!
-3. ~~Kill myself~~
 
 ## ⚙️ Settings
 
@@ -304,13 +282,8 @@ If you enjoy this extension, consider supporting development:
 
 ## 🙏 Credits
 
-- Extension Development: Marinara with assistance from GitHub Copilot
-- Immersive HTML concept: Credit to u/melted_walrus
-- Info Box prompt inspiration: MidnightSleeper
-- Stats Tracker concept: Community feedback
-- Special thanks to Quack for helping me with the CSS
-- Massive kudos to Paperboy for making the mobile version work, fixing bugs, and adding the inventory system
-- Thanks to IDeathByte for solving some CSS scaling issues
+**Contributors:**
+SpicyMarinara, Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis
 
 ## 🚀 Planned Features
 

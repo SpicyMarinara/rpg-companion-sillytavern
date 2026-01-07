@@ -51,7 +51,18 @@ function parseWeatherType(weatherText) {
 function getCurrentWeather() {
     const infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox || '';
 
-    // Parse the Info Box data to find Weather field
+    // Try to parse as JSON first (new format)
+    try {
+        const parsed = typeof infoBoxData === 'string' ? JSON.parse(infoBoxData) : infoBoxData;
+        if (parsed && parsed.weather) {
+            // Return the forecast text from the weather object
+            return parsed.weather.forecast || parsed.weather.emoji || null;
+        }
+    } catch (e) {
+        // Not JSON, try old text format
+    }
+
+    // Fallback: Parse the old text format to find Weather field
     const lines = infoBoxData.split('\n');
     for (const line of lines) {
         const trimmed = line.trim();

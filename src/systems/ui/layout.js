@@ -13,7 +13,9 @@ import {
     $questsContainer,
     $musicPlayerContainer,
     setInventoryContainer,
-    setQuestsContainer
+    setQuestsContainer,
+    lastGeneratedData,
+    committedTrackerData
 } from '../../core/state.js';
 import { i18n } from '../../core/i18n.js';
 import { setupMobileTabs, removeMobileTabs } from './mobile.js';
@@ -28,12 +30,17 @@ export function togglePlotButtons() {
         return;
     }
 
-    // Show/hide plot progression buttons based on enablePlotButtons setting
-    if (extensionSettings.enablePlotButtons) {
+    // Show/hide randomized plot button based on enableRandomizedPlot setting
+    if (extensionSettings.enableRandomizedPlot) {
         $('#rpg-plot-random').show();
-        $('#rpg-plot-natural').show();
     } else {
         $('#rpg-plot-random').hide();
+    }
+
+    // Show/hide natural plot button based on enableNaturalPlot setting
+    if (extensionSettings.enableNaturalPlot) {
+        $('#rpg-plot-natural').show();
+    } else {
         $('#rpg-plot-natural').hide();
     }
 
@@ -45,7 +52,7 @@ export function togglePlotButtons() {
     }
 
     // Show the container if at least one button is visible
-    const shouldShowContainer = extensionSettings.enablePlotButtons || extensionSettings.encounterSettings?.enabled;
+    const shouldShowContainer = extensionSettings.enableRandomizedPlot || extensionSettings.enableNaturalPlot || extensionSettings.encounterSettings?.enabled;
     if (shouldShowContainer) {
         $('#rpg-plot-buttons').show();
     } else {
@@ -81,19 +88,34 @@ export function updateCollapseToggleIcon() {
     const isMobile = window.innerWidth <= 1000;
 
     if (isMobile) {
-        // Mobile: slides from right, use same icon logic as desktop right panel
+        // Mobile: icon direction based on panel position and open state
         const isOpen = $panel.hasClass('rpg-mobile-open');
+        const isLeftPanel = $panel.hasClass('rpg-position-left');
+
         console.log('[RPG Mobile] updateCollapseToggleIcon:', {
             isMobile: true,
             isOpen,
-            settingIcon: isOpen ? 'chevron-left' : 'chevron-right'
+            isLeftPanel,
+            settingIcon: isOpen ? (isLeftPanel ? 'chevron-left' : 'chevron-right') : (isLeftPanel ? 'chevron-right' : 'chevron-left')
         });
-        if (isOpen) {
-            // Panel open - chevron points left (to close/slide back right)
-            $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-right').addClass('fa-chevron-left');
+
+        if (isLeftPanel) {
+            if (isOpen) {
+                // Left panel open - chevron points left (panel will slide left to close)
+                $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-right').addClass('fa-chevron-left');
+            } else {
+                // Left panel closed - chevron points left (panel is hidden on left)
+                $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-right').addClass('fa-chevron-left');
+            }
         } else {
-            // Panel closed - chevron points right (to open/slide in from right)
-            $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-left').addClass('fa-chevron-right');
+            // Right panel (default)
+            if (isOpen) {
+                // Right panel open - chevron points right (panel will slide right to close)
+                $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-left').addClass('fa-chevron-right');
+            } else {
+                // Right panel closed - chevron points right (panel is hidden on right)
+                $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-left').addClass('fa-chevron-right');
+            }
         }
     } else {
         // Desktop: icon direction based on panel position and collapsed state
@@ -237,14 +259,11 @@ export function updatePanelVisibility() {
         togglePlotButtons(); // Update plot button visibility
         $('#rpg-mobile-toggle').show(); // Show mobile FAB toggle
         $('#rpg-collapse-toggle').show(); // Show collapse toggle
-        // Debug toggle visibility is controlled by debugMode setting in debug.js
     } else {
         $panelContainer.hide();
         $('#rpg-plot-buttons').hide(); // Hide plot buttons when disabled
         $('#rpg-mobile-toggle').hide(); // Hide mobile FAB toggle
         $('#rpg-collapse-toggle').hide(); // Hide collapse toggle
-        $('#rpg-debug-toggle').hide(); // Hide debug toggle button when extension disabled
-        $('#rpg-debug-panel').remove(); // Remove debug panel when extension disabled
     }
 }
 
@@ -265,7 +284,13 @@ export function updateSectionVisibility() {
     }
 
     if (extensionSettings.showInfoBox) {
-        $infoBoxContainer.show();
+        // Only show if there's data to display
+        const infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox;
+        if (infoBoxData) {
+            $infoBoxContainer.show();
+        } else {
+            $infoBoxContainer.hide();
+        }
     } else {
         $infoBoxContainer.hide();
     }
@@ -383,16 +408,19 @@ export function applyPanelPosition() {
 
     // Remove all position classes
     $panelContainer.removeClass('rpg-position-left rpg-position-right rpg-position-top');
+    $('body').removeClass('rpg-panel-position-left rpg-panel-position-right rpg-panel-position-top');
 
-    // On mobile, don't apply desktop position classes
+    // Add the appropriate position class
+    $panelContainer.addClass(`rpg-position-${extensionSettings.panelPosition}`);
+
+    // On mobile, also add body class for mobile-specific CSS
     if (isMobile) {
+        $('body').addClass(`rpg-panel-position-${extensionSettings.panelPosition}`);
+        updateCollapseToggleIcon();
         return;
     }
 
-    // Desktop: Add the appropriate position class
-    $panelContainer.addClass(`rpg-position-${extensionSettings.panelPosition}`);
-
-    // Update collapse toggle icon direction for new position
+    // Desktop: Update collapse toggle icon direction for new position
     updateCollapseToggleIcon();
 }
 
@@ -405,24 +433,21 @@ export function updateGenerationModeUI() {
         $('#rpg-manual-update').hide();
         $('#rpg-external-api-settings').slideUp(200);
         $('#rpg-separate-mode-settings').slideUp(200);
-        // Disable auto-update toggle (not applicable in together mode)
-        $('#rpg-toggle-auto-update').prop('disabled', true);
-        $('#rpg-auto-update-container').css('opacity', '0.5');
+        // Hide auto-update toggle (not applicable in together mode)
+        $('#rpg-auto-update-container').slideUp(200);
     } else if (extensionSettings.generationMode === 'separate') {
         // In "separate" mode, manual update button is visible
         $('#rpg-manual-update').show();
         $('#rpg-external-api-settings').slideUp(200);
         $('#rpg-separate-mode-settings').slideDown(200);
-        // Enable auto-update toggle (only works in separate mode)
-        $('#rpg-toggle-auto-update').prop('disabled', false);
-        $('#rpg-auto-update-container').css('opacity', '1');
+        // Show auto-update toggle
+        $('#rpg-auto-update-container').slideDown(200);
     } else if (extensionSettings.generationMode === 'external') {
         // In "external" mode, manual update button is visible AND external settings are shown
         $('#rpg-manual-update').show();
         $('#rpg-external-api-settings').slideDown(200);
         $('#rpg-separate-mode-settings').slideUp(200);
-        // Disable auto-update toggle (not applicable in external mode)
-        $('#rpg-toggle-auto-update').prop('disabled', true);
-        $('#rpg-auto-update-container').css('opacity', '0.5');
+        // Show auto-update toggle for external mode too
+        $('#rpg-auto-update-container').slideDown(200);
     }
 }

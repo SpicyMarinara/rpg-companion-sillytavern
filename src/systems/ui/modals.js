@@ -10,13 +10,17 @@ import {
     committedTrackerData,
     $infoBoxContainer,
     $thoughtsContainer,
+    $userStatsContainer,
     setPendingDiceRoll,
-    getPendingDiceRoll
+    getPendingDiceRoll,
+    clearSessionAvatarPrompts
 } from '../../core/state.js';
 import { saveSettings, saveChatData } from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
-import { updateChatThoughts } from '../rendering/thoughts.js';
+import { renderInfoBox } from '../rendering/infoBox.js';
+import { renderThoughts, updateChatThoughts } from '../rendering/thoughts.js';
 import { renderQuests } from '../rendering/quests.js';
+import { renderInventory } from '../rendering/inventory.js';
 import {
     rollDice as rollDiceCore,
     clearDiceRoll as clearDiceRollCore,
@@ -351,18 +355,31 @@ export function setupSettingsPopup() {
 
     // Clear cache button
     $('#rpg-clear-cache').on('click', function() {
-        // Clear the data
+        console.log('[RPG Companion] Clear Cache button clicked');
+
+        // Clear the data (set to null so panels show "not generated yet")
         lastGeneratedData.userStats = null;
         lastGeneratedData.infoBox = null;
         lastGeneratedData.characterThoughts = null;
+        lastGeneratedData.html = null;
 
         // Clear committed tracker data (used for generation context)
         committedTrackerData.userStats = null;
         committedTrackerData.infoBox = null;
         committedTrackerData.characterThoughts = null;
 
+        // Clear session avatar prompts
+        clearSessionAvatarPrompts();
+
+        // Clear chat metadata immediately (don't wait for debounced save)
+        const context = getContext();
+        if (context.chat_metadata && context.chat_metadata.rpg_companion) {
+            delete context.chat_metadata.rpg_companion;
+            console.log('[RPG Companion] Cleared chat_metadata.rpg_companion for current chat');
+        }
+
         // Clear all message swipe data
-        const chat = getContext().chat;
+        const chat = context.chat;
         if (chat && chat.length > 0) {
             for (let i = 0; i < chat.length; i++) {
                 const message = chat[i];
@@ -380,8 +397,11 @@ export function setupSettingsPopup() {
         if ($thoughtsContainer) {
             $thoughtsContainer.empty();
         }
+        if ($userStatsContainer) {
+            $userStatsContainer.empty();
+        }
 
-        // Reset stats to defaults and re-render
+        // Reset user stats to default object structure (extensionSettings stores as object, not JSON string)
         extensionSettings.userStats = {
             health: 100,
             satiety: 100,
@@ -390,7 +410,29 @@ export function setupSettingsPopup() {
             arousal: 0,
             mood: '😐',
             conditions: 'None',
-            inventory: 'None'
+            skills: [],
+            inventory: {
+                version: 2,
+                onPerson: "None",
+                clothing: "None",
+                stored: {},
+                assets: "None"
+            }
+        };
+
+        // Reset info box to defaults (as object)
+        extensionSettings.infoBox = {
+            date: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+            weather: '☀️ Clear skies',
+            temperature: '20°C',
+            time: '00:00 - 00:00',
+            location: 'Unknown Location',
+            recentEvents: []
+        };
+
+        // Reset character thoughts to empty (as object)
+        extensionSettings.characterThoughts = {
+            characters: []
         };
 
         // Reset classic stats (attributes) to defaults
@@ -406,23 +448,54 @@ export function setupSettingsPopup() {
         // Clear dice roll
         extensionSettings.lastDiceRoll = null;
 
+        // Reset level to 1
+        extensionSettings.level = 1;
+
         // Clear quests
         extensionSettings.quests = {
             main: "None",
             optional: []
         };
 
+        // Clear all locked items
+        extensionSettings.lockedItems = {
+            stats: [],
+            skills: [],
+            inventory: {
+                onPerson: [],
+                clothing: [],
+                stored: {},
+                assets: []
+            },
+            quests: {
+                main: false,
+                optional: []
+            },
+            infoBox: {
+                date: false,
+                weather: false,
+                temperature: false,
+                time: false,
+                location: false,
+                recentEvents: false
+            },
+            characters: {}
+        };
+
         // Save everything
         saveChatData();
         saveSettings();
 
-        // Re-render user stats and dice display
+        // Re-render all panels - they will show "not generated yet" messages since data is null
         renderUserStats();
+        renderInfoBox();
+        renderThoughts();
         updateDiceDisplayCore();
-        updateChatThoughts(); // Clear the thought bubble in chat
-        renderQuests(); // Clear and re-render quests UI
+        updateChatThoughts();
+        renderInventory();
+        renderQuests();
 
-        // console.log('[RPG Companion] Chat cache cleared');
+        console.log('[RPG Companion] Cache cleared successfully');
     });
 
     return settingsModal;
@@ -507,4 +580,76 @@ export function addDiceQuickReply() {
  */
 export function getSettingsModal() {
     return settingsModal;
+}
+
+/**
+ * Shows the welcome modal for v3.0.0 on first launch
+ * Checks if user has already seen this version's welcome screen
+ */
+export function showWelcomeModalIfNeeded() {
+    const WELCOME_VERSION = '3.0.0';
+    const STORAGE_KEY = 'rpg_companion_welcome_seen';
+
+    try {
+        const seenVersion = localStorage.getItem(STORAGE_KEY);
+
+        // If user hasn't seen v3.0.0 welcome yet, show it
+        if (seenVersion !== WELCOME_VERSION) {
+            showWelcomeModal(WELCOME_VERSION, STORAGE_KEY);
+        }
+    } catch (error) {
+        console.error('[RPG Companion] Failed to check welcome modal status:', error);
+    }
+}
+
+/**
+ * Shows the welcome modal
+ * @param {string} version - The version to mark as seen
+ * @param {string} storageKey - The localStorage key to use
+ */
+function showWelcomeModal(version, storageKey) {
+    const modal = document.getElementById('rpg-welcome-modal');
+    if (!modal) {
+        console.error('[RPG Companion] Welcome modal element not found');
+        return;
+    }
+
+    // Apply current theme to modal
+    const theme = extensionSettings.theme || 'default';
+    modal.setAttribute('data-theme', theme);
+
+    // Show modal
+    modal.style.display = 'flex';
+    modal.classList.add('is-open');
+
+    // Close button handler
+    const closeBtn = document.getElementById('rpg-welcome-close');
+    const gotItBtn = document.getElementById('rpg-welcome-got-it');
+
+    const closeModal = () => {
+        modal.classList.add('is-closing');
+
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.classList.remove('is-open', 'is-closing');
+        }, 200);
+
+        // Mark this version as seen
+        try {
+            localStorage.setItem(storageKey, version);
+        } catch (error) {
+            console.error('[RPG Companion] Failed to save welcome modal status:', error);
+        }
+    };
+
+    // Attach event listeners
+    closeBtn?.addEventListener('click', closeModal, { once: true });
+    gotItBtn?.addEventListener('click', closeModal, { once: true });
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    }, { once: true });
 }

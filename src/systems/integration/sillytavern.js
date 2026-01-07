@@ -4,7 +4,7 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { chat, user_avatar, setExtensionPrompt, extension_prompt_types, updateMessageBlock } from '../../../../../../../script.js';
+import { chat, user_avatar, setExtensionPrompt, extension_prompt_types, saveChatDebounced } from '../../../../../../../script.js';
 
 // Core modules
 import {
@@ -15,6 +15,7 @@ import {
     isPlotProgression,
     setLastActionWasSwipe,
     setIsPlotProgression,
+    setIsGenerating,
     updateLastGeneratedData,
     updateCommittedTrackerData,
     $musicPlayerContainer
@@ -25,6 +26,8 @@ import { saveChatData, loadChatData } from '../../core/persistence.js';
 import { parseResponse, parseUserStats } from '../generation/parser.js';
 import { parseAndStoreSpotifyUrl, convertToEmbedUrl } from '../features/musicPlayer.js';
 import { updateRPGData } from '../generation/apiClient.js';
+import { removeLocks } from '../generation/lockManager.js';
+import { onGenerationStarted } from '../generation/injector.js';
 
 // Rendering
 import { renderUserStats } from '../rendering/userStats.js';
@@ -80,27 +83,35 @@ export function commitTrackerData() {
 /**
  * Event handler for when the user sends a message.
  * Sets the flag to indicate this is NOT a swipe.
- * In separate mode with auto-update disabled, commits the displayed tracker data.
+ * In together mode, commits displayed data (only for real messages, not streaming placeholders).
  */
 export function onMessageSent() {
     if (!extensionSettings.enabled) return;
 
-    // User sent a new message - NOT a swipe
-    setLastActionWasSwipe(false);
-    // console.log('[RPG Companion] 🟢 EVENT: onMessageSent - lastActionWasSwipe =', lastActionWasSwipe);
+    console.log('[RPG Companion] 🟢 EVENT: onMessageSent - lastActionWasSwipe =', lastActionWasSwipe);
 
-    // In separate mode with auto-update disabled, commit displayed tracker when user sends a message
+    // Check if this is a streaming placeholder message (content = "...")
+    // When streaming is on, ST sends a "..." placeholder before generation starts
+    const context = getContext();
+    const chat = context.chat;
+    const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
+
+    if (lastMessage && lastMessage.mes === '...') {
+        console.log('[RPG Companion] 🟢 Ignoring onMessageSent: streaming placeholder message');
+        return;
+    }
+
+    console.log('[RPG Companion] 🟢 EVENT: onMessageSent (after placeholder check)');
+    console.log('[RPG Companion] 🟢 NOTE: lastActionWasSwipe will be reset in onMessageReceived after generation completes');
+
+    // For separate mode with auto-update disabled, commit displayed tracker
     if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
-        // Commit whatever is currently displayed in lastGeneratedData
         if (lastGeneratedData.userStats || lastGeneratedData.infoBox || lastGeneratedData.characterThoughts) {
             committedTrackerData.userStats = lastGeneratedData.userStats;
             committedTrackerData.infoBox = lastGeneratedData.infoBox;
             committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
 
-            // Save to chat metadata
-            saveChatData();
-
-            // console.log('[RPG Companion] 💾 Committed displayed tracker on user message (auto-update disabled)');
+            console.log('[RPG Companion] 💾 SEPARATE MODE: Committed displayed tracker (auto-update disabled)');
         }
     }
 }
@@ -109,24 +120,41 @@ export function onMessageSent() {
  * Event handler for when a message is generated.
  */
 export async function onMessageReceived(data) {
+    console.log('[RPG Companion] onMessageReceived called, lastActionWasSwipe:', lastActionWasSwipe);
+
     if (!extensionSettings.enabled) {
         return;
     }
 
+    // Reset swipe flag after generation completes
+    // This ensures next user message (whether from original or swipe) triggers commit
+    setLastActionWasSwipe(false);
+    console.log('[RPG Companion] 🟢 Reset lastActionWasSwipe = false (generation completed)');
+
     if (extensionSettings.generationMode === 'together') {
         // In together mode, parse the response to extract RPG data
-        // The message should be in chat[chat.length - 1]
+        // Commit happens in onMessageSent (when user sends message, before generation)
         const lastMessage = chat[chat.length - 1];
         if (lastMessage && !lastMessage.is_user) {
             const responseText = lastMessage.mes;
-            // console.log('[RPG Companion] Parsing together mode response:', responseText);
-
             const parsedData = parseResponse(responseText);
+
+            // Remove locks from parsed data (JSON format only, text format is unaffected)
+            if (parsedData.userStats) {
+                parsedData.userStats = removeLocks(parsedData.userStats);
+            }
+            if (parsedData.infoBox) {
+                parsedData.infoBox = removeLocks(parsedData.infoBox);
+            }
+            if (parsedData.characterThoughts) {
+                parsedData.characterThoughts = removeLocks(parsedData.characterThoughts);
+            }
+
             // Parse and store Spotify URL if feature is enabled
             parseAndStoreSpotifyUrl(responseText);
-            // console.log('[RPG Companion] Parsed data:', parsedData);
 
-            // Update stored data
+            // Update display data with newly parsed response
+            console.log('[RPG Companion] 📝 TOGETHER MODE: Updating lastGeneratedData with parsed response');
             if (parsedData.userStats) {
                 lastGeneratedData.userStats = parsedData.userStats;
                 parseUserStats(parsedData.userStats);
@@ -154,17 +182,6 @@ export async function onMessageReceived(data) {
             };
 
             // console.log('[RPG Companion] Stored RPG data for swipe', currentSwipeId);
-
-            // If there's no committed data yet (first time generating), automatically commit
-            // BUT: Only commit if this is NOT a swipe (same logic as separate mode)
-            if (!lastActionWasSwipe && !committedTrackerData.userStats && !committedTrackerData.infoBox && !committedTrackerData.characterThoughts) {
-                committedTrackerData.userStats = parsedData.userStats;
-                committedTrackerData.infoBox = parsedData.infoBox;
-                committedTrackerData.characterThoughts = parsedData.characterThoughts;
-                // console.log('[RPG Companion] 🔆 FIRST TIME: Auto-committed tracker data');
-            } else {
-                // console.log('[RPG Companion] Data will be committed when user replies');
-            }
 
             // Remove the tracker code blocks from the visible message
             let cleanedMessage = responseText;
@@ -296,11 +313,12 @@ export function onMessageSwiped(messageIndex) {
         return;
     }
 
-    // console.log('[RPG Companion] Message swiped at index:', messageIndex);
+    console.log('[RPG Companion] 🔵 EVENT: onMessageSwiped at index:', messageIndex);
 
     // Get the message that was swiped
     const message = chat[messageIndex];
     if (!message || message.is_user) {
+        console.log('[RPG Companion] 🔵 Ignoring swipe - message is user or undefined');
         return;
     }
 
@@ -316,21 +334,21 @@ export function onMessageSwiped(messageIndex) {
     if (!isExistingSwipe) {
         // This is a NEW swipe that will trigger generation
         setLastActionWasSwipe(true);
-        // console.log('[RPG Companion] 🔵 EVENT: onMessageSwiped (NEW generation) - lastActionWasSwipe =', lastActionWasSwipe);
+        console.log('[RPG Companion] 🔵 NEW swipe detected - Set lastActionWasSwipe = true');
     } else {
         // This is navigating to an EXISTING swipe - don't change the flag
-        // console.log('[RPG Companion] 🔵 EVENT: onMessageSwiped (existing swipe navigation) - lastActionWasSwipe unchanged =', lastActionWasSwipe);
+        console.log('[RPG Companion] 🔵 EXISTING swipe navigation - lastActionWasSwipe unchanged =', lastActionWasSwipe);
     }
 
     // console.log('[RPG Companion] Loading data for swipe', currentSwipeId);
 
-    // Load RPG data for this swipe into lastGeneratedData (for display only)
-    // This updates what the user sees, but does NOT commit it
-    // Committed data will be updated when/if the user replies to this swipe
+    // Load RPG data for this swipe
+    // lastGeneratedData is for DISPLAY, committedTrackerData is for GENERATION
+    // It's safe to load swipe data into lastGeneratedData - it won't be committed due to !lastActionWasSwipe check
     if (message.extra && message.extra.rpg_companion_swipes && message.extra.rpg_companion_swipes[currentSwipeId]) {
         const swipeData = message.extra.rpg_companion_swipes[currentSwipeId];
 
-        // Update display data
+        // Load swipe data into lastGeneratedData for display (both modes)
         lastGeneratedData.userStats = swipeData.userStats || null;
         lastGeneratedData.infoBox = swipeData.infoBox || null;
         lastGeneratedData.characterThoughts = swipeData.characterThoughts || null;
@@ -340,15 +358,12 @@ export function onMessageSwiped(messageIndex) {
             parseUserStats(swipeData.userStats);
         }
 
-        // console.log('[RPG Companion] Loaded RPG data for swipe', currentSwipeId, '(display only, NOT committed)');
-        // console.log('[RPG Companion] committedTrackerData unchanged - will be updated if user replies to this swipe');
+        console.log('[RPG Companion] 🔄 Loaded swipe data into lastGeneratedData for display:', currentSwipeId);
     } else {
-        // No data for this swipe - keep existing lastGeneratedData (don't clear it)
-        // This ensures the display remains consistent and data is available for next commit
-        // console.log('[RPG Companion] No RPG data for swipe', currentSwipeId, '- keeping existing lastGeneratedData');
+        console.log('[RPG Companion] ℹ️ No stored data for swipe:', currentSwipeId);
     }
 
-    // Re-render the panels (display only - committedTrackerData unchanged)
+    // Re-render the panels
     renderUserStats();
     renderInfoBox();
     renderThoughts();
@@ -401,6 +416,8 @@ export function clearExtensionPrompts() {
     setExtensionPrompt('rpg-companion-inject', '', extension_prompt_types.IN_CHAT, 0, false);
     setExtensionPrompt('rpg-companion-example', '', extension_prompt_types.IN_CHAT, 0, false);
     setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
+    setExtensionPrompt('rpg-companion-dialogue-coloring', '', extension_prompt_types.IN_CHAT, 0, false);
+    setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
     setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
     // Note: rpg-companion-plot is not cleared here since it's passed via quiet_prompt option
     // console.log('[RPG Companion] Cleared all extension prompts');
@@ -411,6 +428,11 @@ export function clearExtensionPrompts() {
  * Re-applies checkpoint if SillyTavern unhid messages
  */
 export async function onGenerationEnded() {
+    console.log('[RPG Companion] 🏁 onGenerationEnded called');
+
+    // Note: isGenerating flag is cleared in onMessageReceived after parsing (together mode)
+    // or in apiClient.js after separate generation completes (separate mode)
+
     // SillyTavern may auto-unhide messages when generation stops
     // Re-apply checkpoint if one exists
     await restoreCheckpointOnLoad();

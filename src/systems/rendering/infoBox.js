@@ -12,6 +12,25 @@ import {
 } from '../../core/state.js';
 import { saveChatData } from '../../core/persistence.js';
 import { i18n } from '../../core/i18n.js';
+import { isItemLocked } from '../generation/lockManager.js';
+import { repairJSON } from '../../utils/jsonRepair.js';
+
+/**
+ * Helper to generate lock icon HTML if setting is enabled
+ * @param {string} tracker - Tracker name
+ * @param {string} path - Item path
+ * @returns {string} Lock icon HTML or empty string
+ */
+function getLockIconHtml(tracker, path) {
+    const showLockIcons = extensionSettings.showLockIcons ?? true;
+    if (!showLockIcons) return '';
+
+    const isLocked = isItemLocked(tracker, path);
+    const lockIcon = isLocked ? '🔒' : '🔓';
+    const lockTitle = isLocked ? 'Locked' : 'Unlocked';
+    const lockedClass = isLocked ? ' locked' : '';
+    return `<span class="rpg-section-lock-icon${lockedClass}" data-tracker="${tracker}" data-path="${path}" title="${lockTitle}">${lockIcon}</span>`;
+}
 
 /**
  * Helper to separate emoji from text in a string
@@ -56,41 +75,36 @@ function separateEmojiFromText(str) {
  * Includes event listeners for editable fields.
  */
 export function renderInfoBox() {
-    if (!extensionSettings.showInfoBox || !$infoBoxContainer) {
-        return;
-    }
+    console.log('[RPG InfoBox Render] ==================== RENDERING INFO BOX ====================');
+    console.log('[RPG InfoBox Render] showInfoBox setting:', extensionSettings.showInfoBox);
+    console.log('[RPG InfoBox Render] Container exists:', !!$infoBoxContainer);
 
-    // Add updating class for animation
-    if (extensionSettings.enableAnimations) {
-        $infoBoxContainer.addClass('rpg-content-updating');
+    if (!extensionSettings.showInfoBox || !$infoBoxContainer) {
+        console.log('[RPG InfoBox Render] Exiting: showInfoBox or container is false');
+        return;
     }
 
     // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
     const infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox;
+    console.log('[RPG InfoBox Render] infoBoxData length:', infoBoxData ? infoBoxData.length : 'null');
+    console.log('[RPG InfoBox Render] infoBoxData preview:', infoBoxData ? infoBoxData.substring(0, 200) : 'null');
 
-    // If no data yet, show placeholder
+    // If no data yet, hide the container (e.g., after cache clear)
     if (!infoBoxData) {
-        const placeholderHtml = `
-            <div class="rpg-dashboard rpg-dashboard-row-1">
-                <div class="rpg-dashboard-widget rpg-placeholder-widget">
-                    <div class="rpg-placeholder-text" data-i18n-key="infobox.noData.title">${i18n.getTranslation('infobox.noData.title')}</div>
-                    <div class="rpg-placeholder-hint" data-i18n-key="infobox.noData.instruction">${i18n.getTranslation('infobox.noData.instruction')}</div>
-                </div>
-            </div>
-        `;
-        $infoBoxContainer.html(placeholderHtml);
-        if (extensionSettings.enableAnimations) {
-            setTimeout(() => $infoBoxContainer.removeClass('rpg-content-updating'), 500);
-        }
+        console.log('[RPG InfoBox Render] No data, hiding container');
+        $infoBoxContainer.empty().hide();
         return;
+    }
+
+    // Show container and add updating class for animation
+    $infoBoxContainer.show();
+    if (extensionSettings.enableAnimations) {
+        $infoBoxContainer.addClass('rpg-content-updating');
     }
 
     // console.log('[RPG Companion] renderInfoBox called with data:', infoBoxData);
 
-    // Parse the info box data
-    const lines = infoBoxData.split('\n');
-    // console.log('[RPG Companion] Info Box split into lines:', lines);
-    const data = {
+    let data = {
         date: '',
         weekday: '',
         month: '',
@@ -104,6 +118,45 @@ export function renderInfoBox() {
         location: '',
         characters: []
     };
+
+    // Check if data is v3 JSON format
+    const trimmed = infoBoxData.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        const jsonData = repairJSON(infoBoxData);
+        if (jsonData) {
+            // Extract from v3 JSON structure
+            data.weatherEmoji = jsonData.weather?.emoji || '';
+            data.weatherForecast = jsonData.weather?.forecast || '';
+            data.temperature = jsonData.temperature ? `${jsonData.temperature.value}°${jsonData.temperature.unit}` : '';
+            data.tempValue = jsonData.temperature?.value || 0;
+            data.timeStart = jsonData.time?.start || '';
+            data.timeEnd = jsonData.time?.end || '';
+            data.location = jsonData.location?.value || '';
+
+            // Parse date string to extract weekday, month, year
+            if (jsonData.date?.value) {
+                data.date = jsonData.date.value;
+                // Expected format: "Tuesday, October 17th, 2023"
+                const dateParts = data.date.split(',').map(p => p.trim());
+                data.weekday = dateParts[0] || '';
+                data.month = dateParts[1] || '';
+                data.year = dateParts[2] || '';
+            }
+
+            // Skip to rendering
+        } else {
+            // JSON parsing failed, fall back to text parsing
+            parseTextFormat();
+        }
+    } else {
+        // Text format
+        parseTextFormat();
+    }
+
+    function parseTextFormat() {
+        // Parse the info box data
+        const lines = infoBoxData.split('\n');
+        // console.log('[RPG Companion] Info Box split into lines:', lines);
 
     // Track which fields we've already parsed to avoid duplicates from mixed formats
     const parsedFields = {
@@ -270,6 +323,7 @@ export function renderInfoBox() {
     //     timeStart: data.timeStart,
     //     location: data.location
     // });
+    }
 
     // Get tracker configuration
     const config = extensionSettings.trackerConfig?.infoBox;
@@ -303,8 +357,11 @@ export function renderInfoBox() {
             weekdayDisplay = weekdayDisplay;
         }
 
+        const dateLockIconHtml = getLockIconHtml('infoBox', 'date');
+
         row1Widgets.push(`
             <div class="rpg-dashboard-widget rpg-calendar-widget">
+                ${dateLockIconHtml}
                 <div class="rpg-calendar-top rpg-editable" contenteditable="true" data-field="month" data-full-value="${data.month || ''}" title="Click to edit">${monthDisplay}</div>
                 <div class="rpg-calendar-day rpg-editable" contenteditable="true" data-field="weekday" data-full-value="${data.weekday || ''}" title="Click to edit">${weekdayDisplay}</div>
                 <div class="rpg-calendar-year rpg-editable" contenteditable="true" data-field="year" data-full-value="${data.year || ''}" title="Click to edit">${yearDisplay}</div>
@@ -316,8 +373,11 @@ export function renderInfoBox() {
     if (config?.widgets?.weather?.enabled) {
         const weatherEmoji = data.weatherEmoji || '🌤️';
         const weatherForecast = data.weatherForecast || 'Weather';
+        const weatherLockIconHtml = getLockIconHtml('infoBox', 'weather');
+
         row1Widgets.push(`
             <div class="rpg-dashboard-widget rpg-weather-widget">
+                ${weatherLockIconHtml}
                 <div class="rpg-weather-icon rpg-editable" contenteditable="true" data-field="weatherEmoji" title="Click to edit emoji">${weatherEmoji}</div>
                 <div class="rpg-weather-forecast rpg-editable" contenteditable="true" data-field="weatherForecast" title="Click to edit">${weatherForecast}</div>
             </div>
@@ -357,8 +417,11 @@ export function renderInfoBox() {
         const tempInCelsius = preferredUnit === 'F' ? Math.round((tempValue - 32) * 5/9) : tempValue;
         const tempPercent = Math.min(100, Math.max(0, ((tempInCelsius + 20) / 60) * 100));
         const tempColor = tempInCelsius < 10 ? '#4a90e2' : tempInCelsius < 25 ? '#67c23a' : '#e94560';
+        const tempLockIconHtml = getLockIconHtml('infoBox', 'temperature');
+
         row1Widgets.push(`
             <div class="rpg-dashboard-widget rpg-temp-widget">
+                ${tempLockIconHtml}
                 <div class="rpg-thermometer">
                     <div class="rpg-thermometer-bulb"></div>
                     <div class="rpg-thermometer-tube">
@@ -372,7 +435,12 @@ export function renderInfoBox() {
 
     // Time widget - show if enabled
     if (config?.widgets?.time?.enabled) {
+        // Determine which time value to display and edit
+        const hasTimeEnd = Boolean(data.timeEnd);
+        const hasTimeStart = Boolean(data.timeStart);
         const timeDisplay = data.timeEnd || data.timeStart || '12:00';
+        const timeField = hasTimeEnd ? 'timeEnd' : 'timeStart';
+
         // Parse time for clock hands
         const timeMatch = timeDisplay.match(/(\d+):(\d+)/);
         let hourAngle = 0;
@@ -383,8 +451,12 @@ export function renderInfoBox() {
             hourAngle = (hours % 12) * 30 + minutes * 0.5; // 30° per hour + 0.5° per minute
             minuteAngle = minutes * 6; // 6° per minute
         }
+
+        const timeLockIconHtml = getLockIconHtml('infoBox', 'time');
+
         row1Widgets.push(`
             <div class="rpg-dashboard-widget rpg-clock-widget">
+                ${timeLockIconHtml}
                 <div class="rpg-clock">
                     <div class="rpg-clock-face">
                         <div class="rpg-clock-hour" style="transform: rotate(${hourAngle}deg)"></div>
@@ -392,7 +464,7 @@ export function renderInfoBox() {
                         <div class="rpg-clock-center"></div>
                     </div>
                 </div>
-                <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="timeStart" title="Click to edit">${timeDisplay}</div>
+                <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="${timeField}" title="Click to edit">${timeDisplay}</div>
             </div>
         `);
     }
@@ -407,9 +479,12 @@ export function renderInfoBox() {
     // Row 2: Location widget (full width) - show if enabled
     if (config?.widgets?.location?.enabled) {
         const locationDisplay = data.location || 'Location';
+        const locationLockIconHtml = getLockIconHtml('infoBox', 'location');
+
         html += `
             <div class="rpg-dashboard rpg-dashboard-row-2">
                 <div class="rpg-dashboard-widget rpg-location-widget">
+                    ${locationLockIconHtml}
                     <div class="rpg-map-bg">
                         <div class="rpg-map-marker">📍</div>
                     </div>
@@ -421,14 +496,26 @@ export function renderInfoBox() {
 
     // Row 3: Recent Events widget (notebook style) - show if enabled
     if (config?.widgets?.recentEvents?.enabled) {
-        // Parse Recent Events from infoBox string
+        // Parse Recent Events from infoBox (supports both JSON and text formats)
         let recentEvents = [];
         if (committedTrackerData.infoBox) {
-            const recentEventsLine = committedTrackerData.infoBox.split('\n').find(line => line.startsWith('Recent Events:'));
-            if (recentEventsLine) {
-                const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
-                if (eventsString) {
-                    recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
+            // Try JSON format first
+            try {
+                const parsed = typeof committedTrackerData.infoBox === 'string'
+                    ? JSON.parse(committedTrackerData.infoBox)
+                    : committedTrackerData.infoBox;
+
+                if (parsed && Array.isArray(parsed.recentEvents)) {
+                    recentEvents = parsed.recentEvents;
+                }
+            } catch (e) {
+                // Fall back to old text format
+                const recentEventsLine = committedTrackerData.infoBox.split('\n').find(line => line.startsWith('Recent Events:'));
+                if (recentEventsLine) {
+                    const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
+                    if (eventsString) {
+                        recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
+                    }
                 }
             }
         }
@@ -440,9 +527,12 @@ export function renderInfoBox() {
             validEvents.push('Click to add event');
         }
 
+        const eventsLockIconHtml = getLockIconHtml('infoBox', 'recentEvents');
+
         html += `
             <div class="rpg-dashboard rpg-dashboard-row-3">
                 <div class="rpg-dashboard-widget rpg-events-widget">
+                    ${eventsLockIconHtml}
                     <div class="rpg-notebook-header">
                         <div class="rpg-notebook-ring"></div>
                         <div class="rpg-notebook-ring"></div>
@@ -517,6 +607,30 @@ export function renderInfoBox() {
         }
     });
 
+    // Add event handler for lock icons (support both click and touch)
+    $infoBoxContainer.find('.rpg-section-lock-icon').on('click touchend', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $lockIcon = $(this);
+        const tracker = $lockIcon.data('tracker');
+        const path = $lockIcon.data('path');
+
+        // Import lockManager dynamically to avoid circular dependencies
+        import('../generation/lockManager.js').then(({ setItemLock, isItemLocked }) => {
+            const isLocked = isItemLocked(tracker, path);
+            const newLockState = !isLocked;
+            setItemLock(tracker, path, newLockState);
+
+            // Update icon
+            $lockIcon.text(newLockState ? '🔒' : '🔓');
+            $lockIcon.attr('title', newLockState ? 'Locked - AI cannot change this' : 'Unlocked - AI can change this');
+            $lockIcon.toggleClass('locked', newLockState);
+
+            // Save settings to persist lock state
+            saveSettings();
+        });
+    });
+
     // Remove updating class after animation
     if (extensionSettings.enableAnimations) {
         setTimeout(() => $infoBoxContainer.removeClass('rpg-content-updating'), 500);
@@ -541,6 +655,64 @@ export function updateInfoBoxField(field, value) {
         lastGeneratedData.infoBox = 'Info Box\n---\n';
     }
 
+    // Check if data is in v3 JSON format
+    const trimmed = lastGeneratedData.infoBox.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        // Handle v3 JSON format
+        const jsonData = repairJSON(lastGeneratedData.infoBox);
+        if (jsonData) {
+            // Update the appropriate field based on v3 structure
+            if (field === 'weatherEmoji') {
+                if (!jsonData.weather) jsonData.weather = {};
+                jsonData.weather.emoji = value;
+            } else if (field === 'weatherForecast') {
+                if (!jsonData.weather) jsonData.weather = {};
+                jsonData.weather.forecast = value;
+            } else if (field === 'temperature') {
+                // Parse temperature value and unit
+                const tempMatch = value.match(/(-?\d+)\s*°?\s*([CF]?)/i);
+                if (tempMatch) {
+                    if (!jsonData.temperature) jsonData.temperature = {};
+                    jsonData.temperature.value = parseInt(tempMatch[1]);
+                    jsonData.temperature.unit = (tempMatch[2] || 'C').toUpperCase();
+                }
+            } else if (field === 'timeStart') {
+                if (!jsonData.time) jsonData.time = {};
+                jsonData.time.start = value;
+            } else if (field === 'timeEnd') {
+                if (!jsonData.time) jsonData.time = {};
+                jsonData.time.end = value;
+            } else if (field === 'location') {
+                if (!jsonData.location) jsonData.location = {};
+                jsonData.location.value = value;
+            } else if (field === 'weekday' || field === 'month' || field === 'year') {
+                // Update date components
+                if (!jsonData.date) jsonData.date = {};
+                let currentDate = jsonData.date.value || '';
+                const dateParts = currentDate.split(',').map(p => p.trim());
+
+                if (field === 'weekday') {
+                    dateParts[0] = value;
+                } else if (field === 'month') {
+                    dateParts[1] = value;
+                } else if (field === 'year') {
+                    dateParts[2] = value;
+                }
+
+                jsonData.date.value = dateParts.filter(p => p).join(', ');
+            }
+
+            // Save back as JSON
+            lastGeneratedData.infoBox = JSON.stringify(jsonData, null, 2);
+            committedTrackerData.infoBox = lastGeneratedData.infoBox;
+            saveChatData();
+            renderInfoBox();
+            console.log('[RPG Companion] Updated info box field (v3 JSON):', { field, value });
+            return;
+        }
+    }
+
+    // Fall back to text format handling
     // Reconstruct the Info Box text with updated field
     const lines = lastGeneratedData.infoBox.split('\n');
     let dateLineFound = false;

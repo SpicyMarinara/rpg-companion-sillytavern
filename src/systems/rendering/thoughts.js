@@ -14,10 +14,26 @@ import {
     FALLBACK_AVATAR_DATA_URI,
     addDebugLog
 } from '../../core/state.js';
-import { saveChatData } from '../../core/persistence.js';
+import { saveChatData, saveSettings } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
-import { saveSettings } from '../../core/persistence.js';
-import { isGenerating, regenerateAvatar } from '../features/avatarGenerator.js';
+import { isItemLocked, setItemLock } from '../generation/lockManager.js';
+
+/**
+ * Helper to generate lock icon HTML if setting is enabled
+ * @param {string} tracker - Tracker name
+ * @param {string} path - Item path
+ * @returns {string} Lock icon HTML or empty string
+ */
+function getLockIconHtml(tracker, path) {
+    const showLockIcons = extensionSettings.showLockIcons ?? true;
+    if (!showLockIcons) return '';
+
+    const isLocked = isItemLocked(tracker, path);
+    const lockIcon = isLocked ? '🔒' : '🔓';
+    const lockTitle = isLocked ? 'Locked' : 'Unlocked';
+    const lockedClass = isLocked ? ' locked' : '';
+    return `<span class="rpg-section-lock-icon${lockedClass}" data-tracker="${tracker}" data-path="${path}" title="${lockTitle}">${lockIcon}</span>`;
+}
 
 /**
  * Helper to log to both console and debug logs array
@@ -27,14 +43,6 @@ function debugLog(message, data = null) {
     if (extensionSettings.debugMode) {
         addDebugLog(message, data);
     }
-}
-
-/**
- * Escapes HTML attribute values to prevent quotes from breaking HTML
- */
-function escapeHtmlAttr(str) {
-    if (!str) return '';
-    return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 /**
@@ -72,6 +80,44 @@ function getStatColor(percentage, lowColor, highColor) {
 }
 
 /**
+ * Strips leading and trailing square brackets from a string value.
+ * Used to clean placeholder notation that AI might include in responses.
+ * @param {string} value - The value to clean
+ * @returns {string} Cleaned value without surrounding brackets
+ */
+function stripBrackets(value) {
+    if (typeof value !== 'string') return value;
+    return value.replace(/^\[|\]$/g, '').trim();
+}
+
+/**
+ * Extracts the actual value from a field that might be locked.
+ * If the field is an object with {value, locked}, returns the value.
+ * Otherwise returns the field as-is.
+ * @param {any} fieldValue - The field value (might be string or {value, locked} object)
+ * @returns {string} The actual string value
+ */
+function extractFieldValue(fieldValue) {
+    if (fieldValue && typeof fieldValue === 'object' && 'value' in fieldValue) {
+        return fieldValue.value || '';
+    }
+    return fieldValue || '';
+}
+
+/**
+ * Converts a field name to snake_case for use as JSON key
+ * Example: "Test Tracker" -> "test_tracker"
+ * @param {string} name - Field name to convert
+ * @returns {string} snake_case version
+ */
+function toSnakeCase(name) {
+    return name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+/**
  * Fuzzy name matching that handles:
  * - Exact matches: "Sabrina" === "Sabrina"
  * - Parenthetical additions: "Sabrina" matches "Sabrina (Margrokha's Avatar)"
@@ -88,12 +134,10 @@ function namesMatch(cardName, aiName) {
     // 1. Exact match (fast path)
     if (cardName.toLowerCase() === aiName.toLowerCase()) return true;
 
-    // 2. Strip parentheses and quotes from both names and match
-    // This allows "Dottore (Prime)" to match "Dottore" card for avatar lookup
-    // and "Marianna "Mari"" to match "Marianna" or "Mari" cards
-    const stripParensAndQuotes = (s) => s.replace(/\s*\([^)]*\)/g, '').replace(/["']/g, '').trim();
-    const cardCore = stripParensAndQuotes(cardName).toLowerCase();
-    const aiCore = stripParensAndQuotes(aiName).toLowerCase();
+    // 2. Strip parentheses and match
+    const stripParens = (s) => s.replace(/\s*\([^)]*\)/g, '').trim();
+    const cardCore = stripParens(cardName).toLowerCase();
+    const aiCore = stripParens(aiName).toLowerCase();
     if (cardCore === aiCore) return true;
 
     // 3. Check if card name appears as complete word in AI name
@@ -101,200 +145,6 @@ function namesMatch(cardName, aiName) {
     const escapedCardCore = cardCore.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const wordBoundary = new RegExp(`\\b${escapedCardCore}\\b`);
     return wordBoundary.test(aiCore);
-}
-
-/**
- * Gets the avatar URL for a character, checking custom NPC avatars first
- * @param {string} characterName - Name of the character
- * @returns {string} Avatar URL or fallback
- */
-function getCharacterAvatar(characterName) {
-    // First, check if there's a custom NPC avatar
-    if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[characterName]) {
-        const avatar = extensionSettings.npcAvatars[characterName];
-        // Skip if not a valid string (e.g., if it's an object from a previous bug)
-        if (typeof avatar === 'string' && avatar) {
-            debugLog(`[RPG Thoughts] Found custom NPC avatar for: ${characterName}`);
-            return avatar;
-        } else {
-            // Clear invalid avatar data
-            console.warn(`[RPG Thoughts] Invalid avatar data for ${characterName}, clearing...`);
-            delete extensionSettings.npcAvatars[characterName];
-        }
-    }
-
-    // Use the existing avatar lookup logic
-    let characterPortrait = FALLBACK_AVATAR_DATA_URI;
-    let hasAvatar = false;
-
-    // For group chats, search through group members first
-    if (selected_group) {
-        try {
-            const groupMembers = getGroupMembers(selected_group);
-            if (groupMembers && groupMembers.length > 0) {
-                const matchingMember = groupMembers.find(member =>
-                    member && member.name && namesMatch(member.name, characterName)
-                );
-
-                if (matchingMember && matchingMember.avatar && matchingMember.avatar !== 'none') {
-                    const thumbnailUrl = getSafeThumbnailUrl('avatar', matchingMember.avatar);
-                    if (thumbnailUrl) {
-                        hasAvatar = true;
-                        return thumbnailUrl;
-                    }
-                }
-            }
-        } catch (groupError) {
-            debugLog('[RPG Thoughts] Error checking group members:', groupError.message);
-        }
-    }
-
-    // For regular chats or if not found in group, search all characters
-    if (characters && characters.length > 0) {
-        const matchingCharacter = characters.find(c =>
-            c && c.name && namesMatch(c.name, characterName)
-        );
-
-        if (matchingCharacter && matchingCharacter.avatar && matchingCharacter.avatar !== 'none') {
-            const thumbnailUrl = getSafeThumbnailUrl('avatar', matchingCharacter.avatar);
-            if (thumbnailUrl) {
-                hasAvatar = true;
-                return thumbnailUrl;
-            }
-        }
-    }
-
-    // If this is the current character in a 1-on-1 chat, use their portrait
-    if (this_chid !== undefined && characters[this_chid] &&
-        characters[this_chid].name && namesMatch(characters[this_chid].name, characterName)) {
-        const thumbnailUrl = getSafeThumbnailUrl('avatar', characters[this_chid].avatar);
-        if (thumbnailUrl) {
-            hasAvatar = true;
-            return thumbnailUrl;
-        }
-    }
-
-    return characterPortrait;
-}
-
-/**
- * Handles uploading a custom avatar for an NPC character
- * @param {string} characterName - Name of the character to set avatar for
- */
-function uploadNpcAvatar(characterName) {
-    // Create a file input element
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Validate file size (max 2MB to keep settings file reasonable)
-        if (file.size > 2 * 1024 * 1024) {
-            console.error('[RPG Companion] Image file too large. Maximum size is 2MB.');
-            // You could add a toast notification here if available
-            return;
-        }
-
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            console.error('[RPG Companion] Invalid file type. Please select an image.');
-            return;
-        }
-
-        try {
-            // Read the file and convert to base64 data URI
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const dataUri = event.target.result;
-
-                // Initialize npcAvatars if it doesn't exist
-                if (!extensionSettings.npcAvatars) {
-                    extensionSettings.npcAvatars = {};
-                }
-
-                // Store the avatar
-                extensionSettings.npcAvatars[characterName] = dataUri;
-
-                // Save settings
-                saveSettings();
-
-                console.log(`[RPG Companion] Avatar uploaded for NPC: ${characterName}`);
-
-                // Re-render to show the new avatar
-                renderThoughts();
-            };
-
-            reader.onerror = (error) => {
-                console.error('[RPG Companion] Error reading image file:', error);
-            };
-
-            reader.readAsDataURL(file);
-        } catch (error) {
-            console.error('[RPG Companion] Error uploading avatar:', error);
-        }
-    };
-
-    // Trigger the file input
-    input.click();
-}
-
-/**
- * Removes a character from the Present Characters panel and saved data
- * @param {string} characterName - Name of the character to remove
- */
-function removeCharacter(characterName) {
-    console.log(`[RPG Companion] Removing character: ${characterName}`);
-
-    // Initialize if it doesn't exist
-    if (!lastGeneratedData.characterThoughts) {
-        return;
-    }
-
-    const lines = lastGeneratedData.characterThoughts.split('\n');
-    const newLines = [];
-    let skipUntilNextCharacter = false;
-    let foundCharacter = false;
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-
-        // Check if this is the start of the character we want to remove
-        if (line.startsWith('- ')) {
-            const name = line.substring(2).trim();
-            if (name.toLowerCase() === characterName.toLowerCase()) {
-                foundCharacter = true;
-                skipUntilNextCharacter = true;
-                continue; // Skip this line
-            } else {
-                // This is a different character, stop skipping
-                skipUntilNextCharacter = false;
-            }
-        }
-
-        // If we're not skipping, add the line
-        if (!skipUntilNextCharacter) {
-            newLines.push(lines[i]);
-        }
-    }
-
-    if (foundCharacter) {
-        // Update both lastGeneratedData and committedTrackerData
-        lastGeneratedData.characterThoughts = newLines.join('\n');
-        committedTrackerData.characterThoughts = newLines.join('\n');
-
-        // Save to chat metadata
-        saveChatData();
-
-        console.log(`[RPG Companion] Character removed: ${characterName}`);
-
-        // Re-render the panel
-        renderThoughts();
-    } else {
-        console.warn(`[RPG Companion] Character not found: ${characterName}`);
-    }
 }
 
 /**
@@ -307,13 +157,16 @@ export function renderThoughts() {
         return;
     }
 
+    // Don't render if no data exists (e.g., after cache clear)
+    const thoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts;
+    if (!thoughtsData) {
+        $thoughtsContainer.html('<div class="rpg-inventory-empty">No character data generated yet</div>');
+        return;
+    }
+
     debugLog('[RPG Thoughts] ==================== RENDERING PRESENT CHARACTERS ====================');
     debugLog('[RPG Thoughts] showCharacterThoughts setting:', extensionSettings.showCharacterThoughts);
     debugLog('[RPG Thoughts] Container exists:', !!$thoughtsContainer);
-
-    // Save scroll position before re-rendering
-    const scrollParent = $thoughtsContainer.closest('.rpg-content-box, .rpg-tab-content, .rpg-mobile-tab-content').filter(':visible').first();
-    const savedScrollTop = scrollParent.length > 0 ? scrollParent.scrollTop() : 0;
 
     // Add updating class for animation
     if (extensionSettings.enableAnimations) {
@@ -325,11 +178,8 @@ export function renderThoughts() {
     const enabledFields = config?.customFields?.filter(f => f && f.enabled && f.name) || [];
     const characterStatsConfig = config?.characterStats;
     const enabledCharStats = characterStatsConfig?.enabled && characterStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
-
-    // Check if relationships are enabled (new structure with fallback to legacy)
-    const relationshipsEnabled = config?.relationships?.enabled !== false; // Default to true if not set
-    const relationshipFields = relationshipsEnabled ? (config?.relationshipFields || []) : [];
-    const hasRelationshipEnabled = relationshipFields.length > 0 && relationshipsEnabled;
+    const relationshipFields = config?.relationshipFields || [];
+    const hasRelationshipEnabled = relationshipFields.length > 0;
 
     // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
     const characterThoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts || '';
@@ -339,11 +189,91 @@ export function renderThoughts() {
     debugLog('[RPG Thoughts] Enabled custom fields:', enabledFields.map(f => f.name));
     debugLog('[RPG Thoughts] Enabled character stats:', enabledCharStats.map(s => s.name));
 
-    const lines = characterThoughtsData.split('\n');
-    const presentCharacters = [];
+    let presentCharacters = [];
 
-    debugLog('[RPG Thoughts] Split into lines count:', lines.length);
-    debugLog('[RPG Thoughts] Lines:', lines);
+    // Try parsing as JSON first (new format)
+    try {
+        const parsed = typeof characterThoughtsData === 'string'
+            ? JSON.parse(characterThoughtsData)
+            : characterThoughtsData;
+
+        // Handle both {characters: [...]} and direct array formats
+        const charactersArray = Array.isArray(parsed) ? parsed : (parsed.characters || []);
+
+        if (charactersArray.length > 0) {
+            // JSON format: array of character objects
+            presentCharacters = charactersArray.map(char => {
+                const character = {
+                    name: char.name,
+                    emoji: char.emoji || '👤'
+                };
+
+                // Extract details (appearance, demeanor, etc.)
+                if (char.details) {
+                    // Map details object to custom fields by snake_case name
+                    for (const field of enabledFields) {
+                        const fieldKey = toSnakeCase(field.name);
+                        if (char.details[fieldKey] !== undefined) {
+                            character[field.name] = stripBrackets(char.details[fieldKey]);
+                        }
+                    }
+                }
+
+                // Also check for fields at root level (for backward compatibility)
+                for (const field of enabledFields) {
+                    const fieldKey = toSnakeCase(field.name);
+                    if (char[fieldKey] !== undefined) {
+                        character[field.name] = stripBrackets(char[fieldKey]);
+                    }
+                }
+
+                // Extract relationship
+                if (char.relationship) {
+                    character.Relationship = stripBrackets(char.relationship.status || char.relationship);
+                }
+
+                // Extract thoughts content for bubble display
+                if (char.thoughts) {
+                    character.ThoughtsContent = stripBrackets(char.thoughts.content || char.thoughts);
+                }
+
+                // Extract character stats if present
+                if (char.stats && enabledCharStats.length > 0) {
+                    // Handle both object format {Health: 100, Energy: 95} and array format [{name: "Health", value: 100}]
+                    if (Array.isArray(char.stats)) {
+                        // Array format: [{name: "Health", value: 100}, {name: "Energy", value: 95}]
+                        for (const statObj of char.stats) {
+                            if (statObj.name && statObj.value !== undefined) {
+                                const matchingStat = enabledCharStats.find(s => s.name === statObj.name);
+                                if (matchingStat) {
+                                    character[statObj.name] = statObj.value;
+                                }
+                            }
+                        }
+                    } else {
+                        // Object format: {Health: 100, Energy: 95}
+                        for (const stat of enabledCharStats) {
+                            if (char.stats[stat.name] !== undefined) {
+                                character[stat.name] = char.stats[stat.name];
+                            }
+                        }
+                    }
+                }
+
+                return character;
+            });
+
+            debugLog('[RPG Thoughts] ✓ Parsed JSON format, characters:', presentCharacters.length);
+        }
+    } catch (e) {
+        debugLog('[RPG Thoughts] Not JSON format, falling back to text parsing');
+    }
+
+    // If JSON parsing failed or returned empty, try text format
+    if (presentCharacters.length === 0) {
+        const lines = characterThoughtsData.split('\n');
+        debugLog('[RPG Thoughts] Split into lines count:', lines.length);
+        debugLog('[RPG Thoughts] Lines:', lines);
 
     // Parse new multi-line format:
     // - [Name]
@@ -354,23 +284,7 @@ export function renderThoughts() {
     let lineNumber = 0;
     let currentCharacter = null;
 
-    // Pre-process: normalize the format to handle cases where "- char" appears mid-line
-    // This handles: "Thoughts: ... - char 2" by splitting it into separate lines
-    const normalizedLines = [];
-    for (let line of lines) {
-        // Check if line contains "- [name]" pattern after some content (not at start)
-        // Match pattern like "some text - CharName" where there's content before the dash
-        const midLineCharMatch = line.match(/^(.+?)\s+-\s+([A-Z][a-zA-Z\s]+)$/);
-        if (midLineCharMatch && !line.trim().startsWith('- ')) {
-            // Split: first part stays as one line, "- Name" becomes new line
-            normalizedLines.push(midLineCharMatch[1].trim());
-            normalizedLines.push('- ' + midLineCharMatch[2].trim());
-        } else {
-            normalizedLines.push(line);
-        }
-    }
-
-    for (const line of normalizedLines) {
+    for (const line of lines) {
         lineNumber++;
 
         // Skip empty lines, headers, dividers, and code fences
@@ -443,10 +357,10 @@ export function renderThoughts() {
             debugLog(`[RPG Thoughts] Skipping thoughts/feelings line (handled in bubble rendering)`);
         }
     }
+    } // End of text format parsing
 
     // Get relationship emojis from config (with fallback defaults)
-    // Support both new and legacy structure
-    const relationshipEmojis = config?.relationships?.relationshipEmojis || config?.relationshipEmojis || {
+    const relationshipEmojis = config?.relationshipEmojis || {
         'Enemy': '⚔️',
         'Neutral': '⚖️',
         'Friend': '⭐',
@@ -462,8 +376,8 @@ export function renderThoughts() {
     debugLog('[RPG Thoughts] ==================== BUILDING HTML ====================');
     debugLog('[RPG Thoughts] Starting HTML generation for', presentCharacters.length + ' characters');
 
-    // If no characters parsed, show a placeholder editable card (if narrator mode is disabled)
-    if (presentCharacters.length === 0 && !extensionSettings.narratorMode) {
+    // If no characters parsed, show a placeholder editable card
+    if (presentCharacters.length === 0) {
         debugLog('[RPG Thoughts] ⚠ No characters parsed - showing placeholder card');
         // Get default character portrait
         let defaultPortrait = FALLBACK_AVATAR_DATA_URI;
@@ -479,24 +393,17 @@ export function renderThoughts() {
             defaultName = characters[this_chid].name || 'Character';
         }
 
-        const escapedDefaultName = escapeHtmlAttr(defaultName);
-
-        // Determine right-click action text based on auto-generate setting
-        const defaultAvatarRightClickAction = extensionSettings.autoGenerateAvatars
-            ? 'Right-click to regenerate avatar'
-            : 'Right-click to delete avatar';
-
         html += '<div class="rpg-thoughts-content">';
         html += `
-            <div class="rpg-character-card" data-character-name="${escapedDefaultName}">
-                <div class="rpg-character-avatar rpg-avatar-upload" data-character="${escapedDefaultName}" title="Click to upload custom avatar&#10;${defaultAvatarRightClickAction}">
-                    <img src="${defaultPortrait}" alt="${escapedDefaultName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                    <div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="relationship" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">⚖️</div>
+            <div class="rpg-character-card" data-character-name="${defaultName}">
+                <div class="rpg-character-avatar">
+                    <img src="${defaultPortrait}" alt="${defaultName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
+                    <div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="relationship" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">⚖️</div>
                 </div>
                 <div class="rpg-character-info">
                     <div class="rpg-character-header">
-                        <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="emoji" title="Click to edit emoji">😊</span>
-                        <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="name" title="Click to edit name">${defaultName}</span>
+                        <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="emoji" title="Click to edit emoji">😊</span>
+                        <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="name" title="Click to edit name">${defaultName}</span>
                     </div>
         `;
 
@@ -504,7 +411,7 @@ export function renderThoughts() {
         for (const field of enabledFields) {
             const fieldId = field.name.toLowerCase().replace(/\s+/g, '-');
             html += `
-                    <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${escapedDefaultName}" data-field="${escapeHtmlAttr(field.name)}" title="Click to edit ${field.name}"></div>
+                    <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="${field.name}" title="Click to edit ${field.name}"></div>
             `;
         }
 
@@ -523,10 +430,66 @@ export function renderThoughts() {
             try {
                 debugLog(`[RPG Thoughts] Building HTML for character ${characterIndex}/${presentCharacters.length}:`, char.name);
 
-                // Find character portrait using the new helper function
-                const characterPortrait = getCharacterAvatar(char.name);
+                // Find character portrait
+                // Use a base64-encoded SVG placeholder as fallback to avoid 400 errors
+                let characterPortrait = FALLBACK_AVATAR_DATA_URI;
 
-                debugLog(`[RPG Thoughts] Final avatar for ${char.name}:`, typeof characterPortrait === 'string' ? characterPortrait.substring(0, 50) + '...' : characterPortrait);
+                debugLog(`[RPG Thoughts] Looking up avatar for: ${char.name}`);
+
+                // For group chats, search through group members first
+                if (selected_group) {
+                    debugLog('[RPG Thoughts] In group chat, checking group members...');
+
+                    try {
+                        const groupMembers = getGroupMembers(selected_group);
+                        debugLog('[RPG Thoughts] Group members count:', groupMembers ? groupMembers.length : 0);
+
+                        if (groupMembers && groupMembers.length > 0) {
+                            const matchingMember = groupMembers.find(member =>
+                                member && member.name && namesMatch(member.name, char.name)
+                            );
+
+                            if (matchingMember && matchingMember.avatar && matchingMember.avatar !== 'none') {
+                                const thumbnailUrl = getSafeThumbnailUrl('avatar', matchingMember.avatar);
+                                if (thumbnailUrl) {
+                                    characterPortrait = thumbnailUrl;
+                                    debugLog('[RPG Thoughts] Found avatar in group members');
+                                }
+                            }
+                        }
+                    } catch (groupError) {
+                        debugLog('[RPG Thoughts] Error checking group members:', groupError.message);
+                    }
+                }
+
+                // For regular chats or if not found in group, search all characters
+                if (characterPortrait === FALLBACK_AVATAR_DATA_URI && characters && characters.length > 0) {
+                    debugLog('[RPG Thoughts] Searching all characters...');
+
+                    const matchingCharacter = characters.find(c =>
+                        c && c.name && namesMatch(c.name, char.name)
+                    );
+
+                    if (matchingCharacter && matchingCharacter.avatar && matchingCharacter.avatar !== 'none') {
+                        const thumbnailUrl = getSafeThumbnailUrl('avatar', matchingCharacter.avatar);
+                        if (thumbnailUrl) {
+                            characterPortrait = thumbnailUrl;
+                            debugLog('[RPG Thoughts] Found avatar in all characters');
+                        }
+                    }
+                }
+
+                // If this is the current character in a 1-on-1 chat, use their portrait
+                if (this_chid !== undefined && characters[this_chid] &&
+                    characters[this_chid].name && namesMatch(characters[this_chid].name, char.name)) {
+                    const thumbnailUrl = getSafeThumbnailUrl('avatar', characters[this_chid].avatar);
+                    if (thumbnailUrl) {
+                        characterPortrait = thumbnailUrl;
+                        debugLog('[RPG Thoughts] Found avatar from current character');
+                    }
+                }
+
+                debugLog(`[RPG Thoughts] Final avatar for ${char.name}:`, characterPortrait.substring(0, 50) + '...');
 
                 // Get relationship badge - only if relationships are enabled in config
                 let relationshipBadge = '⚖️'; // Default
@@ -542,40 +505,41 @@ export function renderThoughts() {
 
                 debugLog(`[RPG Thoughts] Building HTML card for ${char.name}...`);
 
-                // Escape character name for use in HTML attributes
-                const escapedName = escapeHtmlAttr(char.name);
-
-                // Check if avatar is being generated
-                const isCurrentlyGenerating = isGenerating(char.name);
-
-                // Determine right-click action text based on auto-generate setting
-                const avatarRightClickAction = extensionSettings.autoGenerateAvatars
-                    ? 'Right-click to regenerate avatar'
-                    : 'Right-click to delete avatar';
-
                 html += `
-                    <div class="rpg-character-card" data-character-name="${escapedName}">
-                        <div class="rpg-character-avatar rpg-avatar-upload ${isCurrentlyGenerating ? 'rpg-avatar-generating' : ''}" data-character="${escapedName}" title="Click to upload custom avatar&#10;${avatarRightClickAction}">
-                            <img src="${characterPortrait}" alt="${escapedName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                            ${isCurrentlyGenerating ? '<div class="rpg-generating-overlay"><i class="fa-solid fa-spinner fa-spin"></i></div>' : ''}
-                            ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
+                    <div class="rpg-character-card" data-character-name="${char.name}">
+                        <div class="rpg-character-avatar">
+                            <img src="${characterPortrait}" alt="${char.name}" onerror="this.style.opacity='0.5';this.onerror=null;" />
+                            ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
                         </div>
                         <div class="rpg-character-content">
                             <div class="rpg-character-info">
                                 <div class="rpg-character-header">
-                                    <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
-                                    <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="name" title="Click to edit name">${char.name}</span>
-                                    <button class="rpg-character-remove" data-character="${escapedName}" title="Remove this character from the panel">×</button>
+                                    <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${char.name}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
+                                    <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="name" title="Click to edit name">${char.name}</span>
                                 </div>
                 `;
 
                 // Render custom fields dynamically
                 for (const field of enabledFields) {
-                    const fieldValue = char[field.name] || '';
+                    const rawValue = char[field.name];
+                    const fieldValue = extractFieldValue(rawValue);
                     const fieldId = field.name.toLowerCase().replace(/\s+/g, '-');
-                    html += `
-                                <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${escapeHtmlAttr(field.name)}" title="Click to edit ${field.name}">${fieldValue}</div>
-                    `;
+                    const fieldNameLower = field.name.toLowerCase();
+                    // Skip lock icons for thoughts field
+                    const showLock = !fieldNameLower.includes('thought');
+                    if (showLock) {
+                        const lockIconHtml = getLockIconHtml('characters', `${char.name}.${field.name}`);
+                        html += `
+                                <div class="rpg-character-field rpg-character-${fieldId}" style="position: relative;">
+                                    ${lockIconHtml}
+                                    <span class="rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="Click to edit ${field.name}">${fieldValue}</span>
+                                </div>
+                        `;
+                    } else {
+                        html += `
+                                <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="Click to edit ${field.name}">${fieldValue}</div>
+                        `;
+                    }
                 }
 
                 html += `
@@ -584,13 +548,16 @@ export function renderThoughts() {
 
                 // Render character stats if enabled (outside rpg-character-info)
                 if (enabledCharStats.length > 0) {
-                    html += `<div class="rpg-character-stats"><div class="rpg-character-stats-inner">`;
+                    const lockIconHtml = getLockIconHtml('characters', `${char.name}.stats`);
+                    html += `<div class="rpg-character-stats" style="position: relative;">
+                        <span class="rpg-section-lock-icon" style="position: absolute; top: 4px; right: 4px; font-size: 1rem; z-index: 10; opacity: 0.7; pointer-events: auto;">${lockIconHtml}</span>
+                        <div class="rpg-character-stats-inner">`;
                     for (const stat of enabledCharStats) {
                         const statValue = char[stat.name] || 0;
                         const statColor = getStatColor(statValue, extensionSettings.statBarColorLow, extensionSettings.statBarColorHigh);
                         html += `
                                 <div class="rpg-character-stat">
-                                    <span class="rpg-stat-name">${stat.name}: </span><span class="rpg-editable" contenteditable="true" data-character="${escapedName}" data-field="${escapeHtmlAttr(stat.name)}" style="color: ${statColor}" title="Click to edit ${stat.name}">${statValue}%</span>
+                                    <span class="rpg-stat-name">${stat.name}: </span><span class="rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${stat.name}" style="color: ${statColor}" title="Click to edit ${stat.name}">${statValue}%</span>
                                 </div>
                         `;
                     }
@@ -617,11 +584,6 @@ export function renderThoughts() {
 
     $thoughtsContainer.html(html);
 
-    // Restore scroll position to prevent UI jumping
-    if (scrollParent.length > 0 && savedScrollTop > 0) {
-        scrollParent.scrollTop(savedScrollTop);
-    }
-
     debugLog('[RPG Thoughts] ✓ HTML rendered to container');
     debugLog('[RPG Thoughts] =======================================================');
 
@@ -634,70 +596,29 @@ export function renderThoughts() {
         updateCharacterField(character, field, value);
     });
 
-    // Add event handler for avatar uploads
-    $thoughtsContainer.find('.rpg-avatar-upload').on('click', function(e) {
-        // Prevent triggering if clicking on the relationship badge
-        if ($(e.target).hasClass('rpg-relationship-badge') || $(e.target).closest('.rpg-relationship-badge').length > 0) {
-            return;
-        }
+    // Add event listener for section lock icon clicks (support both click and touch)
+    $thoughtsContainer.find('.rpg-section-lock-icon').on('click touchend', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $icon = $(this);
+        const trackerType = $icon.data('tracker');
+        const itemPath = $icon.data('path');
+        const currentlyLocked = isItemLocked(trackerType, itemPath);
 
-        const characterName = $(this).data('character');
-        console.log('[RPG Companion] Avatar upload clicked for:', characterName);
-        uploadNpcAvatar(characterName);
-    });
+        // Toggle lock state
+        setItemLock(trackerType, itemPath, !currentlyLocked);
 
-    // Add event handler for regenerating avatars (right-click)
-    $thoughtsContainer.find('.rpg-avatar-upload').on('contextmenu', async function(e) {
-        // Prevent triggering if clicking on the relationship badge
-        if ($(e.target).hasClass('rpg-relationship-badge') || $(e.target).closest('.rpg-relationship-badge').length > 0) {
-            return;
-        }
+        // Update icon
+        const newIcon = !currentlyLocked ? '🔒' : '🔓';
+        const newTitle = !currentlyLocked ? 'Locked' : 'Unlocked';
+        $icon.text(newIcon);
+        $icon.attr('title', newTitle);
 
-        e.preventDefault(); // Prevent default context menu
-        const characterName = $(this).data('character');
-        const $avatarEl = $(this);
+        // Toggle 'locked' class for persistent visibility
+        $icon.toggleClass('locked', !currentlyLocked);
 
-        // Check if auto-generation is enabled
-        if (!extensionSettings.autoGenerateAvatars) {
-            // If auto-generation is disabled, just remove the custom avatar
-            if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[characterName]) {
-                delete extensionSettings.npcAvatars[characterName];
-                saveSettings();
-                console.log(`[RPG Companion] Removed custom avatar for: ${characterName}`);
-                renderThoughts();
-            }
-            return;
-        }
-
-        // Show generating state with spinner overlay
-        $avatarEl.addClass('rpg-avatar-generating');
-        if (!$avatarEl.find('.rpg-generating-overlay').length) {
-            $avatarEl.append('<div class="rpg-generating-overlay"><i class="fa-solid fa-spinner fa-spin"></i></div>');
-        }
-        console.log(`[RPG Companion] Regenerating avatar for: ${characterName}`);
-
-        try {
-            // Regenerate the avatar
-            const newUrl = await regenerateAvatar(characterName);
-
-            if (newUrl) {
-                console.log(`[RPG Companion] Successfully regenerated avatar for: ${characterName}`);
-            } else {
-                console.warn(`[RPG Companion] Failed to regenerate avatar for: ${characterName}`);
-            }
-        } catch (error) {
-            console.error(`[RPG Companion] Error regenerating avatar for ${characterName}:`, error);
-        }
-
-        // Re-render to show the new avatar (or fallback)
-        renderThoughts();
-    });
-
-    // Add event handler for character removal
-    $thoughtsContainer.find('.rpg-character-remove').on('click', function(e) {
-        e.stopPropagation(); // Prevent event bubbling
-        const characterName = $(this).data('character');
-        removeCharacter(characterName);
+        // Save settings
+        saveSettings();
     });
 
     // Remove updating class after animation
@@ -880,7 +801,7 @@ export function updateCharacterField(characterName, field, value) {
             }
             newCharacterLines.push(`Details: ${detailsParts.join(' | ')}`);
 
-            if (presentCharsConfig?.relationships?.enabled !== false && presentCharsConfig?.relationshipFields?.length > 0) {
+            if (presentCharsConfig?.relationshipFields?.length > 0) {
                 const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
                 const relationshipValue = field === 'Relationship' ? (emojiToRelationship[value] || value) : 'Neutral';
                 newCharacterLines.push(`Relationship: ${relationshipValue}`);
@@ -964,10 +885,38 @@ export function updateChatThoughts() {
     }
 
     // Parse the Present Characters data to get thoughts
-    const lines = lastGeneratedData.characterThoughts.split('\n');
-    const thoughtsArray = []; // Array of {name, emoji, thought}
+    let thoughtsArray = []; // Array of {name, emoji, thought}
     const thoughtsConfig = extensionSettings.trackerConfig?.presentCharacters?.thoughts;
     const thoughtsLabel = thoughtsConfig?.name || 'Thoughts';
+
+    // Try JSON format first
+    try {
+        const parsed = typeof lastGeneratedData.characterThoughts === 'string'
+            ? JSON.parse(lastGeneratedData.characterThoughts)
+            : lastGeneratedData.characterThoughts;
+
+        // Handle both {characters: [...]} and direct array formats
+        const charactersArray = Array.isArray(parsed) ? parsed : (parsed.characters || []);
+
+        if (charactersArray.length > 0) {
+            // Extract thoughts from JSON character objects
+            thoughtsArray = charactersArray
+                .filter(char => char.thoughts && char.thoughts.content)
+                .map(char => ({
+                    name: (char.name || '').toLowerCase(),
+                    emoji: char.emoji || '👤',
+                    thought: char.thoughts.content
+                }));
+
+            debugLog('[RPG Thoughts Bubble] ✓ Parsed JSON format, thoughts:', thoughtsArray.length);
+        }
+    } catch (e) {
+        debugLog('[RPG Thoughts Bubble] Not JSON format, falling back to text parsing');
+    }
+
+    // If JSON parsing failed or returned empty, try text format
+    if (thoughtsArray.length === 0) {
+        const lines = lastGeneratedData.characterThoughts.split('\n');
 
     // console.log('[RPG Companion] Parsing thoughts from lines:', lines);
 
@@ -1022,6 +971,7 @@ export function updateChatThoughts() {
             }
         }
     }
+    } // End of text format parsing for thoughts bubbles
 
     debugLog('[RPG Thoughts] Parsed thoughts:', thoughtsArray);
 
@@ -1056,6 +1006,325 @@ export function updateChatThoughts() {
     createThoughtPanel($targetMessage, thoughtsArray);
 }
 
+// ===== GLOBAL DRAGGING SETUP FOR THOUGHT ICON (MOBILE ONLY) =====
+// These variables and handlers are set up once, outside createThoughtPanel
+let isDragging = false;
+let touchMoved = false;
+let dragStartTime = 0;
+let dragStartX = 0;
+let dragStartY = 0;
+let iconStartX = 0;
+let iconStartY = 0;
+const DRAG_THRESHOLD = 10;
+const LONG_PRESS_DURATION = 200;
+let rafId = null;
+let pendingX = null;
+let pendingY = null;
+let thoughtIconDragHandlersInitialized = false;
+let justFinishedDragging = false; // Flag to block clicks immediately after drag
+
+function updateIconDragPosition() {
+    if (pendingX !== null && pendingY !== null) {
+        $('#rpg-thought-icon').css({
+            left: pendingX + 'px',
+            top: pendingY + 'px',
+            right: 'auto',
+            bottom: 'auto'
+        });
+        pendingX = null;
+        pendingY = null;
+    }
+    rafId = null;
+}
+
+function initThoughtIconDragHandlers() {
+    if (thoughtIconDragHandlersInitialized) return;
+    thoughtIconDragHandlersInitialized = true;
+
+    console.log('[Thought Icon] Initializing drag handlers ONCE - will attach to icon when created');
+}
+
+// Function to attach drag handlers to a specific icon element
+function attachDragHandlersToIcon($icon) {
+    console.log('[Thought Icon] Attaching handlers to icon element');
+
+    // Remove any existing handlers
+    $icon.off('.thoughtIconDrag');
+
+    // Test: add a simple click handler to verify events work
+    $icon.on('click.thoughtIconDrag', function(e) {
+        // Check global flag set immediately after drag completes
+        if (justFinishedDragging) {
+            console.log('[Thought Icon] CLICK blocked - just finished dragging');
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+        }
+        console.log('[Thought Icon] CLICK detected on icon!');
+    });
+
+    // Touch drag support - mobile only
+    $icon.on('touchstart.thoughtIconDrag', function(e) {
+        if (window.innerWidth > 1000) return;
+
+        console.log('[Thought Icon] touchstart');
+        touchMoved = false;
+        dragStartTime = Date.now();
+        const touch = e.originalEvent.touches[0];
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+
+        const offset = $(this).offset();
+        iconStartX = offset.left;
+        iconStartY = offset.top;
+
+        isDragging = false;
+    });
+
+    $icon.on('touchmove.thoughtIconDrag', function(e) {
+        if (window.innerWidth > 1000) return;
+
+        if (!touchMoved) {
+            console.log('[Thought Icon] touchmove - first movement');
+        }
+        touchMoved = true;
+        const touch = e.originalEvent.touches[0];
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const timeSinceStart = Date.now() - dragStartTime;
+
+        if (!isDragging && (timeSinceStart > LONG_PRESS_DURATION || distance > DRAG_THRESHOLD)) {
+            isDragging = true;
+            $(this).addClass('dragging');
+        }
+
+        if (isDragging) {
+            e.preventDefault();
+
+            let newX = iconStartX + deltaX;
+            let newY = iconStartY + deltaY;
+
+            const iconWidth = $(this).outerWidth();
+            const iconHeight = $(this).outerHeight();
+
+            const minX = 10;
+            const maxX = window.innerWidth - iconWidth - 10;
+            const minY = 10;
+            const maxY = window.innerHeight - iconHeight - 10;
+
+            newX = Math.max(minX, Math.min(maxX, newX));
+            newY = Math.max(minY, Math.min(maxY, newY));
+
+            pendingX = newX;
+            pendingY = newY;
+            if (!rafId) {
+                rafId = requestAnimationFrame(updateIconDragPosition);
+            }
+        }
+    });
+
+    $icon.on('touchend.thoughtIconDrag', function(e) {
+        console.log('[Thought Icon] touchend - isDragging:', isDragging, 'touchMoved:', touchMoved);
+
+        if (isDragging) {
+            const offset = $(this).offset();
+            const newPosition = {
+                left: offset.left + 'px',
+                top: offset.top + 'px'
+            };
+
+            extensionSettings.thoughtIconPosition = newPosition;
+            saveSettings();
+
+            setTimeout(() => {
+                const $currentIcon = $('#rpg-thought-icon');
+                if ($currentIcon.length) {
+                    constrainIconToViewport($currentIcon);
+                }
+            }, 10);
+
+            setTimeout(() => {
+                $(this).removeClass('dragging');
+            }, 50);
+
+            isDragging = false;
+
+            $(this).data('just-dragged', true);
+            setTimeout(() => {
+                $(this).data('just-dragged', false);
+            }, 300);
+
+            e.preventDefault();
+            e.stopPropagation();
+        } else if (!touchMoved) {
+            console.log('[Thought Icon] Opening panel - was a tap');
+            const $panel = $('#rpg-thought-panel');
+            const iconOffset = $(this).offset();
+            if (iconOffset) {
+                $panel.css({
+                    top: iconOffset.top + 'px',
+                    left: iconOffset.left + 'px',
+                    display: 'none'
+                });
+            }
+
+            $(this).addClass('rpg-hidden');
+            $panel.fadeIn(200);
+        } else {
+            console.log('[Thought Icon] Did nothing - touchMoved but not isDragging');
+        }
+    });
+
+    // Mouse drag support - mobile only
+    let mouseDown = false;
+
+    $icon.on('mousedown.thoughtIconDrag', function(e) {
+        if (window.innerWidth > 1000) return;
+
+        console.log('[Thought Icon] mousedown');
+        e.preventDefault();
+
+        mouseDown = true;
+        touchMoved = false;
+        dragStartTime = Date.now();
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+
+        const offset = $(this).offset();
+        iconStartX = offset.left;
+        iconStartY = offset.top;
+
+        isDragging = false;
+    });
+
+    $(document).on('mousemove.thoughtIconDrag', function(e) {
+        if (!mouseDown || window.innerWidth > 1000) return;
+
+        if (!touchMoved) {
+            console.log('[Thought Icon] mousemove - first movement');
+        }
+        touchMoved = true;
+
+        const deltaX = e.clientX - dragStartX;
+        const deltaY = e.clientY - dragStartY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const timeSinceStart = Date.now() - dragStartTime;
+
+        if (!isDragging && (timeSinceStart > LONG_PRESS_DURATION || distance > DRAG_THRESHOLD)) {
+            isDragging = true;
+            $('#rpg-thought-icon').addClass('dragging');
+        }
+
+        if (isDragging) {
+            e.preventDefault();
+
+            let newX = iconStartX + deltaX;
+            let newY = iconStartY + deltaY;
+
+            const $currentIcon = $('#rpg-thought-icon');
+            const iconWidth = $currentIcon.outerWidth();
+            const iconHeight = $currentIcon.outerHeight();
+
+            const minX = 10;
+            const maxX = window.innerWidth - iconWidth - 10;
+            const minY = 10;
+            const maxY = window.innerHeight - iconHeight - 10;
+
+            newX = Math.max(minX, Math.min(maxX, newX));
+            newY = Math.max(minY, Math.min(maxY, newY));
+
+            pendingX = newX;
+            pendingY = newY;
+            if (!rafId) {
+                rafId = requestAnimationFrame(updateIconDragPosition);
+            }
+        }
+    });
+
+    $(document).on('mouseup.thoughtIconDrag', function(e) {
+        if (!mouseDown) return;
+
+        console.log('[Thought Icon] mouseup - isDragging:', isDragging, 'touchMoved:', touchMoved);
+
+        mouseDown = false;
+
+        if (isDragging) {
+            // Set global flag IMMEDIATELY to block click event
+            justFinishedDragging = true;
+            setTimeout(() => {
+                justFinishedDragging = false;
+            }, 300);
+
+            const $currentIcon = $('#rpg-thought-icon');
+
+            // Remove dragging class immediately to restore transitions and cursor
+            $currentIcon.removeClass('dragging');
+
+            const offset = $currentIcon.offset();
+            const newPosition = {
+                left: offset.left + 'px',
+                top: offset.top + 'px'
+            };
+
+            extensionSettings.thoughtIconPosition = newPosition;
+            saveSettings();
+
+            setTimeout(() => {
+                if ($currentIcon.length) {
+                    constrainIconToViewport($currentIcon);
+                }
+            }, 10);
+
+            isDragging = false;
+
+            // Prevent default and stop all propagation
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+        }
+        // If not dragging but touchMoved, do nothing (small drag below threshold)
+    });
+}
+
+function constrainIconToViewport($icon) {
+    if (!extensionSettings.thoughtIconPosition) return;
+
+    const offset = $icon.offset();
+    if (!offset) return;
+
+    let currentX = offset.left;
+    let currentY = offset.top;
+
+    const iconWidth = $icon.outerWidth();
+    const iconHeight = $icon.outerHeight();
+
+    const minX = 10;
+    const maxX = window.innerWidth - iconWidth - 10;
+    const minY = 10;
+    const maxY = window.innerHeight - iconHeight - 10;
+
+    let newX = Math.max(minX, Math.min(maxX, currentX));
+    let newY = Math.max(minY, Math.min(maxY, currentY));
+
+    if (newX !== currentX || newY !== currentY) {
+        $icon.css({
+            left: newX + 'px',
+            top: newY + 'px',
+            right: 'auto',
+            bottom: 'auto'
+        });
+
+        extensionSettings.thoughtIconPosition = {
+            left: newX + 'px',
+            top: newY + 'px'
+        };
+        saveSettings();
+    }
+}
+
 /**
  * Creates or updates the floating thought panel positioned next to the character's avatar.
  * Handles responsive positioning for left/right panel modes and mobile viewports.
@@ -1064,6 +1333,8 @@ export function updateChatThoughts() {
  * @param {Array} thoughtsArray - Array of thought objects {name, emoji, thought}
  */
 export function createThoughtPanel($message, thoughtsArray) {
+    // Initialize drag handlers once
+    initThoughtIconDragHandlers();
     // Remove existing thought panel
     $('#rpg-thought-panel').remove();
     $('#rpg-thought-icon').remove();
@@ -1082,13 +1353,12 @@ export function createThoughtPanel($message, thoughtsArray) {
     // Build thought bubbles HTML
     let thoughtsHtml = '';
     thoughtsArray.forEach((thought, index) => {
-        const escapedThoughtName = escapeHtmlAttr(thought.name);
         thoughtsHtml += `
             <div class="rpg-thought-item">
                 <div class="rpg-thought-emoji-box">
                     ${thought.emoji}
                 </div>
-                <div class="rpg-thought-content rpg-editable" contenteditable="true" data-character="${escapedThoughtName}" data-field="thoughts" title="Click to edit thoughts">
+                <div class="rpg-thought-content rpg-editable" contenteditable="true" data-character="${thought.name}" data-field="thoughts" title="Click to edit thoughts">
                     ${thought.thought}
                 </div>
             </div>
@@ -1133,139 +1403,230 @@ export function createThoughtPanel($message, thoughtsArray) {
         $thoughtIcon.css(customStyles);
     }
 
-    // Force a consistent width for the bubble to ensure proper positioning
-    $thoughtPanel.css('width', '350px');
-
     // Append to body so it's not clipped by chat container
     $('body').append($thoughtPanel);
-    $('body').append($thoughtIcon);    // Position the panel next to the avatar
-    const panelWidth = 350;
-    const panelMargin = 20;
+    $('body').append($thoughtIcon);
 
-    let top = avatarRect.top; // Align top of panel with top of avatar
-    let left;
-    let right;
-    let useRightPosition = false;
-    let iconTop = avatarRect.top;
-    let iconLeft;
+    // Attach drag handlers to the icon
+    attachDragHandlersToIcon($thoughtIcon);
 
-    // Detect mobile viewport (matches CSS breakpoint)
-    const isMobile = window.innerWidth <= 1000;
+    // Simple viewport-based positioning - always top-left corner
+    const margin = 20;
+    const topMargin = 10; // Space between ST's top bar and thought panel
 
-    if (isMobile) {
-        // On mobile: position icon horizontally centered on avatar
-        // The CSS transform will shift it upward by 60px
-        iconTop = avatarRect.top; // Start at avatar top (CSS will move it up)
-        iconLeft = avatarRect.left + (avatarRect.width / 2) - 18; // Centered horizontally (18px = half of 36px icon width)
+    // Function to calculate top position based on ST's top bar
+    const getTopPosition = () => {
+        const topBar = $('#top-settings-holder');
+        if (topBar.length) {
+            return (topBar.outerHeight() || 140) + topMargin;
+        }
+        return 140 + topMargin; // Fallback
+    };
 
-        // Center the thought panel horizontally on mobile
-        left = window.innerWidth / 2 - panelWidth / 2;
-        top = avatarRect.top + avatarRect.height + 60; // Position below icon with spacing
+    // Function to update bubble position and width
+    const updateBubblePosition = () => {
+        const topPosition = getTopPosition();
+        const sheld = $('#sheld')[0];
+        const isRightPanel = extensionSettings.panelPosition === 'right';
 
-        // No side-specific classes on mobile
-        $thoughtPanel.removeClass('rpg-thought-panel-left rpg-thought-panel-right');
-        $thoughtIcon.removeClass('rpg-thought-icon-left rpg-thought-icon-right');
+        // Update top position for panel (always in desktop)
+        $thoughtPanel.css('top', `${topPosition}px`);
 
-        console.log('[RPG Companion] Mobile thought icon positioning:', {
-            isMobile,
-            windowWidth: window.innerWidth,
-            avatarLeft: avatarRect.left,
-            avatarWidth: avatarRect.width,
-            iconLeft,
-            iconTop
-        });
-    } else if (panelPosition === 'left') {
-        // Main panel is on left, so thought bubble goes to RIGHT side
-        const chatContainer = $('#chat')[0];
-        const chatRect = chatContainer ? chatContainer.getBoundingClientRect() : { right: window.innerWidth };
-
-        // Calculate how much space is available to the right of the chat
-        const spaceRight = window.innerWidth - chatRect.right;
-
-        // If there's enough space, position normally; otherwise, adjust
-        if (spaceRight >= panelWidth + panelMargin * 2) {
-            left = chatRect.right + panelMargin;
+        // Update horizontal position based on panel position
+        // If panel is on right, thoughts on left (default)
+        // If panel is on left, thoughts on right (mirrored)
+        if (isRightPanel) {
+            $thoughtPanel.css({
+                left: `${margin}px`,
+                right: 'auto'
+            }).removeClass('rpg-thought-panel-right').addClass('rpg-thought-panel-left');
         } else {
-            // Not enough space on the right, position closer to chat or slightly overlapping
-            left = Math.max(chatRect.right - panelWidth - panelMargin, window.innerWidth - panelWidth - 10);
+            // Panel on left, so thoughts on right
+            $thoughtPanel.css({
+                left: 'auto',
+                right: `${margin}px`
+            }).removeClass('rpg-thought-panel-left').addClass('rpg-thought-panel-right');
         }
 
-        useRightPosition = false;
-        iconLeft = chatRect.right + 10;
-        $thoughtPanel.addClass('rpg-thought-panel-right');
-        $thoughtIcon.addClass('rpg-thought-icon-right');
-
-        // Circles use default CSS positioning
-    } else {
-        // Main panel is on right, so thought bubble goes on left (near avatar)
-        const chatContainer = $('#chat')[0];
-        const chatRect = chatContainer ? chatContainer.getBoundingClientRect() : { left: 0 };
-
-        // Calculate how much space is available to the left of the chat
-        const spaceLeft = chatRect.left;
-
-        // If there's enough space, position normally; otherwise, adjust
-        if (spaceLeft >= panelWidth + panelMargin * 2) {
-            left = avatarRect.left - panelWidth - panelMargin;
+        // Only update icon position if in desktop mode or if no saved position in mobile
+        if (window.innerWidth > 1000) {
+            // Desktop: update icon to match panel position (though it's hidden)
+            if (isRightPanel) {
+                $thoughtIcon.css({
+                    left: `${margin}px`,
+                    right: 'auto'
+                });
+            } else {
+                $thoughtIcon.css({
+                    left: 'auto',
+                    right: `${margin}px`
+                });
+            }
         } else {
-            // Not enough space on the left, position it within visible area
-            left = Math.max(10, avatarRect.left - panelWidth - panelMargin);
+            // Mobile: only set default if no saved position exists
+            const iconPos = extensionSettings.thoughtIconPosition;
+            if (!iconPos || (!iconPos.top && !iconPos.left)) {
+                // Position icon in the center of the viewport
+                const defaultTop = window.innerHeight / 2;
+                const defaultLeft = window.innerWidth / 2;
+                $thoughtIcon.css({
+                    'top': `${defaultTop}px`,
+                    'left': `${defaultLeft}px`
+                });
+            }
         }
 
-        iconLeft = Math.max(10, avatarRect.left - 40);
-        $thoughtPanel.addClass('rpg-thought-panel-left');
-        $thoughtIcon.addClass('rpg-thought-icon-left');
+        // Update width based on available space
+        if (sheld) {
+            const sheldRect = sheld.getBoundingClientRect();
+            let availableWidth;
+            if (isRightPanel) {
+                availableWidth = sheldRect.left - (margin * 2);
+            } else {
+                // Panel on left, calculate space on right
+                availableWidth = window.innerWidth - sheldRect.right - (margin * 2);
+            }
+            const maxWidth = Math.min(350, Math.max(200, availableWidth));
+            $thoughtPanel.css('max-width', `${maxWidth}px`);
+        } else {
+            $thoughtPanel.css('max-width', '350px');
+        }
+    };
 
-        // Circles use default CSS positioning
-    }
-
-    if (useRightPosition) {
+    // Set initial position and width (will be updated by updateBubblePosition)
+    const isRightPanel = extensionSettings.panelPosition === 'right';
+    if (isRightPanel) {
         $thoughtPanel.css({
-            top: `${top}px`,
-            right: `${right}px`,
-            left: 'auto' // Clear left positioning
+            left: `${margin}px`,
+            right: 'auto'
+        }).addClass('rpg-thought-panel-left');
+
+        $thoughtIcon.css({
+            left: `${margin}px`,
+            right: 'auto'
         });
     } else {
         $thoughtPanel.css({
-            top: `${top}px`,
-            left: `${left}px`,
-            right: 'auto' // Clear right positioning
+            left: 'auto',
+            right: `${margin}px`
+        }).addClass('rpg-thought-panel-right');
+
+        $thoughtIcon.css({
+            left: 'auto',
+            right: `${margin}px`
         });
     }
 
-    $thoughtIcon.css({
-        top: `${iconTop}px`,
-        left: `${iconLeft}px`,
-        right: 'auto' // Clear any right positioning
+    updateBubblePosition();
+
+    // Update on window resize and when ST's layout changes
+    $(window).on('resize.rpgThoughtBubble', updateBubblePosition);
+
+    // Desktop: always show panel, hide icon
+    // Mobile: show icon, hide panel initially
+    const isMobileView = window.innerWidth <= 1000;
+
+    if (isMobileView) {
+        $thoughtPanel.hide();
+        // Remove force-hide class to let CSS media query show icon
+        $thoughtIcon.removeClass('rpg-force-hide');
+
+        // Load saved icon position in mobile, or default to center of viewport
+        if (extensionSettings.thoughtIconPosition && extensionSettings.thoughtIconPosition.top && extensionSettings.thoughtIconPosition.left) {
+            const pos = extensionSettings.thoughtIconPosition;
+            $thoughtIcon.css({
+                top: pos.top,
+                left: pos.left,
+                transform: 'none',
+                right: 'auto',
+                bottom: 'auto'
+            });
+        } else {
+            // Default position: center of viewport
+            $thoughtIcon.css({
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                right: 'auto',
+                bottom: 'auto'
+            });
+        }
+    } else {
+        // Desktop: show panel, hide icon with class
+        $thoughtPanel.css('display', 'block');
+        $thoughtIcon.addClass('rpg-force-hide');
+    }
+
+    // Handle viewport changes between mobile and desktop
+    let wasMobileView = window.innerWidth <= 1000;
+    $(window).on('resize.thoughtIconDrag', () => {
+        const isMobileNow = window.innerWidth <= 1000;
+
+        if (!wasMobileView && isMobileNow) {
+            // Switched to mobile - apply saved position if exists
+            const $currentIcon = $('#rpg-thought-icon');
+            if (extensionSettings.thoughtIconPosition) {
+                const pos = extensionSettings.thoughtIconPosition;
+                if (pos.top) $currentIcon.css('top', pos.top);
+                if (pos.left) $currentIcon.css('left', pos.left);
+            }
+        }
+
+        // Constrain icon if in mobile view
+        if (isMobileNow) {
+            setTimeout(() => {
+                const $currentIcon = $('#rpg-thought-icon');
+                if ($currentIcon.length) {
+                    constrainIconToViewport($currentIcon);
+                }
+            }, 10);
+        }
+
+        wasMobileView = isMobileNow;
     });
 
-    // Check if always show bubble is enabled
-    if (extensionSettings.alwaysShowThoughtBubble) {
-        // Always show panel expanded, hide both close button and icon
-        $thoughtPanel.show();
-        $thoughtPanel.find('.rpg-thought-close').hide();
-        $thoughtIcon.hide();
-    } else {
-        // Initially hide the panel and show the icon
-        $thoughtPanel.hide();
-        $thoughtIcon.show();
+    // Close button functionality (mobile only) - support both click and touch
+    $thoughtPanel.find('.rpg-thought-close').on('click touchend', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Only hide/show in mobile view
+        if (window.innerWidth <= 1000) {
+            $thoughtPanel.fadeOut(200, function() {
+                // Make sure icon is visible and clean state when panel closes (use selector, not variable)
+                const $icon = $('#rpg-thought-icon');
+                $icon.removeClass('rpg-hidden dragging');
+                $icon.data('just-dragged', false);
+            });
+        }
+    });
 
-        // Close button functionality - only when always show is disabled
-        $thoughtPanel.find('.rpg-thought-close').on('click', function(e) {
-            e.stopPropagation();
-            $thoughtPanel.fadeOut(200);
-            $thoughtIcon.fadeIn(200);
-        });
+    // Icon click/tap to show panel (mobile only)
+    const handleThoughtIconTap = function(e) {
+        // Skip if we just finished dragging
+        if ($thoughtIcon.data('just-dragged')) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
 
-        // Icon click to show panel - only when always show is disabled
-        $thoughtIcon.on('click', function(e) {
-            e.stopPropagation();
-            $thoughtIcon.fadeOut(200);
-            $thoughtPanel.fadeIn(200);
-        });
-    }
+        // In mobile view, position panel below ST's top bar and fit full screen
+        if (window.innerWidth <= 1000) {
+            const topBar = $('#top-settings-holder');
+            const topBarHeight = topBar.length ? topBar.outerHeight() : 60;
+            const topPosition = topBarHeight + 10; // 10px margin below top bar
 
-    // console.log('[RPG Companion] Thought panel created at:', { top, left });
+            $thoughtPanel.css({
+                top: topPosition + 'px',
+                display: 'none' // Keep hidden while setting position
+            });
+        }
+
+        $thoughtIcon.addClass('rpg-hidden');
+        $thoughtPanel.fadeIn(200);
+    };
+
+    // Support both click and touch events for mobile
+    $thoughtIcon.on('click touchend', handleThoughtIconTap);
 
     // Add event handlers for editable thoughts in the bubble
     $thoughtPanel.find('.rpg-editable').on('blur', function() {
@@ -1276,95 +1637,66 @@ export function createThoughtPanel($message, thoughtsArray) {
         updateCharacterField(character, field, value);
     });
 
+    // Add event listener for section lock icon clicks (support both click and touch)
+    $thoughtPanel.find('.rpg-section-lock-icon').on('click touchend', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $icon = $(this);
+        const trackerType = $icon.data('tracker');
+        const itemPath = $icon.data('path');
+        const currentlyLocked = isItemLocked(trackerType, itemPath);
+
+        // Toggle lock state
+        setItemLock(trackerType, itemPath, !currentlyLocked);
+
+        // Update icon
+        const newIcon = !currentlyLocked ? '🔒' : '🔓';
+        const newTitle = !currentlyLocked ? 'Locked' : 'Unlocked';
+        $icon.text(newIcon);
+        $icon.attr('title', newTitle);
+
+        // Toggle 'locked' class for persistent visibility
+        $icon.toggleClass('locked', !currentlyLocked);
+
+        // Save settings
+        saveSettings();
+    });
+
     // RAF throttling for smooth position updates
     let positionUpdateRaf = null;
 
-    // Update position on scroll with RAF throttling
+    // Update position on scroll with RAF throttling - DISABLED for fixed top-left positioning
     const updatePanelPosition = () => {
+        // Bubble is now fixed at top-left, no need to update position on scroll
+        // Just check visibility
         if (!$message.is(':visible')) {
             $thoughtPanel.hide();
             $thoughtIcon.hide();
-            return;
-        }
-
-        // Cancel any pending RAF
-        if (positionUpdateRaf) {
-            cancelAnimationFrame(positionUpdateRaf);
-        }
-
-        // Schedule update on next frame
-        positionUpdateRaf = requestAnimationFrame(() => {
-            const newAvatarRect = $avatar[0].getBoundingClientRect();
-            const newTop = newAvatarRect.top; // Align with avatar top
-            const newIconTop = newAvatarRect.top;
-            let newLeft, newIconLeft;
-
-            const isMobileNow = window.innerWidth <= 1000;
-
-            if (isMobileNow) {
-                newLeft = window.innerWidth / 2 - panelWidth / 2;
-                newIconLeft = newAvatarRect.left + (newAvatarRect.width / 2) - 18;
-            } else if (panelPosition === 'left') {
-                // Position at chat's right edge, extending right
-                const chatContainer = $('#chat')[0];
-                const chatRect = chatContainer ? chatContainer.getBoundingClientRect() : { right: window.innerWidth };
-                const spaceRight = window.innerWidth - chatRect.right;
-
-                if (spaceRight >= panelWidth + panelMargin * 2) {
-                    newLeft = chatRect.right + panelMargin;
-                } else {
-                    newLeft = Math.max(chatRect.right - panelWidth - panelMargin, window.innerWidth - panelWidth - 10);
-                }
-                newIconLeft = chatRect.right + 10;
-            } else {
-                // Left position relative to avatar
-                const chatContainer = $('#chat')[0];
-                const chatRect = chatContainer ? chatContainer.getBoundingClientRect() : { left: 0 };
-                const spaceLeft = chatRect.left;
-
-                if (spaceLeft >= panelWidth + panelMargin * 2) {
-                    newLeft = newAvatarRect.left - panelWidth - panelMargin;
-                } else {
-                    newLeft = Math.max(10, newAvatarRect.left - panelWidth - panelMargin);
-                }
-                newIconLeft = Math.max(10, newAvatarRect.left - 40);
-            }
-
-            $thoughtPanel.css({
-                top: `${newTop}px`,
-                left: `${newLeft}px`,
-                right: 'auto'
-            });
-
-            $thoughtIcon.css({
-                top: `${newIconTop}px`,
-                left: `${newIconLeft}px`,
-                right: 'auto'
-            });
-
+        } else {
             if ($thoughtPanel.is(':visible')) {
                 $thoughtPanel.show();
             }
             if ($thoughtIcon.is(':visible')) {
                 $thoughtIcon.show();
             }
-
-            positionUpdateRaf = null;
-        });
+        }
     };
 
-    // Update position on scroll and resize
+    // Update visibility on scroll (but not position)
     $('#chat').on('scroll.thoughtPanel', updatePanelPosition);
-    $(window).on('resize.thoughtPanel', updatePanelPosition);
 
-    // Remove panel when clicking outside - only if always show is disabled
-    if (!extensionSettings.alwaysShowThoughtBubble) {
-        $(document).on('click.thoughtPanel', function(e) {
+    // Don't listen to window resize for position - we handle width separately
+    // Position stays fixed at top-left
+
+    // Remove panel when clicking outside (mobile only)
+    $(document).on('click.thoughtPanel', function(e) {
+        // Only hide on click outside in mobile view
+        if (window.innerWidth <= 1000) {
             if (!$(e.target).closest('#rpg-thought-panel, #rpg-thought-icon').length) {
-                // Hide the panel and show the icon instead of removing
-                $thoughtPanel.fadeOut(200);
-                $thoughtIcon.fadeIn(200);
+                // Hide the panel and show the icon instead of removing (use selectors, not variables)
+                $('#rpg-thought-panel').fadeOut(200);
+                $('#rpg-thought-icon').removeClass('rpg-hidden').fadeIn(200);
             }
-        });
-    }
+        }
+    });
 }
