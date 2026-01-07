@@ -850,14 +850,48 @@ export function updateCharacterField(characterName, field, value) {
     }
 
     saveChatData();
-    renderThoughts();
 
+    // Re-render the sidebar thoughts panel, but skip updating chat bubbles if editing thoughts
     const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
-    if (field === thoughtsFieldName) {
-        setTimeout(() => updateChatThoughts(), 100);
+    const isEditingThoughts = field === thoughtsFieldName || field === 'thoughts';
+
+    if (!isEditingThoughts) {
+        renderThoughts();
     } else {
-        updateChatThoughts();
+        // Only update sidebar, don't trigger chat bubble refresh
+        $thoughtsContainer.find('.rpg-editable').off('blur');
+        renderThoughtsSidebarOnly();
+        $thoughtsContainer.find('.rpg-editable').on('blur', function() {
+            const char = $(this).data('character');
+            const fld = $(this).data('field');
+            const val = $(this).text().trim();
+            updateCharacterField(char, fld, val);
+        });
     }
+}
+
+/**
+ * Renders only the sidebar thoughts panel without updating chat bubbles
+ */
+function renderThoughtsSidebarOnly() {
+    if (!extensionSettings.showCharacterThoughts || !$thoughtsContainer) {
+        return;
+    }
+
+    // This is a simplified version that only updates the sidebar
+    // Copy the rendering logic from renderThoughts but skip the updateChatThoughts call
+    const thoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts;
+    if (!thoughtsData) {
+        $thoughtsContainer.html('<div class="rpg-inventory-empty">No character data generated yet</div>');
+        return;
+    }
+
+    // Re-render sidebar content (this would be the full logic from renderThoughts)
+    // For now, just call renderThoughts but set a flag
+    const originalShowInChat = extensionSettings.showThoughtsInChat;
+    extensionSettings.showThoughtsInChat = false;
+    renderThoughts();
+    extensionSettings.showThoughtsInChat = originalShowInChat;
 }
 
 /**
