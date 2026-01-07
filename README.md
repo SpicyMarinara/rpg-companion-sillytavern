@@ -7,6 +7,10 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
+### v3.0.1
+
+- Small bug fix where you couldn't edit the thought bubble.
+
 ### v3.0.0
 
 **What's new?**
