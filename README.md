@@ -7,13 +7,9 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.1.0
+### v3.1.1
 
-- Added toastr notification when the model returns an incorrect tracker format that cannot be parsed.
-- Added guidance in settings about which models work best with the extension (I'm tired of people asking me why this doesn't work with their Q4 MythoMax 13B).
-- Fixed auto-update after messages to work with External API generation mode.
-- Fixed mobile UI.
-- Fixed a minor bug with the thought bubble icon appearing in the wrong place on mobiles.
+- Mobile UI fixes.
 
 ### v3.0.1
 

@@ -874,9 +874,11 @@ async function initUI() {
     // Setup mobile toggle button
     setupMobileToggle();
 
-    // Setup desktop tabs (only on desktop viewport)
+    // Setup tabs based on viewport
     if (window.innerWidth > 1000) {
         setupDesktopTabs();
+    } else {
+        setupMobileTabs();
     }
 
     // Setup collapse/expand toggle button

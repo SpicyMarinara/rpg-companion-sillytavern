@@ -1616,43 +1616,22 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-location-text {
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
     font-weight: bold;
     color: var(--rpg-text);
     text-align: center;
     line-height: 1.2;
-    padding: 0.25em 0.5em;
+    padding: 0;
     margin: 0;
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
     flex: 1 1 auto;
     min-height: 0;
-    max-height: 4em;
-    width: 100%;
-    display: block;
-    overflow-y: auto;
-    overflow-x: hidden;
-    /* Dynamic text scaling based on content length */
-    font-size: clamp(0.45rem, calc(0.75rem - 0.005rem * var(--char-count, 0)), 0.75rem);
-}
-
-/* Custom scrollbar for location text */
-.rpg-location-text::-webkit-scrollbar {
-    width: 4px;
-}
-
-.rpg-location-text::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 2px;
-}
-
-.rpg-location-text::-webkit-scrollbar-thumb {
-    background: var(--rpg-border);
-    border-radius: 2px;
-}
-
-.rpg-location-text::-webkit-scrollbar-thumb:hover {
-    background: var(--rpg-highlight);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 /* Row 3: Recent Events */
@@ -5143,13 +5122,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         left: auto !important;
 
         /* Mobile panel sizing */
-        width: 85vw !important;
         width: 85dvw !important;
         max-width: 400px !important;
-        height: calc(100vh - var(--topBarBlockSize)) !important;
         height: calc(100dvh - var(--topBarBlockSize)) !important;
-        max-height: calc(100vh - var(--topBarBlockSize)) !important;
-        max-height: calc(100dvh - var(--topBarBlockSize)) !important;
 
         /* Hidden by default - completely removed from layout */
         display: none !important;
@@ -5168,18 +5143,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Allow collapse button to show outside panel */
     .rpg-game-container {
         overflow: visible !important;
-        height: 100% !important;
-        max-height: 100% !important;
-        box-sizing: border-box !important;
-        padding: 0.75em !important;
     }
 
     /* But keep content scrollable */
     #rpg-panel-content {
         overflow-y: auto !important;
         overflow-x: hidden !important;
-        max-height: 100% !important;
-        height: 100% !important;
     }
 
     /* Show panel when opened with slide-in animation */
@@ -5348,12 +5317,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         display: flex;
         flex-direction: column;
         height: 100%;
-        max-height: 100%;
         min-height: 0;
         margin: -12px -12px 16px -12px;
         overflow-x: auto;
         overflow-y: hidden;
-        box-sizing: border-box;
     }
 
     /* Tab container at top of panel */
@@ -5534,11 +5501,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 
     .rpg-location-text {
-        /* Dynamic text scaling based on content length - mobile override */
-        font-size: clamp(0.45rem, calc(0.875rem - 0.005rem * var(--char-count, 0)), 0.875rem) !important;
-        max-height: 4.5em !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
+        font-size: min(2.8vw, 0.875rem) !important;
     }
 
     .rpg-map-marker {
