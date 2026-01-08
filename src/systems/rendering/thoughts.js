@@ -507,7 +507,7 @@ export function renderThoughts() {
 
                 html += `
                     <div class="rpg-character-card" data-character-name="${char.name}">
-                        <div class="rpg-character-avatar">
+                        <div class="rpg-character-avatar rpg-avatar-upload" data-character="${char.name}" title="Click to upload avatar">
                             <img src="${characterPortrait}" alt="${char.name}" onerror="this.style.opacity='0.5';this.onerror=null;" />
                             ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
                         </div>
@@ -619,6 +619,48 @@ export function renderThoughts() {
 
         // Save settings
         saveSettings();
+    });
+
+    // Add event listener for avatar upload clicks
+    $thoughtsContainer.find('.rpg-avatar-upload').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const characterName = $(this).data('character');
+
+        // Create hidden file input
+        const fileInput = $('<input type="file" accept="image/*" style="display: none;">');
+
+        fileInput.on('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+
+            // Read file as data URL
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageUrl = e.target.result;
+
+                // Store in npcAvatars
+                if (!extensionSettings.npcAvatars) {
+                    extensionSettings.npcAvatars = {};
+                }
+                extensionSettings.npcAvatars[characterName] = imageUrl;
+
+                // Save settings
+                saveSettings();
+
+                // Update the avatar image immediately
+                const $avatar = $thoughtsContainer.find(`.rpg-avatar-upload[data-character="${characterName}"] img`);
+                $avatar.attr('src', imageUrl);
+
+                console.log(`[RPG Companion] Avatar uploaded for ${characterName}`);
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        // Trigger file selection
+        fileInput.trigger('click');
     });
 
     // Remove updating class after animation

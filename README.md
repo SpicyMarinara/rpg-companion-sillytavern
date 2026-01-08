@@ -7,9 +7,9 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.2.2
+### v3.2.3
 
-- Mobile UI fixes (WAKE ME UP INSIDE).
+- Uploading avatars for generated characters is back.
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis.
