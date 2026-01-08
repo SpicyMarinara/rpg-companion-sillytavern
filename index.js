@@ -42,7 +42,7 @@ import {
     setMusicPlayerContainer,
     clearSessionAvatarPrompts
 } from './src/core/state.js';
-import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData } from './src/core/persistence.js';
+import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData, resetAllTrackerData } from './src/core/persistence.js';
 import { registerAllEvents } from './src/core/events.js';
 
 // Generation & Parsing modules
@@ -613,6 +613,30 @@ async function initUI() {
             return;
         }
         await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
+    });
+
+    $('#rpg-reset-tracker-data').on('click', async function() {
+        // Confirm before resetting
+        const confirmed = confirm('Are you sure you want to reset all tracker data for this chat?\n\nThis will clear:\n- Stats, inventory, info box\n- Present characters and thoughts\n- All committed tracker context\n\nThe next Refresh will generate fresh data.');
+        
+        if (!confirmed) {
+            return;
+        }
+
+        // Reset all tracker data
+        resetAllTrackerData();
+        
+        // Clear the UI panels
+        renderUserStats();
+        renderInfoBox();
+        renderThoughts();
+        renderInventory();
+        renderQuests();
+        
+        // Update chat thought overlays
+        updateChatThoughts();
+        
+        toastr.success('All tracker data has been reset. Click "Refresh RPG Info" to generate fresh data.');
     });
 
     $('#rpg-stat-bar-color-low').on('change', function() {

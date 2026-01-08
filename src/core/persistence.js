@@ -606,3 +606,116 @@ function migrateToTrackerConfig() {
         }
     }
 }
+
+/**
+ * Resets all tracker data for the current chat to defaults.
+ * This clears lastGeneratedData, committedTrackerData, and resets stat VALUES to defaults,
+ * while preserving the user's custom tracker configuration (stat names, enabled states, etc.).
+ * Allows the next generation to start fresh as if it were a new chat.
+ */
+export function resetAllTrackerData() {
+    // Build default userStats based on user's trackerConfig (preserve structure, reset values)
+    const trackerConfig = extensionSettings.trackerConfig;
+    
+    // Reset stat values to defaults based on configured stats
+    const defaultUserStats = {
+        mood: '😐',
+        conditions: 'None',
+        inventory: {
+            version: 2,
+            onPerson: "None",
+            stored: {},  // Clear all storage locations but keep v2 format
+            assets: "None"
+        }
+    };
+    
+    // Reset each configured stat to its default value (100 for most, 0 for arousal-type)
+    if (trackerConfig?.userStats?.customStats) {
+        for (const stat of trackerConfig.userStats.customStats) {
+            if (stat.enabled) {
+                // Arousal-type stats start at 0, others at 100
+                const isArousalType = stat.id.toLowerCase().includes('arousal') || 
+                                      stat.id.toLowerCase().includes('lust') ||
+                                      stat.id.toLowerCase().includes('corruption');
+                defaultUserStats[stat.id] = isArousalType ? 0 : 100;
+            }
+        }
+    } else {
+        // Fallback to hardcoded defaults if no config
+        defaultUserStats.health = 100;
+        defaultUserStats.satiety = 100;
+        defaultUserStats.energy = 100;
+        defaultUserStats.hygiene = 100;
+        defaultUserStats.arousal = 0;
+    }
+
+    // Reset classic stats (RPG attributes) to 10
+    const defaultClassicStats = {};
+    if (trackerConfig?.userStats?.rpgAttributes) {
+        for (const attr of trackerConfig.userStats.rpgAttributes) {
+            if (attr.enabled) {
+                defaultClassicStats[attr.id] = 10;
+            }
+        }
+    } else {
+        // Fallback defaults
+        defaultClassicStats.str = 10;
+        defaultClassicStats.dex = 10;
+        defaultClassicStats.con = 10;
+        defaultClassicStats.int = 10;
+        defaultClassicStats.wis = 10;
+        defaultClassicStats.cha = 10;
+    }
+
+    // Reset quests to defaults
+    const defaultQuests = {
+        main: "None",
+        optional: []
+    };
+
+    // Update extension settings with reset values (preserves trackerConfig)
+    updateExtensionSettings({
+        userStats: defaultUserStats,
+        classicStats: defaultClassicStats,
+        quests: defaultQuests
+    });
+
+    // Clear the generated data (info box, character thoughts, etc.)
+    setLastGeneratedData({
+        userStats: null,
+        infoBox: null,
+        characterThoughts: null,
+        html: null
+    });
+
+    // Clear the committed data (used as context for generation)
+    setCommittedTrackerData({
+        userStats: null,
+        infoBox: null,
+        characterThoughts: null
+    });
+
+    // Clear chat metadata completely
+    if (chat_metadata) {
+        chat_metadata.rpg_companion = {
+            userStats: defaultUserStats,
+            classicStats: defaultClassicStats,
+            quests: defaultQuests,
+            lastGeneratedData: {
+                userStats: null,
+                infoBox: null,
+                characterThoughts: null,
+                html: null
+            },
+            committedTrackerData: {
+                userStats: null,
+                infoBox: null,
+                characterThoughts: null
+            },
+            timestamp: Date.now()
+        };
+        saveChatDebounced();
+    }
+
+    console.log('[RPG Companion] All tracker data has been reset');
+}
