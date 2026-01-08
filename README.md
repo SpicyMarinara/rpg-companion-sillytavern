@@ -7,15 +7,9 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.2.0
+### v3.2.1
 
-- Mobile UI fixes (AGAIN).
-- Fixed the regex issue in Together mode.
-- Fixed the parsing error to not appear upon loading new chats or switching them.
-- Fixed adding new relationships in the Edit Trackers.
-- Added migration for importing older trackers' presets.
-- Lifted attributes' cap to 999.
-- Fixed some mobile displays.
+- Mobile UI fixes (SAVE ME FROM THIS NIGHTMARE).
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis.

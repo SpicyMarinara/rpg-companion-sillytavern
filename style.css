@@ -201,7 +201,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         right: auto !important;
         width: 85% !important;
         max-width: 320px !important;
-        height: 100vh !important;
+        height: 100dvh !important;
         top: 0 !important;
         bottom: 0 !important;
     }
@@ -213,7 +213,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         right: 0 !important;
         width: 85% !important;
         max-width: 320px !important;
-        height: 100vh !important;
+        height: 100dvh !important;
         top: 0 !important;
         bottom: 0 !important;
     }
@@ -5002,11 +5002,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         width: 90vw !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
-        max-height: calc(100vh - 80px) !important;
+        max-height: calc(100dvh - 80px) !important;
     }
 
     #rpg-thought-panel .rpg-thought-bubble {
-        max-height: calc(100vh - 100px) !important;
+        max-height: calc(100dvh - 100px) !important;
         overflow-y: auto !important;
     }
 
@@ -5146,7 +5146,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         /* Mobile panel sizing */
         width: 85vw !important;
         max-width: 400px !important;
-        height: 100vh !important;
+        height: 100dvh !important;
 
         /* Hidden by default - completely removed from layout */
         display: none !important;
@@ -7515,9 +7515,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
     min-width: 100vw;
-    min-height: 100vh;
+    min-height: 100dvh;
     z-index: 99999; /* Increased from 10000 to ensure it's on top */
     display: none;
     opacity: 0;
@@ -7531,7 +7531,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     justify-content: center;
     padding: 2vh 0; /* Add vertical padding */
     overflow-y: auto; /* Allow modal itself to scroll if container is too tall */
-    min-height: 100vh; /* Force full viewport height */
+    min-height: 100dvh; /* Force full viewport height */
     min-width: 100vw; /* Force full viewport width */
 }
 
@@ -8699,7 +8699,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
+    height: 100dvh;
     background: rgba(0, 0, 0, 0.8);
     z-index: 999999;
     display: flex;
@@ -9361,7 +9361,7 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
 /* Sunshine rays */
 .rpg-sunray {
     width: 3px;
-    height: 100vh;
+    height: 100dvh;
     background: linear-gradient(to bottom,
         rgba(255, 250, 200, 0) 0%,
         rgba(255, 250, 200, 0.3) 20%,

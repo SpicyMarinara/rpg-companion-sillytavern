@@ -36,7 +36,7 @@ export function addCheckpointButtonToMessage(messageId, menu, isExpanded = false
     menuItem.setAttribute('data-i18n', translationKey);
     menuItem.title = isCheckpoint
         ? 'Clear Chapter Start'
-        : 'Set Chapter Start: When bookmarked, this message will count as the first message in the chat history, skipping earlier ones';
+        : 'Set Chapter Start — When bookmarked, this message will count as the first message in the chat history, skipping earlier ones.';
 
     // Icon only (no text label)
     const icon = document.createElement('i');
@@ -363,7 +363,7 @@ function updateCheckpointButtonInMenu(menu, messageId) {
     // Update tooltip
     existingButton.title = isCheckpoint
         ? 'Clear Chapter Start'
-        : 'Set Chapter Start: When bookmarked, this message will count as the first message in the chat history, skipping earlier ones';
+        : 'Set Chapter Start — When bookmarked, this message will count as the first message in the chat history, skipping earlier ones.';
     const translationKey = isCheckpoint ? 'checkpoint.clearChapterStart' : 'checkpoint.setChapterStart';
     existingButton.setAttribute('data-i18n', translationKey);
 }
