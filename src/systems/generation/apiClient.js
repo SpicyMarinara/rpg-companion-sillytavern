@@ -3,8 +3,12 @@
  * Handles API calls for RPG tracker generation
  */
 
-import { generateRaw, chat } from '../../../../../../../script.js';
+import { generateRaw, chat, eventSource } from '../../../../../../../script.js';
 import { executeSlashCommandsOnChatInput } from '../../../../../../../scripts/slash-commands.js';
+
+// Custom event name for when RPG Companion finishes updating tracker data
+// Other extensions can listen for this event to know when RPG Companion is done
+export const RPG_COMPANION_UPDATE_COMPLETE = 'rpg_companion_update_complete';
 import {
     extensionSettings,
     lastGeneratedData,
@@ -397,6 +401,10 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         // This ensures the flag persists through both main generation AND tracker generation
         // console.log('[RPG Companion] 🔄 Tracker generation complete - resetting lastActionWasSwipe to false');
         setLastActionWasSwipe(false);
+
+        // Emit event for other extensions to know RPG Companion has finished updating
+        console.debug('[RPG Companion] Emitting RPG_COMPANION_UPDATE_COMPLETE event');
+        eventSource.emit(RPG_COMPANION_UPDATE_COMPLETE);
     }
 }
 
