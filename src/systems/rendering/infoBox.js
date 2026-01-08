@@ -498,19 +498,19 @@ export function renderInfoBox() {
     if (config?.widgets?.recentEvents?.enabled) {
         // Parse Recent Events from infoBox (supports both JSON and text formats)
         let recentEvents = [];
-        if (committedTrackerData.infoBox) {
+        if (infoBoxData) {
             // Try JSON format first
             try {
-                const parsed = typeof committedTrackerData.infoBox === 'string'
-                    ? JSON.parse(committedTrackerData.infoBox)
-                    : committedTrackerData.infoBox;
+                const parsed = typeof infoBoxData === 'string'
+                    ? JSON.parse(infoBoxData)
+                    : infoBoxData;
 
                 if (parsed && Array.isArray(parsed.recentEvents)) {
                     recentEvents = parsed.recentEvents;
                 }
             } catch (e) {
                 // Fall back to old text format
-                const recentEventsLine = committedTrackerData.infoBox.split('\n').find(line => line.startsWith('Recent Events:'));
+                const recentEventsLine = infoBoxData.split('\n').find(line => line.startsWith('Recent Events:'));
                 if (recentEventsLine) {
                     const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
                     if (eventsString) {

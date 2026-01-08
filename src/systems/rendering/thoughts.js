@@ -1847,9 +1847,9 @@ export function createThoughtPanel($message, thoughtsArray) {
             }, 100);
         }
     } else {
-        // Desktop: show panel, hide icon with class
+        // Desktop: always start with panel expanded on page load/refresh
         $thoughtPanel.css('display', 'block');
-        $thoughtIcon.addClass('rpg-force-hide');
+        $thoughtIcon.addClass('rpg-force-hide').removeClass('rpg-collapsed-desktop');
     }
 
     // Handle viewport changes between mobile and desktop
@@ -1880,24 +1880,62 @@ export function createThoughtPanel($message, thoughtsArray) {
         wasMobileView = isMobileNow;
     });
 
-    // Close button functionality (mobile only) - support both click and touch
+    // Close button functionality - support both click and touch
     $thoughtPanel.find('.rpg-thought-close').on('click touchend', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        // Only hide/show in mobile view
-        if (window.innerWidth <= 1000) {
+
+        const isMobileView = window.innerWidth <= 1000;
+
+        if (isMobileView) {
+            // Mobile: hide panel and show icon
             $thoughtPanel.fadeOut(200, function() {
                 // Make sure icon is visible and clean state when panel closes (use selector, not variable)
                 const $icon = $('#rpg-thought-icon');
                 $icon.removeClass('rpg-hidden dragging');
                 $icon.data('just-dragged', false);
             });
+        } else {
+            // Desktop: collapse to icon at panel position
+            const panelRect = $thoughtPanel[0].getBoundingClientRect();
+            const $icon = $('#rpg-thought-icon');
+
+            // Position icon where the panel is
+            $icon.css({
+                top: `${panelRect.top}px`,
+                left: isRightPanel ? `${panelRect.left}px` : 'auto',
+                right: isRightPanel ? 'auto' : `${window.innerWidth - panelRect.right}px`
+            });
+
+            // Mark as collapsed desktop state (session only, not persisted)
+            $icon.addClass('rpg-collapsed-desktop');
+
+            // Hide panel and show icon
+            $thoughtPanel.fadeOut(200, function() {
+                $icon.removeClass('rpg-hidden rpg-force-hide');
+            });
         }
     });
 
-    // Icon click/tap to show panel (mobile only)
+    // Icon click/tap to show panel
     const handleThoughtIconTap = function(e) {
-        // Skip if we just finished dragging
+        const isMobileView = window.innerWidth <= 1000;
+        const $icon = $('#rpg-thought-icon');
+
+        // Desktop collapsed state: expand panel and hide icon
+        if (!isMobileView && $icon.hasClass('rpg-collapsed-desktop')) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Remove collapsed state (no need to save, state is session-only)
+            $icon.addClass('rpg-force-hide').removeClass('rpg-collapsed-desktop');
+
+            // Show panel
+            $('#rpg-thought-panel').fadeIn(200);
+            return;
+        }
+
+        // Skip if we just finished dragging (mobile only)
         if ($thoughtIcon.data('just-dragged')) {
             return;
         }
@@ -1995,3 +2033,4 @@ export function createThoughtPanel($message, thoughtsArray) {
         }
     });
 }
+

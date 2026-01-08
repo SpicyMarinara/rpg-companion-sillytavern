@@ -7,15 +7,14 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.3.0
+### v3.3.1
 
-- Small upgrades to the combat system.
-- Regex fix.
-- Fixed External API logic.
-- Even more minor bug fixes.
+- Thought bubble can now be collapsed into an icon.
+- Fixed a bug for Past Events being parsed incorrectly.
+- Added event emission on when the tracker generation is complete.
 
 **Special thanks to all the other contributors for this project:**
-Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis.
+Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.
 
 ## 📥 Installation
 
@@ -268,7 +267,7 @@ If you enjoy this extension, consider supporting development:
 ## 🙏 Credits
 
 **Contributors:**
-SpicyMarinara, Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis.
+SpicyMarinara, Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.
 
 ## 🚀 Planned Features
 

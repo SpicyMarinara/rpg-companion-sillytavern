@@ -4732,9 +4732,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     }
 }
 
-/* Force hide class for desktop mode - overrides media query */
-#rpg-thought-icon.rpg-force-hide {
+/* Force hide class for desktop mode - overrides media query (unless collapsed) */
+#rpg-thought-icon.rpg-force-hide:not(.rpg-collapsed-desktop) {
     display: none !important;
+}
+
+/* When collapsed in desktop, show icon */
+#rpg-thought-icon.rpg-collapsed-desktop {
+    display: flex !important;
 }
 
 /* Hidden state that allows transitions */
@@ -4780,10 +4785,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     color: var(--rpg-highlight, #e94560);
 }
 
-/* Hide close button in desktop view (panel doesn't close) */
+/* Show close button in desktop view for collapsing */
 @media (min-width: 1001px) {
     .rpg-thought-close {
-        display: none !important;
+        display: flex !important;
     }
 }
 
