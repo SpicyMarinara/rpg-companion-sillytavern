@@ -1004,7 +1004,7 @@ jQuery(async () => {
         // This cleans historical messages when displayed
         // Note: We also clean directly in message handler for redundancy
         try {
-            console.log('[RPG Companion] Checking JSON cleaning regex. Generation mode:', extensionSettings.generationMode);
+            // console.log('[RPG Companion] Checking JSON cleaning regex. Generation mode:', extensionSettings.generationMode);
             if (extensionSettings.generationMode === 'together') {
                 await ensureJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
             } else {
@@ -1073,7 +1073,7 @@ jQuery(async () => {
             // Non-critical - continue without it
         }
 
-        // console.log('[RPG Companion] ✅ Extension loaded successfully');
+        console.log('[RPG Companion] ✅ Extension loaded successfully.');
     } catch (error) {
         console.error('[RPG Companion] ❌ Critical initialization failure:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);

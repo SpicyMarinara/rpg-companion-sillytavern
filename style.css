@@ -1390,13 +1390,17 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     justify-content: center;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
     max-width: 100%;
-    line-height: 1.2;
+    line-height: 1.1;
     min-width: 0;
     overflow: hidden;
+}
+
+.rpg-calendar-day-text {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 .rpg-calendar-year {

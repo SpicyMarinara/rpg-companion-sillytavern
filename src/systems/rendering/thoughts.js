@@ -184,6 +184,9 @@ export function renderThoughts() {
     // Use committedTrackerData as fallback if lastGeneratedData is empty (e.g., after page refresh)
     const characterThoughtsData = lastGeneratedData.characterThoughts || committedTrackerData.characterThoughts || '';
 
+    // console.log('[RPG Companion] renderThoughts - Reading from lastGeneratedData:', JSON.stringify(lastGeneratedData.characterThoughts));
+    // console.log('[RPG Companion] renderThoughts - Reading from committedTrackerData:', JSON.stringify(committedTrackerData.characterThoughts));
+
     debugLog('[RPG Thoughts] Raw characterThoughts data:', characterThoughtsData);
     debugLog('[RPG Thoughts] Data length:', characterThoughtsData.length + ' chars');
     debugLog('[RPG Thoughts] Enabled custom fields:', enabledFields.map(f => f.name));
@@ -210,25 +213,37 @@ export function renderThoughts() {
 
                 // Extract details (appearance, demeanor, etc.)
                 if (char.details) {
-                    // Map details object to custom fields by snake_case name
+                    // Map details object to custom fields
                     for (const field of enabledFields) {
-                        const fieldKey = toSnakeCase(field.name);
-                        if (char.details[fieldKey] !== undefined) {
-                            character[field.name] = stripBrackets(char.details[fieldKey]);
+                        // First try exact field name (for manually edited values)
+                        if (char.details[field.name] !== undefined) {
+                            character[field.name] = stripBrackets(char.details[field.name]);
+                        } else {
+                            // Fall back to snake_case for AI-generated values
+                            const fieldKey = toSnakeCase(field.name);
+                            if (char.details[fieldKey] !== undefined) {
+                                character[field.name] = stripBrackets(char.details[fieldKey]);
+                            }
                         }
                     }
                 }
 
                 // Also check for fields at root level (for backward compatibility)
+                // Only use if not already set from details
                 for (const field of enabledFields) {
-                    const fieldKey = toSnakeCase(field.name);
-                    if (char[fieldKey] !== undefined) {
-                        character[field.name] = stripBrackets(char[fieldKey]);
+                    if (character[field.name] === undefined) {
+                        const fieldKey = toSnakeCase(field.name);
+                        if (char[fieldKey] !== undefined) {
+                            character[field.name] = stripBrackets(char[fieldKey]);
+                        }
                     }
                 }
 
                 // Extract relationship
-                if (char.relationship) {
+                // Prefer the new flat format (char.Relationship) over the old nested format (char.relationship.status)
+                if (char.Relationship) {
+                    character.Relationship = stripBrackets(char.Relationship);
+                } else if (char.relationship) {
                     character.Relationship = stripBrackets(char.relationship.status || char.relationship);
                 }
 
@@ -498,8 +513,11 @@ export function renderThoughts() {
                 if (hasRelationshipEnabled) {
                     // In the new format, relationship is always stored in char.Relationship
                     if (char.Relationship) {
+                        // console.log(`[RPG Companion] Rendering ${char.name} - char.Relationship:`, char.Relationship);
+                        // console.log('[RPG Companion] relationshipEmojis mapping:', relationshipEmojis);
                         // Try to map text to emoji
                         relationshipBadge = relationshipEmojis[char.Relationship] || char.Relationship;
+                        // console.log('[RPG Companion] Final relationshipBadge:', relationshipBadge);
                     }
                 }
 
@@ -596,6 +614,11 @@ export function renderThoughts() {
         updateCharacterField(character, field, value);
     });
 
+    // Prevent click events on editable elements from bubbling to avatar upload handler
+    $thoughtsContainer.find('.rpg-editable').on('click mousedown', function(e) {
+        e.stopPropagation();
+    });
+
     // Add event listener for section lock icon clicks (support both click and touch)
     $thoughtsContainer.find('.rpg-section-lock-icon').on('click touchend', function(e) {
         e.preventDefault();
@@ -688,11 +711,138 @@ export function updateCharacterField(characterName, field, value) {
         lastGeneratedData.characterThoughts = 'Present Characters\n---\n';
     }
 
-    const lines = lastGeneratedData.characterThoughts.split('\n');
     const presentCharsConfig = extensionSettings.trackerConfig?.presentCharacters;
     const enabledFields = presentCharsConfig?.customFields?.filter(f => f && f.enabled && f.name) || [];
     const characterStats = presentCharsConfig?.characterStats;
     const enabledCharStats = characterStats?.enabled && characterStats?.customStats?.filter(s => s && s.enabled && s.name) || [];
+
+    // Get relationship emoji mappings from config
+    const relationshipEmojis = presentCharsConfig?.relationshipEmojis || {
+        'Enemy': '⚔️',
+        'Neutral': '⚖️',
+        'Friend': '⭐',
+        'Lover': '❤️'
+    };
+    // Create reverse mapping (emoji → name)
+    const emojiToRelationship = {};
+    for (const [name, emoji] of Object.entries(relationshipEmojis)) {
+        emojiToRelationship[emoji] = name;
+    }
+
+    // Check if data is in JSON format
+    let isJSON = false;
+    let parsedData = null;
+
+    try {
+        parsedData = typeof lastGeneratedData.characterThoughts === 'string'
+            ? JSON.parse(lastGeneratedData.characterThoughts)
+            : lastGeneratedData.characterThoughts;
+
+        if (Array.isArray(parsedData) || (parsedData && parsedData.characters)) {
+            isJSON = true;
+        }
+    } catch (e) {
+        // Not JSON, continue with text format
+    }
+
+    // Handle JSON format
+    if (isJSON) {
+        const charactersArray = Array.isArray(parsedData) ? parsedData : (parsedData.characters || []);
+        const charIndex = charactersArray.findIndex(c =>
+            c.name && c.name.toLowerCase() === characterName.toLowerCase()
+        );
+
+        if (charIndex !== -1) {
+            const char = charactersArray[charIndex];
+
+            // console.log('[RPG Companion] Updating character:', characterName, 'field:', field, 'value:', value);
+            // console.log('[RPG Companion] Before update - char.Relationship:', char.Relationship);
+
+            // Update the appropriate field
+            if (field === 'name') {
+                char.name = value;
+            } else if (field === 'emoji') {
+                char.emoji = value;
+            } else if (field === 'Relationship') {
+                // Store relationship as text, converting emoji if needed
+                // First check if it's an emoji → convert to text
+                if (emojiToRelationship[value]) {
+                    char.Relationship = emojiToRelationship[value];
+                } else {
+                    // It's text - find matching relationship name (case-insensitive)
+                    const matchingRelationship = Object.keys(relationshipEmojis).find(
+                        name => name.toLowerCase() === value.toLowerCase()
+                    );
+                    char.Relationship = matchingRelationship || value;
+                }
+                // console.log('[RPG Companion] After update - char.Relationship:', char.Relationship);
+                // console.log('[RPG Companion] relationshipEmojis:', relationshipEmojis);
+                // console.log('[RPG Companion] emojiToRelationship:', emojiToRelationship);
+            } else if (field.toLowerCase() === 'thoughts' || field === (presentCharsConfig?.thoughts?.name || 'Thoughts')) {
+                if (!char.thoughts) char.thoughts = {};
+                char.thoughts.content = value;
+            } else {
+                // Check if it's a character stat
+                const isStatField = enabledCharStats.findIndex(s => s.name === field) !== -1;
+                if (isStatField) {
+                    if (!char.stats) char.stats = {};
+                    let numValue = parseInt(value.replace('%', '').trim());
+                    if (isNaN(numValue)) numValue = 0;
+                    numValue = Math.max(0, Math.min(100, numValue));
+                    char.stats[field] = numValue;
+                } else {
+                    // It's a custom detail field
+                    if (!char.details) char.details = {};
+                    char.details[field] = value;
+                }
+            }
+        }
+
+        // Save back to lastGeneratedData
+        lastGeneratedData.characterThoughts = Array.isArray(parsedData) ? charactersArray : { ...parsedData, characters: charactersArray };
+        committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+
+        // console.log('[RPG Companion] Saved to lastGeneratedData.characterThoughts:', JSON.stringify(lastGeneratedData.characterThoughts));
+        // console.log('[RPG Companion] Saved to committedTrackerData.characterThoughts:', JSON.stringify(committedTrackerData.characterThoughts));
+
+        // Update in chat metadata
+        const chat = getContext().chat;
+        if (chat && chat.length > 0) {
+            for (let i = chat.length - 1; i >= 0; i--) {
+                const message = chat[i];
+                if (!message.is_user) {
+                    if (message.extra && message.extra.rpg_companion_swipes) {
+                        const swipeId = message.swipe_id || 0;
+                        if (message.extra.rpg_companion_swipes[swipeId]) {
+                            message.extra.rpg_companion_swipes[swipeId].characterThoughts = lastGeneratedData.characterThoughts;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        saveChatData();
+
+        // console.log('[RPG Companion] JSON format updated successfully');
+        // console.log('[RPG Companion] Updated data:', lastGeneratedData.characterThoughts);
+
+        // Re-render the thoughts panel to show updated value
+        renderThoughts();
+
+        // Update chat thought overlays if editing thoughts
+        const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
+        const isEditingThoughts = field === thoughtsFieldName || field === 'thoughts';
+
+        if (isEditingThoughts && extensionSettings.showThoughtsInChat) {
+            updateChatThoughts();
+        }
+
+        return; // Exit early for JSON format
+    }
+
+    // Continue with text format handling below
+    const lines = lastGeneratedData.characterThoughts.split('\n');
 
     let characterFound = false;
     let inTargetCharacter = false;
@@ -893,23 +1043,26 @@ export function updateCharacterField(characterName, field, value) {
 
     saveChatData();
 
-    // Re-render the sidebar thoughts panel, but skip updating chat bubbles if editing thoughts
+    // Don't re-render to avoid overwriting user edits while they're still editing
+    // The changes are already saved to lastGeneratedData and committedTrackerData
+    // Re-rendering would cause the display to reset and lose focus
+
+    // console.log('[RPG Companion] updateCharacterField called:', { characterName, field, value });
+    // console.log('[RPG Companion] Before update - lastGeneratedData.characterThoughts:', lastGeneratedData.characterThoughts);
+
+    // Only update chat thought overlays if editing thoughts field
     const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
     const isEditingThoughts = field === thoughtsFieldName || field === 'thoughts';
 
-    if (!isEditingThoughts) {
-        renderThoughts();
-    } else {
-        // Only update sidebar, don't trigger chat bubble refresh
-        $thoughtsContainer.find('.rpg-editable').off('blur');
-        renderThoughtsSidebarOnly();
-        $thoughtsContainer.find('.rpg-editable').on('blur', function() {
-            const char = $(this).data('character');
-            const fld = $(this).data('field');
-            const val = $(this).text().trim();
-            updateCharacterField(char, fld, val);
-        });
+    // console.log('[RPG Companion] Is editing thoughts?', isEditingThoughts, 'Field:', field, 'Thoughts field name:', thoughtsFieldName);
+    // console.log('[RPG Companion] After update - lastGeneratedData.characterThoughts:', lastGeneratedData.characterThoughts);
+
+    if (isEditingThoughts && extensionSettings.showThoughtsInChat) {
+        // console.log('[RPG Companion] Updating chat thought bubbles');
+        // Update chat thought bubbles when thoughts are edited
+        updateChatThoughts();
     }
+    // Note: Don't call renderThoughts() here - it would overwrite the user's edits
 }
 
 /**
