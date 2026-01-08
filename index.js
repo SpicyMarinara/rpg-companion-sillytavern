@@ -315,6 +315,7 @@ async function initUI() {
         updateGenerationModeUI();
 
         // Add or remove JSON cleaning regex based on mode
+        // This ensures old messages in chat history are also cleaned
         try {
             if (extensionSettings.generationMode === 'together') {
                 await ensureJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
@@ -1000,7 +1001,10 @@ jQuery(async () => {
         }
 
         // Import the JSON cleaning regex for Together mode if enabled
+        // This cleans historical messages when displayed
+        // Note: We also clean directly in message handler for redundancy
         try {
+            console.log('[RPG Companion] Checking JSON cleaning regex. Generation mode:', extensionSettings.generationMode);
             if (extensionSettings.generationMode === 'together') {
                 await ensureJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
             } else {

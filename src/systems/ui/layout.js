@@ -443,10 +443,10 @@ export function updateGenerationModeUI() {
         // Show auto-update toggle
         $('#rpg-auto-update-container').slideDown(200);
     } else if (extensionSettings.generationMode === 'external') {
-        // In "external" mode, manual update button is visible AND external settings are shown
+        // In "external" mode, manual update button is visible AND both settings are shown
         $('#rpg-manual-update').show();
         $('#rpg-external-api-settings').slideDown(200);
-        $('#rpg-separate-mode-settings').slideUp(200);
+        $('#rpg-separate-mode-settings').slideDown(200);
         // Show auto-update toggle for external mode too
         $('#rpg-auto-update-container').slideDown(200);
     }

@@ -140,10 +140,8 @@ export async function onMessageReceived(data) {
             const responseText = lastMessage.mes;
             const parsedData = parseResponse(responseText);
 
-            // Check if parsing completely failed (no tracker data found)
-            if (parsedData.parsingFailed) {
-                toastr.error(i18n.getTranslation('errors.parsingError'), '', { timeOut: 5000 });
-            }
+            // Note: Don't show parsing error here - this event fires when loading chat history too
+            // Error notification is handled in apiClient.js for fresh generations only
 
             // Remove locks from parsed data (JSON format only, text format is unaffected)
             if (parsedData.userStats) {
@@ -195,7 +193,9 @@ export async function onMessageReceived(data) {
             // Only remove trackers if saveTrackerHistory is disabled
             // When enabled, trackers are in <trackers> XML tags which SillyTavern auto-hides
             if (!extensionSettings.saveTrackerHistory) {
-                // Remove all code blocks that contain tracker data
+                // Note: JSON code blocks are hidden from display by regex script (but preserved in message data)
+
+                // Remove old text format code blocks (legacy support)
                 cleanedMessage = cleanedMessage.replace(/```[^`]*?Stats\s*\n\s*---[^`]*?```\s*/gi, '');
                 cleanedMessage = cleanedMessage.replace(/```[^`]*?Info Box\s*\n\s*---[^`]*?```\s*/gi, '');
                 cleanedMessage = cleanedMessage.replace(/```[^`]*?Present Characters\s*\n\s*---[^`]*?```\s*/gi, '');

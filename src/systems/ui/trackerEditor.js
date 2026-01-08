@@ -252,6 +252,48 @@ function exportTrackerPreset() {
 }
 
 /**
+ * Migrates old tracker preset format to current format
+ * @param {Object} config - The tracker config to migrate
+ * @returns {Object} - Migrated tracker config
+ */
+function migrateTrackerPreset(config) {
+    // Create a deep copy to avoid modifying the original
+    const migrated = JSON.parse(JSON.stringify(config));
+
+    // Migrate relationships structure (v3.0.0 -> v3.1.0)
+    if (migrated.presentCharacters) {
+        // Old format: relationshipEmojis directly on presentCharacters
+        // New format: relationships.relationshipEmojis
+        if (migrated.presentCharacters.relationshipEmojis &&
+            !migrated.presentCharacters.relationships) {
+            migrated.presentCharacters.relationships = {
+                enabled: migrated.presentCharacters.enableRelationships || true,
+                relationshipEmojis: migrated.presentCharacters.relationshipEmojis
+            };
+            // Keep legacy fields for backward compatibility
+            migrated.presentCharacters.relationshipFields = Object.keys(migrated.presentCharacters.relationshipEmojis);
+        }
+
+        // Ensure relationships object exists
+        if (!migrated.presentCharacters.relationships) {
+            migrated.presentCharacters.relationships = {
+                enabled: false,
+                relationshipEmojis: {}
+            };
+        }
+
+        // Ensure relationshipEmojis exists within relationships
+        if (!migrated.presentCharacters.relationships.relationshipEmojis) {
+            migrated.presentCharacters.relationships.relationshipEmojis = {};
+        }
+    }
+
+    // Add any other migration logic here for future format changes
+
+    return migrated;
+}
+
+/**
  * Import tracker configuration from a JSON file
  */
 function importTrackerPreset() {
@@ -278,6 +320,9 @@ function importTrackerPreset() {
                 throw new Error('Invalid preset file: missing required configuration sections');
             }
 
+            // Migrate old preset format to current format
+            const migratedConfig = migrateTrackerPreset(data.trackerConfig);
+
             // Ask for confirmation
             const confirmMessage = i18n.getTranslation('template.trackerEditorModal.messages.importConfirm') ||
                 'This will replace your current tracker configuration. Continue?';
@@ -286,8 +331,8 @@ function importTrackerPreset() {
                 return;
             }
 
-            // Apply the imported configuration
-            extensionSettings.trackerConfig = JSON.parse(JSON.stringify(data.trackerConfig)); // Deep copy
+            // Apply the migrated configuration
+            extensionSettings.trackerConfig = migratedConfig;
 
             // Re-render the editor UI
             renderEditorUI();
@@ -794,14 +839,25 @@ function setupPresentCharactersListeners() {
             extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis = {};
         }
 
+        // Generate a unique relationship name
+        let baseName = 'New Relationship';
+        let relationshipName = baseName;
+        let counter = 1;
+        const existingRelationships = extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis;
+
+        while (existingRelationships[relationshipName]) {
+            counter++;
+            relationshipName = `${baseName} ${counter}`;
+        }
+
         // Add to new structure
-        extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis['New Relationship'] = '😊';
+        extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis[relationshipName] = '😊';
 
         // Also update legacy fields for backward compatibility
         if (!extensionSettings.trackerConfig.presentCharacters.relationshipEmojis) {
             extensionSettings.trackerConfig.presentCharacters.relationshipEmojis = {};
         }
-        extensionSettings.trackerConfig.presentCharacters.relationshipEmojis['New Relationship'] = '😊';
+        extensionSettings.trackerConfig.presentCharacters.relationshipEmojis[relationshipName] = '😊';
 
         // Sync relationshipFields
         const emojis = extensionSettings.trackerConfig.presentCharacters.relationships.relationshipEmojis;

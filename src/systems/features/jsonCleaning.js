@@ -27,16 +27,51 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
             st_extension_settings.regex = [];
         }
 
-        const alreadyExists = existingScripts.some(script =>
+        const existingScript = existingScripts.find(script =>
             script && script.scriptName && script.scriptName === scriptName
         );
 
-        if (alreadyExists) {
-            // console.log('[RPG Companion] JSON cleaning regex already exists, skipping import');
+        if (existingScript) {
+            // Update existing script with new regex pattern if it's different
+            const newPattern = '/```json[\\s\\S]*?```/gim';
+
+            if (existingScript.findRegex !== newPattern) {
+                existingScript.findRegex = newPattern;
+                existingScript.placement = [2]; // 2 = AI Output
+                existingScript.disabled = false; // Ensure it's enabled
+                existingScript.runOnEdit = true; // Ensure it runs on edit
+                existingScript.displayOnly = true; // Alter Chat Display
+                existingScript.onlyFormatDisplay = true; // Ensure display formatting is enabled
+
+                if (typeof saveSettingsDebounced === 'function') {
+                    saveSettingsDebounced();
+                }
+                console.log('[RPG Companion] Updated regex pattern and placement.');
+            } else {
+                // Ensure it's enabled even if pattern matches
+                if (existingScript.disabled) {
+                    existingScript.disabled = false;
+                    if (typeof saveSettingsDebounced === 'function') {
+                        saveSettingsDebounced();
+                    }
+                    console.log('[RPG Companion] Re-enabled disabled regex.');
+                } else {
+                    // Also update placement if it's wrong
+                    const expectedPlacement = [2]; // 2 = AI Output
+                    if (JSON.stringify(existingScript.placement) !== JSON.stringify(expectedPlacement)) {
+                        existingScript.placement = expectedPlacement;
+                        if (typeof saveSettingsDebounced === 'function') {
+                            saveSettingsDebounced();
+                            // Force immediate save after a short delay
+                            setTimeout(() => saveSettingsDebounced(), 100);
+                        }
+                        console.log('[RPG Companion] Updated regex placement to [2].');
+                    }
+                }
+            }
+            console.log('[RPG Companion] JSON Cleaning Regex is already downloaded and active.');
             return;
         }
-
-        // console.log('[RPG Companion] Importing JSON cleaning regex for Together mode...');
 
         // Generate a UUID for the script
         const uuidv4 = () => {
@@ -50,19 +85,22 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
         // Create the regex script object for cleaning JSON tracker data
         // This regex matches ```json...``` code blocks containing tracker data
         // The prompt now explicitly instructs models to use this format
+        // Updated to handle various whitespace scenarios and ensure it catches all variations
         const regexScript = {
             id: uuidv4(),
             scriptName: scriptName,
-            // Match ```json...``` code blocks (non-greedy, multiline)
-            // This is now the guaranteed format since prompts instruct models to use code blocks
-            findRegex: '/```json\\s*[\\s\\S]*?```/gi',
+            // Match ```json...``` code blocks (handles spaces, newlines, any content)
+            // Using a more permissive pattern to catch all variations
+            findRegex: '/```json[\\s\\S]*?```/gim',
             replaceString: '',
             trimStrings: [],
-            placement: [0], // 0 = Output (transforms after generation, before display)
+            placement: [2], // 2 = AI Output
             disabled: false,
             markdownOnly: false,
-            promptOnly: false, // Apply to both prompts and outputs
+            promptOnly: false,
             runOnEdit: true,
+            displayOnly: true, // Alter Chat Display
+            onlyFormatDisplay: true, // Ensure display formatting is enabled
             substituteRegex: 0,
             minDepth: null,
             maxDepth: null
@@ -74,6 +112,7 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
         }
 
         st_extension_settings.regex.push(regexScript);
+        console.log('[RPG Companion] JSON Cleaning Regex created and activated.');
 
         // Save the changes
         if (typeof saveSettingsDebounced === 'function') {
@@ -81,11 +120,8 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
         } else {
             console.warn('[RPG Companion] saveSettingsDebounced is not a function, cannot save JSON cleaning regex');
         }
-
-        // console.log('[RPG Companion] ✅ JSON cleaning regex imported successfully');
-        // console.log('[RPG Companion] This regex will automatically remove tracker JSON from Together mode messages');
     } catch (error) {
-        console.error('[RPG Companion] Failed to import JSON cleaning regex:', error);
+        console.error('[RPG Companion] JSON Cleaning Regex failed to properly initialize!');
         console.error('[RPG Companion] Error details:', error.message, error.stack);
         // Don't throw - continue without it
     }

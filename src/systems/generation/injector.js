@@ -295,8 +295,8 @@ export async function onGenerationStarted(type, data, dryRun) {
             // Clear Spotify prompt if disabled
             setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
         }
-    } else if (extensionSettings.generationMode === 'separate') {
-        // In SEPARATE mode, inject the contextual summary for main roleplay generation
+    } else if (extensionSettings.generationMode === 'separate' || extensionSettings.generationMode === 'external') {
+        // In SEPARATE and EXTERNAL modes, inject the contextual summary for main roleplay generation
         const contextSummary = generateContextualSummary();
 
         if (contextSummary) {
@@ -312,7 +312,7 @@ Ensure these details naturally reflect and influence the narrative. Character be
             if (!shouldSuppress) {
                 setExtensionPrompt('rpg-companion-context', wrappedContext, extension_prompt_types.IN_CHAT, 1, false);
             }
-            // console.log('[RPG Companion] Injected contextual summary for separate mode:', contextSummary);
+            // console.log('[RPG Companion] Injected contextual summary for separate/external mode:', contextSummary);
         } else {
             // Clear if no data yet
             setExtensionPrompt('rpg-companion-context', '', extension_prompt_types.IN_CHAT, 1, false);
@@ -325,7 +325,7 @@ Ensure these details naturally reflect and influence the narrative. Character be
             const htmlPrompt = `\n${htmlPromptText}`;
 
             setExtensionPrompt('rpg-companion-html', htmlPrompt, extension_prompt_types.IN_CHAT, 0, false);
-            // console.log('[RPG Companion] Injected HTML prompt at depth 0 for separate mode');
+            // console.log('[RPG Companion] Injected HTML prompt at depth 0 for separate/external mode');
         } else {
             // Clear HTML prompt if disabled
             setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
@@ -338,7 +338,7 @@ Ensure these details naturally reflect and influence the narrative. Character be
             const spotifyPrompt = `\n${spotifyPromptText} ${SPOTIFY_FORMAT_INSTRUCTION}`;
 
             setExtensionPrompt('rpg-companion-spotify', spotifyPrompt, extension_prompt_types.IN_CHAT, 0, false);
-            // console.log('[RPG Companion] Injected Spotify prompt at depth 0 for separate mode');
+            // console.log('[RPG Companion] Injected Spotify prompt at depth 0 for separate/external mode');
         } else {
             // Clear Spotify prompt if disabled
             setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);

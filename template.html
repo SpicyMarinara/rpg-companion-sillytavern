@@ -492,7 +492,7 @@
                             data-i18n-key="template.settingsModal.advanced.contextMessages">Context Messages:</label>
                         <input type="number" id="rpg-update-depth" min="1" max="20" value="4" class="rpg-input" />
                         <small data-i18n-key="template.settingsModal.advanced.contextMessagesNote">Number of recent messages
-                            to include (Separate mode only)</small>
+                            to include (Separate/External mode)</small>
                     </div>
                 </div>
 
@@ -694,27 +694,26 @@
         </div>
 
         <footer class="rpg-settings-popup-footer">
-            <div class="rpg-footer-left">
-                <button id="rpg-editor-reset" class="rpg-btn-secondary" type="button">
-                    <i class="fa-solid fa-rotate-left"></i> <span
-                        data-i18n-key="template.trackerEditorModal.buttons.reset">Reset to Defaults</span>
-                </button>
-                <button id="rpg-editor-export" class="rpg-btn-secondary" type="button">
-                    <i class="fa-solid fa-file-export"></i> <span
-                        data-i18n-key="template.trackerEditorModal.buttons.export">Export Preset</span>
-                </button>
-                <button id="rpg-editor-import" class="rpg-btn-secondary" type="button">
-                    <i class="fa-solid fa-file-import"></i> <span
-                        data-i18n-key="template.trackerEditorModal.buttons.import">Import Preset</span>
-                </button>
-            </div>
-            <div class="rpg-footer-right">
-                <button id="rpg-editor-cancel" class="rpg-btn-secondary" type="button"
-                    data-i18n-key="template.trackerEditorModal.buttons.cancel">Cancel</button>
-                <button id="rpg-editor-save" class="rpg-btn-primary" type="button">
-                    <i class="fa-solid fa-save"></i> <span data-i18n-key="template.trackerEditorModal.buttons.save">Save
-                        & Apply</span>
-                </button>
+            <div class="rpg-editor-footer-buttons">
+                <div class="rpg-editor-footer-row">
+                    <button id="rpg-editor-reset" class="rpg-btn-secondary" type="button">
+                        <i class="fa-solid fa-rotate-left"></i> <span
+                            data-i18n-key="template.trackerEditorModal.buttons.reset">Reset</span>
+                    </button>
+                    <button id="rpg-editor-export" class="rpg-btn-secondary" type="button">
+                        <i class="fa-solid fa-file-export"></i> <span
+                            data-i18n-key="template.trackerEditorModal.buttons.export">Export</span>
+                    </button>
+                    <button id="rpg-editor-import" class="rpg-btn-secondary" type="button">
+                        <i class="fa-solid fa-file-import"></i> <span
+                            data-i18n-key="template.trackerEditorModal.buttons.import">Import</span>
+                    </button>
+                </div>
+                <div class="rpg-editor-footer-row">
+                    <button id="rpg-editor-save" class="rpg-btn-primary" type="button">
+                        <i class="fa-solid fa-save"></i> <span data-i18n-key="template.trackerEditorModal.buttons.save">Save & Apply</span>
+                    </button>
+                </div>
             </div>
         </footer>
     </div>
@@ -899,7 +898,7 @@
         <header class="rpg-settings-popup-header">
             <h3 id="rpg-welcome-title">
                 <i class="fa-solid fa-stars"></i>
-                Welcome to RPG Companion v.3.0.0!
+                Welcome to RPG Companion v.3.2.0!
             </h3>
             <button id="rpg-welcome-close" class="rpg-popup-close" type="button"
                 aria-label="Close Welcome">
@@ -932,6 +931,13 @@
                 <li>Spotify Music widget is more visible now, plus it works in the mobile view.</li>
                 <li>Auto-update after messages option is now available for External API generation mode.</li>
                 <li>Fixed the display of the thoughts window and its mobile display.</li>
+                <li>Mobile UI fixes (panel viewport and z-index issues).</li>
+                <li>Fixed the regex issue in Together mode (JSON blocks now hidden from display).</li>
+                <li>Fixed parsing error appearing when loading or switching chats.</li>
+                <li>Fixed adding new relationships in Edit Trackers (unique naming).</li>
+                <li>Added migration support for importing older tracker presets.</li>
+                <li>Lifted attributes cap from 100 to 999.</li>
+                <li>Fixed lock icon positioning on mobile devices.</li>
                 <li>Fixed smaller bugs.</li>
             </ul>
 

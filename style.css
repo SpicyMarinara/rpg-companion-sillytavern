@@ -601,6 +601,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    position: relative; /* For absolute positioning of lock icon on mobile */
 }
 
 /* Hide the stats header - we'll integrate portrait/inventory into stats content */
@@ -4231,6 +4232,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: var(--rpg-accent);
     border: 1px solid var(--rpg-border);
     border-radius: 0.375em;
+    min-width: 0; /* Allow grid items to shrink below content size */
 }
 
 .rpg-field-controls {
@@ -4269,6 +4271,13 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border-radius: 0.25em;
     color: var(--rpg-text);
     font-size: 0.95em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0; /* Allow input to shrink */
+    width: 100%; /* Fill available grid space */
+    box-sizing: border-box;
 }
 
 .rpg-field-remove,
@@ -4305,13 +4314,26 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Footer buttons */
 .rpg-settings-popup-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     padding: 1em;
     border-top: 2px solid var(--rpg-border);
-    gap: 1em;
     background: var(--rpg-accent);
+}
+
+.rpg-editor-footer-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+}
+
+.rpg-editor-footer-row {
+    display: flex;
+    gap: 0.5em;
+    justify-content: center;
+}
+
+.rpg-editor-footer-row:last-child button {
+    flex: 1;
+    max-width: 400px;
 }
 
 .rpg-footer-left {
@@ -5116,15 +5138,15 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Mobile panel - slide from right like desktop */
     .rpg-panel {
         position: fixed !important;
-        top: var(--topBarBlockSize) !important;
+        top: 0 !important;
         right: 0 !important;
         bottom: 0 !important;
         left: auto !important;
 
         /* Mobile panel sizing */
-        width: 85dvw !important;
+        width: 85vw !important;
         max-width: 400px !important;
-        height: calc(100dvh - var(--topBarBlockSize)) !important;
+        height: 100vh !important;
 
         /* Hidden by default - completely removed from layout */
         display: none !important;
@@ -5154,14 +5176,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     /* Show panel when opened with slide-in animation */
     .rpg-panel.rpg-mobile-open {
         display: block !important;
-        z-index: 50;
+        z-index: 9999;
         animation: rpgSlideInFromRight 0.3s ease-in-out;
     }
 
     /* Closing animation - slide out to right */
     .rpg-panel.rpg-mobile-closing {
         display: block !important;
-        z-index: 50;
+        z-index: 9999;
         animation: rpgSlideOutToRight 0.3s ease-in-out;
     }
 
