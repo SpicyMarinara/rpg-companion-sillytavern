@@ -155,11 +155,11 @@ export async function onGenerationStarted(type, data, dryRun) {
         // });
     }
 
-    // For SEPARATE mode only: Check if we need to commit extension data
+    // For SEPARATE and EXTERNAL modes: Check if we need to commit extension data
     // BUT: Only do this for the MAIN generation, not the tracker update generation
     // If isGenerating is true, this is the tracker update generation (second call), so skip flag logic
     // console.log('[RPG Companion DEBUG] Before generating:', lastGeneratedData.characterThoughts, ' , committed - ', committedTrackerData.characterThoughts);
-    if (extensionSettings.generationMode === 'separate' && !isGenerating) {
+    if ((extensionSettings.generationMode === 'separate' || extensionSettings.generationMode === 'external') && !isGenerating) {
         if (!lastActionWasSwipe) {
             // User sent a new message - commit lastGeneratedData before generation
             // console.log('[RPG Companion] 📝 COMMIT: New message - committing lastGeneratedData');

@@ -451,8 +451,14 @@ export function renderThoughts() {
 
                 debugLog(`[RPG Thoughts] Looking up avatar for: ${char.name}`);
 
-                // For group chats, search through group members first
-                if (selected_group) {
+                // First, check if user manually uploaded a custom avatar
+                if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[char.name]) {
+                    characterPortrait = extensionSettings.npcAvatars[char.name];
+                    debugLog('[RPG Thoughts] Found custom uploaded avatar');
+                }
+
+                // For group chats, search through group members
+                if (characterPortrait === FALLBACK_AVATAR_DATA_URI && selected_group) {
                     debugLog('[RPG Thoughts] In group chat, checking group members...');
 
                     try {

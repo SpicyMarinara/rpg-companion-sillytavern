@@ -51,9 +51,6 @@ export async function generateWithExternalAPI(messages) {
     if (!baseUrl || !baseUrl.trim()) {
         throw new Error('External API base URL is not configured');
     }
-    if (!apiKey || !apiKey.trim()) {
-        throw new Error('External API key is not found. If you switched browsers or cleared your cache, please re-enter your API key in the extension settings.');
-    }
     if (!model || !model.trim()) {
         throw new Error('External API model is not configured');
     }
@@ -64,13 +61,19 @@ export async function generateWithExternalAPI(messages) {
 
     // console.log(`[RPG Companion] Calling external API: ${normalizedBaseUrl} with model: ${model}`);
 
+    // Prepare headers - only include Authorization if API key is provided
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+
+    if (apiKey && apiKey.trim()) {
+        headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+    }
+
     try {
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey.trim()}`
-            },
+            headers: headers,
             body: JSON.stringify({
                 model: model.trim(),
                 messages: messages,
@@ -122,12 +125,10 @@ export async function testExternalAPIConnection() {
     const { baseUrl, model } = extensionSettings.externalApiSettings || {};
     const apiKey = localStorage.getItem('rpg_companion_external_api_key');
 
-    if (!baseUrl || !apiKey || !model) {
+    if (!baseUrl || !model) {
         return {
             success: false,
-            message: !apiKey
-                ? 'API Key not found. Please re-enter it in settings (keys are stored locally per-browser).'
-                : 'Please fill in all required fields (Base URL, API Key, and Model)'
+            message: 'Please fill in all required fields (Base URL and Model). API Key is optional for local servers.'
         };
     }
 

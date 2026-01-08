@@ -33,7 +33,7 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
 
         if (existingScript) {
             // Update existing script with new regex pattern if it's different
-            const newPattern = '/```json[\\s\\S]*?```/gim';
+            const newPattern = '/```(?:json|markdown)?[\\s\\S]*?```/gim';
 
             // Always ensure these properties are set correctly
             let needsSave = false;
@@ -58,18 +58,8 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
                 needsSave = true;
             }
 
-            if (existingScript.displayOnly !== true) {
-                existingScript.displayOnly = true; // Alter Chat Display
-                needsSave = true;
-            }
-
-            if (existingScript.onlyFormatDisplay !== true) {
-                existingScript.onlyFormatDisplay = true; // Alter Chat Display
-                needsSave = true;
-            }
-
-            if (existingScript.onlyFormatPrompt !== true) {
-                existingScript.onlyFormatPrompt = true; // Alter Outgoing Prompt
+            if (existingScript.markdownOnly !== true) {
+                existingScript.markdownOnly = true; // Only process markdown
                 needsSave = true;
             }
 
@@ -78,11 +68,19 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
                 needsSave = true;
             }
 
-            if (existingScript.filterGaslighting !== true) {
-                existingScript.filterGaslighting = true; // Ephemerality
+            if (needsSave && typeof saveSettingsDebounced === 'function') {
+                // Force immediate save and wait for it
+                const saveResult = saveSettingsDebounced();
+                if (saveResult && typeof saveResult.then === 'function') {
+                    await saveResult;
+                }
+                // Small delay to ensure save completes
+                await new Promise(resolve => setTimeout(resolve, 100));
+                console.log('[RPG Companion] ✅ Updated JSON cleaning regex to v3.2.6 settings.');
+            } else {
+                console.log('[RPG Companion] JSON Cleaning Regex is up to date.');
             }
 
-            console.log('[RPG Companion] JSON Cleaning Regex is already downloaded and active.');
             return;
         }
 
@@ -96,25 +94,22 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
         };
 
         // Create the regex script object for cleaning JSON tracker data
-        // This regex matches ```json...``` code blocks containing tracker data
+        // This regex matches ```json...```, ```markdown...```, or plain ```...``` code blocks
         // The prompt now explicitly instructs models to use this format
         // Updated to handle various whitespace scenarios and ensure it catches all variations
         const regexScript = {
             id: uuidv4(),
             scriptName: scriptName,
-            // Match ```json...``` code blocks (handles spaces, newlines, any content)
+            // Match ```json...```, ```markdown...```, or ```...``` code blocks (handles spaces, newlines, any content)
             // Using a more permissive pattern to catch all variations
-            findRegex: '/```json[\\s\\S]*?```/gim',
+            findRegex: '/```(?:json|markdown)?[\\s\\S]*?```/gim',
             replaceString: '',
             trimStrings: [],
             placement: [2], // 2 = AI Output
             disabled: false,
-            markdownOnly: false,
+            markdownOnly: true,
             promptOnly: true, // Enable prompt processing
             runOnEdit: true,
-            onlyFormatDisplay: true, // Alter Chat Display (enabled)
-            onlyFormatPrompt: true, // Alter Outgoing Prompt (enabled)
-            filterGaslighting: true, // Ephemerality - makes it only affect display
             substituteRegex: 0,
             minDepth: null,
             maxDepth: null

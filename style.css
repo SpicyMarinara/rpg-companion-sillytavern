@@ -7624,9 +7624,9 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
 /* Conclude Button */
 .rpg-encounter-conclude-btn {
-    background: rgba(255, 165, 0, 0.2);
-    border: 1px solid rgba(255, 165, 0, 0.4);
-    color: #ffa500;
+    background: var(--rpg-highlight, rgba(255, 165, 0, 0.2));
+    border: 1px solid var(--rpg-highlight, rgba(255, 165, 0, 0.4));
+    color: var(--rpg-text, #eaeaea);
     font-size: clamp(12px, 1vw, 14px);
     font-family: var(--rpg-font-body, 'Open Sans', sans-serif);
     font-weight: 600;
@@ -7641,10 +7641,10 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-encounter-conclude-btn:hover {
-    background: rgba(255, 165, 0, 0.3);
-    border-color: rgba(255, 165, 0, 0.6);
+    background: var(--rpg-highlight, rgba(255, 165, 0, 0.3));
+    border-color: var(--rpg-highlight, rgba(255, 165, 0, 0.6));
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(255, 165, 0, 0.3);
+    box-shadow: 0 4px 8px var(--rpg-highlight, rgba(255, 165, 0, 0.3));
 }
 
 /* Content Area - Main scrollable container */
@@ -7684,17 +7684,11 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     align-items: center;
     justify-content: center;
     padding: 2em;
-    background: rgba(0, 0, 0, 0.5);
-    border: 2px solid #e94560;
+    background: var(--rpg-bg, rgba(0, 0, 0, 0.5));
+    border: 2px solid var(--rpg-highlight, #e94560);
     border-radius: 12px;
     max-width: 600px;
     text-align: center;
-}
-
-.rpg-encounter-error-box h3 {
-    font-family: var(--rpg-font-heading, 'Cinzel', serif);
-    font-size: 1.5em;
-    font-weight: 700;
 }
 
 .rpg-encounter-error-box p {
@@ -7716,19 +7710,19 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-encounter-error-box .rpg-btn-primary {
-    background: #e94560;
-    color: #fff;
+    background: var(--rpg-highlight, #e94560);
+    color: var(--rpg-text, #eaeaea);
 }
 
 .rpg-encounter-error-box .rpg-btn-primary:hover {
-    background: #ff5577;
+    background: var(--rpg-highlight-hover, #ff5577);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
 }
 
 .rpg-encounter-error-box .rpg-btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ccc;
+    background: var(--rpg-border, rgba(255, 255, 255, 0.1));
+    color: var(--rpg-text, #eaeaea);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -7770,6 +7764,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     gap: clamp(0.375rem, 0.5vw, 0.5rem);
+    border-left: none !important;
+    padding-left: 0 !important;
+}
+
+.rpg-encounter-section h3 i {
+    border-left: none !important;
+    padding-left: 0 !important;
+    color: var(--rpg-text, #eaeaea);
 }
 
 .rpg-encounter-section {
@@ -7814,6 +7816,18 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     text-align: center;
     margin-bottom: 0.4vh;
     line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: clamp(40px, 4vw, 60px);
+}
+
+.rpg-encounter-card-sprite img {
+    width: clamp(40px, 4vw, 60px);
+    height: clamp(40px, 4vw, 60px);
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--rpg-border, #4a7ba7);
 }
 
 .rpg-encounter-card-avatar {
@@ -7888,6 +7902,20 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* Combat Log */
 .rpg-encounter-log-section h3 {
     margin: 0 0 0.5vh 0;
+    font-size: clamp(14px, 1.2vw, 18px);
+    font-weight: 700;
+    color: var(--rpg-text, #eaeaea);
+    display: flex;
+    align-items: center;
+    gap: clamp(0.375rem, 0.5vw, 0.5rem);
+    border-left: none !important;
+    padding-left: 0 !important;
+}
+
+.rpg-encounter-log-section h3 i {
+    border-left: none !important;
+    padding-left: 0 !important;
+    color: var(--rpg-text, #eaeaea);
 }
 
 .rpg-encounter-log {
@@ -7959,6 +7987,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     align-items: center;
     gap: clamp(0.375rem, 0.5vw, 0.5rem);
+    border-left: none !important;
+    padding-left: 0 !important;
+}
+
+.rpg-encounter-controls h3 i {
+    border-left: none !important;
+    padding-left: 0 !important;
+    color: var(--rpg-text, #eaeaea);
 }
 
 .rpg-encounter-controls h4 {
@@ -8270,6 +8306,28 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 .rpg-encounter-modal[data-environment="volcanic"] .rpg-encounter-container {
     background: linear-gradient(to bottom, rgba(178, 34, 34, 0.95), rgba(139, 0, 0, 0.9));
     border-color: #8b0000;
+}
+
+/* Spaceship */
+.rpg-encounter-modal[data-environment="spaceship"] .rpg-encounter-overlay {
+    background: linear-gradient(135deg, rgba(30, 30, 50, 0.4), rgba(10, 10, 30, 0.6));
+}
+
+.rpg-encounter-modal[data-environment="spaceship"] .rpg-encounter-container {
+    background: linear-gradient(to bottom, rgba(50, 60, 80, 0.95), rgba(30, 40, 60, 0.9));
+    border-color: #1e3a5f;
+    box-shadow: 0 0 20px rgba(0, 150, 255, 0.3), inset 0 0 20px rgba(0, 100, 200, 0.1);
+}
+
+/* Mansion */
+.rpg-encounter-modal[data-environment="mansion"] .rpg-encounter-overlay {
+    background: linear-gradient(135deg, rgba(139, 69, 19, 0.3), rgba(101, 67, 33, 0.5));
+}
+
+.rpg-encounter-modal[data-environment="mansion"] .rpg-encounter-container {
+    background: linear-gradient(to bottom, rgba(120, 80, 50, 0.95), rgba(90, 60, 40, 0.9));
+    border-color: #654321;
+    box-shadow: 0 0 15px rgba(218, 165, 32, 0.2), inset 0 0 15px rgba(139, 90, 43, 0.1);
 }
 
 /* Atmosphere Modifiers */

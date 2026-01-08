@@ -7,9 +7,12 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.2.5
+### v3.3.0
 
-- Minor bug fixes.
+- Small upgrades to the combat system.
+- Regex fix.
+- Fixed External API logic.
+- Even more minor bug fixes.
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis.

@@ -291,7 +291,7 @@ export async function buildEncounterInitPrompt() {
     initInstruction += `  ],\n`;
     initInstruction += `  "environment": "Brief description of the combat environment",\n`;
     initInstruction += `  "styleNotes": {\n`;
-    initInstruction += `    "environmentType": "forest|dungeon|desert|cave|city|ruins|snow|water|castle|wasteland|plains|mountains|swamp|volcanic",\n`;
+    initInstruction += `    "environmentType": "forest|dungeon|desert|cave|city|ruins|snow|water|castle|wasteland|plains|mountains|swamp|volcanic|spaceship|mansion",\n`;
     initInstruction += `    "atmosphere": "bright|dark|foggy|stormy|calm|eerie|chaotic|peaceful",\n`;
     initInstruction += `    "timeOfDay": "dawn|day|dusk|night|twilight",\n`;
     initInstruction += `    "weather": "clear|rainy|snowy|windy|stormy|overcast"\n`;
@@ -724,9 +724,11 @@ export function parseEncounterJSON(response) {
         // Remove code blocks if present
         let cleaned = response.trim();
 
-        // Remove ```json and ``` markers
-        cleaned = cleaned.replace(/```json\s*/gi, '');
-        cleaned = cleaned.replace(/```\s*/g, '');
+        // Remove ```json, ```markdown, and ``` markers (more comprehensive)
+        cleaned = cleaned.replace(/```(?:json|markdown)?\s*/gi, '');
+
+        // Remove any remaining backticks
+        cleaned = cleaned.replace(/`/g, '');
 
         // Find the first { and last }
         const firstBrace = cleaned.indexOf('{');

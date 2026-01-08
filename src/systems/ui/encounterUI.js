@@ -95,7 +95,7 @@ export class EncounterModal {
             const combatData = parseEncounterJSON(response);
 
             if (!combatData || !combatData.party || !combatData.enemies) {
-                this.showErrorWithRegenerate('Invalid JSON format detected. The AI returned malformed data.');
+                this.showErrorWithRegenerate('Invalid JSON format detected. The AI returned malformed data. Ensure the Max Response Length is set to at least 2048 tokens, otherwise the model might run out of tokens and produce unfinished structures.');
                 return;
             }
 
@@ -417,10 +417,17 @@ export class EncounterModal {
             const hpPercent = (enemy.hp / enemy.maxHp) * 100;
             const isDead = enemy.hp <= 0;
 
+            // Try to find avatar for enemy (they might be a character from the chat or Present Characters)
+            const avatarUrl = this.getCharacterAvatar(enemy.name);
+            const sprite = enemy.sprite || '👹';
+
+            // Fallback SVG if no avatar found
+            const fallbackSvg = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjY2NjYyIgb3BhY2l0eT0iMC4zIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjNjY2IiBmb250LXNpemU9IjQwIj4/PC90ZXh0Pjwvc3ZnPg==';
+
             return `
                 <div class="rpg-encounter-card ${isDead ? 'rpg-encounter-dead' : ''}" data-enemy-index="${index}">
                     <div class="rpg-encounter-card-sprite">
-                        ${enemy.sprite || '👹'}
+                        ${avatarUrl ? `<img src="${avatarUrl}" alt="${enemy.name}" onerror="this.parentElement.innerHTML='${sprite}';this.onerror=null;">` : sprite}
                     </div>
                     <div class="rpg-encounter-card-info">
                         <h4>${enemy.name}</h4>
@@ -461,7 +468,7 @@ export class EncounterModal {
                 }
             } else {
                 // Try to find character avatar by name
-                avatarUrl = this.getPartyMemberAvatar(member.name);
+                avatarUrl = this.getCharacterAvatar(member.name);
             }
 
             // Fallback SVG if no avatar found
@@ -488,17 +495,31 @@ export class EncounterModal {
     }
 
     /**
-     * Gets avatar for a party member by name
-     * @param {string} name - Party member name
+     * Gets avatar for a character by name (works for party members, enemies, and NPCs)
+     * @param {string} name - Character name
      * @returns {string} Avatar URL or null
      */
-    getPartyMemberAvatar(name) {
-        // Try to get from NPC avatars first
+    getCharacterAvatar(name) {
+        // Priority 1: Check custom uploaded avatars first (from Present Characters panel)
         if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[name]) {
             return extensionSettings.npcAvatars[name];
         }
 
-        // Try to find character by name in loaded characters
+        // Priority 2: Check if character is in the current group
+        if (selected_group) {
+            const groupMembers = getGroupMembers(selected_group);
+            if (groupMembers && groupMembers.length > 0) {
+                const matchingMember = groupMembers.find(member =>
+                    member && member.name && member.name.toLowerCase() === name.toLowerCase()
+                );
+
+                if (matchingMember && matchingMember.avatar) {
+                    return getSafeThumbnailUrl('avatar', matchingMember.avatar);
+                }
+            }
+        }
+
+        // Priority 3: Search all loaded characters
         if (characters && Array.isArray(characters)) {
             const matchingChar = characters.find(char =>
                 char && char.name && char.name.toLowerCase() === name.toLowerCase()
@@ -509,7 +530,7 @@ export class EncounterModal {
             }
         }
 
-        // Check if it's the current character
+        // Priority 4: Check if it's the current character
         if (this_chid !== undefined && characters && characters[this_chid]) {
             const currentChar = characters[this_chid];
             if (currentChar.name && currentChar.name.toLowerCase() === name.toLowerCase()) {
@@ -793,7 +814,7 @@ export class EncounterModal {
             const result = parseEncounterJSON(response);
 
             if (!result || !result.combatStats) {
-                this.showErrorWithRegenerate('Invalid JSON format detected. The AI returned malformed data.');
+                this.showErrorWithRegenerate('Invalid JSON format detected. The AI returned malformed data. Ensure the Max Response Length is set to at least 2048 tokens, otherwise the model might run out of tokens and produce unfinished structures.');
                 return;
             }
 
@@ -1223,76 +1244,8 @@ export class EncounterModal {
             loadingContent.innerHTML = `
                 <div class="rpg-encounter-error-box">
                     <i class="fa-solid fa-exclamation-triangle" style="color: #e94560; font-size: 48px; margin-bottom: 1em;"></i>
-                    <h3 style="color: #e94560; margin: 0 0 0.5em 0;">Wrong Format Detected</h3>
-                    <p style="color: #ccc; margin: 0 0 1.5em 0; max-width: 500px;">${message}</p>
-                    <div style="display: flex; gap: 1em;">
-                        <button id="rpg-error-regenerate" class="rpg-btn rpg-btn-primary">
-                            <i class="fa-solid fa-rotate-right"></i> Regenerate
-                        </button>
-                        <button id="rpg-error-close" class="rpg-btn rpg-btn-secondary">
-                            <i class="fa-solid fa-times"></i> Close
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            // Add event listeners
-            const regenerateBtn = loadingContent.querySelector('#rpg-error-regenerate');
-            const closeBtn = loadingContent.querySelector('#rpg-error-close');
-
-            if (regenerateBtn) {
-                regenerateBtn.addEventListener('click', () => this.regenerateLastRequest());
-            }
-
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => this.close());
-            }
-        }
-    }
-
-    /**
-     * Regenerates the last failed request
-     */
-    async regenerateLastRequest() {
-        if (!this.lastRequest) {
-            console.warn('[RPG Companion] No request to regenerate');
-            return;
-        }
-
-        // console.log('[RPG Companion] Regenerating request:', this.lastRequest.type);
-
-        if (this.lastRequest.type === 'init') {
-            // Retry initialization
-            this.isInitializing = true;
-            await this.initialize();
-        } else if (this.lastRequest.type === 'action') {
-            // Retry action
-            this.isProcessing = true;
-            await this.processCombatAction(this.lastRequest.action);
-        }
-    }
-
-    /**
-     * Shows an error message with a regenerate button
-     * @param {string} message - Error message to display
-     */
-    showErrorWithRegenerate(message) {
-        const loadingContent = this.modal.querySelector('#rpg-encounter-loading');
-        const combatContent = this.modal.querySelector('#rpg-encounter-content');
-
-        // Hide combat content if visible
-        if (combatContent) {
-            combatContent.style.display = 'none';
-        }
-
-        // Show error in loading area
-        if (loadingContent) {
-            loadingContent.style.display = 'flex';
-            loadingContent.innerHTML = `
-                <div class="rpg-encounter-error-box">
-                    <i class="fa-solid fa-exclamation-triangle" style="color: #e94560; font-size: 48px; margin-bottom: 1em;"></i>
-                    <h3 style="color: #e94560; margin: 0 0 0.5em 0;">Wrong Format Detected</h3>
-                    <p style="color: #ccc; margin: 0 0 1.5em 0; max-width: 500px;">${message}</p>
+                    <p style="color: #e94560; font-weight: bold; font-size: 1.2em; margin: 0 0 0.5em 0;">Wrong Format Detected</p>
+                    <p style="color: var(--rpg-text, #ccc); margin: 0 0 1.5em 0; max-width: 500px;">${message}</p>
                     <div style="display: flex; gap: 1em;">
                         <button id="rpg-error-regenerate" class="rpg-btn rpg-btn-primary">
                             <i class="fa-solid fa-rotate-right"></i> Regenerate
