@@ -7,7 +7,7 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.2.4
+### v3.2.5
 
 - Minor bug fixes.
 
