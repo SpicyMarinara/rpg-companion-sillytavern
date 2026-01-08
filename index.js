@@ -313,18 +313,6 @@ async function initUI() {
         extensionSettings.generationMode = String($(this).val());
         saveSettings();
         updateGenerationModeUI();
-
-        // Add or remove JSON cleaning regex based on mode
-        // This ensures old messages in chat history are also cleaned
-        try {
-            if (extensionSettings.generationMode === 'together') {
-                await ensureJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
-            } else {
-                removeJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
-            }
-        } catch (error) {
-            console.error('[RPG Companion] JSON cleaning regex update failed:', error);
-        }
     });
 
     $('#rpg-toggle-user-stats').on('change', function() {
@@ -1000,17 +988,10 @@ jQuery(async () => {
             // Non-critical - continue without it
         }
 
-        // Import the JSON cleaning regex for Together mode if enabled
+        // Import the JSON cleaning regex to clean up JSON in messages
         // This cleans historical messages when displayed
-        // Note: We also clean directly in message handler for redundancy
         try {
-            // console.log('[RPG Companion] Checking JSON cleaning regex. Generation mode:', extensionSettings.generationMode);
-            if (extensionSettings.generationMode === 'together') {
-                await ensureJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
-            } else {
-                // Remove the regex if switching to separate mode
-                removeJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
-            }
+            await ensureJsonCleaningRegex(st_extension_settings, saveSettingsDebounced);
         } catch (error) {
             console.error('[RPG Companion] JSON cleaning regex setup failed:', error);
             // Non-critical - continue without it
