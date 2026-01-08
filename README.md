@@ -7,9 +7,9 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.2.1
+### v3.2.2
 
-- Mobile UI fixes (SAVE ME FROM THIS NIGHTMARE).
+- Mobile UI fixes (WAKE ME UP INSIDE).
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, and Amauragis.

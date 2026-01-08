@@ -200,7 +200,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         left: 0 !important;
         right: auto !important;
         width: 85% !important;
-        max-width: 320px !important;
         height: 100dvh !important;
         top: 0 !important;
         bottom: 0 !important;
@@ -212,7 +211,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
         left: auto !important;
         right: 0 !important;
         width: 85% !important;
-        max-width: 320px !important;
         height: 100dvh !important;
         top: 0 !important;
         bottom: 0 !important;
@@ -5145,7 +5143,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 
         /* Mobile panel sizing */
         width: 85vw !important;
-        max-width: 400px !important;
         height: 100dvh !important;
 
         /* Hidden by default - completely removed from layout */
