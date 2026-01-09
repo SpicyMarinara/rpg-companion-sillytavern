@@ -3,9 +3,34 @@
  * Handles UI rendering for quests system (main and optional quests)
  */
 
-import { extensionSettings, $questsContainer } from '../../core/state.js';
-import { saveSettings } from '../../core/persistence.js';
+import { extensionSettings, $questsContainer, committedTrackerData, lastGeneratedData } from '../../core/state.js';
+import { saveSettings, saveChatData } from '../../core/persistence.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
+
+/**
+ * Syncs the current extensionSettings.quests to committedTrackerData.userStats
+ * This ensures quest changes made via UI are reflected in the data sent to AI
+ */
+function syncQuestsToCommittedData() {
+    const currentData = committedTrackerData.userStats || lastGeneratedData.userStats;
+    if (!currentData) return;
+
+    const trimmed = currentData.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+            const jsonData = JSON.parse(currentData);
+            if (jsonData && typeof jsonData === 'object') {
+                // Update quests in the JSON data
+                jsonData.quests = extensionSettings.quests || { main: 'None', optional: [] };
+                const updatedJSON = JSON.stringify(jsonData, null, 2);
+                committedTrackerData.userStats = updatedJSON;
+                lastGeneratedData.userStats = updatedJSON;
+            }
+        } catch (e) {
+            console.warn('[RPG Quests] Failed to sync quests to committed data:', e);
+        }
+    }
+}
 
 /**
  * Helper to generate lock icon HTML if setting is enabled
@@ -250,7 +275,10 @@ function attachQuestEventHandlers() {
                 }
                 extensionSettings.quests.optional.push(questTitle);
             }
+            // Sync quest changes to committedTrackerData so AI sees the addition
+            syncQuestsToCommittedData();
             saveSettings();
+            saveChatData();
             renderQuests();
         }
     });
@@ -278,7 +306,10 @@ function attachQuestEventHandlers() {
 
         if (questTitle) {
             extensionSettings.quests.main = questTitle;
+            // Sync quest changes to committedTrackerData so AI sees the edit
+            syncQuestsToCommittedData();
             saveSettings();
+            saveChatData();
             renderQuests();
         }
     });
@@ -293,7 +324,10 @@ function attachQuestEventHandlers() {
         } else {
             extensionSettings.quests.optional.splice(index, 1);
         }
+        // Sync quest changes to committedTrackerData so AI sees the removal
+        syncQuestsToCommittedData();
         saveSettings();
+        saveChatData();
         renderQuests();
     });
 
@@ -306,7 +340,10 @@ function attachQuestEventHandlers() {
 
         if (newTitle && field === 'optional' && index !== undefined) {
             extensionSettings.quests.optional[index] = newTitle;
+            // Sync quest changes to committedTrackerData so AI sees the edit
+            syncQuestsToCommittedData();
             saveSettings();
+            saveChatData();
         }
     });
 
