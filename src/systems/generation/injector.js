@@ -4,7 +4,7 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { setExtensionPrompt, extension_prompt_types, extension_prompt_roles } from '../../../../../../../script.js';
+import { setExtensionPrompt, extension_prompt_types, extension_prompt_roles, eventSource, event_types } from '../../../../../../../script.js';
 import {
     extensionSettings,
     committedTrackerData,
@@ -20,6 +20,7 @@ import {
     generateTrackerExample,
     generateTrackerInstructions,
     generateContextualSummary,
+    formatHistoricalTrackerData,
     DEFAULT_HTML_PROMPT,
     DEFAULT_DIALOGUE_COLORING_PROMPT,
     DEFAULT_SPOTIFY_PROMPT,
@@ -27,11 +28,181 @@ import {
 } from './promptBuilder.js';
 import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
 
+// Track suppression state for event handler
+let currentSuppressionState = false;
+
 // Type imports
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
 
 // Track last chat length we committed at to prevent duplicate commits from streaming
 let lastCommittedChatLength = -1;
+
+// Store original message content for restoration after generation
+// Map of message index -> original mes content
+let originalMessageContent = new Map();
+
+/**
+ * Builds a map of historical context data from ST chat messages with rpg_companion_swipes data.
+ * Returns a map keyed by message index with formatted context strings.
+ *
+ * @returns {Map<number, {context: string, isUserMessage: boolean}>} Map of message index to context data
+ */
+function buildHistoricalContextMap() {
+    const historyPersistence = extensionSettings.historyPersistence;
+    if (!historyPersistence || !historyPersistence.enabled) {
+        return new Map();
+    }
+
+    const context = getContext();
+    const chat = context.chat;
+    if (!chat || chat.length < 2) {
+        return new Map();
+    }
+
+    const trackerConfig = extensionSettings.trackerConfig;
+    const userName = context.name1;
+    const contextMap = new Map();
+
+    // Determine how many messages to include (0 = all available)
+    const messageCount = historyPersistence.messageCount || 0;
+    const maxMessages = messageCount === 0 ? chat.length : Math.min(messageCount, chat.length);
+
+    // Start from the second-to-last message (skip the most recent one as it gets current context)
+    // and work backwards
+    let processedCount = 0;
+
+    for (let i = chat.length - 2; i >= 0 && (messageCount === 0 || processedCount < maxMessages); i--) {
+        const message = chat[i];
+
+        // Get the rpg_companion_swipes data for current swipe
+        const swipeData = message.extra?.rpg_companion_swipes;
+        if (!swipeData) {
+            continue;
+        }
+
+        const currentSwipeId = message.swipe_id || 0;
+        const trackerData = swipeData[currentSwipeId];
+        if (!trackerData) {
+            continue;
+        }
+
+        // Format the historical tracker data using the shared function
+        const formattedContext = formatHistoricalTrackerData(trackerData, trackerConfig, userName);
+        if (!formattedContext) {
+            continue;
+        }
+
+        // Build the context wrapper
+        const preamble = historyPersistence.contextPreamble || '[Context at this point:]';
+        const wrappedContext = `\n${preamble}\n${formattedContext}`;
+
+        // Store with message index and whether it's a user message
+        contextMap.set(i, {
+            context: wrappedContext,
+            isUserMessage: message.is_user
+        });
+
+        processedCount++;
+    }
+
+    return contextMap;
+}
+
+/**
+ * Injects historical context into chat messages by modifying them in-place.
+ * Stores original content for restoration after generation.
+ * This approach works for ALL API types (text completion and chat completion).
+ */
+function injectHistoricalContextIntoChat() {
+    const historyPersistence = extensionSettings.historyPersistence;
+    if (!historyPersistence || !historyPersistence.enabled) {
+        console.log('[RPG Companion] History persistence not enabled, skipping injection');
+        return;
+    }
+
+    if (currentSuppressionState || !extensionSettings.enabled) {
+        console.log('[RPG Companion] Skipping history injection: suppressed or disabled');
+        return;
+    }
+
+    const context = getContext();
+    const chat = context.chat;
+    if (!chat || chat.length < 2) {
+        console.log('[RPG Companion] Chat too short, skipping history injection');
+        return;
+    }
+
+    // Build the context map
+    const contextMap = buildHistoricalContextMap();
+    if (contextMap.size === 0) {
+        console.log('[RPG Companion] No historical context to inject');
+        return;
+    }
+
+    console.log(`[RPG Companion] Injecting historical context into ${contextMap.size} messages`);
+
+    const position = historyPersistence.injectionPosition || 'assistant_message_end';
+
+    // Clear any previous stored content
+    originalMessageContent.clear();
+
+    let injectedCount = 0;
+    for (const [msgIdx, data] of contextMap) {
+        const message = chat[msgIdx];
+        if (!message || typeof message.mes !== 'string') {
+            continue;
+        }
+
+        const { context: ctxContent, isUserMessage } = data;
+
+        // Determine if we should inject based on position and message type
+        let shouldInject = false;
+
+        if (position === 'user_message_end' && isUserMessage) {
+            shouldInject = true;
+        } else if (position === 'assistant_message_end' && !isUserMessage) {
+            shouldInject = true;
+        } else if (position === 'extra_user_message' || position === 'extra_assistant_message') {
+            // For these positions, inject regardless of message type
+            shouldInject = true;
+        }
+
+        if (shouldInject) {
+            // Store original content for restoration
+            originalMessageContent.set(msgIdx, message.mes);
+
+            // Modify the message in-place
+            message.mes = message.mes + ctxContent;
+            injectedCount++;
+            console.log(`[RPG Companion] Injected context into message ${msgIdx}`);
+        }
+    }
+
+    console.log(`[RPG Companion] Successfully injected historical context into ${injectedCount} messages`);
+}
+
+/**
+ * Restores original message content after generation completes.
+ * This ensures the injected context doesn't persist in the actual chat data.
+ */
+function restoreOriginalMessageContent() {
+    if (originalMessageContent.size === 0) {
+        return;
+    }
+
+    const context = getContext();
+    const chat = context.chat;
+
+    console.log(`[RPG Companion] Restoring ${originalMessageContent.size} messages to original content`);
+
+    for (const [msgIdx, originalContent] of originalMessageContent) {
+        if (chat[msgIdx]) {
+            chat[msgIdx].mes = originalContent;
+        }
+    }
+
+    originalMessageContent.clear();
+}
 
 /**
  * Event handler for generation start.
@@ -355,4 +526,30 @@ Ensure these details naturally reflect and influence the narrative. Character be
         setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
     }
+
+    // Set suppression state for the historical context injection
+    currentSuppressionState = shouldSuppress;
+
+    // Inject historical context directly into chat messages
+    // This temporarily modifies messages and will be restored after generation
+    injectHistoricalContextIntoChat();
+}
+
+/**
+ * Called when generation ends to restore original message content.
+ * This should be called from the GENERATION_ENDED event handler.
+ */
+export function onGenerationEndedCleanup() {
+    restoreOriginalMessageContent();
+}
+
+/**
+ * Initialize the historical context injection event listener
+ * This should be called once during extension initialization
+ */
+export function initHistoricalContextInjection() {
+    // Historical context injection is now handled directly in onGenerationStarted
+    // by temporarily modifying chat messages. This works for ALL API types.
+    // Restoration happens in onGenerationEndedCleanup.
+    console.log('[RPG Companion] Historical context injection initialized (direct chat modification mode)');
 }

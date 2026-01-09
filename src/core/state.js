@@ -43,6 +43,13 @@ export let extensionSettings = {
     enableRandomizedPlot: true, // Show randomized plot progression button above chat input
     enableNaturalPlot: true, // Show natural plot progression button above chat input
     saveTrackerHistory: false, // Save tracker data in chat history for each message
+    // History persistence settings - inject selected tracker data into historical messages
+    historyPersistence: {
+        enabled: false, // Master toggle for history persistence feature
+        messageCount: 5, // Number of messages to include (0 = all available)
+        injectionPosition: 'assistant_message_end', // 'user_message_end', 'assistant_message_end', 'extra_user_message', 'extra_assistant_message'
+        contextPreamble: '' // Optional custom preamble text (empty = use default short one)
+    },
     panelPosition: 'right', // 'left', 'right', or 'top'
     theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom
     customColors: {
@@ -91,45 +98,51 @@ export let extensionSettings = {
         userStats: {
             // Array of custom stats (allows add/remove/rename)
             customStats: [
-                { id: 'health', name: 'Health', enabled: true },
-                { id: 'satiety', name: 'Satiety', enabled: true },
-                { id: 'energy', name: 'Energy', enabled: true },
-                { id: 'hygiene', name: 'Hygiene', enabled: true },
-                { id: 'arousal', name: 'Arousal', enabled: true }
+                { id: 'health', name: 'Health', enabled: true, persistInHistory: false },
+                { id: 'satiety', name: 'Satiety', enabled: true, persistInHistory: false },
+                { id: 'energy', name: 'Energy', enabled: true, persistInHistory: false },
+                { id: 'hygiene', name: 'Hygiene', enabled: true, persistInHistory: false },
+                { id: 'arousal', name: 'Arousal', enabled: true, persistInHistory: false }
             ],
             // RPG Attributes (customizable D&D-style attributes)
             showRPGAttributes: true,
             showLevel: true, // Show/hide level in UI and prompts
             alwaysSendAttributes: false, // If true, always send attributes; if false, only send with dice rolls
             rpgAttributes: [
-                { id: 'str', name: 'STR', enabled: true },
-                { id: 'dex', name: 'DEX', enabled: true },
-                { id: 'con', name: 'CON', enabled: true },
-                { id: 'int', name: 'INT', enabled: true },
-                { id: 'wis', name: 'WIS', enabled: true },
-                { id: 'cha', name: 'CHA', enabled: true }
+                { id: 'str', name: 'STR', enabled: true, persistInHistory: false },
+                { id: 'dex', name: 'DEX', enabled: true, persistInHistory: false },
+                { id: 'con', name: 'CON', enabled: true, persistInHistory: false },
+                { id: 'int', name: 'INT', enabled: true, persistInHistory: false },
+                { id: 'wis', name: 'WIS', enabled: true, persistInHistory: false },
+                { id: 'cha', name: 'CHA', enabled: true, persistInHistory: false }
             ],
             // Status section config
             statusSection: {
                 enabled: true,
                 showMoodEmoji: true,
-                customFields: ['Conditions'] // User can edit what to track
+                customFields: ['Conditions'], // User can edit what to track
+                persistInHistory: false // Persist status in historical messages
             },
             // Optional skills field
             skillsSection: {
                 enabled: false,
                 label: 'Skills', // User-editable
-                customFields: [] // Array of skill names
-            }
+                customFields: [], // Array of skill names
+                persistInHistory: false // Persist skills in historical messages
+            },
+            // Inventory persistence
+            inventoryPersistInHistory: false, // Persist inventory in historical messages
+            // Quests persistence
+            questsPersistInHistory: false // Persist quests in historical messages
         },
         infoBox: {
             widgets: {
-                date: { enabled: true, format: 'Weekday, Month, Year' }, // Format options in UI
-                weather: { enabled: true },
-                temperature: { enabled: true, unit: 'C' }, // 'C' or 'F'
-                time: { enabled: true },
-                location: { enabled: true },
-                recentEvents: { enabled: true }
+                date: { enabled: true, format: 'Weekday, Month, Year', persistInHistory: true }, // Date enabled by default for history
+                weather: { enabled: true, persistInHistory: true }, // Weather enabled by default for history
+                temperature: { enabled: true, unit: 'C', persistInHistory: false }, // 'C' or 'F'
+                time: { enabled: true, persistInHistory: true }, // Time enabled by default for history
+                location: { enabled: true, persistInHistory: true }, // Location enabled by default for history
+                recentEvents: { enabled: true, persistInHistory: false }
             }
         },
         presentCharacters: {
@@ -159,14 +172,15 @@ export let extensionSettings = {
             },
             // Custom fields (appearance, demeanor, etc. - shown after relationship, separated by |)
             customFields: [
-                { id: 'appearance', name: 'Appearance', enabled: true, description: 'Visible physical appearance (clothing, hair, notable features)' },
-                { id: 'demeanor', name: 'Demeanor', enabled: true, description: 'Observable demeanor or emotional state' }
+                { id: 'appearance', name: 'Appearance', enabled: true, description: 'Visible physical appearance (clothing, hair, notable features)', persistInHistory: false },
+                { id: 'demeanor', name: 'Demeanor', enabled: true, description: 'Observable demeanor or emotional state', persistInHistory: false }
             ],
             // Thoughts configuration (separate line)
             thoughts: {
                 enabled: true,
                 name: 'Thoughts',
-                description: 'Internal Monologue (in first person from character\'s POV, up to three sentences long)'
+                description: 'Internal Monologue (in first person from character\'s POV, up to three sentences long)',
+                persistInHistory: false
             },
             // Character stats toggle (optional feature)
             characterStats: {

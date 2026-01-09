@@ -55,7 +55,7 @@ import {
 } from './src/systems/generation/promptBuilder.js';
 import { parseResponse, parseUserStats } from './src/systems/generation/parser.js';
 import { updateRPGData, testExternalAPIConnection } from './src/systems/generation/apiClient.js';
-import { onGenerationStarted } from './src/systems/generation/injector.js';
+import { onGenerationStarted, initHistoricalContextInjection } from './src/systems/generation/injector.js';
 
 // Rendering modules
 import { getSafeThumbnailUrl } from './src/utils/avatars.js';
@@ -1031,6 +1031,9 @@ jQuery(async () => {
                 [event_types.USER_MESSAGE_RENDERED]: updatePersonaAvatar,
                 [event_types.SETTINGS_UPDATED]: updatePersonaAvatar
             });
+
+            // Initialize historical context injection (uses CHAT_COMPLETION_PROMPT_READY event)
+            initHistoricalContextInjection();
         } catch (error) {
             console.error('[RPG Companion] Event registration failed:', error);
             throw error; // This is critical - can't continue without events

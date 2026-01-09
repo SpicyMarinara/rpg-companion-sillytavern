@@ -729,6 +729,216 @@ function formatTrackerDataForContext(jsonData, trackerType, userName) {
 }
 
 /**
+ * Formats historical tracker data from a message's rpg_companion_swipes data.
+ * Only includes tracker fields that have persistInHistory enabled in trackerConfig.
+ * Uses the same formatting as formatTrackerDataForContext but filtered by persistence settings.
+ *
+ * @param {Object} trackerData - The tracker data from message.extra.rpg_companion_swipes[swipeId]
+ * @param {Object} trackerConfig - The tracker configuration from extensionSettings.trackerConfig
+ * @param {string} userName - The user's name for personalization
+ * @returns {string} Formatted historical context or empty string if nothing to include
+ */
+export function formatHistoricalTrackerData(trackerData, trackerConfig, userName) {
+    if (!trackerData || !trackerConfig) {
+        return '';
+    }
+
+    let formatted = '';
+
+    // Helper to safely get values
+    const getValue = (field) => {
+        if (field === null || field === undefined) return '';
+        if (field && typeof field === 'object' && !Array.isArray(field) && 'value' in field) {
+            return getValue(field.value);
+        }
+        if (typeof field !== 'object') {
+            return String(field);
+        }
+        if (Array.isArray(field)) {
+            return field.map(item => getValue(item)).filter(Boolean).join(', ');
+        }
+        if (field && typeof field === 'object') {
+            if ('start' in field && 'end' in field) {
+                return `${getValue(field.start)} - ${getValue(field.end)}`;
+            }
+            if ('emoji' in field && 'forecast' in field) {
+                return `${getValue(field.emoji)} ${getValue(field.forecast)}`;
+            }
+            if ('name' in field) {
+                const name = getValue(field.name);
+                if ('quantity' in field && field.quantity > 1) {
+                    return `${name} (x${field.quantity})`;
+                }
+                return name;
+            }
+            if ('title' in field) {
+                return getValue(field.title);
+            }
+        }
+        return '';
+    };
+
+    try {
+        // Process userStats if present and has persistence-enabled fields
+        if (trackerData.userStats) {
+            const userStatsConfig = trackerConfig.userStats;
+            const userStatsData = typeof trackerData.userStats === 'string'
+                ? JSON.parse(trackerData.userStats)
+                : trackerData.userStats;
+
+            let statsFormatted = '';
+
+            // Custom stats with persistInHistory enabled
+            if (userStatsData.stats && Array.isArray(userStatsData.stats)) {
+                for (const stat of userStatsData.stats) {
+                    const configStat = userStatsConfig.customStats.find(s => s.id === stat.id);
+                    if (configStat?.persistInHistory && stat.value !== undefined) {
+                        const statName = stat.name || configStat.name || stat.id;
+                        statsFormatted += `${statName}: ${stat.value}, `;
+                    }
+                }
+            }
+
+            // Status section
+            if (userStatsConfig.statusSection?.persistInHistory && userStatsData.status) {
+                const mood = getValue(userStatsData.status.mood || userStatsData.status);
+                const conditions = getValue(userStatsData.status.conditions);
+                if (mood) statsFormatted += `Mood: ${mood}, `;
+                if (conditions && conditions !== 'None') statsFormatted += `Conditions: ${conditions}, `;
+            }
+
+            // Skills section
+            if (userStatsConfig.skillsSection?.persistInHistory && userStatsData.skills) {
+                const skillsList = Array.isArray(userStatsData.skills)
+                    ? userStatsData.skills.map(s => getValue(s)).filter(s => s).join(', ')
+                    : getValue(userStatsData.skills);
+                if (skillsList) statsFormatted += `Skills: ${skillsList}, `;
+            }
+
+            // Inventory
+            if (userStatsConfig.inventoryPersistInHistory && userStatsData.inventory) {
+                const inv = userStatsData.inventory;
+                if (inv.onPerson && Array.isArray(inv.onPerson) && inv.onPerson.length > 0) {
+                    const items = inv.onPerson.map(i => getValue(i)).filter(i => i);
+                    if (items.length > 0) statsFormatted += `On Person: ${items.join(', ')}, `;
+                }
+                if (inv.clothing && Array.isArray(inv.clothing) && inv.clothing.length > 0) {
+                    const items = inv.clothing.map(i => getValue(i)).filter(i => i);
+                    if (items.length > 0) statsFormatted += `Clothing: ${items.join(', ')}, `;
+                }
+            }
+
+            // Quests
+            if (userStatsConfig.questsPersistInHistory && userStatsData.quests) {
+                const quests = userStatsData.quests;
+                if (quests.main) {
+                    const mainQuest = getValue(quests.main);
+                    if (mainQuest && mainQuest !== 'None') statsFormatted += `Quest: ${mainQuest}, `;
+                }
+            }
+
+            if (statsFormatted) {
+                formatted += `${userName}: ${statsFormatted.slice(0, -2)}\n`;
+            }
+        }
+
+        // Process infoBox if present and has persistence-enabled widgets
+        if (trackerData.infoBox) {
+            const infoBoxConfig = trackerConfig.infoBox;
+            const infoBoxData = typeof trackerData.infoBox === 'string'
+                ? JSON.parse(trackerData.infoBox)
+                : trackerData.infoBox;
+
+            let infoFormatted = '';
+
+            // Date
+            if (infoBoxConfig.widgets.date?.persistInHistory && infoBoxData.date) {
+                const date = getValue(infoBoxData.date);
+                if (date) infoFormatted += `Date: ${date}, `;
+            }
+
+            // Time
+            if (infoBoxConfig.widgets.time?.persistInHistory && infoBoxData.time) {
+                const time = getValue(infoBoxData.time);
+                if (time) infoFormatted += `Time: ${time}, `;
+            }
+
+            // Weather
+            if (infoBoxConfig.widgets.weather?.persistInHistory && infoBoxData.weather) {
+                const weather = getValue(infoBoxData.weather);
+                if (weather) infoFormatted += `Weather: ${weather}, `;
+            }
+
+            // Temperature
+            if (infoBoxConfig.widgets.temperature?.persistInHistory && infoBoxData.temperature) {
+                const temp = getValue(infoBoxData.temperature);
+                if (temp) infoFormatted += `Temp: ${temp}, `;
+            }
+
+            // Location
+            if (infoBoxConfig.widgets.location?.persistInHistory && infoBoxData.location) {
+                const location = getValue(infoBoxData.location);
+                if (location) infoFormatted += `Location: ${location}, `;
+            }
+
+            // Recent Events
+            if (infoBoxConfig.widgets.recentEvents?.persistInHistory && infoBoxData.recentEvents) {
+                const events = getValue(infoBoxData.recentEvents);
+                if (events) infoFormatted += `Events: ${events}, `;
+            }
+
+            if (infoFormatted) {
+                formatted += infoFormatted.slice(0, -2) + '\n';
+            }
+        }
+
+        // Process characterThoughts if present and has persistence-enabled fields
+        if (trackerData.characterThoughts) {
+            const charsConfig = trackerConfig.presentCharacters;
+            const charsData = typeof trackerData.characterThoughts === 'string'
+                ? JSON.parse(trackerData.characterThoughts)
+                : trackerData.characterThoughts;
+
+            // Characters can be an array or wrapped in an object
+            const characters = Array.isArray(charsData) ? charsData : (charsData.characters || []);
+
+            for (const char of characters) {
+                if (!char || !char.name) continue;
+
+                let charFormatted = '';
+
+                // Custom fields (appearance, demeanor, etc.)
+                if (char.details && typeof char.details === 'object') {
+                    for (const field of charsConfig.customFields) {
+                        if (field.persistInHistory && char.details[field.id]) {
+                            const value = getValue(char.details[field.id]);
+                            if (value) charFormatted += `${field.name}: ${value}, `;
+                        }
+                    }
+                }
+
+                // Thoughts
+                if (charsConfig.thoughts?.persistInHistory && char.thoughts) {
+                    const thoughts = typeof char.thoughts === 'object' && char.thoughts.content
+                        ? getValue(char.thoughts.content)
+                        : getValue(char.thoughts);
+                    if (thoughts) charFormatted += `Thinking: ${thoughts}, `;
+                }
+
+                if (charFormatted) {
+                    formatted += `${getValue(char.name)}: ${charFormatted.slice(0, -2)}\n`;
+                }
+            }
+        }
+
+        return formatted.trim();
+    } catch (e) {
+        console.warn('[RPG Companion] Failed to format historical tracker data:', e);
+        return '';
+    }
+}
+
+/**
  * Generates a formatted contextual summary for SEPARATE mode injection.
  * Includes the full tracker data in original format (without code fences and separators).
  * Uses COMMITTED data (not displayed data) for generation context.
@@ -883,6 +1093,8 @@ export function generateRPGPromptText() {
 export async function generateSeparateUpdatePrompt() {
     const depth = extensionSettings.updateDepth;
     const userName = getContext().name1;
+    const trackerConfig = extensionSettings.trackerConfig;
+    const historyPersistence = extensionSettings.historyPersistence;
 
     const messages = [];
 
@@ -899,6 +1111,7 @@ export async function generateSeparateUpdatePrompt() {
     systemMessage += `Here is the description of the protagonist for reference:\n`;
     systemMessage += `<protagonist>\n{{persona}}\n</protagonist>\n`;
     systemMessage += `\n`;
+
     systemMessage += `Here are the last few messages in the conversation history (between the user and the roleplayer assistant) you should reference when responding:\n<history>`;
 
     messages.push({
@@ -907,13 +1120,34 @@ export async function generateSeparateUpdatePrompt() {
     });
 
     // /hide command automatically handles checkpoint filtering
-    // Add chat history as separate user/assistant messages
+    // Add chat history as separate user/assistant messages with per-message historical context
     const recentMessages = chat.slice(-depth);
+    const startIndex = chat.length - depth;
 
-    for (const message of recentMessages) {
+    for (let i = 0; i < recentMessages.length; i++) {
+        const message = recentMessages[i];
+        const chatIndex = startIndex + i;
+        let content = message.mes;
+
+        // Append historical tracker context to this message if enabled and available
+        if (historyPersistence?.enabled && chatIndex < chat.length - 1) {
+            const swipeData = message.extra?.rpg_companion_swipes;
+            if (swipeData) {
+                const currentSwipeId = message.swipe_id || 0;
+                const trackerData = swipeData[currentSwipeId];
+                if (trackerData) {
+                    const formattedContext = formatHistoricalTrackerData(trackerData, trackerConfig, userName);
+                    if (formattedContext) {
+                        const preamble = historyPersistence.contextPreamble || '[Context at this point:]';
+                        content += `\n${preamble}\n${formattedContext}`;
+                    }
+                }
+            }
+        }
+
         messages.push({
             role: message.is_user ? 'user' : 'assistant',
-            content: message.mes
+            content: content
         });
     }
 
@@ -928,6 +1162,54 @@ export async function generateSeparateUpdatePrompt() {
     });
 
     return messages;
+}
+
+/**
+ * Builds historical tracker context for AI generation prompts.
+ * Iterates through recent messages and extracts tracker data for persistence-enabled fields.
+ *
+ * @param {number} depth - Number of messages to look back
+ * @param {Object} trackerConfig - The tracker configuration
+ * @param {string} userName - The user's name
+ * @returns {string} Formatted historical context or empty string
+ */
+function buildHistoricalContextForGeneration(depth, trackerConfig, userName) {
+    if (!chat || chat.length < 2) {
+        return '';
+    }
+
+    const historyPersistence = extensionSettings.historyPersistence;
+    const messageCount = historyPersistence?.messageCount || 0;
+    const maxMessages = messageCount === 0 ? depth : Math.min(messageCount, depth);
+
+    let historicalContext = '';
+    let processedCount = 0;
+    let messageIndex = 0;
+
+    // Start from older messages and work forward for chronological order
+    const startIndex = Math.max(0, chat.length - 1 - maxMessages);
+    for (let i = startIndex; i < chat.length - 1 && processedCount < maxMessages; i++) {
+        const message = chat[i];
+        const swipeData = message.extra?.rpg_companion_swipes;
+        if (!swipeData) {
+            continue;
+        }
+
+        const currentSwipeId = message.swipe_id || 0;
+        const trackerData = swipeData[currentSwipeId];
+        if (!trackerData) {
+            continue;
+        }
+
+        const formattedContext = formatHistoricalTrackerData(trackerData, trackerConfig, userName);
+        if (formattedContext) {
+            messageIndex++;
+            historicalContext += `[Message ${messageIndex}]\n${formattedContext}\n`;
+            processedCount++;
+        }
+    }
+
+    return historicalContext.trim();
 }
 
 /**

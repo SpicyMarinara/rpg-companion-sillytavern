@@ -30,7 +30,7 @@ import { parseResponse, parseUserStats } from '../generation/parser.js';
 import { parseAndStoreSpotifyUrl, convertToEmbedUrl } from '../features/musicPlayer.js';
 import { updateRPGData } from '../generation/apiClient.js';
 import { removeLocks } from '../generation/lockManager.js';
-import { onGenerationStarted } from '../generation/injector.js';
+import { onGenerationStarted, onGenerationEndedCleanup } from '../generation/injector.js';
 
 // Rendering
 import { renderUserStats } from '../rendering/userStats.js';
@@ -452,6 +452,9 @@ export function clearExtensionPrompts() {
  */
 export async function onGenerationEnded() {
     // console.log('[RPG Companion] 🏁 onGenerationEnded called');
+
+    // Restore original message content that was modified for historical context injection
+    onGenerationEndedCleanup();
 
     // Note: isGenerating flag is cleared in onMessageReceived after parsing (together mode)
     // or in apiClient.js after separate generation completes (separate mode)
