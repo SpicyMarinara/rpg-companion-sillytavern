@@ -76,7 +76,7 @@
     "template.settingsModal.advanced.encounterHistoryDepthNote": "Number of recent messages to include in combat initialization.",
     "template.settingsModal.advanced.autoSaveCombatLogs": "Auto-save Combat Logs",
     "template.settingsModal.advanced.autoSaveCombatLogsNote": "Save detailed combat logs to file for future reference and analysis.",
-    "template.settingsModal.advanced.clearCacheNote": "Clears all cached data including tracker history and temporary files.",
+    "template.settingsModal.advanced.clearCacheNote": "Clears committed and displayed tracker data for your currently active chat.",
     "template.settingsModal.advanced.generationMode": "Generation Mode:",
     "template.settingsModal.advanced.generationModeOptions.together": "Together with Main Generation",
     "template.settingsModal.advanced.generationModeOptions.separate": "Separate Generation",
