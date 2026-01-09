@@ -13,9 +13,11 @@ import {
     committedTrackerData,
     lastActionWasSwipe,
     isPlotProgression,
+    isAwaitingNewMessage,
     setLastActionWasSwipe,
     setIsPlotProgression,
     setIsGenerating,
+    setIsAwaitingNewMessage,
     updateLastGeneratedData,
     updateCommittedTrackerData,
     $musicPlayerContainer
@@ -104,6 +106,10 @@ export function onMessageSent() {
 
     // console.log('[RPG Companion] 🟢 EVENT: onMessageSent (after placeholder check)');
     // console.log('[RPG Companion] 🟢 NOTE: lastActionWasSwipe will be reset in onMessageReceived after generation completes');
+
+    // Set flag to indicate we're expecting a new message from generation
+    // This allows auto-update to distinguish between new generations and loading chat history
+    setIsAwaitingNewMessage(true);
 
     // For separate mode with auto-update disabled, commit displayed tracker
     if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
@@ -250,12 +256,16 @@ export async function onMessageReceived(data) {
         }
 
         // Trigger auto-update if enabled (for both separate and external modes)
-        if (extensionSettings.autoUpdate) {
+        // Only trigger if this is a newly generated message, not loading chat history
+        if (extensionSettings.autoUpdate && isAwaitingNewMessage) {
             setTimeout(async () => {
                 await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
             }, 500);
         }
     }
+
+    // Reset the awaiting flag after processing the message
+    setIsAwaitingNewMessage(false);
 
     // Reset the swipe flag after generation completes
     // This ensures that if the user swiped → auto-reply generated → flag is now cleared
@@ -340,6 +350,7 @@ export function onMessageSwiped(messageIndex) {
     if (!isExistingSwipe) {
         // This is a NEW swipe that will trigger generation
         setLastActionWasSwipe(true);
+        setIsAwaitingNewMessage(true);
         // console.log('[RPG Companion] 🔵 NEW swipe detected - Set lastActionWasSwipe = true');
     } else {
         // This is navigating to an EXISTING swipe - don't change the flag

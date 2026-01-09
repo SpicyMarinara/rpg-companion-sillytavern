@@ -64,6 +64,7 @@ import { renderInfoBox, updateInfoBoxField } from './src/systems/rendering/infoB
 import {
     renderThoughts,
     updateCharacterField,
+    removeCharacter,
     updateChatThoughts,
     createThoughtPanel
 } from './src/systems/rendering/thoughts.js';

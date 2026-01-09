@@ -7,11 +7,10 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.3.1
+### v3.3.2
 
-- Thought bubble can now be collapsed into an icon.
-- Fixed a bug for Past Events being parsed incorrectly.
-- Added event emission on when the tracker generation is complete.
+- Fixed the auto-generation triggering on switching/starting new chats in separate generation mode.
+- Restored the option to remove generated characters from the panel.
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.

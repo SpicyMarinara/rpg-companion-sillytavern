@@ -309,6 +309,12 @@ export let isGenerating = false;
 export let isPlotProgression = false;
 
 /**
+ * Flag indicating if we're actively expecting a new message from generation
+ * (as opposed to loading chat history)
+ */
+export let isAwaitingNewMessage = false;
+
+/**
  * Temporary storage for pending dice roll (not saved until user clicks "Save Roll")
  */
 export let pendingDiceRoll = null;
@@ -406,6 +412,10 @@ export function setIsGenerating(value) {
 
 export function setIsPlotProgression(value) {
     isPlotProgression = value;
+}
+
+export function setIsAwaitingNewMessage(value) {
+    isAwaitingNewMessage = value;
 }
 
 export function setPendingDiceRoll(roll) {

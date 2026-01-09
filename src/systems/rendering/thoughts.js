@@ -391,50 +391,10 @@ export function renderThoughts() {
     debugLog('[RPG Thoughts] ==================== BUILDING HTML ====================');
     debugLog('[RPG Thoughts] Starting HTML generation for', presentCharacters.length + ' characters');
 
-    // If no characters parsed, show a placeholder editable card
+    // If no characters parsed, show empty state (no placeholder)
     if (presentCharacters.length === 0) {
-        debugLog('[RPG Thoughts] ⚠ No characters parsed - showing placeholder card');
-        // Get default character portrait
-        let defaultPortrait = FALLBACK_AVATAR_DATA_URI;
-        let defaultName = 'Character';
-
-        if (this_chid !== undefined && characters[this_chid]) {
-            if (characters[this_chid].avatar && characters[this_chid].avatar !== 'none') {
-                const thumbnailUrl = getSafeThumbnailUrl('avatar', characters[this_chid].avatar);
-                if (thumbnailUrl) {
-                    defaultPortrait = thumbnailUrl;
-                }
-            }
-            defaultName = characters[this_chid].name || 'Character';
-        }
-
-        html += '<div class="rpg-thoughts-content">';
-        html += `
-            <div class="rpg-character-card" data-character-name="${defaultName}">
-                <div class="rpg-character-avatar">
-                    <img src="${defaultPortrait}" alt="${defaultName}" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                    <div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="relationship" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">⚖️</div>
-                </div>
-                <div class="rpg-character-info">
-                    <div class="rpg-character-header">
-                        <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="emoji" title="Click to edit emoji">😊</span>
-                        <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="name" title="Click to edit name">${defaultName}</span>
-                    </div>
-        `;
-
-        // Add custom fields dynamically
-        for (const field of enabledFields) {
-            const fieldId = field.name.toLowerCase().replace(/\s+/g, '-');
-            html += `
-                    <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${defaultName}" data-field="${field.name}" title="Click to edit ${field.name}"></div>
-            `;
-        }
-
-        html += `
-                </div>
-            </div>
-        `;
-        html += '</div>';
+        debugLog('[RPG Thoughts] ⚠ No characters parsed - showing empty state');
+        html += '<div class="rpg-thoughts-content"></div>';
     } else {
         html += '<div class="rpg-thoughts-content">';
 
@@ -540,6 +500,7 @@ export function renderThoughts() {
                                 <div class="rpg-character-header">
                                     <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${char.name}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
                                     <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="name" title="Click to edit name">${char.name}</span>
+                                    <button class="rpg-character-remove" data-character="${char.name}" title="Remove character">×</button>
                                 </div>
                 `;
 
@@ -650,6 +611,15 @@ export function renderThoughts() {
         saveSettings();
     });
 
+    // Add event listener for character remove button
+    $thoughtsContainer.find('.rpg-character-remove').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const characterName = $(this).data('character');
+        removeCharacter(characterName);
+    });
+
     // Add event listener for avatar upload clicks
     $thoughtsContainer.find('.rpg-avatar-upload').on('click', function(e) {
         e.preventDefault();
@@ -701,6 +671,121 @@ export function renderThoughts() {
     if (extensionSettings.showThoughtsInChat) {
         updateChatThoughts();
     }
+}
+
+/**
+ * Removes a character from Present Characters data and re-renders.
+ *
+ * @param {string} characterName - Name of the character to remove
+ */
+export function removeCharacter(characterName) {
+    if (!lastGeneratedData.characterThoughts) {
+        return;
+    }
+
+    // Check if data is in JSON format
+    let isJSON = false;
+    let parsedData = null;
+
+    try {
+        parsedData = typeof lastGeneratedData.characterThoughts === 'string'
+            ? JSON.parse(lastGeneratedData.characterThoughts)
+            : lastGeneratedData.characterThoughts;
+
+        if (Array.isArray(parsedData) || (parsedData && parsedData.characters)) {
+            isJSON = true;
+        }
+    } catch (e) {
+        // Not JSON, treat as text format
+    }
+
+    if (isJSON) {
+        // JSON format - remove character from array
+        let characters = Array.isArray(parsedData) ? parsedData : parsedData.characters;
+        characters = characters.filter(char => char.name !== characterName);
+
+        if (Array.isArray(parsedData)) {
+            parsedData = characters;
+        } else {
+            parsedData.characters = characters;
+        }
+
+        const updatedJSON = JSON.stringify(parsedData, null, 2);
+        lastGeneratedData.characterThoughts = updatedJSON;
+        committedTrackerData.characterThoughts = updatedJSON;
+    } else {
+        // Text format - remove character block
+        const lines = lastGeneratedData.characterThoughts.split('\n');
+        const dividerIndex = lines.findIndex(line => line.includes('---'));
+
+        if (dividerIndex === -1) return;
+
+        // Find the character block to remove
+        let startLineIndex = -1;
+        let endLineIndex = -1;
+
+        for (let i = dividerIndex + 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+
+            // Check if this is the start of the character block
+            if (line.startsWith('Name:')) {
+                const nameMatch = line.match(/^Name:\s*(.+)/);
+                if (nameMatch && nameMatch[1].trim() === characterName) {
+                    startLineIndex = i;
+                }
+            }
+
+            // If we found the start, look for the end
+            if (startLineIndex !== -1 && i > startLineIndex) {
+                // End of block is either another "Name:" line or end of content
+                if (line.startsWith('Name:') || i === lines.length - 1) {
+                    endLineIndex = line.startsWith('Name:') ? i - 1 : i;
+
+                    // Remove empty lines at the end of the block
+                    while (endLineIndex > startLineIndex && !lines[endLineIndex].trim()) {
+                        endLineIndex--;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Remove the character block
+        if (startLineIndex !== -1 && endLineIndex !== -1) {
+            lines.splice(startLineIndex, endLineIndex - startLineIndex + 1);
+
+            // Remove empty lines after removal to keep formatting clean
+            let i = startLineIndex;
+            while (i < lines.length && !lines[i].trim()) {
+                lines.splice(i, 1);
+            }
+        }
+
+        lastGeneratedData.characterThoughts = lines.join('\n');
+        committedTrackerData.characterThoughts = lines.join('\n');
+    }
+
+    // Update message swipe data
+    const chat = getContext().chat;
+    if (chat && chat.length > 0) {
+        for (let i = chat.length - 1; i >= 0; i--) {
+            const message = chat[i];
+            if (!message.is_user) {
+                if (message.extra && message.extra.rpg_companion_swipes) {
+                    const swipeId = message.swipe_id || 0;
+                    if (message.extra.rpg_companion_swipes[swipeId]) {
+                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = lastGeneratedData.characterThoughts;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    saveChatData();
+
+    // Re-render to show updated character list
+    renderThoughts();
 }
 
 /**
