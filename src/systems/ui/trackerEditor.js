@@ -113,7 +113,7 @@ export function initTrackerEditor() {
                 tempConfig = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
                 renderEditorUI();
                 updatePresetUI();
-                toastr.success(`Switched to preset "${getPreset(presetId)?.name || 'Unknown'}"`);
+                toastr.success(`Switched to preset "${getPreset(presetId)?.name || 'Unknown'}".`);
             }
         }
     });
@@ -125,7 +125,7 @@ export function initTrackerEditor() {
             const newId = createPreset(name.trim());
             updatePresetUI();
             $('#rpg-preset-select').val(newId);
-            toastr.success(`Created preset "${name.trim()}"`);
+            toastr.success(`Created preset "${name.trim()}".`);
         }
     });
 
@@ -136,7 +136,7 @@ export function initTrackerEditor() {
             setDefaultPreset(currentPresetId);
             updatePresetUI();
             const preset = getPreset(currentPresetId);
-            toastr.success(`"${preset?.name || 'Unknown'}" is now the default preset`);
+            toastr.success(`"${preset?.name || 'Unknown'}" is now the default preset.`);
         }
     });
 
@@ -145,7 +145,7 @@ export function initTrackerEditor() {
         const currentPresetId = getActivePresetId();
         const presets = getPresets();
         if (Object.keys(presets).length <= 1) {
-            toastr.warning('Cannot delete the last preset');
+            toastr.warning('Cannot delete the last preset.');
             return;
         }
         const preset = getPreset(currentPresetId);
@@ -154,7 +154,7 @@ export function initTrackerEditor() {
                 tempConfig = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
                 renderEditorUI();
                 updatePresetUI();
-                toastr.success('Preset deleted');
+                toastr.success('Preset deleted.');
             }
         }
     });
@@ -163,10 +163,10 @@ export function initTrackerEditor() {
     $(document).on('change', '#rpg-preset-associate', function() {
         if ($(this).is(':checked')) {
             associatePresetWithCurrentEntity();
-            toastr.info(`This preset will be used for ${getCurrentEntityName()}`);
+            toastr.info(`This preset will be used for ${getCurrentEntityName()}.`);
         } else {
             removePresetAssociationForCurrentEntity();
-            toastr.info(`Preset association removed for ${getCurrentEntityName()}`);
+            toastr.info(`Preset association removed for ${getCurrentEntityName()}.`);
         }
     });
 }
@@ -518,7 +518,7 @@ function showImportModeDialog(migratedConfig, suggestedName) {
         // Re-render the editor UI
         renderEditorUI();
 
-        toastr.success('Configuration applied to current preset!');
+        toastr.success('Configuration applied to current preset.');
     });
 
     // Import as new preset
@@ -539,7 +539,7 @@ function showImportModeDialog(migratedConfig, suggestedName) {
             loadPreset(newPresetId);
             renderEditorUI();
             updatePresetUI();
-            toastr.success(`Created new preset: ${presetName}`);
+            toastr.success(`Created new preset: ${presetName}.`);
         }
     });
 

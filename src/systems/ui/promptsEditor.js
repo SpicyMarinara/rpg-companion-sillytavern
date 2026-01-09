@@ -46,7 +46,7 @@ export function initPromptsEditor() {
     $(document).on('click', '#rpg-prompts-save', function() {
         savePrompts();
         closePromptsEditor();
-        toastr.success('Prompts saved successfully');
+        toastr.success('Prompts saved successfully.');
     });
 
     // Cancel button
@@ -62,14 +62,14 @@ export function initPromptsEditor() {
     // Restore All button
     $(document).on('click', '#rpg-prompts-restore-all', function() {
         restoreAllToDefaults();
-        toastr.success('All prompts restored to defaults');
+        toastr.success('All prompts restored to defaults.');
     });
 
     // Individual restore buttons
     $(document).on('click', '.rpg-restore-prompt-btn', function() {
         const promptType = $(this).data('prompt');
         restorePromptToDefault(promptType);
-        toastr.success('Prompt restored to default');
+        toastr.success('Prompt restored to default.');
     });
 
     // Close on background click
