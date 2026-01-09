@@ -740,7 +740,10 @@ export function createPreset(name) {
     extensionSettings.presetManager.presets[presetId] = {
         id: presetId,
         name: name,
-        trackerConfig: JSON.parse(JSON.stringify(extensionSettings.trackerConfig))
+        trackerConfig: JSON.parse(JSON.stringify(extensionSettings.trackerConfig)),
+        historyPersistence: extensionSettings.historyPersistence 
+            ? JSON.parse(JSON.stringify(extensionSettings.historyPersistence)) 
+            : null
     };
     // Also set it as the active preset so edits go to the new preset
     extensionSettings.presetManager.activePresetId = presetId;
@@ -750,20 +753,23 @@ export function createPreset(name) {
 }
 
 /**
- * Saves the current trackerConfig to the specified preset
+ * Saves the current trackerConfig and historyPersistence to the specified preset
  * @param {string} presetId - The preset ID to save to
  */
 export function saveToPreset(presetId) {
     const preset = extensionSettings.presetManager.presets[presetId];
     if (preset) {
         preset.trackerConfig = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
+        preset.historyPersistence = extensionSettings.historyPersistence 
+            ? JSON.parse(JSON.stringify(extensionSettings.historyPersistence)) 
+            : null;
         saveSettings();
         // console.log(`[RPG Companion] Saved current config to preset "${preset.name}"`);
     }
 }
 
 /**
- * Loads a preset's trackerConfig as the active configuration
+ * Loads a preset's trackerConfig and historyPersistence as the active configuration
  * @param {string} presetId - The preset ID to load
  * @returns {boolean} True if loaded successfully, false otherwise
  */
@@ -771,6 +777,18 @@ export function loadPreset(presetId) {
     const preset = extensionSettings.presetManager.presets[presetId];
     if (preset && preset.trackerConfig) {
         extensionSettings.trackerConfig = JSON.parse(JSON.stringify(preset.trackerConfig));
+        // Load historyPersistence if present, otherwise use defaults
+        if (preset.historyPersistence) {
+            extensionSettings.historyPersistence = JSON.parse(JSON.stringify(preset.historyPersistence));
+        } else {
+            // Default values for presets that don't have historyPersistence yet
+            extensionSettings.historyPersistence = {
+                enabled: false,
+                messageCount: 5,
+                injectionPosition: 'assistant_message_end',
+                contextPreamble: ''
+            };
+        }
         extensionSettings.presetManager.activePresetId = presetId;
         saveSettings();
         // console.log(`[RPG Companion] Loaded preset "${preset.name}"`);

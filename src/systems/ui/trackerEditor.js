@@ -490,18 +490,10 @@ function migrateTrackerPreset(config) {
 
     // Add persistInHistory to infoBox widgets if missing (v3.4.0)
     if (migrated.infoBox && migrated.infoBox.widgets) {
-        const defaultPersistence = {
-            date: true,
-            weather: true,
-            temperature: false,
-            time: true,
-            location: true,
-            recentEvents: false
-        };
-
         for (const [widgetId, widget] of Object.entries(migrated.infoBox.widgets)) {
             if (widget.persistInHistory === undefined) {
-                widget.persistInHistory = defaultPersistence[widgetId] ?? false;
+                // Default to false for backwards compatibility - user must explicitly enable
+                widget.persistInHistory = false;
             }
         }
     }
