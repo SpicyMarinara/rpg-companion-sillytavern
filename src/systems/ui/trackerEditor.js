@@ -1400,8 +1400,6 @@ function renderHistoryPersistenceTab() {
     html += `<select id="rpg-history-injection-position" class="rpg-select" style="margin-left: 8px;">`;
     html += `<option value="user_message_end" ${historyPersistence.injectionPosition === 'user_message_end' ? 'selected' : ''}>End of User Message</option>`;
     html += `<option value="assistant_message_end" ${historyPersistence.injectionPosition === 'assistant_message_end' ? 'selected' : ''}>End of Assistant Message</option>`;
-    html += `<option value="extra_user_message" ${historyPersistence.injectionPosition === 'extra_user_message' ? 'selected' : ''}>Extra User Message</option>`;
-    html += `<option value="extra_assistant_message" ${historyPersistence.injectionPosition === 'extra_assistant_message' ? 'selected' : ''}>Extra Assistant Message</option>`;
     html += `</select>`;
     html += '</div>';
 

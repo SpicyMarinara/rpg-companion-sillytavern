@@ -1188,8 +1188,7 @@ export async function generateSeparateUpdatePrompt() {
                     continue;
                 }
             }
-            // For assistant_message_end, extra_user_message, extra_assistant_message:
-            // Inject into the assistant message itself
+            // For assistant_message_end: inject into the assistant message itself
 
             // Append to existing or create new entry
             if (contextInjectionMap.has(targetIdx)) {
