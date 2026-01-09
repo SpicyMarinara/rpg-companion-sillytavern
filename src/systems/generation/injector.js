@@ -561,12 +561,10 @@ Ensure these details naturally reflect and influence the narrative. Character be
     injectHistoricalContextIntoChat();
 
     // Register a one-time listener to restore messages after prompt is built
-    // This ensures messages are restored even if generation is cancelled or for dry runs
-    const restoreAfterPrompt = () => {
+    // Using .once() so it auto-removes after firing
+    eventSource.once(event_types.GENERATE_AFTER_COMBINE_PROMPTS, () => {
         restoreOriginalMessageContent();
-        eventSource.off(event_types.GENERATE_AFTER_COMBINE_PROMPTS, restoreAfterPrompt);
-    };
-    eventSource.once(event_types.GENERATE_AFTER_COMBINE_PROMPTS, restoreAfterPrompt);
+    });
 }
 
 /**
