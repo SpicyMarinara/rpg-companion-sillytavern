@@ -250,6 +250,18 @@ export let extensionSettings = {
             recentEvents: false // Boolean for recent events widget lock
         },
         characters: {}          // Object mapping character names to their locked fields (e.g., {"Sarah": {relationship: true, thoughts: false}})
+    },
+    // Preset management for tracker configurations
+    presetManager: {
+        // Map of preset ID to preset data (contains name and trackerConfig)
+        presets: {},
+        // Map of character/group entity to preset ID (e.g., "char_0": "preset_123", "group_abc": "preset_456")
+        // Note: This is stored separately and NOT exported with presets
+        characterAssociations: {},
+        // Currently active preset ID
+        activePresetId: null,
+        // Default preset ID (used when no character association exists)
+        defaultPresetId: null
     }
 };
 

@@ -3933,6 +3933,70 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
    TRACKER EDITOR MODAL
    ============================================ */
 
+/* Preset Management Section */
+.rpg-preset-management {
+    padding: 0.75em 1em;
+    background: var(--rpg-accent);
+    border-bottom: 2px solid var(--rpg-border);
+    margin-bottom: 0;
+}
+
+.rpg-preset-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    flex-wrap: nowrap;
+}
+
+.rpg-preset-row label {
+    font-weight: 600;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.rpg-preset-row .rpg-select {
+    flex: 1;
+    min-width: 120px;
+    max-width: 250px;
+    height: 2.2em;
+    padding: 0 0.6em;
+    font-size: 0.9em;
+}
+
+.rpg-preset-row .rpg-btn-icon {
+    height: 2.2em;
+    width: 2.2em;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9em;
+    flex-shrink: 0;
+}
+
+.rpg-preset-row .rpg-btn-icon.rpg-btn-active {
+    background: var(--rpg-highlight);
+    border-color: var(--rpg-highlight);
+    color: white;
+}
+
+.rpg-preset-association-row {
+    margin-top: 0.5em;
+    padding-top: 0.5em;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rpg-preset-association-row .checkbox_label {
+    margin: 0;
+    font-size: 0.85em;
+    opacity: 0.9;
+}
+
+.rpg-preset-association-row .checkbox_label strong {
+    color: var(--rpg-highlight);
+    font-weight: 600;
+}
+
 /* Editor tabs */
 .rpg-editor-tabs {
     display: flex;
@@ -9692,4 +9756,104 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
 /* Ensure send_form has relative positioning for music widget placement */
 #send_form {
     position: relative !important;
+}
+
+/* ============================================
+   IMPORT MODE DIALOG STYLES
+   ============================================ */
+
+/* Import Mode Dialog Overlay */
+.rpg-import-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+}
+
+.rpg-import-dialog {
+    background: var(--SmartThemeBlurTintColor, #2a2a3e);
+    border: 1px solid var(--SmartThemeBorderColor, #4a4a4a);
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 300px;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.rpg-import-dialog h4 {
+    margin: 0 0 15px 0;
+    color: var(--SmartThemeBodyColor, #eee);
+}
+
+.rpg-import-dialog h4 i {
+    margin-right: 8px;
+    color: var(--SmartThemeQuoteColor, #e94560);
+}
+
+.rpg-import-dialog p {
+    margin: 0 0 20px 0;
+    color: var(--SmartThemeBodyColor, #ccc);
+    font-size: 0.95em;
+}
+
+.rpg-import-dialog-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.rpg-import-dialog-buttons button {
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.rpg-import-dialog .rpg-btn-secondary {
+    background: var(--black30a, rgba(0, 0, 0, 0.3));
+    border: 1px solid var(--SmartThemeBorderColor, #4a4a4a);
+    color: var(--SmartThemeBodyColor, #ccc);
+}
+
+.rpg-import-dialog .rpg-btn-secondary:hover {
+    background: var(--SmartThemeBorderColor, #4a4a4a);
+    color: white;
+}
+
+.rpg-import-dialog .rpg-btn-primary {
+    background: var(--SmartThemeQuoteColor, #e94560);
+    border: 1px solid var(--SmartThemeQuoteColor, #e94560);
+    color: white;
+}
+
+.rpg-import-dialog .rpg-btn-primary:hover {
+    background: var(--SmartThemeQuoteColor, #ff5a75);
+    border-color: var(--SmartThemeQuoteColor, #ff5a75);
+}
+
+.rpg-import-dialog .rpg-btn-cancel {
+    background: transparent;
+    border: none;
+    color: var(--SmartThemeBodyColor, #888);
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 5px;
+}
+
+.rpg-import-dialog .rpg-btn-cancel:hover {
+    color: var(--SmartThemeBodyColor, #ccc);
+    text-decoration: underline;
 }

@@ -4,7 +4,27 @@
  */
 import { i18n } from '../../core/i18n.js';
 import { extensionSettings } from '../../core/state.js';
-import { saveSettings } from '../../core/persistence.js';
+import {
+    saveSettings,
+    getPresets,
+    getPreset,
+    getActivePresetId,
+    getDefaultPresetId,
+    setDefaultPreset,
+    isDefaultPreset,
+    createPreset,
+    saveToPreset,
+    loadPreset,
+    renamePreset,
+    deletePreset,
+    associatePresetWithCurrentEntity,
+    removePresetAssociationForCurrentEntity,
+    getPresetForCurrentEntity,
+    hasPresetAssociation,
+    getCurrentEntityName,
+    exportPresets,
+    importPresets
+} from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts } from '../rendering/thoughts.js';
@@ -78,6 +98,112 @@ export function initTrackerEditor() {
     $(document).on('click', '#rpg-editor-import', function() {
         importTrackerPreset();
     });
+
+    // Preset select change
+    $(document).on('change', '#rpg-preset-select', function() {
+        const presetId = $(this).val();
+        if (presetId && presetId !== getActivePresetId()) {
+            // Save current changes to the old preset before switching
+            const currentPresetId = getActivePresetId();
+            if (currentPresetId) {
+                saveToPreset(currentPresetId);
+            }
+            // Load the new preset
+            if (loadPreset(presetId)) {
+                tempConfig = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
+                renderEditorUI();
+                updatePresetUI();
+                toastr.success(`Switched to preset "${getPreset(presetId)?.name || 'Unknown'}"`);
+            }
+        }
+    });
+
+    // New preset button
+    $(document).on('click', '#rpg-preset-new', function() {
+        const name = prompt('Enter a name for the new preset:');
+        if (name && name.trim()) {
+            const newId = createPreset(name.trim());
+            updatePresetUI();
+            $('#rpg-preset-select').val(newId);
+            toastr.success(`Created preset "${name.trim()}"`);
+        }
+    });
+
+    // Set as default preset button
+    $(document).on('click', '#rpg-preset-default', function() {
+        const currentPresetId = getActivePresetId();
+        if (currentPresetId) {
+            setDefaultPreset(currentPresetId);
+            updatePresetUI();
+            const preset = getPreset(currentPresetId);
+            toastr.success(`"${preset?.name || 'Unknown'}" is now the default preset`);
+        }
+    });
+
+    // Delete preset button
+    $(document).on('click', '#rpg-preset-delete', function() {
+        const currentPresetId = getActivePresetId();
+        const presets = getPresets();
+        if (Object.keys(presets).length <= 1) {
+            toastr.warning('Cannot delete the last preset');
+            return;
+        }
+        const preset = getPreset(currentPresetId);
+        if (confirm(`Are you sure you want to delete the preset "${preset?.name || 'Unknown'}"?`)) {
+            if (deletePreset(currentPresetId)) {
+                tempConfig = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
+                renderEditorUI();
+                updatePresetUI();
+                toastr.success('Preset deleted');
+            }
+        }
+    });
+
+    // Associate preset checkbox
+    $(document).on('change', '#rpg-preset-associate', function() {
+        if ($(this).is(':checked')) {
+            associatePresetWithCurrentEntity();
+            toastr.info(`This preset will be used for ${getCurrentEntityName()}`);
+        } else {
+            removePresetAssociationForCurrentEntity();
+            toastr.info(`Preset association removed for ${getCurrentEntityName()}`);
+        }
+    });
+}
+
+/**
+ * Updates the preset management UI (dropdown, association checkbox, entity name)
+ */
+function updatePresetUI() {
+    const presets = getPresets();
+    const activePresetId = getActivePresetId();
+    const defaultPresetId = getDefaultPresetId();
+    const $select = $('#rpg-preset-select');
+
+    // Populate the dropdown
+    $select.empty();
+    for (const [id, preset] of Object.entries(presets)) {
+        const isDefault = id === defaultPresetId;
+        const starPrefix = isDefault ? '★ ' : '';
+        $select.append(`<option value="${id}">${starPrefix}${preset.name}</option>`);
+    }
+    $select.val(activePresetId);
+
+    // Update the default button appearance
+    const $defaultBtn = $('#rpg-preset-default');
+    if (isDefaultPreset(activePresetId)) {
+        $defaultBtn.addClass('rpg-btn-active').attr('title', 'This is the default preset');
+    } else {
+        $defaultBtn.removeClass('rpg-btn-active').attr('title', 'Set as Default Preset');
+    }
+
+    // Update the entity name display
+    const entityName = getCurrentEntityName();
+    $('#rpg-preset-entity-name').text(entityName);
+
+    // Update the association checkbox
+    const isAssociated = hasPresetAssociation();
+    $('#rpg-preset-associate').prop('checked', isAssociated);
 }
 
 /**
@@ -90,6 +216,9 @@ function openTrackerEditor() {
     // Set theme to match current extension theme
     const theme = extensionSettings.theme || 'modern';
     $editorModal.attr('data-theme', theme);
+
+    // Update preset UI
+    updatePresetUI();
 
     renderEditorUI();
     $editorModal.addClass('is-open').css('display', '');
@@ -116,7 +245,14 @@ function closeTrackerEditor() {
  */
 function applyTrackerConfig() {
     tempConfig = null; // Clear temp config
-    saveSettings();
+
+    // Save to the current preset
+    const currentPresetId = getActivePresetId();
+    if (currentPresetId) {
+        saveToPreset(currentPresetId);
+    } else {
+        saveSettings();
+    }
 
     // Re-render all trackers with new config
     renderUserStats();
@@ -323,22 +459,8 @@ function importTrackerPreset() {
             // Migrate old preset format to current format
             const migratedConfig = migrateTrackerPreset(data.trackerConfig);
 
-            // Ask for confirmation
-            const confirmMessage = i18n.getTranslation('template.trackerEditorModal.messages.importConfirm') ||
-                'This will replace your current tracker configuration. Continue?';
-
-            if (!confirm(confirmMessage)) {
-                return;
-            }
-
-            // Apply the migrated configuration
-            extensionSettings.trackerConfig = migratedConfig;
-
-            // Re-render the editor UI
-            renderEditorUI();
-
-            // console.log('[RPG Companion] Tracker preset imported successfully');
-            toastr.success(i18n.getTranslation('template.trackerEditorModal.messages.importSuccess') || 'Tracker preset imported successfully!');
+            // Show import mode selection dialog
+            showImportModeDialog(migratedConfig, data.name || file.name.replace('.json', ''));
         } catch (error) {
             console.error('[RPG Companion] Error importing tracker preset:', error);
             toastr.error(i18n.getTranslation('template.trackerEditorModal.messages.importError') ||
@@ -348,6 +470,90 @@ function importTrackerPreset() {
 
     // Trigger file selection
     input.click();
+}
+
+/**
+ * Show dialog to choose import mode
+ * @param {Object} migratedConfig - The migrated tracker config
+ * @param {string} suggestedName - Suggested name for new preset
+ */
+function showImportModeDialog(migratedConfig, suggestedName) {
+    // Create dialog overlay
+    const dialogHtml = `
+        <div id="rpg-import-mode-dialog" class="rpg-import-dialog-overlay">
+            <div class="rpg-import-dialog">
+                <h4><i class="fa-solid fa-file-import"></i> Import Configuration</h4>
+                <p>How would you like to import this configuration?</p>
+                <div class="rpg-import-dialog-buttons">
+                    <button id="rpg-import-to-current" class="rpg-btn-secondary">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                        Apply to Current Preset
+                    </button>
+                    <button id="rpg-import-as-new" class="rpg-btn-primary">
+                        <i class="fa-solid fa-plus"></i>
+                        Create New Preset
+                    </button>
+                </div>
+                <button id="rpg-import-cancel" class="rpg-btn-cancel">Cancel</button>
+            </div>
+        </div>
+    `;
+
+    $('body').append(dialogHtml);
+    const $dialog = $('#rpg-import-mode-dialog');
+
+    // Import to current preset
+    $('#rpg-import-to-current').on('click', () => {
+        $dialog.remove();
+
+        // Apply the migrated configuration to current
+        extensionSettings.trackerConfig = migratedConfig;
+
+        // Save to the active preset (saveToPreset uses current trackerConfig)
+        const activePresetId = getActivePresetId();
+        if (activePresetId) {
+            saveToPreset(activePresetId);
+        }
+
+        // Re-render the editor UI
+        renderEditorUI();
+
+        toastr.success('Configuration applied to current preset!');
+    });
+
+    // Import as new preset
+    $('#rpg-import-as-new').on('click', () => {
+        $dialog.remove();
+
+        // Prompt for preset name
+        const presetName = prompt('Enter a name for the new preset:', suggestedName);
+        if (!presetName) return;
+
+        // Set the migrated config as current first
+        extensionSettings.trackerConfig = migratedConfig;
+
+        // Create new preset (createPreset uses current trackerConfig)
+        const newPresetId = createPreset(presetName);
+        if (newPresetId) {
+            // Load the new preset
+            loadPreset(newPresetId);
+            renderEditorUI();
+            updatePresetUI();
+            toastr.success(`Created new preset: ${presetName}`);
+        }
+    });
+
+    // Cancel
+    $('#rpg-import-cancel').on('click', () => {
+        $dialog.remove();
+    });
+
+    // Close on overlay click
+    $dialog.on('click', (e) => {
+        if (e.target === $dialog[0]) {
+            $dialog.remove();
+        }
+    });
 }
 
 /**
