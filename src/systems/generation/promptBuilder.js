@@ -1123,26 +1123,91 @@ export async function generateSeparateUpdatePrompt() {
     // Add chat history as separate user/assistant messages with per-message historical context
     const recentMessages = chat.slice(-depth);
     const startIndex = chat.length - depth;
+    const position = historyPersistence?.injectionPosition || 'assistant_message_end';
 
-    for (let i = 0; i < recentMessages.length; i++) {
-        const message = recentMessages[i];
-        const chatIndex = startIndex + i;
-        let content = message.mes;
+    // Build a map of which messages should get context based on position setting
+    // Key: message index in recentMessages, Value: context string
+    const contextInjectionMap = new Map();
 
-        // Append historical tracker context to this message if enabled and available
-        if (historyPersistence?.enabled && chatIndex < chat.length - 1) {
+    if (historyPersistence?.enabled) {
+        // Find the last assistant message index (in recentMessages)
+        let lastAssistantIdx = -1;
+        for (let i = recentMessages.length - 1; i >= 0; i--) {
+            if (!recentMessages[i].is_user && !recentMessages[i].is_system) {
+                lastAssistantIdx = i;
+                break;
+            }
+        }
+
+        // Iterate through assistant messages to find tracker data
+        for (let i = 0; i < recentMessages.length; i++) {
+            const message = recentMessages[i];
+
+            // Skip user and system messages - only assistant messages have tracker data
+            if (message.is_user || message.is_system) {
+                continue;
+            }
+
+            // Skip the last assistant message - it gets current context elsewhere
+            if (i === lastAssistantIdx) {
+                continue;
+            }
+
             const swipeData = message.extra?.rpg_companion_swipes;
-            if (swipeData) {
-                const currentSwipeId = message.swipe_id || 0;
-                const trackerData = swipeData[currentSwipeId];
-                if (trackerData) {
-                    const formattedContext = formatHistoricalTrackerData(trackerData, trackerConfig, userName);
-                    if (formattedContext) {
-                        const preamble = historyPersistence.contextPreamble || '[Context at this point:]';
-                        content += `\n${preamble}\n${formattedContext}`;
+            if (!swipeData) {
+                continue;
+            }
+
+            const currentSwipeId = message.swipe_id || 0;
+            const trackerData = swipeData[currentSwipeId];
+            if (!trackerData) {
+                continue;
+            }
+
+            const formattedContext = formatHistoricalTrackerData(trackerData, trackerConfig, userName);
+            if (!formattedContext) {
+                continue;
+            }
+
+            const preamble = historyPersistence.contextPreamble || '[Context at this point:]';
+            const wrappedContext = `\n${preamble}\n${formattedContext}`;
+
+            // Determine target message based on position
+            let targetIdx = i;
+
+            if (position === 'user_message_end') {
+                // Find next user message after this assistant message
+                for (let j = i + 1; j < recentMessages.length; j++) {
+                    if (recentMessages[j].is_user && !recentMessages[j].is_system) {
+                        targetIdx = j;
+                        break;
                     }
                 }
+                // If no user message found, skip
+                if (targetIdx === i) {
+                    continue;
+                }
             }
+            // For assistant_message_end, extra_user_message, extra_assistant_message:
+            // Inject into the assistant message itself
+
+            // Append to existing or create new entry
+            if (contextInjectionMap.has(targetIdx)) {
+                contextInjectionMap.set(targetIdx, contextInjectionMap.get(targetIdx) + wrappedContext);
+            } else {
+                contextInjectionMap.set(targetIdx, wrappedContext);
+            }
+        }
+    }
+
+    // Now build the messages array with injected context
+    for (let i = 0; i < recentMessages.length; i++) {
+        const message = recentMessages[i];
+        let content = message.mes;
+
+        // Add historical context if this message is a target
+        if (contextInjectionMap.has(i)) {
+            content += contextInjectionMap.get(i);
         }
 
         messages.push({

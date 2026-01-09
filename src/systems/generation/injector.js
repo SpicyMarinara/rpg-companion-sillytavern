@@ -44,8 +44,9 @@ let originalMessageContent = new Map();
 /**
  * Builds a map of historical context data from ST chat messages with rpg_companion_swipes data.
  * Returns a map keyed by message index with formatted context strings.
+ * The index stored depends on the injection position setting.
  *
- * @returns {Map<number, {context: string, isUserMessage: boolean}>} Map of message index to context data
+ * @returns {Map<number, string>} Map of target message index to formatted context string
  */
 function buildHistoricalContextMap() {
     const historyPersistence = extensionSettings.historyPersistence;
@@ -61,18 +62,40 @@ function buildHistoricalContextMap() {
 
     const trackerConfig = extensionSettings.trackerConfig;
     const userName = context.name1;
+    const position = historyPersistence.injectionPosition || 'assistant_message_end';
     const contextMap = new Map();
 
     // Determine how many messages to include (0 = all available)
     const messageCount = historyPersistence.messageCount || 0;
     const maxMessages = messageCount === 0 ? chat.length : Math.min(messageCount, chat.length);
 
-    // Start from the second-to-last message (skip the most recent one as it gets current context)
-    // and work backwards
-    let processedCount = 0;
+    // Find the last assistant message - this is the one that gets current context via setExtensionPrompt
+    // We should NOT add historical context to it
+    let lastAssistantIndex = -1;
+    for (let i = chat.length - 1; i >= 0; i--) {
+        if (!chat[i].is_user && !chat[i].is_system) {
+            lastAssistantIndex = i;
+            break;
+        }
+    }
 
-    for (let i = chat.length - 2; i >= 0 && (messageCount === 0 || processedCount < maxMessages); i--) {
+    // Iterate through messages to find those with tracker data
+    // Start from before the last assistant message
+    let processedCount = 0;
+    const startIndex = lastAssistantIndex > 0 ? lastAssistantIndex - 1 : chat.length - 2;
+
+    for (let i = startIndex; i >= 0 && (messageCount === 0 || processedCount < maxMessages); i--) {
         const message = chat[i];
+
+        // Skip system messages
+        if (message.is_system) {
+            continue;
+        }
+
+        // Only assistant messages have rpg_companion_swipes data
+        if (message.is_user) {
+            continue;
+        }
 
         // Get the rpg_companion_swipes data for current swipe
         const swipeData = message.extra?.rpg_companion_swipes;
@@ -96,11 +119,32 @@ function buildHistoricalContextMap() {
         const preamble = historyPersistence.contextPreamble || '[Context at this point:]';
         const wrappedContext = `\n${preamble}\n${formattedContext}`;
 
-        // Store with message index and whether it's a user message
-        contextMap.set(i, {
-            context: wrappedContext,
-            isUserMessage: message.is_user
-        });
+        // Determine which message index to store based on injection position
+        let targetIndex = i; // Default: the assistant message itself
+
+        if (position === 'user_message_end') {
+            // Find the next user message after this assistant message
+            for (let j = i + 1; j < chat.length; j++) {
+                if (chat[j].is_user && !chat[j].is_system) {
+                    targetIndex = j;
+                    break;
+                }
+            }
+            // If no user message found after, skip this one
+            if (targetIndex === i) {
+                continue;
+            }
+        }
+        // For assistant_message_end, extra_user_message, extra_assistant_message:
+        // We inject into the assistant message itself (for now - extra messages handled differently)
+
+        // Store the context keyed by target index
+        // If multiple assistant messages map to the same user message, append
+        if (contextMap.has(targetIndex)) {
+            contextMap.set(targetIndex, contextMap.get(targetIndex) + wrappedContext);
+        } else {
+            contextMap.set(targetIndex, wrappedContext);
+        }
 
         processedCount++;
     }
@@ -141,41 +185,23 @@ function injectHistoricalContextIntoChat() {
 
     console.log(`[RPG Companion] Injecting historical context into ${contextMap.size} messages`);
 
-    const position = historyPersistence.injectionPosition || 'assistant_message_end';
-
     // Clear any previous stored content
     originalMessageContent.clear();
 
     let injectedCount = 0;
-    for (const [msgIdx, data] of contextMap) {
+    for (const [msgIdx, ctxContent] of contextMap) {
         const message = chat[msgIdx];
         if (!message || typeof message.mes !== 'string') {
             continue;
         }
 
-        const { context: ctxContent, isUserMessage } = data;
+        // Store original content for restoration
+        originalMessageContent.set(msgIdx, message.mes);
 
-        // Determine if we should inject based on position and message type
-        let shouldInject = false;
-
-        if (position === 'user_message_end' && isUserMessage) {
-            shouldInject = true;
-        } else if (position === 'assistant_message_end' && !isUserMessage) {
-            shouldInject = true;
-        } else if (position === 'extra_user_message' || position === 'extra_assistant_message') {
-            // For these positions, inject regardless of message type
-            shouldInject = true;
-        }
-
-        if (shouldInject) {
-            // Store original content for restoration
-            originalMessageContent.set(msgIdx, message.mes);
-
-            // Modify the message in-place
-            message.mes = message.mes + ctxContent;
-            injectedCount++;
-            console.log(`[RPG Companion] Injected context into message ${msgIdx}`);
-        }
+        // Modify the message in-place
+        message.mes = message.mes + ctxContent;
+        injectedCount++;
+        console.log(`[RPG Companion] Injected context into message ${msgIdx}`);
     }
 
     console.log(`[RPG Companion] Successfully injected historical context into ${injectedCount} messages`);
@@ -533,6 +559,14 @@ Ensure these details naturally reflect and influence the narrative. Character be
     // Inject historical context directly into chat messages
     // This temporarily modifies messages and will be restored after generation
     injectHistoricalContextIntoChat();
+
+    // Register a one-time listener to restore messages after prompt is built
+    // This ensures messages are restored even if generation is cancelled or for dry runs
+    const restoreAfterPrompt = () => {
+        restoreOriginalMessageContent();
+        eventSource.off(event_types.GENERATE_AFTER_COMBINE_PROMPTS, restoreAfterPrompt);
+    };
+    eventSource.once(event_types.GENERATE_AFTER_COMBINE_PROMPTS, restoreAfterPrompt);
 }
 
 /**
