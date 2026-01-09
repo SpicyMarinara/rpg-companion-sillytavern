@@ -98,12 +98,21 @@ function buildHistoricalContextMap() {
         }
 
         // Get the rpg_companion_swipes data for current swipe
-        const swipeData = message.extra?.rpg_companion_swipes;
+        // Data can be in two places:
+        // 1. message.extra.rpg_companion_swipes (current session, before save)
+        // 2. message.swipe_info[swipeId].extra.rpg_companion_swipes (loaded from file)
+        const currentSwipeId = message.swipe_id || 0;
+        let swipeData = message.extra?.rpg_companion_swipes;
+        
+        // If not in message.extra, check swipe_info
+        if (!swipeData && message.swipe_info && message.swipe_info[currentSwipeId]) {
+            swipeData = message.swipe_info[currentSwipeId].extra?.rpg_companion_swipes;
+        }
+        
         if (!swipeData) {
             continue;
         }
 
-        const currentSwipeId = message.swipe_id || 0;
         const trackerData = swipeData[currentSwipeId];
         if (!trackerData) {
             continue;
@@ -575,13 +584,3 @@ export function onGenerationEndedCleanup() {
     restoreOriginalMessageContent();
 }
 
-/**
- * Initialize the historical context injection event listener
- * This should be called once during extension initialization
- */
-export function initHistoricalContextInjection() {
-    // Historical context injection is now handled directly in onGenerationStarted
-    // by temporarily modifying chat messages. This works for ALL API types.
-    // Restoration happens in onGenerationEndedCleanup.
-    console.log('[RPG Companion] Historical context injection initialized (direct chat modification mode)');
-}

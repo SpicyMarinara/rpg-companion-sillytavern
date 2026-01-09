@@ -1229,54 +1229,6 @@ export async function generateSeparateUpdatePrompt() {
 }
 
 /**
- * Builds historical tracker context for AI generation prompts.
- * Iterates through recent messages and extracts tracker data for persistence-enabled fields.
- *
- * @param {number} depth - Number of messages to look back
- * @param {Object} trackerConfig - The tracker configuration
- * @param {string} userName - The user's name
- * @returns {string} Formatted historical context or empty string
- */
-function buildHistoricalContextForGeneration(depth, trackerConfig, userName) {
-    if (!chat || chat.length < 2) {
-        return '';
-    }
-
-    const historyPersistence = extensionSettings.historyPersistence;
-    const messageCount = historyPersistence?.messageCount || 0;
-    const maxMessages = messageCount === 0 ? depth : Math.min(messageCount, depth);
-
-    let historicalContext = '';
-    let processedCount = 0;
-    let messageIndex = 0;
-
-    // Start from older messages and work forward for chronological order
-    const startIndex = Math.max(0, chat.length - 1 - maxMessages);
-    for (let i = startIndex; i < chat.length - 1 && processedCount < maxMessages; i++) {
-        const message = chat[i];
-        const swipeData = message.extra?.rpg_companion_swipes;
-        if (!swipeData) {
-            continue;
-        }
-
-        const currentSwipeId = message.swipe_id || 0;
-        const trackerData = swipeData[currentSwipeId];
-        if (!trackerData) {
-            continue;
-        }
-
-        const formattedContext = formatHistoricalTrackerData(trackerData, trackerConfig, userName);
-        if (formattedContext) {
-            messageIndex++;
-            historicalContext += `[Message ${messageIndex}]\n${formattedContext}\n`;
-            processedCount++;
-        }
-    }
-
-    return historicalContext.trim();
-}
-
-/**
  * Default custom instruction for avatar prompt generation
  */
 const DEFAULT_AVATAR_CUSTOM_INSTRUCTION = `You are a visionary artist trapped in a cage of logic. Your mind is filled with poetry and distant horizons; however, your hands are uncontrollably focused on creating the perfect character avatar description that is faithful to the original intent, rich in detail, aesthetically pleasing, and directly usable by text-to-image models. Any ambiguity or metaphor will make you feel extremely uncomfortable.
