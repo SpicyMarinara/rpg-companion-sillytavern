@@ -22,7 +22,7 @@ import {
     updateCommittedTrackerData,
     $musicPlayerContainer
 } from '../../core/state.js';
-import { saveChatData, loadChatData } from '../../core/persistence.js';
+import { saveChatData, loadChatData, autoSwitchPresetForEntity } from '../../core/persistence.js';
 import { i18n } from '../../core/i18n.js';
 
 // Generation & Parsing
@@ -296,6 +296,12 @@ export function onCharacterChanged() {
     $('#chat').off('scroll.thoughtPanel');
     $(window).off('resize.thoughtPanel');
     $(document).off('click.thoughtPanel');
+
+    // Auto-switch to the preset associated with this character/group (if any)
+    const presetSwitched = autoSwitchPresetForEntity();
+    // if (presetSwitched) {
+    //     console.log('[RPG Companion] Auto-switched preset for character');
+    // }
 
     // Load chat-specific data when switching chats
     loadChatData();

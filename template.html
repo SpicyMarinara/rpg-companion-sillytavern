@@ -670,6 +670,31 @@
                 aria-label="Close tracker editor">&times;</button>
         </header>
 
+        <!-- Preset Management Section -->
+        <div class="rpg-preset-management">
+            <div class="rpg-preset-row">
+                <label for="rpg-preset-select">Preset:</label>
+                <select id="rpg-preset-select" class="rpg-select">
+                    <!-- Options populated by JavaScript -->
+                </select>
+                <button id="rpg-preset-new" class="rpg-btn-icon" type="button" title="Create New Preset">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+                <button id="rpg-preset-default" class="rpg-btn-icon" type="button" title="Set as Default Preset">
+                    <i class="fa-solid fa-star"></i>
+                </button>
+                <button id="rpg-preset-delete" class="rpg-btn-icon" type="button" title="Delete Current Preset">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+            <div class="rpg-preset-association-row">
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-preset-associate">
+                    <span>Use this preset for: <strong id="rpg-preset-entity-name">Character</strong></span>
+                </label>
+            </div>
+        </div>
+
         <!-- Tabs -->
         <div class="rpg-editor-tabs">
             <button class="rpg-editor-tab active" data-tab="userStats">

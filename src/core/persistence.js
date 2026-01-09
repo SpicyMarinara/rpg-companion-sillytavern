@@ -126,6 +126,9 @@ export function loadSettings() {
             migrateToTrackerConfig();
             saveSettings(); // Persist migration
         }
+
+        // Migrate to preset manager system if presets don't exist
+        migrateToPresetManager();
     } catch (error) {
         console.error('[RPG Companion] Error loading settings:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);
@@ -606,3 +609,397 @@ function migrateToTrackerConfig() {
         }
     }
 }
+
+// ============================================================================
+// Preset Management Functions
+// ============================================================================
+
+/**
+ * Gets the entity key for the current character or group
+ * @returns {string|null} Entity key in format "char_{id}" or "group_{id}", or null if no character selected
+ */
+export function getCurrentEntityKey() {
+    const context = getContext();
+    if (context.groupId) {
+        return `group_${context.groupId}`;
+    } else if (context.characterId !== undefined && context.characterId !== null) {
+        return `char_${context.characterId}`;
+    }
+    return null;
+}
+
+/**
+ * Gets the display name for the current character or group
+ * @returns {string} Display name for the current entity
+ */
+export function getCurrentEntityName() {
+    const context = getContext();
+    if (context.groupId) {
+        const group = context.groups?.find(g => g.id === context.groupId);
+        return group?.name || 'Group Chat';
+    } else if (context.characterId !== undefined && context.characterId !== null) {
+        return context.name2 || 'Character';
+    }
+    return 'No Character';
+}
+
+/**
+ * Migrates existing trackerConfig to the preset system if presetManager doesn't exist
+ * Creates a "Default" preset from the current trackerConfig
+ */
+export function migrateToPresetManager() {
+    if (!extensionSettings.presetManager || Object.keys(extensionSettings.presetManager.presets || {}).length === 0) {
+        // console.log('[RPG Companion] Migrating to preset manager system');
+
+        // Initialize presetManager if it doesn't exist
+        if (!extensionSettings.presetManager) {
+            extensionSettings.presetManager = {
+                presets: {},
+                characterAssociations: {},
+                activePresetId: null,
+                defaultPresetId: null
+            };
+        }
+
+        // Create default preset from existing trackerConfig
+        const defaultPresetId = 'preset_default';
+        extensionSettings.presetManager.presets[defaultPresetId] = {
+            id: defaultPresetId,
+            name: 'Default',
+            trackerConfig: JSON.parse(JSON.stringify(extensionSettings.trackerConfig))
+        };
+        extensionSettings.presetManager.activePresetId = defaultPresetId;
+        extensionSettings.presetManager.defaultPresetId = defaultPresetId;
+
+        // console.log('[RPG Companion] Created Default preset from existing trackerConfig');
+        saveSettings();
+    }
+}
+
+/**
+ * Gets all available presets
+ * @returns {Object} Map of preset ID to preset data
+ */
+export function getPresets() {
+    return extensionSettings.presetManager?.presets || {};
+}
+
+/**
+ * Gets a specific preset by ID
+ * @param {string} presetId - The preset ID
+ * @returns {Object|null} The preset object or null if not found
+ */
+export function getPreset(presetId) {
+    return extensionSettings.presetManager?.presets?.[presetId] || null;
+}
+
+/**
+ * Gets the currently active preset ID
+ * @returns {string|null} The active preset ID or null
+ */
+export function getActivePresetId() {
+    return extensionSettings.presetManager?.activePresetId || null;
+}
+
+/**
+ * Gets the default preset ID
+ * @returns {string|null} The default preset ID or null
+ */
+export function getDefaultPresetId() {
+    return extensionSettings.presetManager?.defaultPresetId || null;
+}
+
+/**
+ * Sets a preset as the default
+ * @param {string} presetId - The preset ID to set as default
+ */
+export function setDefaultPreset(presetId) {
+    if (extensionSettings.presetManager.presets[presetId]) {
+        extensionSettings.presetManager.defaultPresetId = presetId;
+        saveSettings();
+        // console.log(`[RPG Companion] Set preset ${presetId} as default`);
+    }
+}
+
+/**
+ * Checks if the given preset is the default
+ * @param {string} presetId - The preset ID to check
+ * @returns {boolean} True if it's the default preset
+ */
+export function isDefaultPreset(presetId) {
+    return extensionSettings.presetManager?.defaultPresetId === presetId;
+}
+
+/**
+ * Creates a new preset from the current trackerConfig
+ * @param {string} name - Name for the new preset
+ * @returns {string} The ID of the newly created preset
+ */
+export function createPreset(name) {
+    const presetId = `preset_${Date.now()}`;
+    extensionSettings.presetManager.presets[presetId] = {
+        id: presetId,
+        name: name,
+        trackerConfig: JSON.parse(JSON.stringify(extensionSettings.trackerConfig))
+    };
+    // Also set it as the active preset so edits go to the new preset
+    extensionSettings.presetManager.activePresetId = presetId;
+    saveSettings();
+    // console.log(`[RPG Companion] Created preset "${name}" with ID ${presetId}`);
+    return presetId;
+}
+
+/**
+ * Saves the current trackerConfig to the specified preset
+ * @param {string} presetId - The preset ID to save to
+ */
+export function saveToPreset(presetId) {
+    const preset = extensionSettings.presetManager.presets[presetId];
+    if (preset) {
+        preset.trackerConfig = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
+        saveSettings();
+        // console.log(`[RPG Companion] Saved current config to preset "${preset.name}"`);
+    }
+}
+
+/**
+ * Loads a preset's trackerConfig as the active configuration
+ * @param {string} presetId - The preset ID to load
+ * @returns {boolean} True if loaded successfully, false otherwise
+ */
+export function loadPreset(presetId) {
+    const preset = extensionSettings.presetManager.presets[presetId];
+    if (preset && preset.trackerConfig) {
+        extensionSettings.trackerConfig = JSON.parse(JSON.stringify(preset.trackerConfig));
+        extensionSettings.presetManager.activePresetId = presetId;
+        saveSettings();
+        // console.log(`[RPG Companion] Loaded preset "${preset.name}"`);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Renames a preset
+ * @param {string} presetId - The preset ID to rename
+ * @param {string} newName - The new name for the preset
+ */
+export function renamePreset(presetId, newName) {
+    const preset = extensionSettings.presetManager.presets[presetId];
+    if (preset) {
+        preset.name = newName;
+        saveSettings();
+        // console.log(`[RPG Companion] Renamed preset to "${newName}"`);
+    }
+}
+
+/**
+ * Deletes a preset
+ * @param {string} presetId - The preset ID to delete
+ * @returns {boolean} True if deleted, false if it's the last preset (can't delete)
+ */
+export function deletePreset(presetId) {
+    const presets = extensionSettings.presetManager.presets;
+    const presetIds = Object.keys(presets);
+
+    // Don't delete if it's the last preset
+    if (presetIds.length <= 1) {
+        // console.warn('[RPG Companion] Cannot delete the last preset');
+        return false;
+    }
+
+    // Remove any character associations using this preset
+    const associations = extensionSettings.presetManager.characterAssociations;
+    for (const entityKey of Object.keys(associations)) {
+        if (associations[entityKey] === presetId) {
+            delete associations[entityKey];
+        }
+    }
+
+    // Delete the preset
+    delete presets[presetId];
+
+    // If the deleted preset was active, switch to the first available preset
+    if (extensionSettings.presetManager.activePresetId === presetId) {
+        const remainingIds = Object.keys(presets);
+        if (remainingIds.length > 0) {
+            loadPreset(remainingIds[0]);
+        }
+    }
+
+    saveSettings();
+    // console.log(`[RPG Companion] Deleted preset ${presetId}`);
+    return true;
+}
+
+/**
+ * Associates the current preset with the current character/group
+ */
+export function associatePresetWithCurrentEntity() {
+    const entityKey = getCurrentEntityKey();
+    const activePresetId = extensionSettings.presetManager.activePresetId;
+
+    if (entityKey && activePresetId) {
+        extensionSettings.presetManager.characterAssociations[entityKey] = activePresetId;
+        saveSettings();
+        // console.log(`[RPG Companion] Associated preset ${activePresetId} with ${entityKey}`);
+    }
+}
+
+/**
+ * Removes the preset association for the current character/group
+ */
+export function removePresetAssociationForCurrentEntity() {
+    const entityKey = getCurrentEntityKey();
+    if (entityKey && extensionSettings.presetManager.characterAssociations[entityKey]) {
+        delete extensionSettings.presetManager.characterAssociations[entityKey];
+        saveSettings();
+        // console.log(`[RPG Companion] Removed preset association for ${entityKey}`);
+    }
+}
+
+/**
+ * Gets the preset ID associated with the current character/group
+ * @returns {string|null} The associated preset ID or null
+ */
+export function getPresetForCurrentEntity() {
+    const entityKey = getCurrentEntityKey();
+    if (entityKey) {
+        return extensionSettings.presetManager.characterAssociations[entityKey] || null;
+    }
+    return null;
+}
+
+/**
+ * Checks if the current character/group has a preset association
+ * @returns {boolean} True if there's an association
+ */
+export function hasPresetAssociation() {
+    const entityKey = getCurrentEntityKey();
+    return entityKey && extensionSettings.presetManager.characterAssociations[entityKey] !== undefined;
+}
+
+/**
+ * Auto-switches to the preset associated with the current character/group
+ * Called when character changes. Falls back to default preset if no association.
+ * @returns {boolean} True if a preset was switched, false otherwise
+ */
+export function autoSwitchPresetForEntity() {
+    const associatedPresetId = getPresetForCurrentEntity();
+    
+    // If there's a character-specific preset, use it
+    if (associatedPresetId && associatedPresetId !== extensionSettings.presetManager.activePresetId) {
+        // Check if the preset still exists
+        if (extensionSettings.presetManager.presets[associatedPresetId]) {
+            return loadPreset(associatedPresetId);
+        } else {
+            // Preset was deleted, remove the stale association
+            removePresetAssociationForCurrentEntity();
+        }
+    }
+    
+    // No character association - fall back to default preset if set
+    if (!associatedPresetId) {
+        const defaultPresetId = extensionSettings.presetManager.defaultPresetId;
+        if (defaultPresetId && 
+            defaultPresetId !== extensionSettings.presetManager.activePresetId &&
+            extensionSettings.presetManager.presets[defaultPresetId]) {
+            return loadPreset(defaultPresetId);
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * Exports presets for sharing (without character associations)
+ * @param {string[]} presetIds - Array of preset IDs to export, or empty for all
+ * @returns {Object} Export data object
+ */
+export function exportPresets(presetIds = []) {
+    const presetsToExport = {};
+    const allPresets = extensionSettings.presetManager.presets;
+
+    // If no specific IDs provided, export all
+    const idsToExport = presetIds.length > 0 ? presetIds : Object.keys(allPresets);
+
+    for (const id of idsToExport) {
+        if (allPresets[id]) {
+            presetsToExport[id] = {
+                id: allPresets[id].id,
+                name: allPresets[id].name,
+                trackerConfig: allPresets[id].trackerConfig
+            };
+        }
+    }
+
+    return {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        presets: presetsToExport
+        // Note: characterAssociations are intentionally NOT exported
+    };
+}
+
+/**
+ * Imports presets from an export file
+ * @param {Object} importData - The imported data object
+ * @param {boolean} overwrite - If true, overwrites existing presets with same name
+ * @returns {number} Number of presets imported
+ */
+export function importPresets(importData, overwrite = false) {
+    if (!importData.presets || typeof importData.presets !== 'object') {
+        throw new Error('Invalid import data: missing presets');
+    }
+
+    let importCount = 0;
+    const existingNames = new Set(
+        Object.values(extensionSettings.presetManager.presets).map(p => p.name.toLowerCase())
+    );
+
+    for (const [originalId, preset] of Object.entries(importData.presets)) {
+        if (!preset.name || !preset.trackerConfig) {
+            continue; // Skip invalid presets
+        }
+
+        let name = preset.name;
+        const nameLower = name.toLowerCase();
+
+        // Check for name collision
+        if (existingNames.has(nameLower)) {
+            if (overwrite) {
+                // Find and delete the existing preset with this name
+                for (const [existingId, existingPreset] of Object.entries(extensionSettings.presetManager.presets)) {
+                    if (existingPreset.name.toLowerCase() === nameLower) {
+                        delete extensionSettings.presetManager.presets[existingId];
+                        break;
+                    }
+                }
+            } else {
+                // Generate a unique name
+                let counter = 1;
+                while (existingNames.has(`${nameLower} (${counter})`)) {
+                    counter++;
+                }
+                name = `${preset.name} (${counter})`;
+            }
+        }
+
+        // Create new preset with new ID
+        const newId = `preset_${Date.now()}_${importCount}`;
+        extensionSettings.presetManager.presets[newId] = {
+            id: newId,
+            name: name,
+            trackerConfig: JSON.parse(JSON.stringify(preset.trackerConfig))
+        };
+        existingNames.add(name.toLowerCase());
+        importCount++;
+    }
+
+    if (importCount > 0) {
+        saveSettings();
+    }
+
+    return importCount;
+}
+
