@@ -103,12 +103,12 @@ function buildHistoricalContextMap() {
         // 2. message.swipe_info[swipeId].extra.rpg_companion_swipes (loaded from file)
         const currentSwipeId = message.swipe_id || 0;
         let swipeData = message.extra?.rpg_companion_swipes;
-        
+
         // If not in message.extra, check swipe_info
         if (!swipeData && message.swipe_info && message.swipe_info[currentSwipeId]) {
             swipeData = message.swipe_info[currentSwipeId].extra?.rpg_companion_swipes;
         }
-        
+
         if (!swipeData) {
             continue;
         }
@@ -169,30 +169,30 @@ function buildHistoricalContextMap() {
 function injectHistoricalContextIntoChat() {
     const historyPersistence = extensionSettings.historyPersistence;
     if (!historyPersistence || !historyPersistence.enabled) {
-        console.log('[RPG Companion] History persistence not enabled, skipping injection');
+        // console.log('[RPG Companion] History persistence not enabled, skipping injection');
         return;
     }
 
     if (currentSuppressionState || !extensionSettings.enabled) {
-        console.log('[RPG Companion] Skipping history injection: suppressed or disabled');
+        // console.log('[RPG Companion] Skipping history injection: suppressed or disabled');
         return;
     }
 
     const context = getContext();
     const chat = context.chat;
     if (!chat || chat.length < 2) {
-        console.log('[RPG Companion] Chat too short, skipping history injection');
+        // console.log('[RPG Companion] Chat too short, skipping history injection');
         return;
     }
 
     // Build the context map
     const contextMap = buildHistoricalContextMap();
     if (contextMap.size === 0) {
-        console.log('[RPG Companion] No historical context to inject');
+        // console.log('[RPG Companion] No historical context to inject');
         return;
     }
 
-    console.log(`[RPG Companion] Injecting historical context into ${contextMap.size} messages`);
+    // console.log(`[RPG Companion] Injecting historical context into ${contextMap.size} messages`);
 
     // Clear any previous stored content
     originalMessageContent.clear();
@@ -210,10 +210,10 @@ function injectHistoricalContextIntoChat() {
         // Modify the message in-place
         message.mes = message.mes + ctxContent;
         injectedCount++;
-        console.log(`[RPG Companion] Injected context into message ${msgIdx}`);
+        // console.log(`[RPG Companion] Injected context into message ${msgIdx}`);
     }
 
-    console.log(`[RPG Companion] Successfully injected historical context into ${injectedCount} messages`);
+    // console.log(`[RPG Companion] Successfully injected historical context into ${injectedCount} messages`);
 }
 
 /**
@@ -228,7 +228,7 @@ function restoreOriginalMessageContent() {
     const context = getContext();
     const chat = context.chat;
 
-    console.log(`[RPG Companion] Restoring ${originalMessageContent.size} messages to original content`);
+    // console.log(`[RPG Companion] Restoring ${originalMessageContent.size} messages to original content`);
 
     for (const [msgIdx, originalContent] of originalMessageContent) {
         if (chat[msgIdx]) {
