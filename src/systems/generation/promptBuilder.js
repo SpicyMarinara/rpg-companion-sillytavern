@@ -329,7 +329,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         if (customPrompt) {
             instructions += customPrompt.replace(/{userName}/g, userName);
         } else {
-            instructions += `Replace X with actual numbers (e.g., 69) and replace all placeholders with concrete in-world details that ${userName} perceives about the current scene and the present characters. For example: "Location" becomes "Forest Clearing", "Mood Emoji" becomes "😊". `;
+            instructions += `Replace X with actual numbers (e.g., 69) and replace all placeholders with concrete in-world details that ${userName} perceives about the current scene and the present characters. For example: "Location" becomes "Forest Clearing", "Mood Emoji" becomes "😊". DO NOT include ${userName} in the characters section, only NPCs. `;
             instructions += `Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences.`;
         }
 

@@ -7,10 +7,10 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.3.2
+### v3.3.3
 
-- Fixed the auto-generation triggering on switching/starting new chats in separate generation mode.
-- Restored the option to remove generated characters from the panel.
+- Strenghtened default prompts to not include user's persona in the characters' section.
+- Updated some descriptions for buttons and custom fields.
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.

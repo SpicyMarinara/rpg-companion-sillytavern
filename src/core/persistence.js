@@ -455,7 +455,7 @@ function migrateToTrackerConfig() {
                     { id: 'physicalState', label: 'Physical State', enabled: true, placeholder: 'Visible Physical State (up to three traits)' },
                     { id: 'demeanor', label: 'Demeanor Cue', enabled: true, placeholder: 'Observable Demeanor Cue (one trait)' },
                     { id: 'relationship', label: 'Relationship', enabled: true, type: 'relationship', placeholder: 'Enemy/Neutral/Friend/Lover' },
-                    { id: 'internalMonologue', label: 'Internal Monologue', enabled: true, placeholder: 'Internal Monologue (in first person POV, up to three sentences long)' }
+                    { id: 'internalMonologue', label: 'Internal Monologue', enabled: true, placeholder: 'Internal Monologue (in first person from character\'s POV, up to three sentences long)' }
                 ],
                 characterStats: {
                     enabled: false,
@@ -555,7 +555,7 @@ function migrateToTrackerConfig() {
                 const thoughts = {
                     enabled: thoughtsField ? (thoughtsField.enabled !== false) : true,
                     name: 'Thoughts',
-                    description: thoughtsField?.placeholder || 'Internal monologue (in first person POV, up to three sentences long)'
+                    description: thoughtsField?.placeholder || 'Internal Monologue (in first person from character\'s POV, up to three sentences long)'
                 };
 
                 // Update to new structure
@@ -601,7 +601,7 @@ function migrateToTrackerConfig() {
             pc.thoughts = {
                 enabled: true,
                 name: 'Thoughts',
-                description: 'Internal monologue (in first person POV, up to three sentences long)'
+                description: 'Internal Monologue (in first person from character\'s POV, up to three sentences long)'
             };
         }
     }

@@ -166,7 +166,7 @@ export let extensionSettings = {
             thoughts: {
                 enabled: true,
                 name: 'Thoughts',
-                description: 'Internal monologue (in first person POV, up to three sentences long)'
+                description: 'Internal Monologue (in first person from character\'s POV, up to three sentences long)'
             },
             // Character stats toggle (optional feature)
             characterStats: {

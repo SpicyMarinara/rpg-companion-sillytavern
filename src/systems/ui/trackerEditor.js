@@ -195,7 +195,7 @@ function resetToDefaults() {
             thoughts: {
                 enabled: true,
                 name: 'Thoughts',
-                description: 'Internal monologue (in first person POV, up to three sentences long)'
+                description: 'Internal Monologue (in first person from character\'s POV, up to three sentences long)'
             },
             characterStats: {
                 enabled: false,
@@ -783,7 +783,7 @@ function renderPresentCharactersTab() {
     html += '</div>';
     html += '<div class="rpg-editor-input-group">';
     html += `<label>${i18n.getTranslation('template.trackerEditorModal.presentCharactersTab.aiInstructionLabel')}</label>`;
-    html += `<input type="text" id="rpg-thoughts-description" value="${config.thoughts?.description || 'Internal monologue (in first person POV, up to three sentences long)'}" placeholder="Description of what to generate">`;
+    html += `<input type="text" id="rpg-thoughts-description" value="${config.thoughts?.description || 'Internal Monologue (in first person from character\'s POV, up to three sentences long)'}" placeholder="Description of what to generate">`;
     html += '</div>';
     html += '</div>';
 
