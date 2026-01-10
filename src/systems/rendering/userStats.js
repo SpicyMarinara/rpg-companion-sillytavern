@@ -20,6 +20,7 @@ import {
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 import { buildInventorySummary } from '../generation/promptBuilder.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
+import { updateFabWidgets } from '../ui/mobile.js';
 
 /**
  * Builds the user stats text string using custom stat names
@@ -424,8 +425,9 @@ export function renderUserStats() {
         saveChatData();
         updateMessageSwipeData();
 
-        // Re-render to update the bar
+        // Re-render to update the bar and FAB widgets
         renderUserStats();
+        updateFabWidgets();
     });
 
     // Add event listeners for mood/conditions editing

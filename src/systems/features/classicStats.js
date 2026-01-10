@@ -8,6 +8,7 @@ import {
     $userStatsContainer
 } from '../../core/state.js';
 import { saveSettings, saveChatData } from '../../core/persistence.js';
+import { updateFabWidgets } from '../ui/mobile.js';
 
 /**
  * Sets up event listeners for classic stat +/- buttons using delegation.
@@ -25,6 +26,7 @@ export function setupClassicStatsButtons() {
             saveChatData();
             // Update only the specific stat value, not the entire stats panel
             $(this).closest('.rpg-classic-stat').find('.rpg-classic-stat-value').text(extensionSettings.classicStats[stat]);
+            updateFabWidgets();
         }
     });
 
@@ -37,6 +39,7 @@ export function setupClassicStatsButtons() {
             saveChatData();
             // Update only the specific stat value, not the entire stats panel
             $(this).closest('.rpg-classic-stat').find('.rpg-classic-stat-value').text(extensionSettings.classicStats[stat]);
+            updateFabWidgets();
         }
     });
 }
