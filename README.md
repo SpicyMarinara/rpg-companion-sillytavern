@@ -9,7 +9,7 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ### v3.3.3
 
-- Strenghtened default prompts to not include user's persona in the characters' section.
+- Strengthened default prompts to not include user's persona in the characters' section.
 - Updated some descriptions for buttons and custom fields.
 
 **Special thanks to all the other contributors for this project:**
