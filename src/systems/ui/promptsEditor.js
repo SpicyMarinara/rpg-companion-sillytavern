@@ -4,7 +4,7 @@
  */
 import { extensionSettings } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
-import { DEFAULT_HTML_PROMPT, DEFAULT_DIALOGUE_COLORING_PROMPT, DEFAULT_SPOTIFY_PROMPT, DEFAULT_NARRATOR_PROMPT } from '../generation/promptBuilder.js';
+import { DEFAULT_HTML_PROMPT, DEFAULT_DIALOGUE_COLORING_PROMPT, DEFAULT_DECEPTION_PROMPT, DEFAULT_CYOA_PROMPT, DEFAULT_SPOTIFY_PROMPT, DEFAULT_NARRATOR_PROMPT } from '../generation/promptBuilder.js';
 
 let $editorModal = null;
 let tempPrompts = null; // Temporary prompts for cancel functionality
@@ -13,6 +13,8 @@ let tempPrompts = null; // Temporary prompts for cancel functionality
 const DEFAULT_PROMPTS = {
     html: DEFAULT_HTML_PROMPT,
     dialogueColoring: DEFAULT_DIALOGUE_COLORING_PROMPT,
+    deception: DEFAULT_DECEPTION_PROMPT,
+    cyoa: DEFAULT_CYOA_PROMPT,
     spotify: DEFAULT_SPOTIFY_PROMPT,
     narrator: DEFAULT_NARRATOR_PROMPT,
     plotRandom: 'Actually, the scene is getting stale. Introduce {{random::stakes::a plot twist::a new character::a cataclysm::a fourth-wall-breaking joke::a sudden atmospheric phenomenon::a plot hook::a running gag::an ecchi scenario::Death from Discworld::a new stake::a drama::a conflict::an angered entity::a god::a vision::a prophetic dream::Il Dottore from Genshin Impact::a new development::a civilian in need::an emotional bit::a threat::a villain::an important memory recollection::a marriage proposal::a date idea::an angry horde of villagers with pitchforks::a talking animal::an enemy::a cliffhanger::a short omniscient POV shift to a completely different character::a quest::an unexpected revelation::a scandal::an evil clone::death of an important character::harm to an important character::a romantic setup::a gossip::a messenger::a plot point from the past::a plot hole::a tragedy::a ghost::an otherworldly occurrence::a plot device::a curse::a magic device::a rival::an unexpected pregnancy::a brothel::a prostitute::a new location::a past lover::a completely random thing::a what-if scenario::a significant choice::war::love::a monster::lewd undertones::Professor Mari::a travelling troupe::a secret::a fortune-teller::something completely different::a killer::a murder mystery::a mystery::a skill check::a deus ex machina::three raccoons in a trench coat::a pet::a slave::an orphan::a psycho::tentacles::"there is only one bed" trope::accidental marriage::a fun twist::a boss battle::sexy corn::an eldritch horror::a character getting hungry, thirsty, or exhausted::horniness::a need for a bathroom break need::someone fainting::an assassination attempt::a meta narration of this all being an out of hand DND session::a dungeon::a friend in need::an old friend::a small time skip::a scene shift::Aurora Borealis, at this time of year, at this time of day, at this part of the country::a grand ball::a surprise party::zombies::foreshadowing::a Spanish Inquisition (nobody expects it)::a natural plot progression}} to make things more interesting! Be creative, but stay grounded in the setting.',
@@ -93,6 +95,8 @@ function openPromptsEditor() {
     tempPrompts = {
         html: extensionSettings.customHtmlPrompt || '',
         dialogueColoring: extensionSettings.customDialogueColoringPrompt || '',
+        deception: extensionSettings.customDeceptionPrompt || '',
+        cyoa: extensionSettings.customCYOAPrompt || '',
         spotify: extensionSettings.customSpotifyPrompt || '',
         narrator: extensionSettings.customNarratorPrompt || '',
         plotRandom: extensionSettings.customPlotRandomPrompt || '',
@@ -106,6 +110,8 @@ function openPromptsEditor() {
     // Load current values or defaults
     $('#rpg-prompt-html').val(extensionSettings.customHtmlPrompt || DEFAULT_PROMPTS.html);
     $('#rpg-prompt-dialogue-coloring').val(extensionSettings.customDialogueColoringPrompt || DEFAULT_PROMPTS.dialogueColoring);
+    $('#rpg-prompt-deception').val(extensionSettings.customDeceptionPrompt || DEFAULT_PROMPTS.deception);
+    $('#rpg-prompt-cyoa').val(extensionSettings.customCYOAPrompt || DEFAULT_PROMPTS.cyoa);
     $('#rpg-prompt-spotify').val(extensionSettings.customSpotifyPrompt || DEFAULT_PROMPTS.spotify);
     $('#rpg-prompt-narrator').val(extensionSettings.customNarratorPrompt || DEFAULT_PROMPTS.narrator);
     $('#rpg-prompt-plot-random').val(extensionSettings.customPlotRandomPrompt || DEFAULT_PROMPTS.plotRandom);
@@ -143,6 +149,8 @@ function closePromptsEditor() {
 function savePrompts() {
     extensionSettings.customHtmlPrompt = $('#rpg-prompt-html').val().trim();
     extensionSettings.customDialogueColoringPrompt = $('#rpg-prompt-dialogue-coloring').val().trim();
+    extensionSettings.customDeceptionPrompt = $('#rpg-prompt-deception').val().trim();
+    extensionSettings.customCYOAPrompt = $('#rpg-prompt-cyoa').val().trim();
     extensionSettings.customSpotifyPrompt = $('#rpg-prompt-spotify').val().trim();
     extensionSettings.customNarratorPrompt = $('#rpg-prompt-narrator').val().trim();
     extensionSettings.customPlotRandomPrompt = $('#rpg-prompt-plot-random').val().trim();
@@ -170,6 +178,12 @@ function restorePromptToDefault(promptType) {
             break;
         case 'dialogueColoring':
             extensionSettings.customDialogueColoringPrompt = '';
+            break;
+        case 'deception':
+            extensionSettings.customDeceptionPrompt = '';
+            break;
+        case 'cyoa':
+            extensionSettings.customCYOAPrompt = '';
             break;
         case 'spotify':
             extensionSettings.customSpotifyPrompt = '';
@@ -206,6 +220,8 @@ function restorePromptToDefault(promptType) {
 function restoreAllToDefaults() {
     $('#rpg-prompt-html').val(DEFAULT_PROMPTS.html);
     $('#rpg-prompt-dialogue-coloring').val(DEFAULT_PROMPTS.dialogueColoring);
+    $('#rpg-prompt-deception').val(DEFAULT_PROMPTS.deception);
+    $('#rpg-prompt-cyoa').val(DEFAULT_PROMPTS.cyoa);
     $('#rpg-prompt-spotify').val(DEFAULT_PROMPTS.spotify);
     $('#rpg-prompt-narrator').val(DEFAULT_PROMPTS.narrator);
     $('#rpg-prompt-plot-random').val(DEFAULT_PROMPTS.plotRandom);
@@ -218,6 +234,8 @@ function restoreAllToDefaults() {
     // Clear all custom prompts
     extensionSettings.customHtmlPrompt = '';
     extensionSettings.customDialogueColoringPrompt = '';
+    extensionSettings.customDeceptionPrompt = '';
+    extensionSettings.customCYOAPrompt = '';
     extensionSettings.customSpotifyPrompt = '';
     extensionSettings.customNarratorPrompt = '';
     extensionSettings.customPlotRandomPrompt = '';

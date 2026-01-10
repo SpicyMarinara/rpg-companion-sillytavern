@@ -100,6 +100,24 @@ export function loadSettings() {
                 settingsChanged = true;
             }
 
+            // Migration to version 4: Enable FAB widgets by default
+            if (currentVersion < 4) {
+                // console.log('[RPG Companion] Migrating settings to version 4 (enabling FAB widgets)');
+                if (!extensionSettings.mobileFabWidgets) {
+                    extensionSettings.mobileFabWidgets = {};
+                }
+                extensionSettings.mobileFabWidgets.enabled = true;
+                extensionSettings.mobileFabWidgets.weatherIcon = { enabled: true };
+                extensionSettings.mobileFabWidgets.weatherDesc = { enabled: true };
+                extensionSettings.mobileFabWidgets.clock = { enabled: true };
+                extensionSettings.mobileFabWidgets.date = { enabled: true };
+                extensionSettings.mobileFabWidgets.location = { enabled: true };
+                extensionSettings.mobileFabWidgets.stats = { enabled: true };
+                extensionSettings.mobileFabWidgets.attributes = { enabled: true };
+                extensionSettings.settingsVersion = 4;
+                settingsChanged = true;
+            }
+
             // Save migrated settings
             if (settingsChanged) {
                 saveSettings();
@@ -741,8 +759,8 @@ export function createPreset(name) {
         id: presetId,
         name: name,
         trackerConfig: JSON.parse(JSON.stringify(extensionSettings.trackerConfig)),
-        historyPersistence: extensionSettings.historyPersistence 
-            ? JSON.parse(JSON.stringify(extensionSettings.historyPersistence)) 
+        historyPersistence: extensionSettings.historyPersistence
+            ? JSON.parse(JSON.stringify(extensionSettings.historyPersistence))
             : null
     };
     // Also set it as the active preset so edits go to the new preset
@@ -760,8 +778,8 @@ export function saveToPreset(presetId) {
     const preset = extensionSettings.presetManager.presets[presetId];
     if (preset) {
         preset.trackerConfig = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
-        preset.historyPersistence = extensionSettings.historyPersistence 
-            ? JSON.parse(JSON.stringify(extensionSettings.historyPersistence)) 
+        preset.historyPersistence = extensionSettings.historyPersistence
+            ? JSON.parse(JSON.stringify(extensionSettings.historyPersistence))
             : null;
         saveSettings();
         // console.log(`[RPG Companion] Saved current config to preset "${preset.name}"`);
@@ -904,7 +922,7 @@ export function hasPresetAssociation() {
  */
 export function autoSwitchPresetForEntity() {
     const associatedPresetId = getPresetForCurrentEntity();
-    
+
     // If there's a character-specific preset, use it
     if (associatedPresetId && associatedPresetId !== extensionSettings.presetManager.activePresetId) {
         // Check if the preset still exists
@@ -915,17 +933,17 @@ export function autoSwitchPresetForEntity() {
             removePresetAssociationForCurrentEntity();
         }
     }
-    
+
     // No character association - fall back to default preset if set
     if (!associatedPresetId) {
         const defaultPresetId = extensionSettings.presetManager.defaultPresetId;
-        if (defaultPresetId && 
+        if (defaultPresetId &&
             defaultPresetId !== extensionSettings.presetManager.activePresetId &&
             extensionSettings.presetManager.presets[defaultPresetId]) {
             return loadPreset(defaultPresetId);
         }
     }
-    
+
     return false;
 }
 

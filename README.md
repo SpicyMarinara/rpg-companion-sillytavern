@@ -7,10 +7,13 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.3.3
+### v3.4.0
 
-- Strengthened default prompts to not include user's persona in the characters' section.
-- Updated some descriptions for buttons and custom fields.
+- Added History Persistance in Edit Trackers that allows you to control how many past trackers in the chat history to include.
+- New mobile displays were added that show all the most important trackers from the panel as small, floating widgets around the RPG Companion button, when the main panel is closed.
+- Added CYOA toggle.
+- Added Deception System toggle.
+- The trackers are no longer sent together with an image generation request.
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.

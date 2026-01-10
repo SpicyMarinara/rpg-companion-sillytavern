@@ -4002,7 +4002,6 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     display: flex;
     gap: 0;
     border-bottom: 2px solid var(--rpg-border);
-    margin-bottom: 1em;
 }
 
 .rpg-editor-tab {
@@ -10205,3 +10204,84 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
     100% { transform: rotate(360deg); }
 }
 
+/* ============================================
+   FAB WIDGET THEME VARIATIONS
+   ============================================ */
+
+/* Sci-Fi / Synthwave Theme for FAB Widgets */
+body:has(.rpg-panel[data-theme="sci-fi"]) .rpg-fab-widget {
+    background: rgba(10, 14, 39, 0.95);
+    border: 1px solid rgba(139, 0, 255, 0.5);
+    color: #00fff9;
+    box-shadow: 0 3px 12px rgba(139, 0, 255, 0.3), 0 0 8px rgba(255, 0, 110, 0.2);
+}
+
+body:has(.rpg-panel[data-theme="sci-fi"]) .rpg-fab-widget:hover {
+    border-color: rgba(255, 0, 110, 0.7);
+    box-shadow: 0 4px 16px rgba(139, 0, 255, 0.5), 0 0 12px rgba(255, 0, 110, 0.4);
+}
+
+/* Fantasy / Rustic Theme for FAB Widgets */
+body:has(.rpg-panel[data-theme="fantasy"]) .rpg-fab-widget {
+    background: rgba(43, 24, 16, 0.95);
+    border: 1px solid rgba(139, 105, 20, 0.6);
+    color: #f4e8d0;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6), 0 0 1px rgba(212, 175, 55, 0.3);
+}
+
+body:has(.rpg-panel[data-theme="fantasy"]) .rpg-fab-widget:hover {
+    border-color: rgba(212, 175, 55, 0.8);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), 0 0 8px rgba(212, 175, 55, 0.4);
+}
+
+/* Cyberpunk Theme for FAB Widgets */
+body:has(.rpg-panel[data-theme="cyberpunk"]) .rpg-fab-widget {
+    background: rgba(15, 5, 25, 0.95);
+    border: 1px solid rgba(255, 0, 255, 0.4);
+    color: #00ffff;
+    box-shadow: 0 3px 12px rgba(255, 0, 255, 0.3), 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+body:has(.rpg-panel[data-theme="cyberpunk"]) .rpg-fab-widget:hover {
+    border-color: rgba(0, 255, 255, 0.7);
+    box-shadow: 0 4px 16px rgba(255, 0, 255, 0.5), 0 0 12px rgba(0, 255, 255, 0.4);
+}
+
+/* Minimal Theme for FAB Widgets */
+body:has(.rpg-panel[data-theme="minimal"]) .rpg-fab-widget {
+    background: rgba(245, 245, 250, 0.98);
+    border: 1px solid rgba(200, 200, 210, 0.8);
+    color: #2c3e50;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+body:has(.rpg-panel[data-theme="minimal"]) .rpg-fab-widget:hover {
+    border-color: rgba(52, 152, 219, 0.6);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Dark Theme for FAB Widgets */
+body:has(.rpg-panel[data-theme="dark"]) .rpg-fab-widget {
+    background: rgba(25, 25, 35, 0.95);
+    border: 1px solid rgba(70, 70, 90, 0.6);
+    color: #e0e0e0;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+}
+
+body:has(.rpg-panel[data-theme="dark"]) .rpg-fab-widget:hover {
+    border-color: rgba(100, 100, 130, 0.8);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* Light Theme for FAB Widgets */
+body:has(.rpg-panel[data-theme="light"]) .rpg-fab-widget {
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(220, 220, 230, 0.8);
+    color: #2c3e50;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body:has(.rpg-panel[data-theme="light"]) .rpg-fab-widget:hover {
+    border-color: rgba(52, 152, 219, 0.6);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+}

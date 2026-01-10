@@ -377,6 +377,16 @@ async function initUI() {
         saveSettings();
     });
 
+    $('#rpg-toggle-deception').on('change', function() {
+        extensionSettings.enableDeceptionSystem = $(this).prop('checked');
+        saveSettings();
+    });
+
+    $('#rpg-toggle-cyoa').on('change', function() {
+        extensionSettings.enableCYOA = $(this).prop('checked');
+        saveSettings();
+    });
+
     $('#rpg-toggle-spotify-music').on('change', function() {
         extensionSettings.enableSpotifyMusic = $(this).prop('checked');
         saveSettings();
@@ -550,6 +560,18 @@ async function initUI() {
 
     $('#rpg-toggle-show-dialogue-coloring-toggle').on('change', function() {
         extensionSettings.showDialogueColoringToggle = $(this).prop('checked');
+        saveSettings();
+        updateFeatureTogglesVisibility();
+    });
+
+    $('#rpg-toggle-show-deception-toggle').on('change', function() {
+        extensionSettings.showDeceptionToggle = $(this).prop('checked');
+        saveSettings();
+        updateFeatureTogglesVisibility();
+    });
+
+    $('#rpg-toggle-show-cyoa-toggle').on('change', function() {
+        extensionSettings.showCYOAToggle = $(this).prop('checked');
         saveSettings();
         updateFeatureTogglesVisibility();
     });
@@ -851,6 +873,8 @@ async function initUI() {
     $('#rpg-toggle-thoughts-in-chat').prop('checked', extensionSettings.showThoughtsInChat);
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
     $('#rpg-toggle-dialogue-coloring').prop('checked', extensionSettings.enableDialogueColoring);
+    $('#rpg-toggle-deception').prop('checked', extensionSettings.enableDeceptionSystem ?? false);
+    $('#rpg-toggle-cyoa').prop('checked', extensionSettings.enableCYOA ?? false);
     $('#rpg-toggle-spotify-music').prop('checked', extensionSettings.enableSpotifyMusic);
 
     $('#rpg-toggle-dynamic-weather').prop('checked', extensionSettings.enableDynamicWeather);
@@ -859,6 +883,8 @@ async function initUI() {
     // Feature toggle visibility settings
     $('#rpg-toggle-show-html-toggle').prop('checked', extensionSettings.showHtmlToggle ?? true);
     $('#rpg-toggle-show-dialogue-coloring-toggle').prop('checked', extensionSettings.showDialogueColoringToggle ?? true);
+    $('#rpg-toggle-show-deception-toggle').prop('checked', extensionSettings.showDeceptionToggle ?? true);
+    $('#rpg-toggle-show-cyoa-toggle').prop('checked', extensionSettings.showCYOAToggle ?? true);
     $('#rpg-toggle-show-spotify-toggle').prop('checked', extensionSettings.showSpotifyToggle ?? true);
     $('#rpg-toggle-show-dynamic-weather-toggle').prop('checked', extensionSettings.showDynamicWeatherToggle ?? true);
     $('#rpg-toggle-show-narrator-mode').prop('checked', extensionSettings.showNarratorMode ?? true);
@@ -928,7 +954,6 @@ async function initUI() {
 
     $('#rpg-generation-mode').val(extensionSettings.generationMode);
     $('#rpg-skip-guided-mode').val(extensionSettings.skipInjectionsForGuided);
-    $('#rpg-save-tracker-history').prop('checked', extensionSettings.saveTrackerHistory);
 
     updatePanelVisibility();
     updateSectionVisibility();

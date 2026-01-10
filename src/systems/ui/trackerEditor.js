@@ -1392,15 +1392,15 @@ function renderHistoryPersistenceTab() {
     html += '<div class="rpg-editor-input-row" style="margin-top: 12px;">';
     html += `<label for="rpg-history-injection-position">Injection Position:</label>`;
     html += `<select id="rpg-history-injection-position" class="rpg-select" style="margin-left: 8px;">`;
-    html += `<option value="user_message_end" ${historyPersistence.injectionPosition === 'user_message_end' ? 'selected' : ''}>End of User Message</option>`;
-    html += `<option value="assistant_message_end" ${historyPersistence.injectionPosition === 'assistant_message_end' ? 'selected' : ''}>End of Assistant Message</option>`;
+    html += `<option value="user_message_end" ${historyPersistence.injectionPosition === 'user_message_end' ? 'selected' : ''}>End of the User's Message</option>`;
+    html += `<option value="assistant_message_end" ${historyPersistence.injectionPosition === 'assistant_message_end' ? 'selected' : ''}>End of the Assistant's Message</option>`;
     html += `</select>`;
     html += '</div>';
 
     // Custom preamble
     html += '<div class="rpg-editor-input-row" style="margin-top: 12px;">';
-    html += `<label for="rpg-history-context-preamble">Custom Context Preamble (optional):</label>`;
-    html += `<input type="text" id="rpg-history-context-preamble" value="${historyPersistence.contextPreamble || ''}" class="rpg-text-input" placeholder="Leave empty for default: [Context at this point:]" style="width: 100%; margin-top: 4px;">`;
+    html += `<label for="rpg-history-context-preamble">Custom Context Preamble:</label>`;
+    html += `<input type="text" id="rpg-history-context-preamble" value="${historyPersistence.contextPreamble || ''}" class="rpg-text-input" placeholder="Context for that moment:" style="width: 100%; margin-top: 4px;">`;
     html += '</div>';
 
     // User Stats section - which stats to persist

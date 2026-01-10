@@ -29,6 +29,16 @@ export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, an
 export const DEFAULT_DIALOGUE_COLORING_PROMPT = `Wrap all character/NPC "dialogues" in unique <font color=######>tags</font>, exemplary: <font color=#abc123>"You're pretty good."</font> Assign a distinct color to each speaker and reuse it whenever they speak again.`;
 
 /**
+ * Default Deception System prompt text
+ */
+export const DEFAULT_DECEPTION_PROMPT = `When a character is lying or deceiving, you should follow up that line with the <lie> tag, containing a brief description of the truth and the lie's reason, using the template below (replace placeholders in brackets). This will be hidden from the user's view, but not to you, making it useful for future consequences: <lie>[Character] is [lying/deceiving/omitting], the truth is [truth]. Reason: [reason].</lie>`;
+
+/**
+ * Default CYOA prompt text
+ */
+export const DEFAULT_CYOA_PROMPT = `Since this is a "Choose Your Own Adventure" type of game, you must finish your response by creating a numbered list of 5 different possible action or dialogue options (depending on the scene) for the user to choose from. Make sure they all fit their persona well. They will respond with their choice on how to progress.`;
+
+/**
  * Default Spotify music prompt text (customizable by users)
  */
 export const DEFAULT_SPOTIFY_PROMPT = `If fitting for the current scene's mood and atmosphere, suggest a song that fits the ambiance. Choose music that enhances the emotional tone, setting, or action of the scene.`;
@@ -229,7 +239,6 @@ function buildAttributesString() {
  */
 export function generateTrackerExample() {
     let example = '';
-    const useXmlTags = extensionSettings.saveTrackerHistory;
 
     // Use COMMITTED data for generation context, not displayed data
     // Apply locks before sending to AI (for JSON format only)
@@ -310,19 +319,11 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
     // Only add tracker instructions if at least one tracker is enabled
     if (hasAnyTrackers) {
-        // Determine format based on saveTrackerHistory setting
-        const useXmlTags = extensionSettings.saveTrackerHistory;
-        const openTag = useXmlTags ? '<trackers>\n' : '';
-        const closeTag = useXmlTags ? '\n</trackers>' : '';
         const codeBlockMarker = '';
         const endCodeBlockMarker = '';
 
         // Universal instruction header
-        if (useXmlTags) {
-            instructions += `\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the JSON format shown below, enclosed in <trackers></trackers> XML tags. `;
-        } else {
-            instructions += '\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the JSON format shown below as a single unified JSON object containing all enabled tracker fields. ';
-        }
+        instructions += '\nAt the start of every reply, you must attach an update to the trackers in EXACTLY the JSON format shown below as a single unified JSON object containing all enabled tracker fields. ';
 
         // Append custom instruction portion if available
         const customPrompt = extensionSettings.customTrackerInstructionsPrompt;
@@ -789,7 +790,7 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
             let statsFormatted = '';
 
             // Custom stats with persistInHistory enabled
-            if (userStatsData.stats && Array.isArray(userStatsData.stats)) {
+            if (userStatsData.stats && Array.isArray(userStatsData.stats) && userStatsConfig.customStats) {
                 for (const stat of userStatsData.stats) {
                     const configStat = userStatsConfig.customStats.find(s => s.id === stat.id);
                     if (configStat?.persistInHistory && stat.value !== undefined) {
@@ -1169,7 +1170,7 @@ export async function generateSeparateUpdatePrompt() {
                 continue;
             }
 
-            const preamble = historyPersistence.contextPreamble || '[Context at this point:]';
+            const preamble = historyPersistence.contextPreamble || 'Context for that moment:';
             const wrappedContext = `\n${preamble}\n${formattedContext}`;
 
             // Determine target message based on position

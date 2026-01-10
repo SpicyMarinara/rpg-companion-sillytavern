@@ -5,7 +5,7 @@
 
 import { togglePlotButtons } from '../ui/layout.js';
 import { extensionSettings, setIsPlotProgression } from '../../core/state.js';
-import { DEFAULT_HTML_PROMPT, DEFAULT_DIALOGUE_COLORING_PROMPT } from '../generation/promptBuilder.js';
+import { DEFAULT_HTML_PROMPT, DEFAULT_DIALOGUE_COLORING_PROMPT, DEFAULT_DECEPTION_PROMPT, DEFAULT_CYOA_PROMPT } from '../generation/promptBuilder.js';
 import { Generate } from '../../../../../../../script.js';
 
 /**
@@ -119,6 +119,20 @@ export async function sendPlotProgression(type) {
             // Use custom Dialogue Coloring prompt if set, otherwise use default
             const dialogueColoringPromptText = extensionSettings.customDialogueColoringPrompt || DEFAULT_DIALOGUE_COLORING_PROMPT;
             prompt += '\n\n' + dialogueColoringPromptText;
+        }
+
+        // Add Deception System prompt if enabled
+        if (extensionSettings.enableDeceptionSystem) {
+            // Use custom Deception prompt if set, otherwise use default
+            const deceptionPromptText = extensionSettings.customDeceptionPrompt || DEFAULT_DECEPTION_PROMPT;
+            prompt += '\n\n' + deceptionPromptText;
+        }
+
+        // Add CYOA prompt if enabled
+        if (extensionSettings.enableCYOA) {
+            // Use custom CYOA prompt if set, otherwise use default
+            const cyoaPromptText = extensionSettings.customCYOAPrompt || DEFAULT_CYOA_PROMPT;
+            prompt += '\n\n' + cyoaPromptText;
         }
 
         // Set flag to indicate we're doing plot progression

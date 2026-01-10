@@ -304,21 +304,6 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 lastGeneratedData.characterThoughts = parsedData.characterThoughts;
             }
 
-            // When saveTrackerHistory is enabled, store tracker data on the user's message too
-            // This allows scrolling through history and seeing trackers at each point
-            if (extensionSettings.saveTrackerHistory && lastMessage && lastMessage.is_user) {
-                if (!lastMessage.extra) {
-                    lastMessage.extra = {};
-                }
-                lastMessage.extra.rpg_companion_data = {
-                    userStats: parsedData.userStats,
-                    infoBox: parsedData.infoBox,
-                    characterThoughts: parsedData.characterThoughts,
-                    timestamp: Date.now()
-                };
-                // console.log('[RPG Companion] 💾 Stored tracker data on user message for history');
-            }
-
             // Also store on assistant message if present (existing behavior)
             if (lastMessage && !lastMessage.is_user) {
                 if (!lastMessage.extra) {

@@ -10,7 +10,7 @@
  * Extension settings - persisted to SillyTavern settings
  */
 export let extensionSettings = {
-    settingsVersion: 3, // Version number for settings migrations (v3 = JSON format)
+    settingsVersion: 4, // Version number for settings migrations (v4 = FAB widgets enabled by default)
     enabled: true,
     autoUpdate: false,
     updateDepth: 4, // How many messages to include in the context
@@ -27,6 +27,10 @@ export let extensionSettings = {
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
     enableDialogueColoring: false, // Enable dialogue coloring prompt injection
     customDialogueColoringPrompt: '', // Custom dialogue coloring prompt text (empty = use default)
+    enableDeceptionSystem: false, // Enable deception tracking with <lie> tags
+    customDeceptionPrompt: '', // Custom deception prompt text (empty = use default)
+    enableCYOA: false, // Enable "Choose Your Own Adventure" formatting with action choices
+    customCYOAPrompt: '', // Custom CYOA prompt text (empty = use default)
     enableSpotifyMusic: false, // Enable Spotify music integration (asks AI for Spotify URLs)
     customSpotifyPrompt: '', // Custom Spotify prompt text (empty = use default)
 
@@ -34,6 +38,8 @@ export let extensionSettings = {
     dismissedHolidayPromo: false, // User dismissed the holiday promotion banner
     showHtmlToggle: true, // Show Immersive HTML toggle in main panel
     showDialogueColoringToggle: true, // Show Dialogue Coloring toggle in main panel (enabled by default)
+    showDeceptionToggle: true, // Show Deception System toggle in main panel
+    showCYOAToggle: true, // Show CYOA toggle in main panel
     showSpotifyToggle: true, // Show Spotify Music toggle in main panel
 
     showDynamicWeatherToggle: true, // Show Dynamic Weather Effects toggle in main panel
@@ -42,7 +48,6 @@ export let extensionSettings = {
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
     enableRandomizedPlot: true, // Show randomized plot progression button above chat input
     enableNaturalPlot: true, // Show natural plot progression button above chat input
-    saveTrackerHistory: false, // Save tracker data in chat history for each message
     // History persistence settings - inject selected tracker data into historical messages
     historyPersistence: {
         enabled: false, // Master toggle for history persistence feature
@@ -67,14 +72,14 @@ export let extensionSettings = {
     }, // Saved position for mobile FAB button
     // Mobile FAB widget display options (8-position system around the button)
     mobileFabWidgets: {
-        enabled: false, // Master toggle for FAB widgets
-        weatherIcon: { enabled: false, position: 0 },      // Weather emoji (☀️, 🌧️, etc.)
-        weatherDesc: { enabled: false, position: 1 },      // Weather description text
-        clock: { enabled: false, position: 2 },            // Current time display
-        date: { enabled: false, position: 3 },             // Date display
-        location: { enabled: false, position: 4 },         // Location name
-        stats: { enabled: false, position: 5 },            // All stats as compact numbers
-        attributes: { enabled: false, position: 6 }        // Compact RPG attributes display
+        enabled: true, // Master toggle for FAB widgets
+        weatherIcon: { enabled: true, position: 0 },      // Weather emoji (☀️, 🌧️, etc.)
+        weatherDesc: { enabled: true, position: 1 },      // Weather description text
+        clock: { enabled: true, position: 2 },            // Current time display
+        date: { enabled: true, position: 3 },             // Date display
+        location: { enabled: true, position: 4 },         // Location name
+        stats: { enabled: true, position: 5 },            // All stats as compact numbers
+        attributes: { enabled: true, position: 6 }        // Compact RPG attributes display
     },
     userStats: JSON.stringify({
         stats: [

@@ -204,20 +204,16 @@ export async function onMessageReceived(data) {
             // Remove the tracker code blocks from the visible message
             let cleanedMessage = responseText;
 
-            // Only remove trackers if saveTrackerHistory is disabled
-            // When enabled, trackers are in <trackers> XML tags which SillyTavern auto-hides
-            if (!extensionSettings.saveTrackerHistory) {
-                // Note: JSON code blocks are hidden from display by regex script (but preserved in message data)
+            // Note: JSON code blocks are hidden from display by regex script (but preserved in message data)
 
-                // Remove old text format code blocks (legacy support)
-                cleanedMessage = cleanedMessage.replace(/```[^`]*?Stats\s*\n\s*---[^`]*?```\s*/gi, '');
-                cleanedMessage = cleanedMessage.replace(/```[^`]*?Info Box\s*\n\s*---[^`]*?```\s*/gi, '');
-                cleanedMessage = cleanedMessage.replace(/```[^`]*?Present Characters\s*\n\s*---[^`]*?```\s*/gi, '');
-                // Remove any stray "---" dividers that might appear after the code blocks
-                cleanedMessage = cleanedMessage.replace(/^\s*---\s*$/gm, '');
-                // Clean up multiple consecutive newlines
-                cleanedMessage = cleanedMessage.replace(/\n{3,}/g, '\n\n');
-            }
+            // Remove old text format code blocks (legacy support)
+            cleanedMessage = cleanedMessage.replace(/```[^`]*?Stats\s*\n\s*---[^`]*?```\s*/gi, '');
+            cleanedMessage = cleanedMessage.replace(/```[^`]*?Info Box\s*\n\s*---[^`]*?```\s*/gi, '');
+            cleanedMessage = cleanedMessage.replace(/```[^`]*?Present Characters\s*\n\s*---[^`]*?```\s*/gi, '');
+            // Remove any stray "---" dividers that might appear after the code blocks
+            cleanedMessage = cleanedMessage.replace(/^\s*---\s*$/gm, '');
+            // Clean up multiple consecutive newlines
+            cleanedMessage = cleanedMessage.replace(/\n{3,}/g, '\n\n');
             // Note: <trackers> XML tags are automatically hidden by SillyTavern
             // Note: <Song - Artist/> tags are also automatically hidden by SillyTavern
 

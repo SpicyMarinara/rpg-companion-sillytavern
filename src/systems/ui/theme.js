@@ -138,6 +138,8 @@ export function updateFeatureTogglesVisibility() {
     const $featuresRow = $('#rpg-features-row');
     const $htmlToggle = $('#rpg-html-toggle-wrapper');
     const $dialogueColoringToggle = $('#rpg-dialogue-coloring-toggle-wrapper');
+    const $deceptionToggle = $('#rpg-deception-toggle-wrapper');
+    const $cyoaToggle = $('#rpg-cyoa-toggle-wrapper');
     const $spotifyToggle = $('#rpg-spotify-toggle-wrapper');
 
     const $dynamicWeatherToggle = $('#rpg-dynamic-weather-toggle-wrapper');
@@ -147,6 +149,8 @@ export function updateFeatureTogglesVisibility() {
     // Show/hide individual toggles
     $htmlToggle.toggle(extensionSettings.showHtmlToggle);
     $dialogueColoringToggle.toggle(extensionSettings.showDialogueColoringToggle);
+    $deceptionToggle.toggle(extensionSettings.showDeceptionToggle ?? true);
+    $cyoaToggle.toggle(extensionSettings.showCYOAToggle ?? true);
     $spotifyToggle.toggle(extensionSettings.showSpotifyToggle);
 
     $dynamicWeatherToggle.toggle(extensionSettings.showDynamicWeatherToggle);
@@ -156,6 +160,8 @@ export function updateFeatureTogglesVisibility() {
     // Hide entire row if all toggles are hidden
     const anyVisible = extensionSettings.showHtmlToggle ||
                       extensionSettings.showDialogueColoringToggle ||
+                      (extensionSettings.showDeceptionToggle ?? true) ||
+                      (extensionSettings.showCYOAToggle ?? true) ||
                       extensionSettings.showSpotifyToggle ||
                       extensionSettings.showDynamicWeatherToggle ||
                       extensionSettings.showNarratorMode ||
