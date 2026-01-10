@@ -395,6 +395,62 @@
 
             </div>
 
+            <!-- Mobile FAB Options Section -->
+            <div class="rpg-settings-group">
+                <h4 data-i18n-key="template.settingsModal.mobileFabTitle"><i class="fa-solid fa-mobile-screen-button"
+                        aria-hidden="true"></i> Mobile Button Widgets</h4>
+                <small class="notes" style="display: block; margin-bottom: 10px;"
+                    data-i18n-key="template.settingsModal.mobileFabNote">
+                    <i class="fa-solid fa-info-circle" aria-hidden="true"></i> Show compact info widgets around the floating button on mobile. Widgets are positioned automatically.
+                </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-fab-widgets-enabled" />
+                    <span data-i18n-key="template.settingsModal.mobileFab.enabled">Enable FAB Widgets</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                    data-i18n-key="template.settingsModal.mobileFab.enabledNote">
+                    Master toggle to show info widgets around the mobile floating button.
+                </small>
+
+                <div id="rpg-fab-widget-options" style="margin-left: 10px; border-left: 2px solid var(--SmartThemeBorderColor); padding-left: 10px; margin-top: 8px;">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-fab-weather-icon" />
+                        <span data-i18n-key="template.settingsModal.mobileFab.weatherIcon">Weather Icon</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-fab-weather-desc" />
+                        <span data-i18n-key="template.settingsModal.mobileFab.weatherDesc">Weather Description</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-fab-clock" />
+                        <span data-i18n-key="template.settingsModal.mobileFab.clock">Time/Clock</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-fab-date" />
+                        <span data-i18n-key="template.settingsModal.mobileFab.date">Date</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-fab-location" />
+                        <span data-i18n-key="template.settingsModal.mobileFab.location">Location</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-fab-stats" />
+                        <span data-i18n-key="template.settingsModal.mobileFab.stats">Stats (Health, Energy, etc.)</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-fab-attributes" />
+                        <span data-i18n-key="template.settingsModal.mobileFab.attributes">RPG Attributes (STR, DEX, etc.)</span>
+                    </label>
+                </div>
+            </div>
+
             <div class="rpg-settings-group">
                 <h4 data-i18n-key="template.settingsModal.advancedTitle"><i class="fa-solid fa-sliders"
                         aria-hidden="true"></i> Advanced</h4>

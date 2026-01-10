@@ -28,6 +28,7 @@ import {
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts } from '../rendering/thoughts.js';
+import { updateFabWidgets } from './mobile.js';
 
 let $editorModal = null;
 let activeTab = 'userStats';
@@ -258,6 +259,7 @@ function applyTrackerConfig() {
     renderUserStats();
     renderInfoBox();
     renderThoughts();
+    updateFabWidgets(); // Update FAB widgets to reflect new config
 }
 
 /**

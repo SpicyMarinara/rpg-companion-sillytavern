@@ -5154,6 +5154,21 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transform: rotate(180deg);
 }
 
+/* FAB Spinning animation during API requests */
+.rpg-mobile-toggle.rpg-fab-loading i {
+    animation: fa-spin 1s infinite linear;
+}
+
+.rpg-mobile-toggle.rpg-fab-loading {
+    box-shadow: 0 0 12px rgba(233, 69, 96, 0.6), 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* Hide FAB widgets when panel is open */
+body:has(.rpg-panel.rpg-mobile-open) .rpg-fab-widget-container {
+    opacity: 0;
+    pointer-events: none;
+}
+
 /* Mobile overlay backdrop */
 .rpg-mobile-overlay {
     display: none;
@@ -9857,3 +9872,336 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
     color: var(--SmartThemeBodyColor, #ccc);
     text-decoration: underline;
 }
+
+/* ============================================
+   FAB Widget System - Improved Layout
+   ============================================ */
+
+/* Widget container - positioned relative to FAB */
+.rpg-fab-widget-container {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+}
+
+/* Hide FAB widgets on desktop viewport */
+@media (min-width: 1001px) {
+    .rpg-fab-widget-container {
+        display: none !important;
+    }
+}
+
+/* Individual widget base styling */
+.rpg-fab-widget {
+    position: absolute;
+    pointer-events: auto;
+    background: rgba(20, 20, 35, 0.95);
+    border: 1px solid rgba(100, 150, 255, 0.3);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: #fff;
+    white-space: nowrap;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5), 0 0 1px rgba(100, 150, 255, 0.3);
+    transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.rpg-fab-widget:hover {
+    border-color: rgba(100, 150, 255, 0.5);
+}
+
+/* Expanded state for truncated widgets - desktop hover and mobile tap */
+.rpg-fab-widget[data-full-text]:hover,
+.rpg-fab-widget[data-full-text].expanded {
+    z-index: 9999 !important;
+    max-width: none !important;
+    white-space: nowrap;
+}
+
+.rpg-fab-widget[data-full-text]:hover .rpg-fab-widget-text,
+.rpg-fab-widget[data-full-text].expanded .rpg-fab-widget-text {
+    /* Show full text on hover/tap */
+}
+
+/* Hide truncated text and show full text on expand */
+.rpg-fab-widget[data-full-text]:hover .rpg-truncated,
+.rpg-fab-widget[data-full-text].expanded .rpg-truncated {
+    display: none;
+}
+
+.rpg-fab-widget[data-full-text]:hover .rpg-full-text,
+.rpg-fab-widget[data-full-text].expanded .rpg-full-text {
+    display: inline;
+}
+
+/* Default: show truncated, hide full */
+.rpg-fab-widget .rpg-full-text {
+    display: none;
+}
+
+.rpg-fab-widget .rpg-truncated {
+    display: inline;
+}
+
+/* 8-Position system - spread out more to avoid overlap
+   Positions: 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW */
+
+/* Position 0: North (top center) */
+.rpg-fab-widget-pos-0 {
+    bottom: calc(100% + 15px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+.rpg-fab-widget-pos-0:hover { transform: translateX(-50%) scale(1.05); }
+
+/* Position 1: Northeast */
+.rpg-fab-widget-pos-1 {
+    bottom: calc(100% + 10px);
+    left: calc(100% + 15px);
+}
+
+/* Position 2: East (right center) */
+.rpg-fab-widget-pos-2 {
+    top: 50%;
+    left: calc(100% + 15px);
+    transform: translateY(-50%);
+}
+.rpg-fab-widget-pos-2:hover { transform: translateY(-50%) scale(1.05); }
+
+/* Position 3: Southeast */
+.rpg-fab-widget-pos-3 {
+    top: calc(100% + 10px);
+    left: calc(100% + 15px);
+}
+
+/* Position 4: South (bottom center) */
+.rpg-fab-widget-pos-4 {
+    top: calc(100% + 15px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+.rpg-fab-widget-pos-4:hover { transform: translateX(-50%) scale(1.05); }
+
+/* Position 5: Southwest */
+.rpg-fab-widget-pos-5 {
+    top: calc(100% + 10px);
+    right: calc(100% + 15px);
+    left: auto;
+}
+
+/* Position 6: West - Stats (top edge at FAB center + gap, grows DOWN) */
+.rpg-fab-widget-pos-6 {
+    top: calc(50% + 8px);
+    right: calc(100% + 15px);
+    left: auto;
+}
+
+/* Position 7: Northwest - Attributes (bottom edge at FAB center - gap, grows UP) */
+.rpg-fab-widget-pos-7 {
+    bottom: calc(50% + 8px);
+    right: calc(100% + 15px);
+    left: auto;
+}
+
+/* Centered large widget (when only one is visible) - vertically centered */
+.rpg-fab-widget-centered.rpg-fab-widget-pos-6,
+.rpg-fab-widget-centered.rpg-fab-widget-pos-7 {
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+}
+
+/* Weather icon widget - larger emoji display */
+.rpg-fab-widget-weather-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    padding: 6px;
+    min-width: 32px;
+    min-height: 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+}
+
+/* Weather description widget */
+.rpg-fab-widget-weather-desc {
+    max-width: 100px;
+    font-size: 10px;
+}
+
+/* Clock/Time widget - bottom position with animated clock */
+.rpg-fab-widget-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    gap: 2px;
+}
+
+/* Mini animated clock face */
+.rpg-fab-clock-face {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--rpg-border, #4a7ba7);
+    border-radius: 50%;
+    background: var(--rpg-accent, rgba(22, 33, 62, 0.9));
+}
+
+.rpg-fab-clock-hour {
+    position: absolute;
+    width: 2px;
+    height: 7px;
+    background: var(--rpg-text, #eaeaea);
+    left: 50%;
+    bottom: 50%;
+    margin-left: -1px;
+    transform-origin: bottom center;
+    border-radius: 1px;
+}
+
+.rpg-fab-clock-minute {
+    position: absolute;
+    width: 1.5px;
+    height: 9px;
+    background: var(--rpg-highlight, #4a90e2);
+    left: 50%;
+    bottom: 50%;
+    margin-left: -0.75px;
+    transform-origin: bottom center;
+    border-radius: 1px;
+}
+
+.rpg-fab-clock-center {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--rpg-highlight, #4a90e2);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.rpg-fab-clock-time {
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+/* Date widget */
+.rpg-fab-widget-date {
+    font-size: 10px;
+}
+
+/* Location widget - two lines */
+.rpg-fab-widget-location {
+    max-width: 90px;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Attributes widget - compact grid */
+.rpg-fab-widget-attributes {
+    padding: 6px 10px;
+}
+
+.rpg-fab-widget-attr-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+.rpg-fab-widget-attr-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+}
+
+.rpg-fab-widget-attr-name {
+    font-size: 8px;
+    opacity: 0.7;
+    text-transform: uppercase;
+}
+
+.rpg-fab-widget-attr-value {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--rpg-highlight, #4a90e2);
+    white-space: nowrap;
+}
+
+/* Stats widget - vertical compact list */
+.rpg-fab-widget-stats {
+    padding: 6px 10px;
+    min-width: 70px;
+    text-align: center;
+}
+
+.rpg-fab-widget-stats-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.rpg-fab-widget-stat-item {
+    font-size: 11px;
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-weight: 600;
+    white-space: nowrap;
+    display: block;
+}
+
+/* RPG Attributes widget - 2x3 grid */
+.rpg-fab-widget-attributes {
+    padding: 6px 8px;
+}
+
+.rpg-fab-widget-attr-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px 10px;
+}
+
+.rpg-fab-widget-attr-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.rpg-fab-widget-attr-name {
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.5px;
+}
+
+.rpg-fab-widget-attr-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6af;
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+}
+
+/* FAB Loading State */
+#rpg-mobile-toggle.rpg-fab-loading {
+    animation: fabSpin 1s linear infinite;
+}
+
+#rpg-mobile-toggle.rpg-fab-loading i {
+    opacity: 0.7;
+}
+
+@keyframes fabSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+

@@ -58,6 +58,17 @@ export let extensionSettings = {
         top: 'calc(var(--topBarBlockSize) + 60px)',
         right: '12px'
     }, // Saved position for mobile FAB button
+    // Mobile FAB widget display options (8-position system around the button)
+    mobileFabWidgets: {
+        enabled: false, // Master toggle for FAB widgets
+        weatherIcon: { enabled: false, position: 0 },      // Weather emoji (☀️, 🌧️, etc.)
+        weatherDesc: { enabled: false, position: 1 },      // Weather description text
+        clock: { enabled: false, position: 2 },            // Current time display
+        date: { enabled: false, position: 3 },             // Date display
+        location: { enabled: false, position: 4 },         // Location name
+        stats: { enabled: false, position: 5 },            // All stats as compact numbers
+        attributes: { enabled: false, position: 6 }        // Compact RPG attributes display
+    },
     userStats: JSON.stringify({
         stats: [
             { id: 'health', name: 'Health', value: 100 },

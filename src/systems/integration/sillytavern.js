@@ -43,6 +43,9 @@ import { renderMusicPlayer } from '../rendering/musicPlayer.js';
 // Utils
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 
+// UI
+import { setFabLoadingState, updateFabWidgets } from '../ui/mobile.js';
+
 // Chapter checkpoint
 import { updateAllCheckpointIndicators } from '../ui/checkpointUI.js';
 import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
@@ -110,6 +113,11 @@ export function onMessageSent() {
     // Set flag to indicate we're expecting a new message from generation
     // This allows auto-update to distinguish between new generations and loading chat history
     setIsAwaitingNewMessage(true);
+
+    // Show FAB loading state for together mode (starts spinning)
+    if (extensionSettings.generationMode === 'together') {
+        setFabLoadingState(true);
+    }
 
     // For separate mode with auto-update disabled, commit displayed tracker
     if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
@@ -260,6 +268,9 @@ export async function onMessageReceived(data) {
         if (extensionSettings.autoUpdate && isAwaitingNewMessage) {
             setTimeout(async () => {
                 await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
+                // Update FAB widgets after separate/external mode update completes
+                setFabLoadingState(false);
+                updateFabWidgets();
             }, 500);
         }
     }
@@ -281,6 +292,10 @@ export async function onMessageReceived(data) {
         setIsPlotProgression(false);
         // console.log('[RPG Companion] Plot progression generation completed');
     }
+
+    // Stop FAB loading state and update widgets
+    setFabLoadingState(false);
+    updateFabWidgets();
 
     // Re-apply checkpoint in case SillyTavern unhid messages during generation
     await restoreCheckpointOnLoad();
@@ -318,6 +333,9 @@ export function onCharacterChanged() {
     renderInventory();
     renderQuests();
     renderMusicPlayer($musicPlayerContainer[0]);
+
+    // Update FAB widgets with loaded data
+    updateFabWidgets();
 
     // Update chat thought overlays
     updateChatThoughts();

@@ -126,7 +126,8 @@ import {
     removeMobileTabs,
     setupMobileKeyboardHandling,
     setupContentEditableScrolling,
-    updateMobileTabLabels
+    updateMobileTabLabels,
+    updateFabWidgets
 } from './src/systems/ui/mobile.js';
 import {
     setupDesktopTabs,
@@ -608,6 +609,71 @@ async function initUI() {
         updateDiceDisplay();
     });
 
+    // Mobile FAB Widget toggles - simplified, no position saving (auto-positioned)
+    $('#rpg-toggle-fab-widgets-enabled').on('change', function() {
+        if (!extensionSettings.mobileFabWidgets) extensionSettings.mobileFabWidgets = {};
+        extensionSettings.mobileFabWidgets.enabled = $(this).prop('checked');
+        saveSettings();
+        updateFabWidgets();
+        $('#rpg-fab-widget-options').toggle(extensionSettings.mobileFabWidgets.enabled);
+    });
+
+    $('#rpg-toggle-fab-weather-icon').on('change', function() {
+        if (!extensionSettings.mobileFabWidgets) extensionSettings.mobileFabWidgets = {};
+        if (!extensionSettings.mobileFabWidgets.weatherIcon) extensionSettings.mobileFabWidgets.weatherIcon = {};
+        extensionSettings.mobileFabWidgets.weatherIcon.enabled = $(this).prop('checked');
+        saveSettings();
+        updateFabWidgets();
+    });
+
+    $('#rpg-toggle-fab-weather-desc').on('change', function() {
+        if (!extensionSettings.mobileFabWidgets) extensionSettings.mobileFabWidgets = {};
+        if (!extensionSettings.mobileFabWidgets.weatherDesc) extensionSettings.mobileFabWidgets.weatherDesc = {};
+        extensionSettings.mobileFabWidgets.weatherDesc.enabled = $(this).prop('checked');
+        saveSettings();
+        updateFabWidgets();
+    });
+
+    $('#rpg-toggle-fab-clock').on('change', function() {
+        if (!extensionSettings.mobileFabWidgets) extensionSettings.mobileFabWidgets = {};
+        if (!extensionSettings.mobileFabWidgets.clock) extensionSettings.mobileFabWidgets.clock = {};
+        extensionSettings.mobileFabWidgets.clock.enabled = $(this).prop('checked');
+        saveSettings();
+        updateFabWidgets();
+    });
+
+    $('#rpg-toggle-fab-date').on('change', function() {
+        if (!extensionSettings.mobileFabWidgets) extensionSettings.mobileFabWidgets = {};
+        if (!extensionSettings.mobileFabWidgets.date) extensionSettings.mobileFabWidgets.date = {};
+        extensionSettings.mobileFabWidgets.date.enabled = $(this).prop('checked');
+        saveSettings();
+        updateFabWidgets();
+    });
+
+    $('#rpg-toggle-fab-location').on('change', function() {
+        if (!extensionSettings.mobileFabWidgets) extensionSettings.mobileFabWidgets = {};
+        if (!extensionSettings.mobileFabWidgets.location) extensionSettings.mobileFabWidgets.location = {};
+        extensionSettings.mobileFabWidgets.location.enabled = $(this).prop('checked');
+        saveSettings();
+        updateFabWidgets();
+    });
+
+    $('#rpg-toggle-fab-stats').on('change', function() {
+        if (!extensionSettings.mobileFabWidgets) extensionSettings.mobileFabWidgets = {};
+        if (!extensionSettings.mobileFabWidgets.stats) extensionSettings.mobileFabWidgets.stats = {};
+        extensionSettings.mobileFabWidgets.stats.enabled = $(this).prop('checked');
+        saveSettings();
+        updateFabWidgets();
+    });
+
+    $('#rpg-toggle-fab-attributes').on('change', function() {
+        if (!extensionSettings.mobileFabWidgets) extensionSettings.mobileFabWidgets = {};
+        if (!extensionSettings.mobileFabWidgets.attributes) extensionSettings.mobileFabWidgets.attributes = {};
+        extensionSettings.mobileFabWidgets.attributes.enabled = $(this).prop('checked');
+        saveSettings();
+        updateFabWidgets();
+    });
+
     $('#rpg-manual-update').on('click', async function() {
         if (!extensionSettings.enabled) {
             // console.log('[RPG Companion] Extension is disabled. Please enable it in the Extensions tab.');
@@ -825,6 +891,20 @@ async function initUI() {
     $('#rpg-toggle-auto-avatars-panel').prop('checked', extensionSettings.autoGenerateAvatars || false);
 
     $('#rpg-toggle-dice-display').prop('checked', extensionSettings.showDiceDisplay);
+
+    // Initialize Mobile FAB Widget checkboxes
+    const fabWidgets = extensionSettings.mobileFabWidgets || {};
+    $('#rpg-toggle-fab-widgets-enabled').prop('checked', fabWidgets.enabled || false);
+    $('#rpg-toggle-fab-weather-icon').prop('checked', fabWidgets.weatherIcon?.enabled || false);
+    $('#rpg-toggle-fab-weather-desc').prop('checked', fabWidgets.weatherDesc?.enabled || false);
+    $('#rpg-toggle-fab-clock').prop('checked', fabWidgets.clock?.enabled || false);
+    $('#rpg-toggle-fab-date').prop('checked', fabWidgets.date?.enabled || false);
+    $('#rpg-toggle-fab-location').prop('checked', fabWidgets.location?.enabled || false);
+    $('#rpg-toggle-fab-stats').prop('checked', fabWidgets.stats?.enabled || false);
+    $('#rpg-toggle-fab-attributes').prop('checked', fabWidgets.attributes?.enabled || false);
+    // Toggle visibility of widget options based on master toggle
+    $('#rpg-fab-widget-options').toggle(fabWidgets.enabled || false);
+
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
     $('#rpg-theme-select').val(extensionSettings.theme);
@@ -969,6 +1049,8 @@ jQuery(async () => {
         // Load chat-specific data for current chat
         try {
             loadChatData();
+            // Initialize FAB widgets with any loaded data
+            updateFabWidgets();
         } catch (error) {
             console.error('[RPG Companion] Chat data load failed, using defaults:', error);
         }

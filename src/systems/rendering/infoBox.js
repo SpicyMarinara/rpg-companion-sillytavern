@@ -14,6 +14,7 @@ import { saveChatData } from '../../core/persistence.js';
 import { i18n } from '../../core/i18n.js';
 import { isItemLocked } from '../generation/lockManager.js';
 import { repairJSON } from '../../utils/jsonRepair.js';
+import { updateFabWidgets } from '../ui/mobile.js';
 
 /**
  * Helper to generate lock icon HTML if setting is enabled
@@ -615,6 +616,9 @@ export function renderInfoBox() {
         } else {
             updateInfoBoxField(field, value);
         }
+
+        // Update FAB widgets to reflect changes
+        updateFabWidgets();
     });
 
     // Update location size on input as well (real-time)

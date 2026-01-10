@@ -34,6 +34,7 @@ import { renderQuests } from '../rendering/quests.js';
 import { renderMusicPlayer } from '../rendering/musicPlayer.js';
 import { i18n } from '../../core/i18n.js';
 import { generateAvatarsForCharacters } from '../features/avatarGenerator.js';
+import { setFabLoadingState, updateFabWidgets } from '../ui/mobile.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -235,6 +236,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
     try {
         setIsGenerating(true);
+        setFabLoadingState(true); // Show spinning FAB on mobile
 
         // Update button to show "Updating..." state
         const $updateBtn = $('#rpg-manual-update');
@@ -391,6 +393,8 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         }
     } finally {
         setIsGenerating(false);
+        setFabLoadingState(false); // Stop spinning FAB on mobile
+        updateFabWidgets(); // Update FAB widgets with new data
 
         // Restore button to original state
         const $updateBtn = $('#rpg-manual-update');
