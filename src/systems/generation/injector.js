@@ -301,10 +301,14 @@ function onGenerateAfterCombinePrompts(eventData) {
         return;
     }
 
+    // Only inject if we have pending context
+    if (pendingContextMap.size === 0) {
+        return;
+    }
+
     eventData.prompt = injectContextIntoTextPrompt(eventData.prompt);
-    
-    // Clear the pending context after injection
-    pendingContextMap = new Map();
+    // DON'T clear pendingContextMap here - let it persist for other generations
+    // (e.g., prewarm extensions). It will be cleared on GENERATION_ENDED.
 }
 
 /**
@@ -322,10 +326,14 @@ function onChatCompletionPromptReady(eventData) {
         return;
     }
 
+    // Only inject if we have pending context
+    if (pendingContextMap.size === 0) {
+        return;
+    }
+
     eventData.chat = injectContextIntoChatPrompt(eventData.chat);
-    
-    // Clear the pending context after injection
-    pendingContextMap = new Map();
+    // DON'T clear pendingContextMap here - let it persist for other generations
+    // (e.g., prewarm extensions). It will be cleared on GENERATION_ENDED.
 }
 
 /**
@@ -656,22 +664,20 @@ Ensure these details naturally reflect and influence the narrative. Character be
 
     // Prepare historical context for injection into prompts
     // This builds the context map but does NOT modify original chat messages
+    // The persistent event listeners will inject it into all prompts until cleared
     prepareHistoricalContextInjection();
-
-    // Register one-time listeners to inject context into the actual prompt
-    // These modify only the prompt sent to the API, not the stored chat data
-    if (pendingContextMap.size > 0) {
-        eventSource.once(event_types.GENERATE_AFTER_COMBINE_PROMPTS, onGenerateAfterCombinePrompts);
-        eventSource.once(event_types.CHAT_COMPLETION_PROMPT_READY, onChatCompletionPromptReady);
-    }
 }
 
 /**
- * Called when generation ends to clean up any pending context.
- * This should be called from the GENERATION_ENDED event handler.
+ * Initialize the history injection event listeners.
+ * These are persistent listeners that inject context into ALL generations
+ * while pendingContextMap has data. Should be called once at extension init.
  */
-export function onGenerationEndedCleanup() {
-    // Clear any pending context that wasn't used (e.g., if generation was cancelled)
-    pendingContextMap = new Map();
+export function initHistoryInjectionListeners() {
+    // Register persistent listeners for prompt injection
+    // These check pendingContextMap and only inject if there's data
+    eventSource.on(event_types.GENERATE_AFTER_COMBINE_PROMPTS, onGenerateAfterCombinePrompts);
+    eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, onChatCompletionPromptReady);
+    console.log('[RPG Companion] History injection listeners initialized');
 }
 
