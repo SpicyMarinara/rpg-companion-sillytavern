@@ -31,7 +31,7 @@ export const DEFAULT_DIALOGUE_COLORING_PROMPT = `Wrap all character/NPC "dialogu
 /**
  * Default Deception System prompt text
  */
-export const DEFAULT_DECEPTION_PROMPT = `When a character is lying or deceiving, you should follow up that line with the <lie> tag, containing a brief description of the truth and the lie's reason, using the template below (replace placeholders in brackets). This will be hidden from the user's view, but not to you, making it useful for future consequences: <lie>[Character] is [lying/deceiving/omitting], the truth is [truth]. Reason: [reason].</lie>`;
+export const DEFAULT_DECEPTION_PROMPT = `When a character is lying or deceiving, you should follow up that line with the <lie> tag, containing a brief description of the truth and the lie's reason, using the template below (replace placeholders in quotation marks). This will be hidden from the user's view, but not to you, making it useful for future consequences: <lie character="name" type="lying/deceiving/omitting" truth="truth" reason="reason"/>.`;
 
 /**
  * Default CYOA prompt text
