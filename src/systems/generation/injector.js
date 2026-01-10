@@ -39,9 +39,8 @@ let currentSuppressionState = false;
 // Track last chat length we committed at to prevent duplicate commits from streaming
 let lastCommittedChatLength = -1;
 
-// Store original message content for restoration after generation
-// Map of message index -> original mes content
-let originalMessageContent = new Map();
+// Store context map for prompt injection (used by event handlers)
+let pendingContextMap = new Map();
 
 /**
  * Builds a map of historical context data from ST chat messages with rpg_companion_swipes data.
@@ -164,81 +163,179 @@ function buildHistoricalContextMap() {
 }
 
 /**
- * Injects historical context into chat messages by modifying them in-place.
- * Stores original content for restoration after generation.
- * This approach works for ALL API types (text completion and chat completion).
+ * Prepares historical context for injection into prompts.
+ * This builds the context map and stores it for use by prompt event handlers.
+ * Does NOT modify the original chat messages.
  */
-function injectHistoricalContextIntoChat() {
+function prepareHistoricalContextInjection() {
     const historyPersistence = extensionSettings.historyPersistence;
     if (!historyPersistence || !historyPersistence.enabled) {
-        // console.log('[RPG Companion] History persistence not enabled, skipping injection');
+        pendingContextMap = new Map();
         return;
     }
 
     if (currentSuppressionState || !extensionSettings.enabled) {
-        // console.log('[RPG Companion] Skipping history injection: suppressed or disabled');
+        pendingContextMap = new Map();
         return;
     }
 
     const context = getContext();
     const chat = context.chat;
     if (!chat || chat.length < 2) {
-        // console.log('[RPG Companion] Chat too short, skipping history injection');
+        pendingContextMap = new Map();
         return;
     }
 
-    // Build the context map
-    const contextMap = buildHistoricalContextMap();
-    if (contextMap.size === 0) {
-        // console.log('[RPG Companion] No historical context to inject');
-        return;
+    // Build and store the context map for use by prompt handlers
+    pendingContextMap = buildHistoricalContextMap();
+}
+
+/**
+ * Injects historical context into a text completion prompt string.
+ * Searches for message content in the prompt and appends context after matches.
+ * 
+ * @param {string} prompt - The text completion prompt
+ * @returns {string} - The modified prompt with injected context
+ */
+function injectContextIntoTextPrompt(prompt) {
+    if (pendingContextMap.size === 0) {
+        return prompt;
     }
 
-    // console.log(`[RPG Companion] Injecting historical context into ${contextMap.size} messages`);
-
-    // Clear any previous stored content
-    originalMessageContent.clear();
-
+    const context = getContext();
+    const chat = context.chat;
+    let modifiedPrompt = prompt;
     let injectedCount = 0;
-    for (const [msgIdx, ctxContent] of contextMap) {
+
+    // Process each message that needs context injection
+    for (const [msgIdx, ctxContent] of pendingContextMap) {
         const message = chat[msgIdx];
         if (!message || typeof message.mes !== 'string') {
             continue;
         }
 
-        // Store original content for restoration
-        originalMessageContent.set(msgIdx, message.mes);
+        // Find the message content in the prompt
+        // Use a portion of the message to find it (last 100 chars should be unique enough)
+        const searchContent = message.mes.length > 100 
+            ? message.mes.slice(-100) 
+            : message.mes;
+        
+        const searchIndex = modifiedPrompt.lastIndexOf(searchContent);
+        if (searchIndex === -1) {
+            // Message not found in prompt (might be truncated)
+            continue;
+        }
 
-        // Modify the message in-place
-        message.mes = message.mes + ctxContent;
+        // Find the end of this message content in the prompt
+        const insertPosition = searchIndex + searchContent.length;
+        
+        // Insert the context after the message
+        modifiedPrompt = modifiedPrompt.slice(0, insertPosition) + ctxContent + modifiedPrompt.slice(insertPosition);
         injectedCount++;
-        // console.log(`[RPG Companion] Injected context into message ${msgIdx}`);
     }
 
-    // console.log(`[RPG Companion] Successfully injected historical context into ${injectedCount} messages`);
+    if (injectedCount > 0) {
+        console.log(`[RPG Companion] Injected historical context into ${injectedCount} positions in text prompt`);
+    }
+
+    return modifiedPrompt;
 }
 
 /**
- * Restores original message content after generation completes.
- * This ensures the injected context doesn't persist in the actual chat data.
+ * Injects historical context into a chat completion message array.
+ * Modifies the content of messages in the array directly.
+ * 
+ * @param {Array} chatMessages - The chat completion message array
+ * @returns {Array} - The modified message array with injected context
  */
-function restoreOriginalMessageContent() {
-    if (originalMessageContent.size === 0) {
-        return;
+function injectContextIntoChatPrompt(chatMessages) {
+    if (pendingContextMap.size === 0 || !Array.isArray(chatMessages)) {
+        return chatMessages;
     }
 
     const context = getContext();
     const chat = context.chat;
+    let injectedCount = 0;
 
-    // console.log(`[RPG Companion] Restoring ${originalMessageContent.size} messages to original content`);
+    // Process each message that needs context injection
+    for (const [msgIdx, ctxContent] of pendingContextMap) {
+        const originalMessage = chat[msgIdx];
+        if (!originalMessage || typeof originalMessage.mes !== 'string') {
+            continue;
+        }
 
-    for (const [msgIdx, originalContent] of originalMessageContent) {
-        if (chat[msgIdx]) {
-            chat[msgIdx].mes = originalContent;
+        // Find this message in the chat completion array by matching content
+        // Use a portion of the message to find it
+        const searchContent = originalMessage.mes.length > 100 
+            ? originalMessage.mes.slice(-100) 
+            : originalMessage.mes;
+
+        for (const promptMsg of chatMessages) {
+            if (promptMsg.content && typeof promptMsg.content === 'string' && 
+                promptMsg.content.includes(searchContent)) {
+                // Found the message - append context
+                promptMsg.content = promptMsg.content + ctxContent;
+                injectedCount++;
+                break;
+            }
         }
     }
 
-    originalMessageContent.clear();
+    if (injectedCount > 0) {
+        console.log(`[RPG Companion] Injected historical context into ${injectedCount} messages in chat prompt`);
+    }
+
+    return chatMessages;
+}
+
+/**
+ * Event handler for GENERATE_AFTER_COMBINE_PROMPTS (text completion).
+ * Injects historical context into the prompt string.
+ * 
+ * @param {Object} eventData - Event data with prompt property
+ */
+function onGenerateAfterCombinePrompts(eventData) {
+    if (!eventData || typeof eventData.prompt !== 'string') {
+        return;
+    }
+
+    if (eventData.dryRun) {
+        return;
+    }
+
+    // Only inject if we have pending context
+    if (pendingContextMap.size === 0) {
+        return;
+    }
+
+    eventData.prompt = injectContextIntoTextPrompt(eventData.prompt);
+    // DON'T clear pendingContextMap here - let it persist for other generations
+    // (e.g., prewarm extensions). It will be cleared on GENERATION_ENDED.
+}
+
+/**
+ * Event handler for CHAT_COMPLETION_PROMPT_READY.
+ * Injects historical context into the chat message array.
+ * 
+ * @param {Object} eventData - Event data with chat property
+ */
+function onChatCompletionPromptReady(eventData) {
+    if (!eventData || !Array.isArray(eventData.chat)) {
+        return;
+    }
+
+    if (eventData.dryRun) {
+        return;
+    }
+
+    // Only inject if we have pending context
+    if (pendingContextMap.size === 0) {
+        return;
+    }
+
+    eventData.chat = injectContextIntoChatPrompt(eventData.chat);
+    // DON'T clear pendingContextMap here - let it persist for other generations
+    // (e.g., prewarm extensions). It will be cleared on GENERATION_ENDED.
 }
 
 /**
@@ -636,22 +733,22 @@ Ensure these details naturally reflect and influence the narrative. Character be
     // Set suppression state for the historical context injection
     currentSuppressionState = shouldSuppress;
 
-    // Inject historical context directly into chat messages
-    // This temporarily modifies messages and will be restored after generation
-    injectHistoricalContextIntoChat();
-
-    // Register a one-time listener to restore messages after prompt is built
-    // Using .once() so it auto-removes after firing
-    eventSource.once(event_types.GENERATE_AFTER_COMBINE_PROMPTS, () => {
-        restoreOriginalMessageContent();
-    });
+    // Prepare historical context for injection into prompts
+    // This builds the context map but does NOT modify original chat messages
+    // The persistent event listeners will inject it into all prompts until cleared
+    prepareHistoricalContextInjection();
 }
 
 /**
- * Called when generation ends to restore original message content.
- * This should be called from the GENERATION_ENDED event handler.
+ * Initialize the history injection event listeners.
+ * These are persistent listeners that inject context into ALL generations
+ * while pendingContextMap has data. Should be called once at extension init.
  */
-export function onGenerationEndedCleanup() {
-    restoreOriginalMessageContent();
+export function initHistoryInjectionListeners() {
+    // Register persistent listeners for prompt injection
+    // These check pendingContextMap and only inject if there's data
+    eventSource.on(event_types.GENERATE_AFTER_COMBINE_PROMPTS, onGenerateAfterCombinePrompts);
+    eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, onChatCompletionPromptReady);
+    console.log('[RPG Companion] History injection listeners initialized');
 }
 

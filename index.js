@@ -152,7 +152,8 @@ import {
     onMessageSwiped,
     updatePersonaAvatar,
     clearExtensionPrompts,
-    onGenerationEnded
+    onGenerationEnded,
+    initHistoryInjection
 } from './src/systems/integration/sillytavern.js';
 
 // Old state variable declarations removed - now imported from core modules
@@ -1123,6 +1124,15 @@ jQuery(async () => {
         } catch (error) {
             console.error('[RPG Companion] Conflict detection failed:', error);
             // Non-critical - continue anyway
+        }
+
+        // Initialize history injection event listeners
+        // This must be done before event registration so listeners are ready
+        try {
+            initHistoryInjection();
+        } catch (error) {
+            console.error('[RPG Companion] History injection init failed:', error);
+            // Non-critical - continue without it
         }
 
         // Register all event listeners
