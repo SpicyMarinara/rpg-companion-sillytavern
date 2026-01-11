@@ -403,6 +403,16 @@ async function initUI() {
         toggleDynamicWeather(extensionSettings.enableDynamicWeather);
     });
 
+    $('#rpg-toggle-weather-foreground').on('change', function() {
+        extensionSettings.weatherEffectsForeground = $(this).prop('checked');
+        saveSettings();
+        // Re-apply weather effect with new z-index
+        if (extensionSettings.enableDynamicWeather) {
+            toggleDynamicWeather(false);
+            toggleDynamicWeather(true);
+        }
+    });
+
     $('#rpg-toggle-narrator').on('change', function() {
         extensionSettings.narratorMode = $(this).prop('checked');
         saveSettings();
@@ -879,6 +889,7 @@ async function initUI() {
     $('#rpg-toggle-spotify-music').prop('checked', extensionSettings.enableSpotifyMusic);
 
     $('#rpg-toggle-dynamic-weather').prop('checked', extensionSettings.enableDynamicWeather);
+    $('#rpg-toggle-weather-foreground').prop('checked', extensionSettings.weatherEffectsForeground ?? false);
     $('#rpg-toggle-narrator').prop('checked', extensionSettings.narratorMode);
 
     // Feature toggle visibility settings

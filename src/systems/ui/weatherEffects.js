@@ -270,6 +270,11 @@ export function updateWeatherEffect() {
     }
 
     if (weatherContainer) {
+        // Apply foreground z-index if experimental setting is enabled
+        if (extensionSettings.weatherEffectsForeground) {
+            weatherContainer.style.zIndex = '9998';
+        }
+
         document.body.appendChild(weatherContainer);
     }
 }
