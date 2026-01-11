@@ -916,6 +916,17 @@ export function hasPresetAssociation() {
 }
 
 /**
+ * Checks if the current character/group is associated with the currently active preset
+ * @returns {boolean} True if the current entity is associated with the active preset
+ */
+export function isAssociatedWithCurrentPreset() {
+    const entityKey = getCurrentEntityKey();
+    const activePresetId = extensionSettings.presetManager?.activePresetId;
+    if (!entityKey || !activePresetId) return false;
+    return extensionSettings.presetManager.characterAssociations[entityKey] === activePresetId;
+}
+
+/**
  * Auto-switches to the preset associated with the current character/group
  * Called when character changes. Falls back to default preset if no association.
  * @returns {boolean} True if a preset was switched, false otherwise

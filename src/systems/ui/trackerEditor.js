@@ -21,6 +21,8 @@ import {
     removePresetAssociationForCurrentEntity,
     getPresetForCurrentEntity,
     hasPresetAssociation,
+    isAssociatedWithCurrentPreset,
+    getCurrentEntityKey,
     getCurrentEntityName,
     exportPresets,
     importPresets
@@ -33,6 +35,8 @@ import { updateFabWidgets } from './mobile.js';
 let $editorModal = null;
 let activeTab = 'userStats';
 let tempConfig = null; // Temporary config for cancel functionality
+let tempAssociation = null; // Temporary association state: { presetId: string|null, entityKey: string|null }
+let originalAssociation = null; // Original association when editor opened
 
 /**
  * Initialize the tracker editor modal
@@ -104,6 +108,12 @@ export function initTrackerEditor() {
     $(document).on('change', '#rpg-preset-select', function() {
         const presetId = $(this).val();
         if (presetId && presetId !== getActivePresetId()) {
+            // Check if the current character had an association (either original or pending)
+            const entityKey = getCurrentEntityKey();
+            const wasAssociated = tempAssociation
+                ? tempAssociation.presetId !== null
+                : hasPresetAssociation();
+
             // Save current changes to the old preset before switching
             const currentPresetId = getActivePresetId();
             if (currentPresetId) {
@@ -113,8 +123,17 @@ export function initTrackerEditor() {
             if (loadPreset(presetId)) {
                 tempConfig = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
                 renderEditorUI();
+
+                // If the character was associated with a preset, update temp association to new preset
+                if (wasAssociated && entityKey) {
+                    tempAssociation = { presetId: presetId, entityKey: entityKey };
+                    const preset = getPreset(presetId);
+                    toastr.info(`"${preset?.name || 'Unknown'}" will be associated with ${getCurrentEntityName()} when saved.`);
+                } else {
+                    toastr.success(`Switched to preset "${getPreset(presetId)?.name || 'Unknown'}".`);
+                }
+
                 updatePresetUI();
-                toastr.success(`Switched to preset "${getPreset(presetId)?.name || 'Unknown'}".`);
             }
         }
     });
@@ -162,12 +181,25 @@ export function initTrackerEditor() {
 
     // Associate preset checkbox
     $(document).on('change', '#rpg-preset-associate', function() {
+        const activePresetId = getActivePresetId();
+        const preset = getPreset(activePresetId);
+        const entityName = getCurrentEntityName();
+        const entityKey = getCurrentEntityKey();
+
         if ($(this).is(':checked')) {
-            associatePresetWithCurrentEntity();
-            toastr.info(`This preset will be used for ${getCurrentEntityName()}.`);
+            // Store pending association (don't save yet)
+            tempAssociation = { presetId: activePresetId, entityKey: entityKey };
+            toastr.info(`"${preset?.name || 'Unknown'}" will be associated with ${entityName} when saved.`);
         } else {
-            removePresetAssociationForCurrentEntity();
-            toastr.info(`Preset association removed for ${getCurrentEntityName()}.`);
+            // Store pending removal (don't save yet)
+            tempAssociation = { presetId: null, entityKey: entityKey };
+            const defaultPresetId = getDefaultPresetId();
+            const defaultPreset = getPreset(defaultPresetId);
+            if (defaultPreset && defaultPresetId !== activePresetId) {
+                toastr.info(`Association will be removed when saved. Default preset "${defaultPreset.name}" will apply on next character switch.`);
+            } else {
+                toastr.info(`Association will be removed for ${entityName} when saved.`);
+            }
         }
     });
 }
@@ -203,7 +235,15 @@ function updatePresetUI() {
     $('#rpg-preset-entity-name').text(entityName);
 
     // Update the association checkbox
-    const isAssociated = hasPresetAssociation();
+    // Use temp state if available, otherwise check actual association with CURRENT preset
+    let isAssociated;
+    if (tempAssociation !== null) {
+        // Use pending state: checked if pending preset matches active preset
+        isAssociated = tempAssociation.presetId === activePresetId;
+    } else {
+        // No pending changes, check actual state
+        isAssociated = isAssociatedWithCurrentPreset();
+    }
     $('#rpg-preset-associate').prop('checked', isAssociated);
 }
 
@@ -213,6 +253,12 @@ function updatePresetUI() {
 function openTrackerEditor() {
     // Create temporary copy for cancel functionality
     tempConfig = JSON.parse(JSON.stringify(extensionSettings.trackerConfig));
+
+    // Store original association state for cancel functionality
+    const entityKey = getCurrentEntityKey();
+    const currentAssociatedPreset = getPresetForCurrentEntity();
+    originalAssociation = { presetId: currentAssociatedPreset, entityKey: entityKey };
+    tempAssociation = null; // Reset pending changes
 
     // Set theme to match current extension theme
     const theme = extensionSettings.theme || 'modern';
@@ -235,6 +281,10 @@ function closeTrackerEditor() {
         tempConfig = null;
     }
 
+    // Discard pending association changes (cancel = no save)
+    tempAssociation = null;
+    originalAssociation = null;
+
     $editorModal.removeClass('is-open').addClass('is-closing');
     setTimeout(() => {
         $editorModal.removeClass('is-closing').hide();
@@ -246,6 +296,21 @@ function closeTrackerEditor() {
  */
 function applyTrackerConfig() {
     tempConfig = null; // Clear temp config
+
+    // Apply pending association changes
+    if (tempAssociation) {
+        if (tempAssociation.presetId !== null) {
+            // Associate with the pending preset
+            associatePresetWithCurrentEntity();
+            const preset = getPreset(tempAssociation.presetId);
+            toastr.success(`"${preset?.name || 'Unknown'}" is now associated with ${getCurrentEntityName()}.`);
+        } else {
+            // Remove association
+            removePresetAssociationForCurrentEntity();
+        }
+        tempAssociation = null;
+    }
+    originalAssociation = null;
 
     // Save to the current preset
     const currentPresetId = getActivePresetId();
