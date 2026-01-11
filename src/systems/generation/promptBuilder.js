@@ -1154,12 +1154,22 @@ export async function generateSeparateUpdatePrompt() {
                 continue;
             }
 
-            const swipeData = message.extra?.rpg_companion_swipes;
+            // Get the rpg_companion_swipes data for current swipe
+            // Data can be in two places:
+            // 1. message.extra.rpg_companion_swipes (current session, before save)
+            // 2. message.swipe_info[swipeId].extra.rpg_companion_swipes (loaded from file)
+            const currentSwipeId = message.swipe_id || 0;
+            let swipeData = message.extra?.rpg_companion_swipes;
+
+            // If not in message.extra, check swipe_info
+            if (!swipeData && message.swipe_info && message.swipe_info[currentSwipeId]) {
+                swipeData = message.swipe_info[currentSwipeId].extra?.rpg_companion_swipes;
+            }
+
             if (!swipeData) {
                 continue;
             }
 
-            const currentSwipeId = message.swipe_id || 0;
             const trackerData = swipeData[currentSwipeId];
             if (!trackerData) {
                 continue;
@@ -1177,14 +1187,15 @@ export async function generateSeparateUpdatePrompt() {
             let targetIdx = i;
 
             if (position === 'user_message_end') {
-                // Find next user message after this assistant message
-                for (let j = i + 1; j < recentMessages.length; j++) {
+                // Find the preceding user message before this assistant message
+                // This is the user message that prompted this assistant response
+                for (let j = i - 1; j >= 0; j--) {
                     if (recentMessages[j].is_user && !recentMessages[j].is_system) {
                         targetIdx = j;
                         break;
                     }
                 }
-                // If no user message found, skip
+                // If no user message found before, skip
                 if (targetIdx === i) {
                     continue;
                 }

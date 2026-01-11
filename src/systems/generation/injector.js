@@ -10,9 +10,7 @@ import {
     committedTrackerData,
     lastGeneratedData,
     isGenerating,
-    lastActionWasSwipe,
-    setLastActionWasSwipe,
-    setIsGenerating
+    lastActionWasSwipe
 } from '../../core/state.js';
 import { evaluateSuppression } from './suppression.js';
 import { parseUserStats } from './parser.js';
@@ -41,6 +39,9 @@ let lastCommittedChatLength = -1;
 
 // Store context map for prompt injection (used by event handlers)
 let pendingContextMap = new Map();
+
+// Flag to track if injection already happened in BEFORE_COMBINE
+let historyInjectionDone = false;
 
 /**
  * Builds a map of historical context data from ST chat messages with rpg_companion_swipes data.
@@ -71,7 +72,8 @@ function buildHistoricalContextMap() {
     const maxMessages = messageCount === 0 ? chat.length : Math.min(messageCount, chat.length);
 
     // Find the last assistant message - this is the one that gets current context via setExtensionPrompt
-    // We should NOT add historical context to it
+    // We should NOT add historical context to it when injecting into assistant messages
+    // But when injecting into user messages, we DO need to process it to get context for the preceding user message
     let lastAssistantIndex = -1;
     for (let i = chat.length - 1; i >= 0; i--) {
         if (!chat[i].is_user && !chat[i].is_system) {
@@ -81,9 +83,12 @@ function buildHistoricalContextMap() {
     }
 
     // Iterate through messages to find those with tracker data
-    // Start from before the last assistant message
+    // For user_message_end: start from the last assistant message (we need its context for the preceding user message)
+    // For assistant_message_end: start from before the last assistant message (it gets current context via setExtensionPrompt)
     let processedCount = 0;
-    const startIndex = lastAssistantIndex > 0 ? lastAssistantIndex - 1 : chat.length - 2;
+    const startIndex = position === 'user_message_end' 
+        ? lastAssistantIndex 
+        : (lastAssistantIndex > 0 ? lastAssistantIndex - 1 : chat.length - 2);
 
     for (let i = startIndex; i >= 0 && (messageCount === 0 || processedCount < maxMessages); i--) {
         const message = chat[i];
@@ -133,14 +138,15 @@ function buildHistoricalContextMap() {
         let targetIndex = i; // Default: the assistant message itself
 
         if (position === 'user_message_end') {
-            // Find the next user message after this assistant message
-            for (let j = i + 1; j < chat.length; j++) {
+            // Find the preceding user message before this assistant message
+            // This is the user message that prompted this assistant response
+            for (let j = i - 1; j >= 0; j--) {
                 if (chat[j].is_user && !chat[j].is_system) {
                     targetIndex = j;
                     break;
                 }
             }
-            // If no user message found after, skip this one
+            // If no user message found before, skip this one
             if (targetIndex === i) {
                 continue;
             }
@@ -183,11 +189,53 @@ function prepareHistoricalContextInjection() {
     const chat = context.chat;
     if (!chat || chat.length < 2) {
         pendingContextMap = new Map();
+        historyInjectionDone = false;
         return;
     }
 
     // Build and store the context map for use by prompt handlers
     pendingContextMap = buildHistoricalContextMap();
+    historyInjectionDone = false; // Reset flag for new generation
+}
+
+/**
+ * Finds the best match position for message content in the prompt.
+ * Tries full content first, then progressively smaller suffixes.
+ * 
+ * @param {string} prompt - The prompt to search in
+ * @param {string} messageContent - The message content to find
+ * @returns {{start: number, end: number}|null} - Position info or null if not found
+ */
+function findMessageInPrompt(prompt, messageContent) {
+    if (!messageContent || !prompt) {
+        return null;
+    }
+
+    // Try to find the full content first
+    let searchIndex = prompt.lastIndexOf(messageContent);
+    
+    if (searchIndex !== -1) {
+        return { start: searchIndex, end: searchIndex + messageContent.length };
+    }
+
+    // If full content not found, try last N characters with progressively smaller chunks
+    // This handles cases where messages are truncated in the prompt
+    const searchLengths = [500, 300, 200, 100, 50];
+    
+    for (const len of searchLengths) {
+        if (messageContent.length <= len) {
+            continue;
+        }
+        
+        const searchContent = messageContent.slice(-len);
+        searchIndex = prompt.lastIndexOf(searchContent);
+        
+        if (searchIndex !== -1) {
+            return { start: searchIndex, end: searchIndex + searchContent.length };
+        }
+    }
+
+    return null;
 }
 
 /**
@@ -207,30 +255,28 @@ function injectContextIntoTextPrompt(prompt) {
     let modifiedPrompt = prompt;
     let injectedCount = 0;
 
+    // Sort by message index descending so we inject from end to start
+    // This prevents position shifts from affecting earlier injections
+    const sortedEntries = Array.from(pendingContextMap.entries()).sort((a, b) => b[0] - a[0]);
+
     // Process each message that needs context injection
-    for (const [msgIdx, ctxContent] of pendingContextMap) {
+    for (const [msgIdx, ctxContent] of sortedEntries) {
         const message = chat[msgIdx];
         if (!message || typeof message.mes !== 'string') {
             continue;
         }
 
         // Find the message content in the prompt
-        // Use a portion of the message to find it (last 100 chars should be unique enough)
-        const searchContent = message.mes.length > 100 
-            ? message.mes.slice(-100) 
-            : message.mes;
+        const position = findMessageInPrompt(modifiedPrompt, message.mes);
         
-        const searchIndex = modifiedPrompt.lastIndexOf(searchContent);
-        if (searchIndex === -1) {
-            // Message not found in prompt (might be truncated)
+        if (!position) {
+            // Message not found in prompt (might be truncated or not included)
+            console.debug(`[RPG Companion] Could not find message ${msgIdx} in prompt for context injection`);
             continue;
         }
 
-        // Find the end of this message content in the prompt
-        const insertPosition = searchIndex + searchContent.length;
-        
-        // Insert the context after the message
-        modifiedPrompt = modifiedPrompt.slice(0, insertPosition) + ctxContent + modifiedPrompt.slice(insertPosition);
+        // Insert the context after the message content
+        modifiedPrompt = modifiedPrompt.slice(0, position.end) + ctxContent + modifiedPrompt.slice(position.end);
         injectedCount++;
     }
 
@@ -264,20 +310,48 @@ function injectContextIntoChatPrompt(chatMessages) {
             continue;
         }
 
-        // Find this message in the chat completion array by matching content
-        // Use a portion of the message to find it
-        const searchContent = originalMessage.mes.length > 100 
-            ? originalMessage.mes.slice(-100) 
-            : originalMessage.mes;
+        const messageContent = originalMessage.mes;
 
+        // Find this message in the chat completion array by matching content
+        // Try full content first, then progressively smaller suffixes
+        let found = false;
+        
         for (const promptMsg of chatMessages) {
-            if (promptMsg.content && typeof promptMsg.content === 'string' && 
-                promptMsg.content.includes(searchContent)) {
-                // Found the message - append context
+            if (!promptMsg.content || typeof promptMsg.content !== 'string') {
+                continue;
+            }
+
+            // Try full content match
+            if (promptMsg.content.includes(messageContent)) {
                 promptMsg.content = promptMsg.content + ctxContent;
                 injectedCount++;
+                found = true;
                 break;
             }
+
+            // Try suffix matches for truncated messages
+            const searchLengths = [500, 300, 200, 100, 50];
+            for (const len of searchLengths) {
+                if (messageContent.length <= len) {
+                    continue;
+                }
+                
+                const searchContent = messageContent.slice(-len);
+                if (promptMsg.content.includes(searchContent)) {
+                    promptMsg.content = promptMsg.content + ctxContent;
+                    injectedCount++;
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (found) {
+                break;
+            }
+        }
+        
+        if (!found) {
+            console.debug(`[RPG Companion] Could not find message ${msgIdx} in chat prompt for context injection`);
         }
     }
 
@@ -289,8 +363,121 @@ function injectContextIntoChatPrompt(chatMessages) {
 }
 
 /**
+ * Injects historical context into finalMesSend message array (text completion).
+ * Iterates through chat and finalMesSend in order, matching by content to skip injected messages.
+ * 
+ * @param {Array} finalMesSend - The array of message objects {message: string, extensionPrompts: []}
+ * @returns {number} - Number of injections made
+ */
+function injectContextIntoFinalMesSend(finalMesSend) {
+    if (pendingContextMap.size === 0 || !Array.isArray(finalMesSend) || finalMesSend.length === 0) {
+        return 0;
+    }
+
+    const context = getContext();
+    const chat = context.chat;
+    if (!chat || chat.length === 0) {
+        return 0;
+    }
+
+    let injectedCount = 0;
+    
+    // Build a map from chat index to finalMesSend index by matching content in order
+    // This handles injected messages (author's note, OOC, etc.) that exist in finalMesSend but not in chat
+    const chatToMesSendMap = new Map();
+    let mesSendIdx = 0;
+    
+    for (let chatIdx = 0; chatIdx < chat.length && mesSendIdx < finalMesSend.length; chatIdx++) {
+        const chatMsg = chat[chatIdx];
+        if (!chatMsg || chatMsg.is_system) {
+            continue;
+        }
+        
+        const chatContent = chatMsg.mes || '';
+        
+        // Look for this chat message in finalMesSend starting from current position
+        // Skip any finalMesSend entries that don't match (they're injected content)
+        while (mesSendIdx < finalMesSend.length) {
+            const mesSendObj = finalMesSend[mesSendIdx];
+            if (!mesSendObj || !mesSendObj.message) {
+                mesSendIdx++;
+                continue;
+            }
+            
+            // Check if this finalMesSend message contains the chat content
+            // Use a substring match since instruct formatting adds prefixes/suffixes
+            // Match with sufficient content (first 50 chars or full message if shorter)
+            const matchContent = chatContent.length > 50 
+                ? chatContent.substring(0, 50) 
+                : chatContent;
+            
+            if (matchContent && mesSendObj.message.includes(matchContent)) {
+                // Found a match - record the mapping
+                chatToMesSendMap.set(chatIdx, mesSendIdx);
+                mesSendIdx++;
+                break;
+            }
+            
+            // This finalMesSend entry doesn't match - it's injected content, skip it
+            mesSendIdx++;
+        }
+    }
+    
+    // Now inject context using the map
+    for (const [chatIdx, ctxContent] of pendingContextMap) {
+        const targetMesSendIdx = chatToMesSendMap.get(chatIdx);
+        
+        if (targetMesSendIdx === undefined) {
+            console.debug(`[RPG Companion] Chat message ${chatIdx} not found in finalMesSend mapping`);
+            continue;
+        }
+        
+        const mesSendObj = finalMesSend[targetMesSendIdx];
+        if (!mesSendObj || !mesSendObj.message) {
+            continue;
+        }
+        
+        // Append context to this message
+        mesSendObj.message = mesSendObj.message + ctxContent;
+        injectedCount++;
+        console.debug(`[RPG Companion] Injected context for chat[${chatIdx}] into finalMesSend[${targetMesSendIdx}]`);
+    }
+
+    return injectedCount;
+}
+
+/**
+ * Event handler for GENERATE_BEFORE_COMBINE_PROMPTS (text completion).
+ * Injects historical context into the finalMesSend array before prompt combination.
+ * This is more reliable than post-combine string searching.
+ * 
+ * @param {Object} eventData - Event data with finalMesSend and other properties
+ */
+function onGenerateBeforeCombinePrompts(eventData) {
+    if (!eventData || !Array.isArray(eventData.finalMesSend)) {
+        return;
+    }
+
+    // Skip for OpenAI (uses chat completion)
+    if (eventData.api === 'openai') {
+        return;
+    }
+
+    // Only inject if we have pending context
+    if (pendingContextMap.size === 0) {
+        return;
+    }
+
+    const injectedCount = injectContextIntoFinalMesSend(eventData.finalMesSend);
+    if (injectedCount > 0) {
+        console.log(`[RPG Companion] Injected historical context into ${injectedCount} messages in finalMesSend`);
+        historyInjectionDone = true; // Mark as done to prevent double injection
+    }
+}
+
+/**
  * Event handler for GENERATE_AFTER_COMBINE_PROMPTS (text completion).
- * Injects historical context into the prompt string.
+ * This is now a backup/fallback - primary injection happens in BEFORE_COMBINE.
  * 
  * @param {Object} eventData - Event data with prompt property
  */
@@ -303,14 +490,19 @@ function onGenerateAfterCombinePrompts(eventData) {
         return;
     }
 
+    // Skip if injection already happened in BEFORE_COMBINE
+    if (historyInjectionDone) {
+        return;
+    }
+
     // Only inject if we have pending context
     if (pendingContextMap.size === 0) {
         return;
     }
 
+    // Fallback injection for edge cases where BEFORE_COMBINE didn't work
+    console.log('[RPG Companion] Using fallback string-based injection (AFTER_COMBINE)');
     eventData.prompt = injectContextIntoTextPrompt(eventData.prompt);
-    // DON'T clear pendingContextMap here - let it persist for other generations
-    // (e.g., prewarm extensions). It will be cleared on GENERATION_ENDED.
 }
 
 /**
@@ -404,7 +596,6 @@ export async function onGenerationStarted(type, data, dryRun) {
     await restoreCheckpointOnLoad();
 
     const currentChatLength = chat ? chat.length : 0;
-    const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
 
     // For TOGETHER mode: Commit when user sends message (before first generation)
     if (extensionSettings.generationMode === 'together') {
@@ -747,8 +938,16 @@ Ensure these details naturally reflect and influence the narrative. Character be
 export function initHistoryInjectionListeners() {
     // Register persistent listeners for prompt injection
     // These check pendingContextMap and only inject if there's data
+    
+    // Primary: BEFORE_COMBINE for text completion (more reliable - modifies message objects)
+    eventSource.on(event_types.GENERATE_BEFORE_COMBINE_PROMPTS, onGenerateBeforeCombinePrompts);
+    
+    // Fallback: AFTER_COMBINE for text completion (string-based injection)
     eventSource.on(event_types.GENERATE_AFTER_COMBINE_PROMPTS, onGenerateAfterCombinePrompts);
+    
+    // Chat completion (OpenAI, etc.)
     eventSource.on(event_types.CHAT_COMPLETION_PROMPT_READY, onChatCompletionPromptReady);
+    
     console.log('[RPG Companion] History injection listeners initialized');
 }
 
