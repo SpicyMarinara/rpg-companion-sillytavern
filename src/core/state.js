@@ -55,7 +55,8 @@ export let extensionSettings = {
         enabled: false, // Master toggle for history persistence feature
         messageCount: 5, // Number of messages to include (0 = all available)
         injectionPosition: 'assistant_message_end', // 'user_message_end', 'assistant_message_end', 'extra_user_message', 'extra_assistant_message'
-        contextPreamble: '' // Optional custom preamble text (empty = use default short one)
+        contextPreamble: '', // Optional custom preamble text (empty = use default short one)
+        sendAllEnabledOnRefresh: false // If true, sends all enabled stats from preset instead of only persistInHistory-enabled stats on Refresh RPG Info
     },
     panelPosition: 'right', // 'left', 'right', or 'top'
     theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom

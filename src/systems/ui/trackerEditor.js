@@ -419,7 +419,8 @@ function resetToDefaults() {
         enabled: false,
         messageCount: 5,
         injectionPosition: 'assistant_message_end',
-        contextPreamble: ''
+        contextPreamble: '',
+        sendAllEnabledOnRefresh: false
     };
 }
 
@@ -1429,11 +1430,13 @@ function renderHistoryPersistenceTab() {
         enabled: false,
         messageCount: 5,
         injectionPosition: 'assistant_message_end',
-        contextPreamble: ''
+        contextPreamble: '',
+        sendAllEnabledOnRefresh: false
     };
     const userStatsConfig = extensionSettings.trackerConfig.userStats;
     const infoBoxConfig = extensionSettings.trackerConfig.infoBox;
     const presentCharsConfig = extensionSettings.trackerConfig.presentCharacters;
+    const generationMode = extensionSettings.generationMode || 'together';
 
     let html = '<div class="rpg-editor-section">';
 
@@ -1446,6 +1449,15 @@ function renderHistoryPersistenceTab() {
     html += `<input type="checkbox" id="rpg-history-persistence-enabled" ${historyPersistence.enabled ? 'checked' : ''}>`;
     html += `<label for="rpg-history-persistence-enabled">Enable History Persistence</label>`;
     html += '</div>';
+
+    // External API Only toggle - only show for separate/external modes
+    if (generationMode === 'separate' || generationMode === 'external') {
+        html += '<div class="rpg-editor-toggle-row" style="margin-top: 8px;">';
+        html += `<input type="checkbox" id="rpg-history-send-all-enabled" ${historyPersistence.sendAllEnabledOnRefresh ? 'checked' : ''}>`;
+        html += `<label for="rpg-history-send-all-enabled">Send All Enabled Stats on Refresh</label>`;
+        html += '</div>';
+        html += `<p class="rpg-editor-hint" style="margin-top: 4px; margin-left: 24px;">When enabled, Refresh RPG Info will include all enabled stats from the preset in history context, ignoring the individual selections below.</p>`;
+    }
 
     // Message count
     html += '<div class="rpg-editor-input-row" style="margin-top: 12px;">';
@@ -1593,13 +1605,19 @@ function setupHistoryPersistenceListeners() {
             enabled: false,
             messageCount: 5,
             injectionPosition: 'assistant_message_end',
-            contextPreamble: ''
+            contextPreamble: '',
+            externalApiOnly: false
         };
     }
 
     // Main toggle
     $('#rpg-history-persistence-enabled').off('change').on('change', function() {
         extensionSettings.historyPersistence.enabled = $(this).is(':checked');
+    });
+
+    // Send All Enabled on Refresh toggle
+    $('#rpg-history-send-all-enabled').off('change').on('change', function() {
+        extensionSettings.historyPersistence.sendAllEnabledOnRefresh = $(this).is(':checked');
     });
 
     // Message count

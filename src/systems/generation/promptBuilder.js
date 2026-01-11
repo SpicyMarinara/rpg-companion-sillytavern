@@ -740,18 +740,36 @@ function formatTrackerDataForContext(jsonData, trackerType, userName) {
 
 /**
  * Formats historical tracker data from a message's rpg_companion_swipes data.
- * Only includes tracker fields that have persistInHistory enabled in trackerConfig.
+ * Only includes tracker fields that have persistInHistory enabled in trackerConfig,
+ * unless useAllEnabled is true, in which case it includes all enabled fields.
  * Uses the same formatting as formatTrackerDataForContext but filtered by persistence settings.
  *
  * @param {Object} trackerData - The tracker data from message.extra.rpg_companion_swipes[swipeId]
  * @param {Object} trackerConfig - The tracker configuration from extensionSettings.trackerConfig
  * @param {string} userName - The user's name for personalization
+ * @param {boolean} [useAllEnabled=false] - If true, include all enabled fields instead of only persistInHistory fields
  * @returns {string} Formatted historical context or empty string if nothing to include
  */
-export function formatHistoricalTrackerData(trackerData, trackerConfig, userName) {
+export function formatHistoricalTrackerData(trackerData, trackerConfig, userName, useAllEnabled = false) {
     if (!trackerData || !trackerConfig) {
         return '';
     }
+
+    // Helper to check if a field should be included
+    const shouldInclude = (config) => {
+        if (useAllEnabled) {
+            return config?.enabled !== false; // Include if enabled (default true for most fields)
+        }
+        return config?.persistInHistory === true;
+    };
+
+    // Helper to check if a stat/attribute should be included
+    const shouldIncludeStat = (configStat) => {
+        if (useAllEnabled) {
+            return configStat?.enabled !== false;
+        }
+        return configStat?.persistInHistory === true;
+    };
 
     let formatted = '';
 
@@ -798,11 +816,11 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
 
             let statsFormatted = '';
 
-            // Custom stats with persistInHistory enabled
+            // Custom stats with persistInHistory enabled (or enabled if useAllEnabled)
             if (userStatsData.stats && Array.isArray(userStatsData.stats) && userStatsConfig.customStats) {
                 for (const stat of userStatsData.stats) {
                     const configStat = userStatsConfig.customStats.find(s => s.id === stat.id);
-                    if (configStat?.persistInHistory && stat.value !== undefined) {
+                    if (shouldIncludeStat(configStat) && stat.value !== undefined) {
                         const statName = stat.name || configStat.name || stat.id;
                         statsFormatted += `${statName}: ${stat.value}, `;
                     }
@@ -810,7 +828,7 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
             }
 
             // Status section
-            if (userStatsConfig.statusSection?.persistInHistory && userStatsData.status) {
+            if (shouldInclude(userStatsConfig.statusSection) && userStatsData.status) {
                 const mood = getValue(userStatsData.status.mood || userStatsData.status);
                 const conditions = getValue(userStatsData.status.conditions);
                 if (mood) statsFormatted += `Mood: ${mood}, `;
@@ -818,7 +836,7 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
             }
 
             // Skills section
-            if (userStatsConfig.skillsSection?.persistInHistory && userStatsData.skills) {
+            if (shouldInclude(userStatsConfig.skillsSection) && userStatsData.skills) {
                 const skillsList = Array.isArray(userStatsData.skills)
                     ? userStatsData.skills.map(s => getValue(s)).filter(s => s).join(', ')
                     : getValue(userStatsData.skills);
@@ -826,7 +844,8 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
             }
 
             // Inventory
-            if (userStatsConfig.inventoryPersistInHistory && userStatsData.inventory) {
+            const shouldIncludeInventory = useAllEnabled || userStatsConfig.inventoryPersistInHistory;
+            if (shouldIncludeInventory && userStatsData.inventory) {
                 const inv = userStatsData.inventory;
                 if (inv.onPerson && Array.isArray(inv.onPerson) && inv.onPerson.length > 0) {
                     const items = inv.onPerson.map(i => getValue(i)).filter(i => i);
@@ -839,7 +858,8 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
             }
 
             // Quests
-            if (userStatsConfig.questsPersistInHistory && userStatsData.quests) {
+            const shouldIncludeQuests = useAllEnabled || userStatsConfig.questsPersistInHistory;
+            if (shouldIncludeQuests && userStatsData.quests) {
                 const quests = userStatsData.quests;
                 if (quests.main) {
                     const mainQuest = getValue(quests.main);
@@ -862,37 +882,37 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
             let infoFormatted = '';
 
             // Date
-            if (infoBoxConfig.widgets.date?.persistInHistory && infoBoxData.date) {
+            if (shouldInclude(infoBoxConfig.widgets.date) && infoBoxData.date) {
                 const date = getValue(infoBoxData.date);
                 if (date) infoFormatted += `Date: ${date}, `;
             }
 
             // Time
-            if (infoBoxConfig.widgets.time?.persistInHistory && infoBoxData.time) {
+            if (shouldInclude(infoBoxConfig.widgets.time) && infoBoxData.time) {
                 const time = getValue(infoBoxData.time);
                 if (time) infoFormatted += `Time: ${time}, `;
             }
 
             // Weather
-            if (infoBoxConfig.widgets.weather?.persistInHistory && infoBoxData.weather) {
+            if (shouldInclude(infoBoxConfig.widgets.weather) && infoBoxData.weather) {
                 const weather = getValue(infoBoxData.weather);
                 if (weather) infoFormatted += `Weather: ${weather}, `;
             }
 
             // Temperature
-            if (infoBoxConfig.widgets.temperature?.persistInHistory && infoBoxData.temperature) {
+            if (shouldInclude(infoBoxConfig.widgets.temperature) && infoBoxData.temperature) {
                 const temp = getValue(infoBoxData.temperature);
                 if (temp) infoFormatted += `Temp: ${temp}, `;
             }
 
             // Location
-            if (infoBoxConfig.widgets.location?.persistInHistory && infoBoxData.location) {
+            if (shouldInclude(infoBoxConfig.widgets.location) && infoBoxData.location) {
                 const location = getValue(infoBoxData.location);
                 if (location) infoFormatted += `Location: ${location}, `;
             }
 
             // Recent Events
-            if (infoBoxConfig.widgets.recentEvents?.persistInHistory && infoBoxData.recentEvents) {
+            if (shouldInclude(infoBoxConfig.widgets.recentEvents) && infoBoxData.recentEvents) {
                 const events = getValue(infoBoxData.recentEvents);
                 if (events) infoFormatted += `Events: ${events}, `;
             }
@@ -920,7 +940,7 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
                 // Custom fields (appearance, demeanor, etc.)
                 if (char.details && typeof char.details === 'object') {
                     for (const field of charsConfig.customFields) {
-                        if (field.persistInHistory && char.details[field.id]) {
+                        if (shouldIncludeStat(field) && char.details[field.id]) {
                             const value = getValue(char.details[field.id]);
                             if (value) charFormatted += `${field.name}: ${value}, `;
                         }
@@ -928,7 +948,7 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
                 }
 
                 // Thoughts
-                if (charsConfig.thoughts?.persistInHistory && char.thoughts) {
+                if (shouldInclude(charsConfig.thoughts) && char.thoughts) {
                     const thoughts = typeof char.thoughts === 'object' && char.thoughts.content
                         ? getValue(char.thoughts.content)
                         : getValue(char.thoughts);
@@ -1208,7 +1228,10 @@ export async function generateSeparateUpdatePrompt() {
                 continue;
             }
 
-            const formattedContext = formatHistoricalTrackerData(trackerData, trackerConfig, userName);
+            // For Refresh RPG Info, use sendAllEnabledOnRefresh setting
+            // When true, include all enabled stats from preset instead of only persistInHistory stats
+            const useAllEnabled = historyPersistence.sendAllEnabledOnRefresh === true;
+            const formattedContext = formatHistoricalTrackerData(trackerData, trackerConfig, userName, useAllEnabled);
             if (!formattedContext) {
                 continue;
             }
