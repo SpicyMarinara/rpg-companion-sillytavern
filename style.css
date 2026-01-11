@@ -2696,6 +2696,100 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background-color: var(--rpg-highlight) !important;
 }
 
+/* Radio buttons - default theme */
+.checkbox_label input[type="radio"] {
+    accent-color: #666 !important;
+}
+
+/* Radio buttons - sci-fi theme */
+.rpg-panel[data-theme="sci-fi"] .checkbox_label input[type="radio"],
+.rpg-settings-popup[data-theme="sci-fi"] .checkbox_label input[type="radio"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+/* Radio buttons - fantasy theme */
+.rpg-panel[data-theme="fantasy"] .checkbox_label input[type="radio"],
+.rpg-settings-popup[data-theme="fantasy"] .checkbox_label input[type="radio"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+/* Radio buttons - cyberpunk theme */
+.rpg-panel[data-theme="cyberpunk"] .checkbox_label input[type="radio"],
+.rpg-settings-popup[data-theme="cyberpunk"] .checkbox_label input[type="radio"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+/* Radio buttons - custom theme */
+.rpg-panel[data-theme="custom"] .checkbox_label input[type="radio"],
+.rpg-settings-popup[data-theme="custom"] .checkbox_label input[type="radio"] {
+    accent-color: var(--rpg-highlight) !important;
+}
+
+/* All radio buttons (including those not in checkbox_label) - default theme */
+.rpg-settings-popup input[type="radio"],
+#rpg-tracker-editor-popup input[type="radio"] {
+    accent-color: #666 !important;
+    color-scheme: dark;
+    background-color: transparent !important;
+}
+
+.rpg-settings-popup input[type="radio"]:checked,
+#rpg-tracker-editor-popup input[type="radio"]:checked {
+    background-color: #666 !important;
+}
+
+/* All radio buttons - sci-fi theme */
+.rpg-settings-popup[data-theme="sci-fi"] input[type="radio"],
+#rpg-tracker-editor-popup[data-theme="sci-fi"] input[type="radio"] {
+    accent-color: var(--rpg-highlight) !important;
+    color-scheme: dark;
+    background-color: transparent !important;
+}
+
+.rpg-settings-popup[data-theme="sci-fi"] input[type="radio"]:checked,
+#rpg-tracker-editor-popup[data-theme="sci-fi"] input[type="radio"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+/* All radio buttons - fantasy theme */
+.rpg-settings-popup[data-theme="fantasy"] input[type="radio"],
+#rpg-tracker-editor-popup[data-theme="fantasy"] input[type="radio"] {
+    accent-color: var(--rpg-highlight) !important;
+    color-scheme: dark;
+    background-color: transparent !important;
+}
+
+.rpg-settings-popup[data-theme="fantasy"] input[type="radio"]:checked,
+#rpg-tracker-editor-popup[data-theme="fantasy"] input[type="radio"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+/* All radio buttons - cyberpunk theme */
+.rpg-settings-popup[data-theme="cyberpunk"] input[type="radio"],
+#rpg-tracker-editor-popup[data-theme="cyberpunk"] input[type="radio"] {
+    accent-color: var(--rpg-highlight) !important;
+    color-scheme: dark;
+    background-color: transparent !important;
+}
+
+.rpg-settings-popup[data-theme="cyberpunk"] input[type="radio"]:checked,
+#rpg-tracker-editor-popup[data-theme="cyberpunk"] input[type="radio"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
+/* All radio buttons - custom theme */
+.rpg-settings-popup[data-theme="custom"] input[type="radio"],
+#rpg-tracker-editor-popup[data-theme="custom"] input[type="radio"] {
+    accent-color: var(--rpg-highlight) !important;
+    color-scheme: dark;
+    background-color: transparent !important;
+}
+
+.rpg-settings-popup[data-theme="custom"] input[type="radio"]:checked,
+#rpg-tracker-editor-popup[data-theme="custom"] input[type="radio"]:checked {
+    background-color: var(--rpg-highlight) !important;
+}
+
 /* Tracker Editor checkboxes (not wrapped in checkbox_label) */
 #rpg-tracker-editor-popup input[type="checkbox"] {
     accent-color: #666 !important;
@@ -4286,6 +4380,27 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border-radius: 0.25em;
     color: var(--rpg-text);
     font-size: 0.95em;
+}
+
+/* History Persistence inputs/selects - match tracker editor styling */
+#rpg-tracker-editor-popup .rpg-input,
+#rpg-tracker-editor-popup .rpg-select {
+    padding: 0.5em;
+    background: var(--rpg-accent);
+    border: 1px solid var(--rpg-border);
+    border-radius: 0.25em;
+    color: var(--rpg-text);
+    font-size: 0.95em;
+    text-align: left;
+    margin-left: 0 !important;
+    display: block;
+}
+
+#rpg-tracker-editor-popup .rpg-input:focus,
+#rpg-tracker-editor-popup .rpg-select:focus {
+    outline: none;
+    border-color: var(--rpg-highlight);
+    box-shadow: 0 0 5px rgba(var(--rpg-highlight-rgb), 0.3);
 }
 
 .rpg-editor-field-item {

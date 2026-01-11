@@ -270,9 +270,14 @@ export function updateWeatherEffect() {
     }
 
     if (weatherContainer) {
-        // Apply foreground z-index if experimental setting is enabled
-        if (extensionSettings.weatherEffectsForeground) {
-            weatherContainer.style.zIndex = '9998';
+        // Apply z-index based on background/foreground settings
+        if (extensionSettings.weatherForeground) {
+            weatherContainer.style.zIndex = '9998'; // In front of chat
+        } else if (extensionSettings.weatherBackground) {
+            weatherContainer.style.zIndex = '1'; // Behind chat (default)
+        } else {
+            // Both disabled - don't show weather
+            return;
         }
 
         document.body.appendChild(weatherContainer);

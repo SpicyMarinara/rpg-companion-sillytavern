@@ -403,16 +403,6 @@ async function initUI() {
         toggleDynamicWeather(extensionSettings.enableDynamicWeather);
     });
 
-    $('#rpg-toggle-weather-foreground').on('change', function() {
-        extensionSettings.weatherEffectsForeground = $(this).prop('checked');
-        saveSettings();
-        // Re-apply weather effect with new z-index
-        if (extensionSettings.enableDynamicWeather) {
-            toggleDynamicWeather(false);
-            toggleDynamicWeather(true);
-        }
-    });
-
     $('#rpg-toggle-narrator').on('change', function() {
         extensionSettings.narratorMode = $(this).prop('checked');
         saveSettings();
@@ -603,6 +593,34 @@ async function initUI() {
         }
         saveSettings();
         updateFeatureTogglesVisibility();
+        updateWeatherSubOptionsVisibility();
+    });
+
+    // Weather sub-options (background and foreground) - radio buttons
+    $('#rpg-toggle-weather-background').on('change', function() {
+        if ($(this).prop('checked')) {
+            extensionSettings.weatherBackground = true;
+            extensionSettings.weatherForeground = false;
+            saveSettings();
+            // Re-apply weather effect
+            if (extensionSettings.enableDynamicWeather) {
+                toggleDynamicWeather(false);
+                toggleDynamicWeather(true);
+            }
+        }
+    });
+
+    $('#rpg-toggle-weather-foreground').on('change', function() {
+        if ($(this).prop('checked')) {
+            extensionSettings.weatherBackground = false;
+            extensionSettings.weatherForeground = true;
+            saveSettings();
+            // Re-apply weather effect
+            if (extensionSettings.enableDynamicWeather) {
+                toggleDynamicWeather(false);
+                toggleDynamicWeather(true);
+            }
+        }
     });
 
     $('#rpg-toggle-show-narrator-mode').on('change', function() {
@@ -889,7 +907,6 @@ async function initUI() {
     $('#rpg-toggle-spotify-music').prop('checked', extensionSettings.enableSpotifyMusic);
 
     $('#rpg-toggle-dynamic-weather').prop('checked', extensionSettings.enableDynamicWeather);
-    $('#rpg-toggle-weather-foreground').prop('checked', extensionSettings.weatherEffectsForeground ?? false);
     $('#rpg-toggle-narrator').prop('checked', extensionSettings.narratorMode);
 
     // Feature toggle visibility settings
@@ -899,6 +916,8 @@ async function initUI() {
     $('#rpg-toggle-show-cyoa-toggle').prop('checked', extensionSettings.showCYOAToggle ?? true);
     $('#rpg-toggle-show-spotify-toggle').prop('checked', extensionSettings.showSpotifyToggle ?? true);
     $('#rpg-toggle-show-dynamic-weather-toggle').prop('checked', extensionSettings.showDynamicWeatherToggle ?? true);
+    $('#rpg-toggle-weather-background').prop('checked', extensionSettings.weatherBackground ?? true);
+    $('#rpg-toggle-weather-foreground').prop('checked', extensionSettings.weatherForeground ?? false);
     $('#rpg-toggle-show-narrator-mode').prop('checked', extensionSettings.showNarratorMode ?? true);
     $('#rpg-toggle-show-auto-avatars').prop('checked', extensionSettings.showAutoAvatars ?? true);
 
@@ -1196,3 +1215,17 @@ jQuery(async () => {
         );
     }
 });
+
+/**
+ * Updates the visibility of weather sub-options in settings based on dynamic weather toggle
+ */
+function updateWeatherSubOptionsVisibility() {
+    const $weatherSubOptions = $('#rpg-weather-suboptions');
+    const isDynamicWeatherEnabled = extensionSettings.showDynamicWeatherToggle ?? true;
+
+    if (isDynamicWeatherEnabled) {
+        $weatherSubOptions.show();
+    } else {
+        $weatherSubOptions.hide();
+    }
+}

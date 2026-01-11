@@ -392,20 +392,29 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         // Include attributes based on settings (only if includeAttributes is true)
         if (includeAttributes) {
             const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-            const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
+            const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes !== false;
+            const shouldSendAttributes = alwaysSendAttributes && showRPGAttributes;
 
             if (shouldSendAttributes) {
                 const attributesString = buildAttributesString();
                 instructions += `${userName}'s attributes: ${attributesString}\n`;
-
-                // Add dice roll context if there was one
-                if (extensionSettings.lastDiceRoll) {
-                    const roll = extensionSettings.lastDiceRoll;
-                    instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
-                } else {
-                    instructions += `\n`;
-                }
             }
+        }
+
+        // Add dice roll context if there was one (independent of attributes)
+        if (extensionSettings.lastDiceRoll) {
+            const roll = extensionSettings.lastDiceRoll;
+            const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes !== false;
+            const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
+            const hasAttributes = includeAttributes && (alwaysSendAttributes && showRPGAttributes);
+
+            if (hasAttributes) {
+                instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
+            } else {
+                instructions += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Decide whether they succeeded or failed the action they attempted.\n\n`;
+            }
+        } else if (includeAttributes && trackerConfig?.userStats?.alwaysSendAttributes && trackerConfig?.userStats?.showRPGAttributes !== false) {
+            instructions += `\n`;
         }
     }
 
@@ -990,19 +999,25 @@ export function generateContextualSummary() {
 
     // Include attributes based on settings
     const alwaysSendAttributes = trackerConfig?.userStats?.alwaysSendAttributes;
-    const shouldSendAttributes = alwaysSendAttributes || extensionSettings.lastDiceRoll;
+    const showRPGAttributes = trackerConfig?.userStats?.showRPGAttributes !== false;
+    const shouldSendAttributes = alwaysSendAttributes && showRPGAttributes;
 
     if (shouldSendAttributes) {
         const attributesString = buildAttributesString();
         summary += `${userName}'s attributes: ${attributesString}\n`;
+    }
 
-        // Add dice roll context if there was one
-        if (extensionSettings.lastDiceRoll) {
-            const roll = extensionSettings.lastDiceRoll;
+    // Add dice roll context if there was one (independent of attributes)
+    if (extensionSettings.lastDiceRoll) {
+        const roll = extensionSettings.lastDiceRoll;
+
+        if (shouldSendAttributes) {
             summary += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Based on their attributes, decide whether they succeeded or failed the action they attempted.\n\n`;
         } else {
-            summary += `\n`;
+            summary += `${userName} rolled ${roll.total} on the last ${roll.formula} roll. Decide whether they succeeded or failed the action they attempted.\n\n`;
         }
+    } else if (shouldSendAttributes) {
+        summary += `\n`;
     }
 
     return summary.trim();

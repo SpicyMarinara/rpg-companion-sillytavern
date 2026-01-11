@@ -125,14 +125,6 @@
                         <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.dynamicWeatherEffects">Dynamic Weather</span>
                     </label>
                 </div>
-                <!-- Weather Foreground Toggle (Experimental) -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-weather-foreground-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="Weather Effects in Foreground (Experimental)">
-                        <input type="checkbox" id="rpg-toggle-weather-foreground">
-                        <i class="fa-solid fa-layer-group"></i>
-                        <span class="rpg-toggle-text">Weather Foreground</span>
-                    </label>
-                </div>
                 <!-- Narrator Mode Toggle -->
                 <div class="rpg-toggle-container rpg-feature-col" id="rpg-narrator-toggle-wrapper">
                     <label class="rpg-toggle-label" title="Narrator Mode">
@@ -382,6 +374,25 @@
                     data-i18n-key="template.settingsModal.display.showDynamicWeatherToggleNote">
                     Display a toggle button to enable/disable animated weather effects.
                 </small>
+
+                <!-- Weather sub-options (shown when dynamic weather is enabled) -->
+                <div id="rpg-weather-suboptions" style="margin-left: 24px; margin-top: 8px;">
+                    <label class="checkbox_label">
+                        <input type="radio" name="rpg-weather-position" id="rpg-toggle-weather-background" />
+                        <span>Show in Background</span>
+                    </label>
+                    <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                        Display weather effects behind the chat (standard behavior).
+                    </small>
+
+                    <label class="checkbox_label">
+                        <input type="radio" name="rpg-weather-position" id="rpg-toggle-weather-foreground" />
+                        <span>Show in Foreground</span>
+                    </label>
+                    <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                        Display weather effects in front of the chat (experimental).
+                    </small>
+                </div>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-show-narrator-mode" />

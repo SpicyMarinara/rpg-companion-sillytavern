@@ -35,7 +35,8 @@ export let extensionSettings = {
     customSpotifyPrompt: '', // Custom Spotify prompt text (empty = use default)
 
     enableDynamicWeather: true, // Enable dynamic weather effects based on Info Box weather field (v2: enabled by default)
-    weatherEffectsForeground: false, // Experimental: render weather effects in foreground (on top of chat)
+    weatherBackground: true, // Show weather effects in background (behind chat)
+    weatherForeground: false, // Show weather effects in foreground (on top of chat)
     dismissedHolidayPromo: false, // User dismissed the holiday promotion banner
     showHtmlToggle: true, // Show Immersive HTML toggle in main panel
     showDialogueColoringToggle: true, // Show Dialogue Coloring toggle in main panel (enabled by default)
