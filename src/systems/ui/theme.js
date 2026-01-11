@@ -143,6 +143,7 @@ export function updateFeatureTogglesVisibility() {
     const $spotifyToggle = $('#rpg-spotify-toggle-wrapper');
 
     const $dynamicWeatherToggle = $('#rpg-dynamic-weather-toggle-wrapper');
+    const $weatherForegroundToggle = $('#rpg-weather-foreground-toggle-wrapper');
     const $narratorToggle = $('#rpg-narrator-toggle-wrapper');
     const $autoAvatarsToggle = $('#rpg-auto-avatars-toggle-wrapper');
 
@@ -154,6 +155,8 @@ export function updateFeatureTogglesVisibility() {
     $spotifyToggle.toggle(extensionSettings.showSpotifyToggle);
 
     $dynamicWeatherToggle.toggle(extensionSettings.showDynamicWeatherToggle);
+    // Weather foreground toggle is only shown when dynamic weather toggle is visible
+    $weatherForegroundToggle.toggle(extensionSettings.showDynamicWeatherToggle);
     $narratorToggle.toggle(extensionSettings.showNarratorMode);
     $autoAvatarsToggle.toggle(extensionSettings.showAutoAvatars);
 
