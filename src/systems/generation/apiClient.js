@@ -405,6 +405,26 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 function parseCharactersFromThoughts(characterThoughtsData) {
     if (!characterThoughtsData) return [];
 
+    // Try parsing as JSON first (current format)
+    try {
+        const parsed = typeof characterThoughtsData === 'string'
+            ? JSON.parse(characterThoughtsData)
+            : characterThoughtsData;
+
+        // Handle both {characters: [...]} and direct array formats
+        const charactersArray = Array.isArray(parsed) ? parsed : (parsed.characters || []);
+
+        if (charactersArray.length > 0) {
+            // Extract names from JSON character objects
+            return charactersArray
+                .map(char => char.name)
+                .filter(name => name && name.toLowerCase() !== 'unavailable');
+        }
+    } catch (e) {
+        // Not JSON, fall back to text parsing
+    }
+
+    // Fallback: Parse text format (legacy)
     const lines = characterThoughtsData.split('\n');
     const characters = [];
 
