@@ -9524,11 +9524,11 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
 /* Snowfall animation */
 @keyframes rpg-snowfall {
     0% {
-        transform: translateY(0vh) rotate(0deg);
+        transform: translateY(0) rotate(0deg);
         opacity: 0.8;
     }
     100% {
-        transform: translateY(100vh) rotate(360deg);
+        transform: translateY(100dvh) rotate(360deg);
         opacity: 0.2;
     }
 }
@@ -9598,7 +9598,7 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
         opacity: 0.8;
     }
     100% {
-        transform: translateY(100vh);
+        transform: translateY(100dvh);
         opacity: 0.3;
     }
 }
@@ -9849,8 +9849,8 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
 /* Moon */
 .rpg-night-moon {
     position: fixed;
-    top: 8%;
-    left: 12%;
+    top: 8dvh;
+    left: 12vw;
     width: 60px;
     height: 60px;
     background: radial-gradient(circle at 35% 35%,
@@ -9880,8 +9880,8 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
 /* Moon glow aura */
 .rpg-night-moon-glow {
     position: fixed;
-    top: 5%;
-    left: 9%;
+    top: 5dvh;
+    left: 9vw;
     width: 120px;
     height: 120px;
     background: radial-gradient(circle at center,

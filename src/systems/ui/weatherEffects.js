@@ -247,8 +247,8 @@ function createSunshine() {
     for (let i = 0; i < 25; i++) {
         const particle = document.createElement('div');
         particle.className = 'rpg-weather-particle rpg-clear-dust-mote';
-        particle.style.left = `${Math.random() * 100}%`;
-        particle.style.top = `${Math.random() * 100}%`;
+        particle.style.left = `${Math.random() * 100}vw`;
+        particle.style.top = `${Math.random() * 100}dvh`;
         particle.style.animationDelay = `${Math.random() * 15}s`;
         particle.style.animationDuration = `${12 + Math.random() * 8}s`;
         // Vary the size slightly
@@ -262,8 +262,8 @@ function createSunshine() {
     for (let i = 0; i < 6; i++) {
         const orb = document.createElement('div');
         orb.className = 'rpg-weather-particle rpg-clear-light-orb';
-        orb.style.left = `${10 + Math.random() * 80}%`;
-        orb.style.top = `${10 + Math.random() * 80}%`;
+        orb.style.left = `${10 + Math.random() * 80}vw`;
+        orb.style.top = `${10 + Math.random() * 80}dvh`;
         orb.style.animationDelay = `${i * 2}s`;
         orb.style.animationDuration = `${20 + Math.random() * 10}s`;
         // Vary the size
@@ -307,8 +307,8 @@ function createNighttime() {
     for (let i = 0; i < 60; i++) {
         const star = document.createElement('div');
         star.className = 'rpg-weather-particle rpg-night-star';
-        star.style.left = `${Math.random() * 100}%`;
-        star.style.top = `${Math.random() * 60}%`; // Stars mostly in upper portion
+        star.style.left = `${Math.random() * 100}vw`;
+        star.style.top = `${Math.random() * 60}dvh`; // Stars mostly in upper portion
         star.style.animationDelay = `${Math.random() * 5}s`;
         star.style.animationDuration = `${2 + Math.random() * 3}s`;
         // Vary the size
@@ -322,8 +322,8 @@ function createNighttime() {
     for (let i = 0; i < 8; i++) {
         const brightStar = document.createElement('div');
         brightStar.className = 'rpg-weather-particle rpg-night-star rpg-night-star-bright';
-        brightStar.style.left = `${Math.random() * 100}%`;
-        brightStar.style.top = `${Math.random() * 50}%`;
+        brightStar.style.left = `${Math.random() * 100}vw`;
+        brightStar.style.top = `${Math.random() * 50}dvh`;
         brightStar.style.animationDelay = `${Math.random() * 4}s`;
         brightStar.style.animationDuration = `${3 + Math.random() * 2}s`;
         container.appendChild(brightStar);
@@ -333,8 +333,8 @@ function createNighttime() {
     for (let i = 0; i < 15; i++) {
         const firefly = document.createElement('div');
         firefly.className = 'rpg-weather-particle rpg-night-firefly';
-        firefly.style.left = `${Math.random() * 100}%`;
-        firefly.style.top = `${40 + Math.random() * 55}%`; // Fireflies in lower portion
+        firefly.style.left = `${Math.random() * 100}vw`;
+        firefly.style.top = `${40 + Math.random() * 55}dvh`; // Fireflies in lower portion
         firefly.style.animationDelay = `${Math.random() * 10}s`;
         firefly.style.animationDuration = `${8 + Math.random() * 7}s`;
         container.appendChild(firefly);
