@@ -436,14 +436,12 @@ export function renderInfoBox() {
 
     // Time widget - show if enabled
     if (config?.widgets?.time?.enabled) {
-        // Determine which time value to display and edit
-        const hasTimeEnd = Boolean(data.timeEnd);
-        const hasTimeStart = Boolean(data.timeStart);
-        const timeDisplay = data.timeEnd || data.timeStart || '12:00';
-        const timeField = hasTimeEnd ? 'timeEnd' : 'timeStart';
+        // Get both start and end times
+        const timeStartDisplay = data.timeStart || '12:00';
+        const timeEndDisplay = data.timeEnd || data.timeStart || '12:00';
 
-        // Parse time for clock hands
-        const timeMatch = timeDisplay.match(/(\d+):(\d+)/);
+        // Parse end time for clock hands (use end time for visual display)
+        const timeMatch = timeEndDisplay.match(/(\d+):(\d+)/);
         let hourAngle = 0;
         let minuteAngle = 0;
         if (timeMatch) {
@@ -465,7 +463,11 @@ export function renderInfoBox() {
                         <div class="rpg-clock-center"></div>
                     </div>
                 </div>
-                <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="${timeField}" title="Click to edit">${timeDisplay}</div>
+                <div class="rpg-time-range">
+                    <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="timeStart" title="Click to edit start time">${timeStartDisplay}</div>
+                    <span class="rpg-time-separator">→</span>
+                    <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="timeEnd" title="Click to edit end time">${timeEndDisplay}</div>
+                </div>
             </div>
         `);
     }
