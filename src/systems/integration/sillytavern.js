@@ -114,10 +114,9 @@ export function onMessageSent() {
     // This allows auto-update to distinguish between new generations and loading chat history
     setIsAwaitingNewMessage(true);
 
-    // Show FAB loading state for together mode (starts spinning)
-    if (extensionSettings.generationMode === 'together') {
-        setFabLoadingState(true);
-    }
+    // Note: FAB spinning is NOT shown for together mode since no extra API request is made
+    // The RPG data comes embedded in the main response
+    // FAB spinning is handled by apiClient.js for separate/external modes when updateRPGData() is called
 
     // For separate mode with auto-update disabled, commit displayed tracker
     if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
@@ -232,6 +231,9 @@ export async function onMessageReceived(data) {
             renderInventory();
             renderQuests();
             renderMusicPlayer($musicPlayerContainer[0]);
+
+            // Update FAB widgets with newly parsed data
+            updateFabWidgets();
 
             // Then update the DOM to reflect the cleaned message
             // Using updateMessageBlock to perform macro substitutions + regex formatting
