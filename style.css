@@ -9740,6 +9740,72 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
     }
 }
 
+/* Sun - positioned dynamically based on hour */
+.rpg-clear-sun {
+    position: fixed;
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle at 40% 40%,
+        rgba(255, 255, 240, 1) 0%,
+        rgba(255, 250, 200, 1) 30%,
+        rgba(255, 220, 120, 0.9) 60%,
+        rgba(255, 180, 80, 0.6) 80%,
+        rgba(255, 150, 50, 0) 100%);
+    border-radius: 50%;
+    box-shadow:
+        0 0 30px 10px rgba(255, 220, 100, 0.5),
+        0 0 60px 20px rgba(255, 200, 80, 0.3),
+        0 0 100px 40px rgba(255, 180, 60, 0.15);
+    transform: translate(-50%, -50%);
+    animation: rpg-clear-sun-pulse 8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes rpg-clear-sun-pulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow:
+            0 0 30px 10px rgba(255, 220, 100, 0.5),
+            0 0 60px 20px rgba(255, 200, 80, 0.3),
+            0 0 100px 40px rgba(255, 180, 60, 0.15);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.05);
+        box-shadow:
+            0 0 35px 12px rgba(255, 220, 100, 0.6),
+            0 0 70px 25px rgba(255, 200, 80, 0.35),
+            0 0 110px 45px rgba(255, 180, 60, 0.2);
+    }
+}
+
+/* Sun glow aura */
+.rpg-clear-sun-glow {
+    position: fixed;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle at center,
+        rgba(255, 240, 180, 0.25) 0%,
+        rgba(255, 220, 150, 0.15) 30%,
+        rgba(255, 200, 120, 0.08) 50%,
+        transparent 70%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    filter: blur(8px);
+    animation: rpg-clear-sun-glow-pulse 6s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes rpg-clear-sun-glow-pulse {
+    0%, 100% {
+        opacity: 0.7;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.15);
+    }
+}
+
 /* Lens flare effect */
 .rpg-clear-lens-flare {
     position: fixed;
@@ -9849,8 +9915,6 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
 /* Moon */
 .rpg-night-moon {
     position: fixed;
-    top: 8dvh;
-    left: 12vw;
     width: 60px;
     height: 60px;
     background: radial-gradient(circle at 35% 35%,
@@ -9880,8 +9944,6 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
 /* Moon glow aura */
 .rpg-night-moon-glow {
     position: fixed;
-    top: 5dvh;
-    left: 9vw;
     width: 120px;
     height: 120px;
     background: radial-gradient(circle at center,
@@ -10089,6 +10151,17 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
         height: 100px;
     }
 
+    /* Sun mobile optimizations */
+    .rpg-clear-sun {
+        width: 40px;
+        height: 40px;
+    }
+
+    .rpg-clear-sun-glow {
+        width: 100px;
+        height: 100px;
+    }
+
     /* Nighttime mobile optimizations */
     .rpg-night-moon {
         width: 45px;
@@ -10107,6 +10180,51 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
     .rpg-night-shooting-star {
         animation-duration: 18s;
     }
+}
+
+/* Foreground mode - reduced opacity for celestial bodies to not obstruct content */
+.rpg-weather-foreground .rpg-clear-sun {
+    opacity: 0.5;
+    box-shadow:
+        0 0 20px 8px rgba(255, 220, 100, 0.3),
+        0 0 40px 15px rgba(255, 200, 80, 0.15),
+        0 0 60px 25px rgba(255, 180, 60, 0.08);
+}
+
+.rpg-weather-foreground .rpg-clear-sun-glow {
+    opacity: 0.3;
+}
+
+.rpg-weather-foreground .rpg-clear-lens-flare {
+    opacity: 0.3;
+}
+
+.rpg-weather-foreground .rpg-clear-ambient-glow {
+    opacity: 0.4;
+}
+
+.rpg-weather-foreground .rpg-night-moon {
+    opacity: 0.7;
+    box-shadow:
+        0 0 15px 4px rgba(255, 255, 240, 0.25),
+        0 0 30px 8px rgba(200, 210, 255, 0.12);
+}
+
+.rpg-weather-foreground .rpg-night-moon-glow {
+    opacity: 0.3;
+}
+
+.rpg-weather-foreground .rpg-night-overlay {
+    opacity: 0.4;
+}
+
+.rpg-weather-foreground .rpg-night-star,
+.rpg-weather-foreground .rpg-night-star-bright {
+    opacity: 0.5;
+}
+
+.rpg-weather-foreground .rpg-night-firefly {
+    opacity: 0.6;
 }
 
 /* Lightning flash effect */

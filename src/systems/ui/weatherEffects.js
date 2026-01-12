@@ -9,6 +9,7 @@ import { repairJSON } from '../../utils/jsonRepair.js';
 let weatherContainer = null;
 let currentWeatherType = null;
 let currentTimeOfDay = null;
+let currentHour = null;
 
 /**
  * Parse time string to extract hour (24-hour format)
@@ -232,11 +233,56 @@ function createMist() {
 }
 
 /**
+ * Calculate sun position based on hour (arc across sky)
+ * Returns { left: vw%, top: dvh% }
+ */
+function calculateSunPosition(hour) {
+    // Daytime is roughly 6 AM to 8 PM (6-20)
+    // Map hour to position along an arc
+    // 6 AM = far left, low | 12 PM = center, high | 6 PM = far right, low
+    
+    if (hour === null) hour = 12; // Default to noon if unknown
+    
+    // Clamp to daytime hours
+    const clampedHour = Math.max(5, Math.min(20, hour));
+    
+    // Normalize to 0-1 range (5 AM = 0, 20 PM = 1)
+    const progress = (clampedHour - 5) / 15;
+    
+    // Horizontal position: 5% to 85% (left to right)
+    const left = 5 + progress * 80;
+    
+    // Vertical position: parabolic arc (high at noon, low at dawn/dusk)
+    // At progress 0.5 (noon), top should be ~8% (high)
+    // At progress 0 or 1, top should be ~35% (low, near horizon)
+    const normalizedProgress = (progress - 0.5) * 2; // -1 to 1
+    const top = 8 + 27 * (normalizedProgress * normalizedProgress);
+    
+    return { left, top };
+}
+
+/**
  * Create clear/sunny weather effect with floating particles and warm glow
  */
-function createSunshine() {
+function createSunshine(hour) {
     const container = document.createElement('div');
     container.className = 'rpg-weather-particles rpg-clear-weather';
+
+    // Create the sun based on current hour
+    const sunPos = calculateSunPosition(hour);
+    
+    const sun = document.createElement('div');
+    sun.className = 'rpg-weather-particle rpg-clear-sun';
+    sun.style.left = `${sunPos.left}vw`;
+    sun.style.top = `${sunPos.top}dvh`;
+    container.appendChild(sun);
+
+    // Create sun glow
+    const sunGlow = document.createElement('div');
+    sunGlow.className = 'rpg-weather-particle rpg-clear-sun-glow';
+    sunGlow.style.left = `${sunPos.left}vw`;
+    sunGlow.style.top = `${sunPos.top}dvh`;
+    container.appendChild(sunGlow);
 
     // Create warm ambient glow overlay
     const ambientGlow = document.createElement('div');
@@ -284,7 +330,7 @@ function createSunshine() {
 /**
  * Create clear nighttime weather effect with moon, stars, and fireflies
  */
-function createNighttime() {
+function createNighttime(hour) {
     const container = document.createElement('div');
     container.className = 'rpg-weather-particles rpg-night-weather';
 
@@ -293,14 +339,21 @@ function createNighttime() {
     nightOverlay.className = 'rpg-weather-particle rpg-night-overlay';
     container.appendChild(nightOverlay);
 
+    // Calculate moon position based on hour
+    const moonPos = calculateMoonPosition(hour);
+
     // Create the moon
     const moon = document.createElement('div');
     moon.className = 'rpg-weather-particle rpg-night-moon';
+    moon.style.left = `${moonPos.left}vw`;
+    moon.style.top = `${moonPos.top}dvh`;
     container.appendChild(moon);
 
     // Create moon glow
     const moonGlow = document.createElement('div');
     moonGlow.className = 'rpg-weather-particle rpg-night-moon-glow';
+    moonGlow.style.left = `${moonPos.left - 3}vw`;
+    moonGlow.style.top = `${moonPos.top - 3}dvh`;
     container.appendChild(moonGlow);
 
     // Create twinkling stars
@@ -384,6 +437,75 @@ function createWind() {
 }
 
 /**
+ * Calculate moon position based on hour (arc across sky at night)
+ * Returns { left: vw%, top: dvh% }
+ */
+function calculateMoonPosition(hour) {
+    // Nighttime is roughly 8 PM to 5 AM (20-5)
+    // Map hour to position along an arc
+    // 8 PM = far left, low | midnight = center-left, high | 5 AM = far right, low
+    
+    if (hour === null) hour = 0; // Default to midnight if unknown
+    
+    // Normalize night hours to 0-1 range
+    // 20 (8 PM) = 0, 0 (midnight) = ~0.44, 5 (5 AM) = 1
+    let progress;
+    if (hour >= 20) {
+        // 8 PM to midnight: 20-24 maps to 0-0.44
+        progress = (hour - 20) / 9;
+    } else {
+        // Midnight to 5 AM: 0-5 maps to 0.44-1
+        progress = (hour + 4) / 9;
+    }
+    
+    // Horizontal position: 10% to 80% (left to right)
+    const left = 10 + progress * 70;
+    
+    // Vertical position: parabolic arc (high at ~2 AM, low at dusk/dawn)
+    // Peak should be around progress 0.67 (~2 AM)
+    const peakProgress = 0.5;
+    const normalizedProgress = (progress - peakProgress) * 2; // -1 to 1
+    const top = 8 + 25 * (normalizedProgress * normalizedProgress);
+    
+    return { left, top };
+}
+
+/**
+ * Update sun/moon position without recreating the whole effect
+ */
+function updateCelestialPosition(hour) {
+    if (!weatherContainer) return false;
+
+    // Update sun position if it exists
+    const sun = weatherContainer.querySelector('.rpg-clear-sun');
+    const sunGlow = weatherContainer.querySelector('.rpg-clear-sun-glow');
+    
+    if (sun && sunGlow) {
+        const sunPos = calculateSunPosition(hour);
+        sun.style.left = `${sunPos.left}vw`;
+        sun.style.top = `${sunPos.top}dvh`;
+        sunGlow.style.left = `${sunPos.left}vw`;
+        sunGlow.style.top = `${sunPos.top}dvh`;
+        return true;
+    }
+
+    // Update moon position if it exists
+    const moon = weatherContainer.querySelector('.rpg-night-moon');
+    const moonGlow = weatherContainer.querySelector('.rpg-night-moon-glow');
+    
+    if (moon && moonGlow) {
+        const moonPos = calculateMoonPosition(hour);
+        moon.style.left = `${moonPos.left}vw`;
+        moon.style.top = `${moonPos.top}dvh`;
+        moonGlow.style.left = `${moonPos.left - 3}vw`;
+        moonGlow.style.top = `${moonPos.top - 3}dvh`;
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * Remove current weather effect
  */
 function removeWeatherEffect() {
@@ -392,6 +514,7 @@ function removeWeatherEffect() {
         weatherContainer = null;
         currentWeatherType = null;
         currentTimeOfDay = null;
+        currentHour = null;
     }
 }
 
@@ -413,8 +536,16 @@ export function updateWeatherEffect() {
     const hour = parseHourFromTime(timeStr);
     const timeOfDay = getTimeOfDay(hour);
 
-    // Don't recreate if weather and time haven't changed
-    if (weatherType === currentWeatherType && timeOfDay === currentTimeOfDay) {
+    // If only the hour changed (same weather and time of day), just update celestial position
+    if (weatherType === currentWeatherType && timeOfDay === currentTimeOfDay && hour !== currentHour) {
+        if (updateCelestialPosition(hour)) {
+            currentHour = hour;
+            return; // Successfully updated position without recreating
+        }
+    }
+
+    // Don't recreate if nothing has changed
+    if (weatherType === currentWeatherType && timeOfDay === currentTimeOfDay && hour === currentHour) {
         return;
     }
 
@@ -428,6 +559,7 @@ export function updateWeatherEffect() {
 
     currentWeatherType = weatherType;
     currentTimeOfDay = timeOfDay;
+    currentHour = hour;
 
     switch (weatherType) {
         case 'snow':
@@ -442,9 +574,9 @@ export function updateWeatherEffect() {
         case 'sunny':
             // Use nighttime effect for clear weather at night
             if (timeOfDay === 'night') {
-                weatherContainer = createNighttime();
+                weatherContainer = createNighttime(hour);
             } else {
-                weatherContainer = createSunshine();
+                weatherContainer = createSunshine(hour);
             }
             break;
         case 'wind':
@@ -478,8 +610,10 @@ export function updateWeatherEffect() {
         // Apply z-index based on background/foreground settings
         if (extensionSettings.weatherForeground) {
             weatherContainer.style.zIndex = '9998'; // In front of chat
+            weatherContainer.classList.add('rpg-weather-foreground');
         } else if (extensionSettings.weatherBackground) {
             weatherContainer.style.zIndex = '1'; // Behind chat (default)
+            weatherContainer.classList.remove('rpg-weather-foreground');
         } else {
             // Both disabled - don't show weather
             return;
