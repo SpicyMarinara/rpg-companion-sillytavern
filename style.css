@@ -1582,6 +1582,25 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     margin-top: 0.25em;
 }
 
+.rpg-time-range {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25em;
+    margin-top: 0.25em;
+}
+
+.rpg-time-range .rpg-time-value {
+    margin-top: 0;
+    min-width: 2.5em;
+}
+
+.rpg-time-separator {
+    font-size: clamp(0.5rem, 0.5vw, 0.625rem);
+    color: var(--rpg-text-muted, var(--rpg-text));
+    opacity: 0.7;
+}
+
 /* Location Widget - Map */
 .rpg-map-bg {
     width: 100%;
@@ -5719,6 +5738,14 @@ body:has(.rpg-panel.rpg-mobile-open) .rpg-fab-widget-container {
 
     .rpg-time-value {
         font-size: min(2.5vw, 0.8125rem) !important;
+    }
+
+    .rpg-time-range {
+        gap: 0.15em;
+    }
+
+    .rpg-time-separator {
+        font-size: min(2vw, 0.625rem) !important;
     }
 
     .rpg-location-text {
