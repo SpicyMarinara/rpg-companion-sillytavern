@@ -9643,40 +9643,425 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
     background: radial-gradient(ellipse at center, rgba(220, 220, 240, 0.25) 0%, transparent 70%);
 }
 
-/* Sunshine rays */
-.rpg-sunray {
-    width: 3px;
-    height: 100dvh;
-    background: linear-gradient(to bottom,
-        rgba(255, 250, 200, 0) 0%,
-        rgba(255, 250, 200, 0.3) 20%,
-        rgba(255, 250, 200, 0.15) 50%,
-        rgba(255, 250, 200, 0) 100%);
-    transform-origin: top;
-    animation: rpg-sunrayShine ease-in-out infinite;
-    top: -20%;
-    filter: blur(2px);
+/* Clear/Sunny Weather Effects */
+
+/* Container modifier for clear weather */
+.rpg-clear-weather {
+    overflow: hidden;
 }
 
-@keyframes rpg-sunrayShine {
+/* Warm ambient glow overlay */
+.rpg-clear-ambient-glow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at 15% 10%,
+        rgba(255, 245, 200, 0.15) 0%,
+        rgba(255, 240, 180, 0.08) 30%,
+        transparent 70%);
+    animation: rpg-clear-ambient-pulse 8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes rpg-clear-ambient-pulse {
     0%, 100% {
-        opacity: 0.2;
-        transform: translateY(0) scaleY(1);
+        opacity: 0.6;
     }
     50% {
-        opacity: 0.4;
-        transform: translateY(5%) scaleY(1.05);
+        opacity: 1;
     }
 }
 
-.rpg-sunray:nth-child(2n) {
-    width: 4px;
-    animation-duration: 10s;
+/* Floating dust motes / pollen particles */
+.rpg-clear-dust-mote {
+    position: fixed;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%,
+        rgba(255, 250, 220, 0.9) 0%,
+        rgba(255, 235, 180, 0.6) 50%,
+        rgba(255, 220, 150, 0) 100%);
+    box-shadow: 0 0 6px 2px rgba(255, 245, 200, 0.4);
+    animation: rpg-clear-dust-float linear infinite;
+    pointer-events: none;
 }
 
-.rpg-sunray:nth-child(3n) {
+@keyframes rpg-clear-dust-float {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.8;
+    }
+    50% {
+        transform: translate(30px, -50px) scale(1.2);
+        opacity: 0.6;
+    }
+    90% {
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(60px, -100px) scale(1);
+        opacity: 0;
+    }
+}
+
+/* Soft drifting light orbs */
+.rpg-clear-light-orb {
+    position: fixed;
+    border-radius: 50%;
+    background: radial-gradient(circle at center,
+        rgba(255, 250, 230, 0.12) 0%,
+        rgba(255, 245, 200, 0.06) 40%,
+        transparent 70%);
+    filter: blur(20px);
+    animation: rpg-clear-orb-drift ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes rpg-clear-orb-drift {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.4;
+    }
+    25% {
+        transform: translate(20px, 15px) scale(1.1);
+        opacity: 0.6;
+    }
+    50% {
+        transform: translate(-10px, 30px) scale(0.95);
+        opacity: 0.5;
+    }
+    75% {
+        transform: translate(-25px, 10px) scale(1.05);
+        opacity: 0.7;
+    }
+}
+
+/* Lens flare effect */
+.rpg-clear-lens-flare {
+    position: fixed;
+    top: 5%;
+    left: 10%;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle at center,
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 250, 220, 0.15) 20%,
+        rgba(255, 240, 180, 0.08) 40%,
+        transparent 60%);
+    border-radius: 50%;
+    animation: rpg-clear-lens-flare-pulse 6s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.rpg-clear-lens-flare::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle at center,
+        rgba(255, 255, 255, 0.5) 0%,
+        rgba(255, 250, 230, 0.2) 50%,
+        transparent 70%);
+    border-radius: 50%;
+    animation: rpg-clear-lens-core-pulse 4s ease-in-out infinite;
+}
+
+.rpg-clear-lens-flare::after {
+    content: '';
+    position: absolute;
+    top: 120%;
+    left: 150%;
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle at center,
+        rgba(255, 200, 150, 0.4) 0%,
+        rgba(255, 180, 100, 0.1) 50%,
+        transparent 70%);
+    border-radius: 50%;
+    animation: rpg-clear-secondary-flare 8s ease-in-out infinite;
+}
+
+@keyframes rpg-clear-lens-flare-pulse {
+    0%, 100% {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+@keyframes rpg-clear-lens-core-pulse {
+    0%, 100% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.15);
+    }
+}
+
+@keyframes rpg-clear-secondary-flare {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    30% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+    70% {
+        opacity: 0.4;
+        transform: scale(0.9);
+    }
+}
+
+/* ===== Nighttime Clear Weather Effects ===== */
+
+/* Container modifier for night weather */
+.rpg-night-weather {
+    overflow: hidden;
+}
+
+/* Dark blue night overlay */
+.rpg-night-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom,
+        rgba(10, 15, 40, 0.3) 0%,
+        rgba(15, 25, 55, 0.2) 40%,
+        rgba(20, 30, 60, 0.15) 100%);
+    pointer-events: none;
+}
+
+/* Moon */
+.rpg-night-moon {
+    position: fixed;
+    top: 8%;
+    left: 12%;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle at 35% 35%,
+        rgba(255, 255, 245, 1) 0%,
+        rgba(240, 240, 230, 0.95) 40%,
+        rgba(220, 220, 210, 0.9) 60%,
+        rgba(200, 200, 195, 0.8) 80%,
+        rgba(180, 180, 175, 0) 100%);
+    border-radius: 50%;
+    box-shadow:
+        0 0 20px 5px rgba(255, 255, 240, 0.4),
+        0 0 40px 10px rgba(200, 210, 255, 0.2),
+        inset -8px -5px 15px rgba(150, 150, 140, 0.3);
+    animation: rpg-night-moon-float 30s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes rpg-night-moon-float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(10px);
+    }
+}
+
+/* Moon glow aura */
+.rpg-night-moon-glow {
+    position: fixed;
+    top: 5%;
+    left: 9%;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle at center,
+        rgba(200, 220, 255, 0.15) 0%,
+        rgba(180, 200, 240, 0.08) 40%,
+        transparent 70%);
+    border-radius: 50%;
+    filter: blur(10px);
+    animation: rpg-night-moon-glow-pulse 8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes rpg-night-moon-glow-pulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* Twinkling stars */
+.rpg-night-star {
+    position: fixed;
+    background: radial-gradient(circle at center,
+        rgba(255, 255, 255, 1) 0%,
+        rgba(200, 220, 255, 0.8) 40%,
+        transparent 70%);
+    border-radius: 50%;
+    animation: rpg-night-star-twinkle ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes rpg-night-star-twinkle {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.3);
+    }
+}
+
+/* Brighter stars with cross-flare effect */
+.rpg-night-star-bright {
+    width: 4px !important;
+    height: 4px !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow:
+        0 0 4px 2px rgba(255, 255, 255, 0.8),
+        0 0 8px 4px rgba(200, 220, 255, 0.4);
+}
+
+.rpg-night-star-bright::before,
+.rpg-night-star-bright::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.8) 45%,
+        rgba(255, 255, 255, 1) 50%,
+        rgba(255, 255, 255, 0.8) 55%,
+        transparent 100%);
+}
+
+.rpg-night-star-bright::before {
+    width: 16px;
+    height: 2px;
+    transform: translate(-50%, -50%);
+}
+
+.rpg-night-star-bright::after {
     width: 2px;
-    animation-duration: 12s;
+    height: 16px;
+    transform: translate(-50%, -50%);
+}
+
+/* Fireflies */
+.rpg-night-firefly {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: radial-gradient(circle at center,
+        rgba(200, 255, 150, 1) 0%,
+        rgba(180, 255, 120, 0.8) 30%,
+        rgba(150, 230, 100, 0.4) 60%,
+        transparent 100%);
+    border-radius: 50%;
+    box-shadow:
+        0 0 6px 3px rgba(180, 255, 120, 0.6),
+        0 0 12px 6px rgba(150, 230, 100, 0.3);
+    animation: rpg-night-firefly-float ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes rpg-night-firefly-float {
+    0% {
+        opacity: 0;
+        transform: translate(0, 0) scale(0.5);
+    }
+    10% {
+        opacity: 1;
+        transform: translate(5px, -10px) scale(1);
+    }
+    30% {
+        opacity: 0.3;
+        transform: translate(-15px, -25px) scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(10px, -40px) scale(1.1);
+    }
+    70% {
+        opacity: 0.4;
+        transform: translate(-10px, -55px) scale(0.9);
+    }
+    90% {
+        opacity: 0.8;
+        transform: translate(5px, -70px) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(0, -80px) scale(0.5);
+    }
+}
+
+/* Shooting star */
+.rpg-night-shooting-star {
+    position: fixed;
+    top: 15%;
+    left: -10%;
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.2) 20%,
+        rgba(255, 255, 255, 0.8) 60%,
+        rgba(255, 255, 255, 1) 100%);
+    border-radius: 50%;
+    transform: rotate(35deg);
+    animation: rpg-night-shooting-star-fly 12s ease-in-out infinite;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.rpg-night-shooting-star::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background: rgba(255, 255, 255, 1);
+    border-radius: 50%;
+    box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes rpg-night-shooting-star-fly {
+    0%, 85%, 100% {
+        opacity: 0;
+        left: -10%;
+        top: 15%;
+    }
+    88% {
+        opacity: 1;
+    }
+    95% {
+        opacity: 1;
+        left: 110%;
+        top: 45%;
+    }
+    96% {
+        opacity: 0;
+    }
 }
 
 /* Mobile optimizations */
@@ -9689,8 +10074,38 @@ body[data-theme="cyberpunk"] .rpg-music-widget-play {
         animation-duration: 20s;
     }
 
-    .rpg-sunray {
+    /* Clear weather mobile optimizations */
+    .rpg-clear-dust-mote {
         animation-duration: 15s;
+    }
+
+    .rpg-clear-light-orb {
+        animation-duration: 25s;
+        filter: blur(15px);
+    }
+
+    .rpg-clear-lens-flare {
+        width: 100px;
+        height: 100px;
+    }
+
+    /* Nighttime mobile optimizations */
+    .rpg-night-moon {
+        width: 45px;
+        height: 45px;
+    }
+
+    .rpg-night-moon-glow {
+        width: 90px;
+        height: 90px;
+    }
+
+    .rpg-night-firefly {
+        animation-duration: 12s;
+    }
+
+    .rpg-night-shooting-star {
+        animation-duration: 18s;
     }
 }
 

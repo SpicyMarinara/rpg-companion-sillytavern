@@ -4,9 +4,105 @@
  */
 
 import { extensionSettings, lastGeneratedData, committedTrackerData } from '../../core/state.js';
+import { repairJSON } from '../../utils/jsonRepair.js';
 
 let weatherContainer = null;
 let currentWeatherType = null;
+let currentTimeOfDay = null;
+
+/**
+ * Parse time string to extract hour (24-hour format)
+ * Supports formats like "3:00 PM", "15:00", "3 PM", "Evening", etc.
+ */
+function parseHourFromTime(timeStr) {
+    if (!timeStr) return null;
+
+    const text = timeStr.toLowerCase().trim();
+
+    // Check for descriptive time words first
+    if (text.includes('dawn') || text.includes('sunrise')) return 6;
+    if (text.includes('early morning')) return 7;
+    if (text.includes('morning')) return 9;
+    if (text.includes('midday') || text.includes('noon') || text.includes('mid-day')) return 12;
+    if (text.includes('afternoon')) return 14;
+    if (text.includes('late afternoon')) return 16;
+    if (text.includes('evening') || text.includes('dusk') || text.includes('sunset')) return 19;
+    if (text.includes('twilight')) return 20;
+    if (text.includes('night') || text.includes('nighttime')) return 22;
+    if (text.includes('midnight')) return 0;
+    if (text.includes('late night')) return 2;
+
+    // Try to parse numeric time formats
+    // Format: "3:00 PM" or "3:00PM" or "3 PM"
+    const ampmMatch = text.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+    if (ampmMatch) {
+        let hour = parseInt(ampmMatch[1], 10);
+        const isPM = ampmMatch[3].toLowerCase() === 'pm';
+        if (isPM && hour !== 12) hour += 12;
+        if (!isPM && hour === 12) hour = 0;
+        return hour;
+    }
+
+    // Format: "15:00" (24-hour)
+    const militaryMatch = text.match(/(\d{1,2}):(\d{2})/);
+    if (militaryMatch) {
+        return parseInt(militaryMatch[1], 10);
+    }
+
+    return null;
+}
+
+/**
+ * Determine time of day based on hour
+ */
+function getTimeOfDay(hour) {
+    if (hour === null) return 'unknown';
+
+    // Night: 8 PM (20:00) to 5 AM (05:00)
+    if (hour >= 20 || hour < 5) return 'night';
+
+    // Dawn/Dusk: 5 AM - 7 AM and 6 PM - 8 PM
+    if (hour >= 5 && hour < 7) return 'dawn';
+    if (hour >= 18 && hour < 20) return 'dusk';
+
+    // Day: 7 AM to 6 PM
+    return 'day';
+}
+
+/**
+ * Extract time from Info Box data
+ */
+function getCurrentTime() {
+    const infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox || '';
+
+    // Try to parse as JSON first (new format)
+    try {
+        const parsed = typeof infoBoxData === 'string' ? repairJSON(infoBoxData) : infoBoxData;
+        if (parsed && parsed.time) {
+            // Use the end time if available (current time), otherwise start time
+            return parsed.time.end || parsed.time.start || null;
+        }
+    } catch (e) {
+        // Not JSON, try old text format
+    }
+
+    // Fallback: Parse the old text format to find Time field
+    const lines = infoBoxData.split('\n');
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('Time:')) {
+            const timeStr = trimmed.substring('Time:'.length).trim();
+            // If it contains →, take the end time (after arrow)
+            if (timeStr.includes('→')) {
+                const parts = timeStr.split('→');
+                return parts[1]?.trim() || parts[0]?.trim();
+            }
+            return timeStr;
+        }
+    }
+
+    return null;
+}
 
 /**
  * Parse weather text to determine effect type
@@ -136,21 +232,118 @@ function createMist() {
 }
 
 /**
- * Create sunshine rays effect
+ * Create clear/sunny weather effect with floating particles and warm glow
  */
 function createSunshine() {
     const container = document.createElement('div');
-    container.className = 'rpg-weather-particles';
+    container.className = 'rpg-weather-particles rpg-clear-weather';
 
-    // Create 8 sun rays
-    for (let i = 0; i < 8; i++) {
-        const ray = document.createElement('div');
-        ray.className = 'rpg-weather-particle rpg-sunray';
-        ray.style.left = `${10 + i * 12}%`;
-        ray.style.animationDelay = `${i * 0.5}s`;
-        ray.style.animationDuration = `${8 + Math.random() * 4}s`;
-        container.appendChild(ray);
+    // Create warm ambient glow overlay
+    const ambientGlow = document.createElement('div');
+    ambientGlow.className = 'rpg-weather-particle rpg-clear-ambient-glow';
+    container.appendChild(ambientGlow);
+
+    // Create floating dust motes / pollen particles (golden sparkles)
+    for (let i = 0; i < 25; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'rpg-weather-particle rpg-clear-dust-mote';
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.top = `${Math.random() * 100}%`;
+        particle.style.animationDelay = `${Math.random() * 15}s`;
+        particle.style.animationDuration = `${12 + Math.random() * 8}s`;
+        // Vary the size slightly
+        const size = 2 + Math.random() * 4;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        container.appendChild(particle);
     }
+
+    // Create soft light orbs that drift gently
+    for (let i = 0; i < 6; i++) {
+        const orb = document.createElement('div');
+        orb.className = 'rpg-weather-particle rpg-clear-light-orb';
+        orb.style.left = `${10 + Math.random() * 80}%`;
+        orb.style.top = `${10 + Math.random() * 80}%`;
+        orb.style.animationDelay = `${i * 2}s`;
+        orb.style.animationDuration = `${20 + Math.random() * 10}s`;
+        // Vary the size
+        const size = 80 + Math.random() * 120;
+        orb.style.width = `${size}px`;
+        orb.style.height = `${size}px`;
+        container.appendChild(orb);
+    }
+
+    // Create lens flare effect in corner
+    const lensFlare = document.createElement('div');
+    lensFlare.className = 'rpg-weather-particle rpg-clear-lens-flare';
+    container.appendChild(lensFlare);
+
+    return container;
+}
+
+/**
+ * Create clear nighttime weather effect with moon, stars, and fireflies
+ */
+function createNighttime() {
+    const container = document.createElement('div');
+    container.className = 'rpg-weather-particles rpg-night-weather';
+
+    // Create dark blue ambient overlay
+    const nightOverlay = document.createElement('div');
+    nightOverlay.className = 'rpg-weather-particle rpg-night-overlay';
+    container.appendChild(nightOverlay);
+
+    // Create the moon
+    const moon = document.createElement('div');
+    moon.className = 'rpg-weather-particle rpg-night-moon';
+    container.appendChild(moon);
+
+    // Create moon glow
+    const moonGlow = document.createElement('div');
+    moonGlow.className = 'rpg-weather-particle rpg-night-moon-glow';
+    container.appendChild(moonGlow);
+
+    // Create twinkling stars
+    for (let i = 0; i < 60; i++) {
+        const star = document.createElement('div');
+        star.className = 'rpg-weather-particle rpg-night-star';
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.top = `${Math.random() * 60}%`; // Stars mostly in upper portion
+        star.style.animationDelay = `${Math.random() * 5}s`;
+        star.style.animationDuration = `${2 + Math.random() * 3}s`;
+        // Vary the size
+        const size = 1 + Math.random() * 2;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        container.appendChild(star);
+    }
+
+    // Create a few brighter stars
+    for (let i = 0; i < 8; i++) {
+        const brightStar = document.createElement('div');
+        brightStar.className = 'rpg-weather-particle rpg-night-star rpg-night-star-bright';
+        brightStar.style.left = `${Math.random() * 100}%`;
+        brightStar.style.top = `${Math.random() * 50}%`;
+        brightStar.style.animationDelay = `${Math.random() * 4}s`;
+        brightStar.style.animationDuration = `${3 + Math.random() * 2}s`;
+        container.appendChild(brightStar);
+    }
+
+    // Create fireflies / floating light particles
+    for (let i = 0; i < 15; i++) {
+        const firefly = document.createElement('div');
+        firefly.className = 'rpg-weather-particle rpg-night-firefly';
+        firefly.style.left = `${Math.random() * 100}%`;
+        firefly.style.top = `${40 + Math.random() * 55}%`; // Fireflies in lower portion
+        firefly.style.animationDelay = `${Math.random() * 10}s`;
+        firefly.style.animationDuration = `${8 + Math.random() * 7}s`;
+        container.appendChild(firefly);
+    }
+
+    // Create subtle shooting star occasionally
+    const shootingStar = document.createElement('div');
+    shootingStar.className = 'rpg-weather-particle rpg-night-shooting-star';
+    container.appendChild(shootingStar);
 
     return container;
 }
@@ -198,11 +391,12 @@ function removeWeatherEffect() {
         weatherContainer.remove();
         weatherContainer = null;
         currentWeatherType = null;
+        currentTimeOfDay = null;
     }
 }
 
 /**
- * Update weather effect based on current weather
+ * Update weather effect based on current weather and time
  */
 export function updateWeatherEffect() {
     // Check if dynamic weather is enabled
@@ -214,8 +408,13 @@ export function updateWeatherEffect() {
     const weather = getCurrentWeather();
     const weatherType = parseWeatherType(weather);
 
-    // Don't recreate if weather hasn't changed
-    if (weatherType === currentWeatherType) {
+    // Get current time of day
+    const timeStr = getCurrentTime();
+    const hour = parseHourFromTime(timeStr);
+    const timeOfDay = getTimeOfDay(hour);
+
+    // Don't recreate if weather and time haven't changed
+    if (weatherType === currentWeatherType && timeOfDay === currentTimeOfDay) {
         return;
     }
 
@@ -228,6 +427,7 @@ export function updateWeatherEffect() {
     }
 
     currentWeatherType = weatherType;
+    currentTimeOfDay = timeOfDay;
 
     switch (weatherType) {
         case 'snow':
@@ -240,7 +440,12 @@ export function updateWeatherEffect() {
             weatherContainer = createMist();
             break;
         case 'sunny':
-            weatherContainer = createSunshine();
+            // Use nighttime effect for clear weather at night
+            if (timeOfDay === 'night') {
+                weatherContainer = createNighttime();
+            } else {
+                weatherContainer = createSunshine();
+            }
             break;
         case 'wind':
             weatherContainer = createWind();
