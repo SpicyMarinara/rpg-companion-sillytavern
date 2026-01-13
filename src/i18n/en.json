@@ -2,6 +2,7 @@
     "settings.language.label": "Language",
     "settings.language.option.en": "English",
     "settings.language.option.zh-tw": "繁體中文",
+    "settings.language.option.ru": "Русский",
     "settings.extensionEnabled": "Enable RPG Companion",
     "settings.note": "Toggle to enable/disable the RPG Companion extension. Configure additional settings within the panel itself.",
     "template.settingsTitle": "RPG Companion Settings",
