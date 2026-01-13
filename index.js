@@ -151,7 +151,6 @@ import {
     onMessageReceived,
     onCharacterChanged,
     onMessageSwiped,
-    onMessageDeleted,
     updatePersonaAvatar,
     clearExtensionPrompts,
     onGenerationEnded,
@@ -1255,7 +1254,6 @@ jQuery(async () => {
                 [event_types.GENERATION_ENDED]: onGenerationEnded,
                 [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar, restoreCheckpointOnLoad, clearSessionAvatarPrompts],
                 [event_types.MESSAGE_SWIPED]: onMessageSwiped,
-                [event_types.MESSAGE_DELETED]: onMessageDeleted,
                 [event_types.USER_MESSAGE_RENDERED]: updatePersonaAvatar,
                 [event_types.SETTINGS_UPDATED]: updatePersonaAvatar
             });
