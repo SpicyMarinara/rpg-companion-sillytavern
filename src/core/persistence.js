@@ -147,6 +147,12 @@ export function loadSettings() {
 
         // Migrate to preset manager system if presets don't exist
         migrateToPresetManager();
+
+        // Initialize custom status fields
+        initializeCustomStatusFields();
+
+        // Ensure all stats have maxValue (for number display mode)
+        ensureStatsHaveMaxValue();
     } catch (error) {
         console.error('[RPG Companion] Error loading settings:', error);
         console.error('[RPG Companion] Error details:', error.message, error.stack);
@@ -691,6 +697,45 @@ export function migrateToPresetManager() {
 
         // console.log('[RPG Companion] Created Default preset from existing trackerConfig');
         saveSettings();
+    }
+}
+
+/**
+ * Initializes custom status fields in userStats based on trackerConfig
+ * Ensures all defined custom status fields have a value in the userStats object
+ */
+function initializeCustomStatusFields() {
+    const customFields = extensionSettings.trackerConfig?.userStats?.statusSection?.customFields || [];
+
+    // Initialize each custom field if it doesn't exist
+    for (const fieldName of customFields) {
+        const fieldKey = fieldName.toLowerCase();
+        if (extensionSettings.userStats[fieldKey] === undefined) {
+            extensionSettings.userStats[fieldKey] = 'None';
+            // console.log(`[RPG Companion] Initialized custom status field: ${fieldKey}`);
+        }
+    }
+}
+
+/**
+ * Ensures all custom stats have a maxValue property
+ * This migration supports the number display mode feature
+ */
+function ensureStatsHaveMaxValue() {
+    const customStats = extensionSettings.trackerConfig?.userStats?.customStats || [];
+
+    for (const stat of customStats) {
+        if (stat && stat.maxValue === undefined) {
+            stat.maxValue = 100; // Default to 100 for backward compatibility
+            // console.log(`[RPG Companion] Added maxValue to stat: ${stat.id || stat.name}`);
+        }
+    }
+
+    // Ensure statsDisplayMode is set (default to percentage)
+    if (extensionSettings.trackerConfig?.userStats &&
+        extensionSettings.trackerConfig.userStats.statsDisplayMode === undefined) {
+        extensionSettings.trackerConfig.userStats.statsDisplayMode = 'percentage';
+        // console.log('[RPG Companion] Initialized statsDisplayMode to percentage');
     }
 }
 

@@ -485,11 +485,22 @@ function formatTrackerDataForContext(jsonData, trackerType, userName) {
 
             // Handle common object formats
             if (field && typeof field === 'object') {
-                // Status object: {mood, conditions}
-                if ('mood' in field && 'conditions' in field) {
+                // Status object: {mood, [customFields...]}
+                if ('mood' in field) {
+                    const statusParts = [];
                     const mood = getValue(field.mood);
-                    const conditions = getValue(field.conditions);
-                    return `${mood} - ${conditions}`;
+                    if (mood) statusParts.push(mood);
+
+                    // Add all other status fields (custom fields)
+                    for (const [key, value] of Object.entries(field)) {
+                        if (key !== 'mood') {
+                            const fieldValue = getValue(value);
+                            if (fieldValue && fieldValue !== 'None') {
+                                statusParts.push(fieldValue);
+                            }
+                        }
+                    }
+                    return statusParts.join(' - ');
                 }
 
                 // Skill/item/quest objects: {name}, {title}, {name, quantity}
@@ -830,9 +841,17 @@ export function formatHistoricalTrackerData(trackerData, trackerConfig, userName
             // Status section
             if (shouldInclude(userStatsConfig.statusSection) && userStatsData.status) {
                 const mood = getValue(userStatsData.status.mood || userStatsData.status);
-                const conditions = getValue(userStatsData.status.conditions);
-                if (mood) statsFormatted += `Mood: ${mood}, `;
-                if (conditions && conditions !== 'None') statsFormatted += `Conditions: ${conditions}, `;
+                if (mood && userStatsConfig.statusSection.showMoodEmoji) statsFormatted += `Mood: ${mood}, `;
+
+                // Add all custom status fields
+                const customFields = userStatsConfig.statusSection.customFields || [];
+                for (const fieldName of customFields) {
+                    const fieldKey = fieldName.toLowerCase();
+                    const fieldValue = getValue(userStatsData.status[fieldKey]);
+                    if (fieldValue && fieldValue !== 'None') {
+                        statsFormatted += `${fieldName}: ${fieldValue}, `;
+                    }
+                }
             }
 
             // Skills section

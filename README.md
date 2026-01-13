@@ -7,14 +7,15 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.5.0
+### v3.6.0
  
-- Various fixes and upgrades to the existing systems.
-- Repaired Auto-generate Avatars.
-- Fixed Dynami Weather on mobiles.
-- Added an option to decide where to display the weather effects (foreground or background).
-- Unified CSS.
-- Dice rolls are now sent with the prompt even if you don't have Attributes toggled on.
+- You can now choose whether stats are displayed as percentages or numbers.
+- Added collapsed strip widgets for desktop.
+- Added new effects for the dynamic weather.
+- Changed the displayed clock format in the Info Box.
+- Fixed customized status field to work.
+- Fixed date format toggles.
+- Minor CSS and bug fixes.
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.

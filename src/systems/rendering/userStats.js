@@ -105,7 +105,8 @@ function updateUserStatsData() {
 
                     // Then, add any other numeric stats from extensionSettings that aren't in config
                     // (these could be custom stats the AI added or disabled stats)
-                    const excludeFields = new Set(['mood', 'conditions', 'inventory', 'skills', 'level']);
+                    const customFields = config.statusSection?.customFields || [];
+                    const excludeFields = new Set(['mood', ...customFields.map(f => f.toLowerCase()), 'inventory', 'skills', 'level']);
                     Object.entries(stats).forEach(([key, value]) => {
                         if (!processedIds.has(key) && !excludeFields.has(key) && typeof value === 'number') {
                             statsArray.push({
@@ -118,11 +119,16 @@ function updateUserStatsData() {
 
                     jsonData.stats = statsArray;
 
-                    // Update status
+                    // Update status - include all custom status fields
                     jsonData.status = {
-                        mood: stats.mood || '😐',
-                        conditions: stats.conditions || 'None'
+                        mood: stats.mood || '😐'
                     };
+
+                    // Add all custom status fields
+                    for (const fieldName of customFields) {
+                        const fieldKey = fieldName.toLowerCase();
+                        jsonData.status[fieldKey] = stats[fieldKey] || 'None';
+                    }
 
                     // Update inventory (convert to v3 format)
                     const convertToV3Items = (itemString) => {
@@ -276,16 +282,33 @@ export function renderUserStats() {
     }
     html += '<div class="rpg-stats-grid">';
     const enabledStats = config.customStats.filter(stat => stat && stat.enabled && stat.name && stat.id);
+    const displayMode = config.statsDisplayMode || 'percentage';
 
     for (const stat of enabledStats) {
         const value = stats[stat.id] !== undefined ? stats[stat.id] : 100;
+        const maxValue = stat.maxValue || 100;
+
+        // Calculate percentage for bar fill
+        let percentage;
+        let displayValue;
+
+        if (displayMode === 'number') {
+            // In number mode, value is already the number (0 to maxValue)
+            percentage = maxValue > 0 ? (value / maxValue) * 100 : 100;
+            displayValue = `${value}/${maxValue}`;
+        } else {
+            // In percentage mode, value is 0-100
+            percentage = value;
+            displayValue = `${value}%`;
+        }
+
         html += `
             <div class="rpg-stat-row">
                 <span class="rpg-stat-label rpg-editable-stat-name" contenteditable="true" data-field="${stat.id}" title="Click to edit stat name">${stat.name}:</span>
                 <div class="rpg-stat-bar" style="background: ${gradient}">
-                    <div class="rpg-stat-fill" style="width: ${100 - value}%"></div>
+                    <div class="rpg-stat-fill" style="width: ${100 - percentage}%"></div>
                 </div>
-                <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="${stat.id}" title="Click to edit">${value}%</span>
+                <span class="rpg-stat-value rpg-editable-stat" contenteditable="true" data-field="${stat.id}" data-max="${maxValue}" data-mode="${displayMode}" title="Click to edit">${displayValue}</span>
             </div>
         `;
     }
@@ -308,13 +331,15 @@ export function renderUserStats() {
 
         // Render custom status fields
         if (config.statusSection.customFields && config.statusSection.customFields.length > 0) {
-            // For now, use first field as "conditions" for backward compatibility
-            let conditionsValue = stats.conditions || 'None';
-            // Strip brackets if present (from JSON array format)
-            if (typeof conditionsValue === 'string') {
-                conditionsValue = conditionsValue.replace(/^\[|\]$/g, '').trim();
+            for (const fieldName of config.statusSection.customFields) {
+                const fieldKey = fieldName.toLowerCase();
+                let fieldValue = stats[fieldKey] || 'None';
+                // Strip brackets if present (from JSON array format)
+                if (typeof fieldValue === 'string') {
+                    fieldValue = fieldValue.replace(/^\[|\]$/g, '').trim();
+                }
+                html += `<div class="rpg-mood-conditions rpg-editable" contenteditable="true" data-field="${fieldKey}" title="Click to edit ${fieldName}">${fieldValue}</div>`;
             }
-            html += `<div class="rpg-mood-conditions rpg-editable" contenteditable="true" data-field="conditions" title="Click to edit conditions">${conditionsValue}</div>`;
         }
 
         html += '</div>';
@@ -406,14 +431,31 @@ export function renderUserStats() {
     // Add event listeners for editable stat values
     $('.rpg-editable-stat').on('blur', function() {
         const field = $(this).data('field');
-        const textValue = $(this).text().replace('%', '').trim();
-        let value = parseInt(textValue);
+        const mode = $(this).data('mode');
+        const maxValue = parseInt($(this).data('max')) || 100;
+        const textValue = $(this).text().trim();
+        let value;
 
-        // Validate and clamp value between 0 and 100
-        if (isNaN(value)) {
-            value = 0;
+        if (mode === 'number') {
+            // In number mode, parse "X/MAX" or just "X"
+            const parts = textValue.split('/');
+            value = parseInt(parts[0]);
+
+            // Validate and clamp value between 0 and maxValue
+            if (isNaN(value)) {
+                value = 0;
+            }
+            value = Math.max(0, Math.min(maxValue, value));
+        } else {
+            // In percentage mode, parse "X%" or just "X"
+            value = parseInt(textValue.replace('%', ''));
+
+            // Validate and clamp value between 0 and 100
+            if (isNaN(value)) {
+                value = 0;
+            }
+            value = Math.max(0, Math.min(100, value));
         }
-        value = Math.max(0, Math.min(100, value));
 
         // Update the setting
         extensionSettings.userStats[field] = value;
@@ -445,7 +487,8 @@ export function renderUserStats() {
 
     $('.rpg-mood-conditions.rpg-editable').on('blur', function() {
         const value = $(this).text().trim();
-        extensionSettings.userStats.conditions = value || 'None';
+        const fieldKey = $(this).data('field');
+        extensionSettings.userStats[fieldKey] = value || 'None';
 
         // Update userStats data (maintains JSON or text format)
         updateUserStatsData();

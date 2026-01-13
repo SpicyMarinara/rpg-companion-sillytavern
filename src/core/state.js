@@ -86,7 +86,7 @@ export let extensionSettings = {
     },
     // Desktop strip widget display options (shown in collapsed panel strip)
     desktopStripWidgets: {
-        enabled: false, // Master toggle for strip widgets (disabled by default)
+        enabled: true, // Master toggle for strip widgets (enabled by default)
         weatherIcon: { enabled: true },      // Weather emoji (☀️, 🌧️, etc.)
         clock: { enabled: true },            // Current time display
         date: { enabled: true },             // Date display
@@ -125,13 +125,15 @@ export let extensionSettings = {
     // Tracker customization configuration
     trackerConfig: {
         userStats: {
+            // Stats display mode: 'percentage' or 'number'
+            statsDisplayMode: 'percentage',
             // Array of custom stats (allows add/remove/rename)
             customStats: [
-                { id: 'health', name: 'Health', enabled: true, persistInHistory: false },
-                { id: 'satiety', name: 'Satiety', enabled: true, persistInHistory: false },
-                { id: 'energy', name: 'Energy', enabled: true, persistInHistory: false },
-                { id: 'hygiene', name: 'Hygiene', enabled: true, persistInHistory: false },
-                { id: 'arousal', name: 'Arousal', enabled: true, persistInHistory: false }
+                { id: 'health', name: 'Health', enabled: true, persistInHistory: false, maxValue: 100 },
+                { id: 'satiety', name: 'Satiety', enabled: true, persistInHistory: false, maxValue: 100 },
+                { id: 'energy', name: 'Energy', enabled: true, persistInHistory: false, maxValue: 100 },
+                { id: 'hygiene', name: 'Hygiene', enabled: true, persistInHistory: false, maxValue: 100 },
+                { id: 'arousal', name: 'Arousal', enabled: true, persistInHistory: false, maxValue: 100 }
             ],
             // RPG Attributes (customizable D&D-style attributes)
             showRPGAttributes: true,

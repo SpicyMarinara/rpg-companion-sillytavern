@@ -547,9 +547,15 @@ export function parseUserStats(statsText) {
                         extensionSettings.userStats.mood = statsData.status.mood;
                         // console.log('[RPG Parser] ✓ Set mood =', statsData.status.mood);
                     }
-                    if (statsData.status.conditions) {
-                        extensionSettings.userStats.conditions = statsData.status.conditions;
-                        // console.log('[RPG Parser] ✓ Set conditions =', statsData.status.conditions);
+                    // Extract all custom status fields
+                    const trackerConfig = extensionSettings.trackerConfig;
+                    const customFields = trackerConfig?.userStats?.statusSection?.customFields || [];
+                    for (const fieldName of customFields) {
+                        const fieldKey = fieldName.toLowerCase();
+                        if (statsData.status[fieldKey]) {
+                            extensionSettings.userStats[fieldKey] = statsData.status[fieldKey];
+                            // console.log(`[RPG Parser] ✓ Set ${fieldKey} =`, statsData.status[fieldKey]);
+                        }
                     }
                 }
 
@@ -679,6 +685,7 @@ export function parseUserStats(statsText) {
         const statusConfig = trackerConfig?.userStats?.statusSection;
         if (statusConfig?.enabled) {
             let moodMatch = null;
+            const customFields = statusConfig.customFields || [];
 
             // Try Status: format
             const statusMatch = statsText.match(/Status:\s*(.+)/i);
@@ -691,14 +698,30 @@ export function parseUserStats(statsText) {
                     if (emoji) {
                         extensionSettings.userStats.mood = emoji;
                         // Remaining text contains custom status fields
-                        if (text) {
-                            extensionSettings.userStats.conditions = text;
+                        if (text && customFields.length > 0) {
+                            // For first custom field, use the remaining text
+                            const firstFieldKey = customFields[0].toLowerCase();
+                            extensionSettings.userStats[firstFieldKey] = text;
                         }
                         moodMatch = true;
                     }
                 } else {
-                    // No mood emoji, whole status is conditions
-                    extensionSettings.userStats.conditions = statusContent;
+                    // No mood emoji, whole status goes to first custom field
+                    if (customFields.length > 0) {
+                        const firstFieldKey = customFields[0].toLowerCase();
+                        extensionSettings.userStats[firstFieldKey] = statusContent;
+                    }
+                    moodMatch = true;
+                }
+            }
+
+            // Try to extract individual custom status fields by name
+            for (const fieldName of customFields) {
+                const fieldKey = fieldName.toLowerCase();
+                const fieldRegex = new RegExp(`${fieldName}:\\s*(.+?)(?:,|$)`, 'i');
+                const fieldMatch = statsText.match(fieldRegex);
+                if (fieldMatch) {
+                    extensionSettings.userStats[fieldKey] = fieldMatch[1].trim();
                     moodMatch = true;
                 }
             }
@@ -706,7 +729,10 @@ export function parseUserStats(statsText) {
             debugLog('[RPG Parser] Status match:', {
                 found: !!moodMatch,
                 mood: extensionSettings.userStats.mood,
-                conditions: extensionSettings.userStats.conditions
+                customFields: customFields.map(f => ({
+                    name: f,
+                    value: extensionSettings.userStats[f.toLowerCase()]
+                }))
             });
         }
 

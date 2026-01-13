@@ -28,6 +28,7 @@ export function buildUserStatsJSONInstruction() {
     const trackerConfig = extensionSettings.trackerConfig;
     const userStatsConfig = trackerConfig?.userStats;
     const enabledStats = userStatsConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
+    const displayMode = userStatsConfig?.statsDisplayMode || 'percentage';
 
     let instruction = '{\n';
     instruction += '  "stats": [\n';
@@ -36,7 +37,12 @@ export function buildUserStatsJSONInstruction() {
     for (let i = 0; i < enabledStats.length; i++) {
         const stat = enabledStats[i];
         const comma = i < enabledStats.length - 1 ? ',' : '';
-        instruction += `    {"id": "${stat.id}", "name": "${stat.name}", "value": X}${comma}\n`;
+        if (displayMode === 'number') {
+            const maxValue = stat.maxValue || 100;
+            instruction += `    {"id": "${stat.id}", "name": "${stat.name}", "value": X}${comma}  // 0 to ${maxValue}\n`;
+        } else {
+            instruction += `    {"id": "${stat.id}", "name": "${stat.name}", "value": X}${comma}  // 0 to 100 (percentage)\n`;
+        }
     }
 
     instruction += '  ],\n';
@@ -45,9 +51,24 @@ export function buildUserStatsJSONInstruction() {
     if (userStatsConfig?.statusSection?.enabled) {
         instruction += '  "status": {\n';
         if (userStatsConfig.statusSection.showMoodEmoji) {
-            instruction += '    "mood": "Mood Emoji",\n';
+            instruction += '    "mood": "Mood Emoji"';
         }
-        instruction += '    "conditions": "[Condition1, Condition2]"\n';
+        // Add all custom status fields
+        const customFields = userStatsConfig.statusSection.customFields || [];
+        if (customFields.length > 0) {
+            for (let i = 0; i < customFields.length; i++) {
+                const fieldName = customFields[i].toLowerCase();
+                const fieldKey = toSnakeCase(fieldName);
+                const comma = (i === customFields.length - 1 && !userStatsConfig.statusSection.showMoodEmoji) ? '' : (userStatsConfig.statusSection.showMoodEmoji || i < customFields.length - 1 ? ',\n' : '\n');
+                if (i === 0 && userStatsConfig.statusSection.showMoodEmoji) {
+                    instruction += ',\n';
+                }
+                instruction += `    "${fieldKey}": "[${fieldName}1, ${fieldName}2]"${comma}`;
+            }
+        }
+        if (!userStatsConfig.statusSection.showMoodEmoji && customFields.length > 0) {
+            instruction += '\n';
+        }
         instruction += '  },\n';
     }
 
@@ -105,7 +126,8 @@ export function buildInfoBoxJSONInstruction() {
     let hasFields = false;
 
     if (widgets.date?.enabled) {
-        instruction += '  "date": {"value": "Weekday, Month, Year"}';
+        const dateFormat = widgets.date.format || 'Weekday, Month, Year';
+        instruction += `  "date": {"value": "${dateFormat}"}`;
         hasFields = true;
     }
 

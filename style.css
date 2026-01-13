@@ -1393,7 +1393,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     max-width: 100%;
     line-height: 1.1;
     min-width: 0;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .rpg-calendar-day-text {
@@ -1416,6 +1417,24 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     max-width: 100%;
     line-height: 1.2;
     overflow: hidden;
+}
+
+/* Minimal scrollbar styling for calendar day */
+.rpg-calendar-day::-webkit-scrollbar {
+    width: 3px;
+}
+
+.rpg-calendar-day::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rpg-calendar-day::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.rpg-calendar-day::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Weather Widget */
@@ -1588,6 +1607,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     justify-content: center;
     gap: 0.25em;
     margin-top: 0.25em;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 .rpg-time-range .rpg-time-value {
@@ -1599,6 +1624,24 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: clamp(0.5rem, 0.5vw, 0.625rem);
     color: var(--rpg-text-muted, var(--rpg-text));
     opacity: 0.7;
+}
+
+/* Minimal scrollbar styling for time range display */
+.rpg-time-range::-webkit-scrollbar {
+    height: 3px;
+}
+
+.rpg-time-range::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rpg-time-range::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.rpg-time-range::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Location Widget - Map */
@@ -1650,10 +1693,27 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     hyphens: auto;
     flex: 1 1 auto;
     min-height: 0;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 100%;
+}
+
+/* Minimal scrollbar styling for location text */
+.rpg-location-text::-webkit-scrollbar {
+    width: 3px;
+}
+
+.rpg-location-text::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rpg-location-text::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.rpg-location-text::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Row 3: Recent Events */
@@ -4203,6 +4263,34 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-size: 0.95em;
 }
 
+.rpg-stat-max {
+    width: 5em;
+    padding: 0.375em 0.5em;
+    background: var(--rpg-bg);
+    border: 1px solid var(--rpg-border);
+    border-radius: 0.25em;
+    color: var(--rpg-text);
+    font-size: 0.95em;
+    text-align: center;
+}
+
+.rpg-hidden {
+    display: none !important;
+}
+
+.rpg-radio-group {
+    display: flex;
+    gap: 1em;
+    align-items: center;
+}
+
+.rpg-radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.375em;
+    cursor: pointer;
+}
+
 .rpg-stat-remove,
 .rpg-attr-remove,
 .rpg-remove-relationship {
@@ -5742,6 +5830,10 @@ body:has(.rpg-panel.rpg-mobile-open) .rpg-fab-widget-container {
 
     .rpg-time-range {
         gap: 0.15em;
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-width: 100%;
+        white-space: nowrap;
     }
 
     .rpg-time-separator {
@@ -11303,7 +11395,7 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
     .rpg-strip-widget-container {
         display: none !important;
     }
-    
+
     .rpg-panel.rpg-collapsed.rpg-strip-widgets-enabled {
         max-width: 2.5rem !important;
         min-width: 2.5rem !important;

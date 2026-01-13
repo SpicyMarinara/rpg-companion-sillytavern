@@ -729,13 +729,27 @@ function renderUserStatsTab() {
 
     // Custom Stats section
     html += `<h4><i class="fa-solid fa-heart-pulse"></i> ${i18n.getTranslation('template.trackerEditorModal.userStatsTab.customStatsTitle')}</h4>`;
+
+    // Stats display mode toggle
+    const statsDisplayMode = config.statsDisplayMode || 'percentage';
+    html += '<div class="rpg-editor-toggle-row">';
+    html += '<label>Display Mode:</label>';
+    html += '<div class="rpg-radio-group">';
+    html += `<label><input type="radio" name="stats-display-mode" value="percentage" ${statsDisplayMode === 'percentage' ? 'checked' : ''}> Percentage</label>`;
+    html += `<label><input type="radio" name="stats-display-mode" value="number" ${statsDisplayMode === 'number' ? 'checked' : ''}> Number</label>`;
+    html += '</div>';
+    html += '</div>';
+
     html += '<div class="rpg-editor-stats-list" id="rpg-editor-stats-list">';
 
     config.customStats.forEach((stat, index) => {
+        const showMaxValue = statsDisplayMode === 'number';
+        const maxValue = stat.maxValue || 100;
         html += `
             <div class="rpg-editor-stat-item" data-index="${index}">
                 <input type="checkbox" ${stat.enabled ? 'checked' : ''} class="rpg-stat-toggle" data-index="${index}">
                 <input type="text" value="${stat.name}" class="rpg-stat-name" data-index="${index}" placeholder="Stat Name">
+                <input type="number" value="${maxValue}" class="rpg-stat-max ${showMaxValue ? '' : 'rpg-hidden'}" data-index="${index}" placeholder="Max" min="1" step="1" title="Maximum value">
                 <button class="rpg-stat-remove" data-index="${index}" title="Remove stat"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
@@ -845,7 +859,8 @@ function setupUserStatsListeners() {
         extensionSettings.trackerConfig.userStats.customStats.push({
             id: newId,
             name: 'New Stat',
-            enabled: true
+            enabled: true,
+            maxValue: 100
         });
         // Initialize value if doesn't exist
         if (extensionSettings.userStats[newId] === undefined) {
@@ -871,6 +886,19 @@ function setupUserStatsListeners() {
     $('.rpg-stat-name').off('blur').on('blur', function() {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats[index].name = $(this).val();
+    });
+
+    // Change stat max value
+    $('.rpg-stat-max').off('blur').on('blur', function() {
+        const index = $(this).data('index');
+        const value = parseInt($(this).val()) || 100;
+        extensionSettings.trackerConfig.userStats.customStats[index].maxValue = Math.max(1, value);
+    });
+
+    // Stats display mode toggle
+    $('input[name="stats-display-mode"]').off('change').on('change', function() {
+        extensionSettings.trackerConfig.userStats.statsDisplayMode = $(this).val();
+        renderUserStatsTab(); // Re-render to show/hide max value fields
     });
 
     // Add attribute
@@ -979,9 +1007,7 @@ function renderInfoBoxTab() {
     html += `<label for="rpg-widget-date">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.dateWidget')}</label>`;
     html += '<select id="rpg-date-format" class="rpg-select-mini">';
     html += `<option value="Weekday, Month, Year" ${config.widgets.date.format === 'Weekday, Month, Year' ? 'selected' : ''}>Weekday, Month, Year</option>`;
-    html += `<option value="dd/mm/yyyy" ${config.widgets.date.format === 'dd/mm/yyyy' ? 'selected' : ''}>dd/mm/yyyy</option>`;
-    html += `<option value="mm/dd/yyyy" ${config.widgets.date.format === 'mm/dd/yyyy' ? 'selected' : ''}>mm/dd/yyyy</option>`;
-    html += `<option value="yyyy-mm-dd" ${config.widgets.date.format === 'yyyy-mm-dd' ? 'selected' : ''}>yyyy-mm-dd</option>`;
+    html += `<option value="Day (Numerical), Month, Year" ${config.widgets.date.format === 'Day (Numerical), Month, Year' ? 'selected' : ''}>Day (Numerical), Month, Year</option>`;
     html += '</select>';
     html += '</div>';
 
