@@ -298,6 +298,12 @@ async function initUI() {
     $('#rpg-toggle-auto-update').on('change', function() {
         extensionSettings.autoUpdate = $(this).prop('checked');
         saveSettings();
+        updateSkipSwipeUpdateVisibility();
+    });
+
+    $('#rpg-toggle-skip-swipe-update').on('change', function() {
+        extensionSettings.skipAutoUpdateOnSwipes = $(this).prop('checked');
+        saveSettings();
     });
 
     $('#rpg-position-select').on('change', function() {
@@ -958,6 +964,8 @@ async function initUI() {
 
     // Initialize UI state (enable/disable is in Extensions tab)
     $('#rpg-toggle-auto-update').prop('checked', extensionSettings.autoUpdate);
+    $('#rpg-toggle-skip-swipe-update').prop('checked', extensionSettings.skipAutoUpdateOnSwipes);
+    updateSkipSwipeUpdateVisibility();
     $('#rpg-position-select').val(extensionSettings.panelPosition);
     $('#rpg-update-depth').val(extensionSettings.updateDepth);
     $('#rpg-toggle-user-stats').prop('checked', extensionSettings.showUserStats);
@@ -1308,5 +1316,23 @@ function updateWeatherSubOptionsVisibility() {
         $weatherSubOptions.show();
     } else {
         $weatherSubOptions.hide();
+    }
+}
+
+/**
+ * Updates the visibility and enabled state of the skip swipe update toggle
+ * Only enabled when auto-update is turned on
+ */
+function updateSkipSwipeUpdateVisibility() {
+    const $skipSwipeContainer = $('#rpg-skip-swipe-update-container');
+    const $skipSwipeCheckbox = $('#rpg-toggle-skip-swipe-update');
+    const isAutoUpdateEnabled = extensionSettings.autoUpdate;
+
+    if (isAutoUpdateEnabled) {
+        $skipSwipeContainer.css('opacity', '1');
+        $skipSwipeCheckbox.prop('disabled', false);
+    } else {
+        $skipSwipeContainer.css('opacity', '0.5');
+        $skipSwipeCheckbox.prop('disabled', true);
     }
 }

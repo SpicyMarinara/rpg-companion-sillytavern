@@ -265,7 +265,12 @@ export async function onMessageReceived(data) {
 
         // Trigger auto-update if enabled (for both separate and external modes)
         // Only trigger if this is a newly generated message, not loading chat history
-        if (extensionSettings.autoUpdate && isAwaitingNewMessage) {
+        // If skipAutoUpdateOnSwipes is enabled, also skip when lastActionWasSwipe is true
+        const shouldAutoUpdate = extensionSettings.autoUpdate && 
+                                 isAwaitingNewMessage && 
+                                 !(extensionSettings.skipAutoUpdateOnSwipes && lastActionWasSwipe);
+        
+        if (shouldAutoUpdate) {
             setTimeout(async () => {
                 await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
                 // Update FAB widgets and strip widgets after separate/external mode update completes

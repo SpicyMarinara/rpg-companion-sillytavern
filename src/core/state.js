@@ -13,6 +13,7 @@ export let extensionSettings = {
     settingsVersion: 4, // Version number for settings migrations (v4 = FAB widgets enabled by default)
     enabled: true,
     autoUpdate: false,
+    skipAutoUpdateOnSwipes: false, // When autoUpdate is enabled, skip auto-update on swipes (regenerations)
     updateDepth: 4, // How many messages to include in the context
     generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
     showUserStats: true,

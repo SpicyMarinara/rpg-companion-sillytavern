@@ -28,6 +28,8 @@
     "template.settingsModal.display.panelPositionOptions.left": "Слева",
     "template.settingsModal.display.toggleAutoUpdate": "Авто-обновление после ответа",
     "template.settingsModal.display.toggleAutoUpdateNote": "Автоматически обновлять информацию в трекрере после каждого ответа.",
+    "template.settingsModal.display.toggleSkipSwipeUpdate": "Не обновлять автоматически после свайпов",
+    "template.settingsModal.display.toggleSkipSwipeUpdateNote": "Автоматически обновлять только при новых сообщениях, а не при регенерации существующих.",
     "template.settingsModal.display.showUserStats": "Показать Характеристики Игрока",
     "template.settingsModal.display.showUserStatsNote": "Включить Характеристики Игрока, которые отслеживают статистику используемой персоны - характеристики, настроение, навыки и т.д.",
     "template.settingsModal.display.showInfoBox": "Показывать Инфо-панель",
