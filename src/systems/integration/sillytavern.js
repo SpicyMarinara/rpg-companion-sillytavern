@@ -140,6 +140,7 @@ export async function onMessageReceived(data) {
     if (!extensionSettings.enabled) {
         return;
     }
+    const wasSwipe = lastActionWasSwipe;
 
     // Reset swipe flag after generation completes
     // This ensures next user message (whether from original or swipe) triggers commit
@@ -265,10 +266,10 @@ export async function onMessageReceived(data) {
 
         // Trigger auto-update if enabled (for both separate and external modes)
         // Only trigger if this is a newly generated message, not loading chat history
-        // If skipAutoUpdateOnSwipes is enabled, also skip when lastActionWasSwipe is true
+        // If skipAutoUpdateOnSwipes is enabled, also skip when this was a swipe generation
         const shouldAutoUpdate = extensionSettings.autoUpdate && 
                                  isAwaitingNewMessage && 
-                                 !(extensionSettings.skipAutoUpdateOnSwipes && lastActionWasSwipe);
+                                 !(extensionSettings.skipAutoUpdateOnSwipes && wasSwipe);
         
         if (shouldAutoUpdate) {
             setTimeout(async () => {
@@ -283,14 +284,6 @@ export async function onMessageReceived(data) {
 
     // Reset the awaiting flag after processing the message
     setIsAwaitingNewMessage(false);
-
-    // Reset the swipe flag after generation completes
-    // This ensures that if the user swiped → auto-reply generated → flag is now cleared
-    // so the next user message will be treated as a new message (not a swipe)
-    if (lastActionWasSwipe) {
-        // console.log('[RPG Companion] 🔄 Generation complete after swipe - resetting lastActionWasSwipe to false');
-        setLastActionWasSwipe(false);
-    }
 
     // Clear plot progression flag if this was a plot progression generation
     // Note: No need to clear extension prompt since we used quiet_prompt option
