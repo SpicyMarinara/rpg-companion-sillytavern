@@ -7,15 +7,11 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.6.0
+### v3.6.1
  
-- You can now choose whether stats are displayed as percentages or numbers.
-- Added collapsed strip widgets for desktop.
-- Added new effects for the dynamic weather.
-- Changed the displayed clock format in the Info Box.
-- Fixed customized status field to work.
-- Fixed date format toggles.
-- Minor CSS and bug fixes.
+- Fixed the bugs in the encounter system where you couldn't use the buttons after performing any custom action.
+- Improved combat actions and made them dynamic, depending on the current situation.
+- Added Russian as a supported language.
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.

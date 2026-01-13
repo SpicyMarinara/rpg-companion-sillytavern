@@ -397,7 +397,7 @@ export class EncounterModal {
                 </div>
 
                 <!-- Player Controls -->
-                ${this.renderPlayerControls(combatData.party)}
+                ${this.renderPlayerControls(combatData.party, currentEncounter.playerActions)}
             </div>
         `;
 
@@ -599,7 +599,7 @@ export class EncounterModal {
                         if (member.isPlayer && user_avatar) {
                             avatarIcon = `<img src="${getSafeThumbnailUrl('persona', user_avatar)}" alt="${member.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">`;
                         } else {
-                            const avatarUrl = this.getPartyMemberAvatar(member.name);
+                            const avatarUrl = this.getCharacterAvatar(member.name);
                             if (avatarUrl) {
                                 avatarIcon = `<img src="${avatarUrl}" alt="${member.name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">`;
                             }
@@ -657,11 +657,15 @@ export class EncounterModal {
      * @param {Array} party - Party data
      * @returns {string} HTML for controls
      */
-    renderPlayerControls(party) {
+    renderPlayerControls(party, playerActions = null) {
         const player = party.find(m => m.isPlayer);
         if (!player || player.hp <= 0) {
             return '<div class="rpg-encounter-controls"><p class="rpg-encounter-defeated">You have been defeated...</p></div>';
         }
+
+        // Use playerActions if provided, otherwise fall back to player data
+        const attacks = playerActions?.attacks || player.attacks || [];
+        const items = playerActions?.items || player.items || [];
 
         return `
             <div class="rpg-encounter-controls">
@@ -670,7 +674,7 @@ export class EncounterModal {
                 <div class="rpg-encounter-action-buttons">
                     <div class="rpg-encounter-button-group">
                         <h4>Attacks</h4>
-                        ${player.attacks.map(attack => {
+                        ${attacks.map(attack => {
                             // Support both old string format and new object format
                             const attackName = typeof attack === 'string' ? attack : attack.name;
                             const attackType = typeof attack === 'string' ? 'single-target' : (attack.type || 'single-target');
@@ -688,10 +692,10 @@ export class EncounterModal {
                         }).join('')}
                     </div>
 
-                    ${player.items && player.items.length > 0 ? `
+                    ${items && items.length > 0 ? `
                         <div class="rpg-encounter-button-group">
                             <h4>Items</h4>
-                            ${player.items.map(item => `
+                            ${items.map(item => `
                                 <button class="rpg-encounter-action-btn rpg-encounter-item-btn" data-action="item" data-value="${item}">
                                     <i class="fa-solid fa-flask"></i> ${item}
                                 </button>
@@ -718,21 +722,27 @@ export class EncounterModal {
      * @param {Array} party - Party data for reference
      */
     attachControlListeners(party) {
-        // Attack and item buttons
-        this.modal.querySelectorAll('.rpg-encounter-action-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const actionType = e.currentTarget.dataset.action;
-                const value = e.currentTarget.dataset.value;
-                const attackType = e.currentTarget.dataset.attackType;
+        // Only attach once - event delegation on the modal means listeners persist
+        if (this._listenersAttached) {
+            return;
+        }
+
+        // Store handlers as instance properties so we can remove them if needed
+        this._actionHandler = async (e) => {
+            // Handle action buttons (attack/item)
+            const actionBtn = e.target.closest('.rpg-encounter-action-btn');
+            if (actionBtn && !actionBtn.disabled && !this.isProcessing) {
+                const actionType = actionBtn.dataset.action;
+                const value = actionBtn.dataset.value;
+                const attackType = actionBtn.dataset.attackType;
                 const context = getContext();
                 const userName = context.name1;
 
                 let actionText = '';
 
                 if (actionType === 'attack') {
-                    // Show target selection for attacks
                     const target = await this.showTargetSelection(attackType, currentEncounter.combatStats);
-                    if (!target) return; // User cancelled
+                    if (!target) return;
 
                     if (target === 'all-enemies') {
                         actionText = `${userName} uses ${value} targeting all enemies!`;
@@ -740,40 +750,46 @@ export class EncounterModal {
                         actionText = `${userName} uses ${value} on ${target}!`;
                     }
                 } else if (actionType === 'item') {
-                    // Show target selection for items (default to single-target)
                     const target = await this.showTargetSelection('single-target', currentEncounter.combatStats);
-                    if (!target) return; // User cancelled
+                    if (!target) return;
 
                     actionText = `${userName} uses ${value} on ${target}!`;
                 }
 
                 await this.processCombatAction(actionText);
-            });
-        });
+                return;
+            }
 
-        // Custom action submit
-        const customInput = this.modal.querySelector('#rpg-encounter-custom-input');
-        const customSubmit = this.modal.querySelector('#rpg-encounter-custom-submit');
-
-        const submitCustomAction = async () => {
-            const action = customInput.value.trim();
-            if (!action) return;
-
-            await this.processCombatAction(action);
-            customInput.value = '';
+            // Handle custom submit button
+            const submitBtn = e.target.closest('#rpg-encounter-custom-submit');
+            if (submitBtn && !submitBtn.disabled && !this.isProcessing) {
+                const input = this.modal.querySelector('#rpg-encounter-custom-input');
+                if (input) {
+                    const action = input.value.trim();
+                    if (action) {
+                        await this.processCombatAction(action);
+                        input.value = '';
+                    }
+                }
+            }
         };
 
-        if (customSubmit) {
-            customSubmit.addEventListener('click', submitCustomAction);
-        }
-
-        if (customInput) {
-            customInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    submitCustomAction();
+        this._keypressHandler = async (e) => {
+            const input = e.target.closest('#rpg-encounter-custom-input');
+            if (input && e.key === 'Enter' && !this.isProcessing) {
+                const action = input.value.trim();
+                if (action) {
+                    await this.processCombatAction(action);
+                    input.value = '';
                 }
-            });
-        }
+            }
+        };
+
+        // Attach to the modal itself (which never gets replaced)
+        this.modal.addEventListener('click', this._actionHandler);
+        this.modal.addEventListener('keypress', this._keypressHandler);
+
+        this._listenersAttached = true;
     }
 
     /**
@@ -820,7 +836,8 @@ export class EncounterModal {
 
             // Update encounter state
             updateCurrentEncounter({
-                combatStats: result.combatStats
+                combatStats: result.combatStats,
+                playerActions: result.playerActions
             });
 
             // Collect log entries in order: enemy actions, party actions, then narration
@@ -935,14 +952,73 @@ export class EncounterModal {
             }
         });
 
-        // Re-render controls if player died
+        // Re-render controls if player died OR if player's actions changed
         const player = combatStats.party.find(m => m.isPlayer);
+        const controlsContainer = this.modal.querySelector('.rpg-encounter-controls');
+
         if (player && player.hp <= 0) {
-            const controlsContainer = this.modal.querySelector('.rpg-encounter-controls');
             if (controlsContainer) {
                 controlsContainer.innerHTML = '<p class="rpg-encounter-defeated">You have been defeated...</p>';
             }
+        } else if (currentEncounter.playerActions && controlsContainer) {
+            // Check if actions have changed by comparing with previous state
+            const actionsChanged = this.haveActionsChanged(currentEncounter.playerActions);
+
+            if (actionsChanged) {
+                // Store the new actions for next comparison
+                this._previousPlayerActions = {
+                    attacks: currentEncounter.playerActions.attacks ? JSON.parse(JSON.stringify(currentEncounter.playerActions.attacks)) : [],
+                    items: currentEncounter.playerActions.items ? [...currentEncounter.playerActions.items] : []
+                };
+
+                // Re-render the entire controls section with new actions
+                const newControlsHTML = this.renderPlayerControls(combatStats.party, currentEncounter.playerActions);
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = newControlsHTML;
+                const newControls = tempDiv.firstElementChild;
+
+                if (newControls) {
+                    controlsContainer.replaceWith(newControls);
+                }
+            }
         }
+    }
+
+    /**
+     * Checks if player's available actions have changed
+     * @param {Object} playerActions - Current player actions data with attacks and items
+     * @returns {boolean} True if actions changed
+     */
+    haveActionsChanged(playerActions) {
+        if (!this._previousPlayerActions) {
+            // First time - store initial actions
+            this._previousPlayerActions = {
+                attacks: playerActions.attacks ? JSON.parse(JSON.stringify(playerActions.attacks)) : [],
+                items: playerActions.items ? [...playerActions.items] : []
+            };
+            return false;
+        }
+
+        const currentAttacks = playerActions.attacks || [];
+        const currentItems = playerActions.items || [];
+        const prevAttacks = this._previousPlayerActions.attacks || [];
+        const prevItems = this._previousPlayerActions.items || [];
+
+        // Check if attacks changed
+        if (currentAttacks.length !== prevAttacks.length) return true;
+        for (let i = 0; i < currentAttacks.length; i++) {
+            const curr = typeof currentAttacks[i] === 'string' ? currentAttacks[i] : currentAttacks[i].name;
+            const prev = typeof prevAttacks[i] === 'string' ? prevAttacks[i] : prevAttacks[i].name;
+            if (curr !== prev) return true;
+        }
+
+        // Check if items changed
+        if (currentItems.length !== prevItems.length) return true;
+        for (let i = 0; i < currentItems.length; i++) {
+            if (currentItems[i] !== prevItems[i]) return true;
+        }
+
+        return false;
     }
 
     /**

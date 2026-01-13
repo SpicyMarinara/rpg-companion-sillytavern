@@ -11,12 +11,16 @@
  * @returns {object|null} Repaired JSON object or null if repair fails
  */
 export function repairJSON(jsonString) {
-    if (!jsonString || typeof jsonString !== 'string') {
-        console.warn('[RPG JSON Repair] Invalid input:', typeof jsonString);
+    if (typeof jsonString !== 'string') {
+        console.warn('[RPG JSON Repair] Invalid input type:', typeof jsonString);
         return null;
     }
 
     let cleaned = jsonString.trim();
+
+    if (!cleaned) {
+        return null;
+    }
 
     // Remove markdown code fences
     cleaned = cleaned.replace(/```json\s*/gi, '');
@@ -147,7 +151,8 @@ export function extractJSONFromText(text) {
     // Try to extract from ```json code fence
     const fenceMatch = text.match(/```json\s*([\s\S]*?)```/i);
     if (fenceMatch && fenceMatch[1]) {
-        return fenceMatch[1].trim();
+        const trimmed = fenceMatch[1].trim();
+        if (trimmed) return trimmed;
     }
 
     // Try to extract from ``` code fence (without json label)
@@ -155,20 +160,20 @@ export function extractJSONFromText(text) {
     if (genericFenceMatch && genericFenceMatch[1]) {
         const content = genericFenceMatch[1].trim();
         // Check if it looks like JSON (starts with { or [)
-        if (content.startsWith('{') || content.startsWith('[')) {
+        if (content && (content.startsWith('{') || content.startsWith('['))) {
             return content;
         }
     }
 
     // Try to find standalone JSON object
     const objectMatch = text.match(/\{[\s\S]*\}/);
-    if (objectMatch) {
+    if (objectMatch && objectMatch[0].trim()) {
         return objectMatch[0];
     }
 
     // Try to find standalone JSON array
     const arrayMatch = text.match(/\[[\s\S]*\]/);
-    if (arrayMatch) {
+    if (arrayMatch && arrayMatch[0].trim()) {
         return arrayMatch[0];
     }
 
