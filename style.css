@@ -10970,17 +10970,22 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-fab-widget:hover {
 /* Strip Widget Container - hidden by default, shown when collapsed with strip widgets enabled */
 .rpg-strip-widget-container {
     display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     flex-direction: column;
     align-items: center;
     gap: 8px;
     padding: 8px 4px;
     padding-top: 40px;
     width: 100%;
-    height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: var(--rpg-border) transparent;
+    z-index: 10;
 }
 
 /* Show strip widgets when panel is collapsed and strip widgets are enabled */
