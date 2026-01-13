@@ -19,7 +19,7 @@ import {
 } from '../../core/state.js';
 import { i18n } from '../../core/i18n.js';
 import { setupMobileTabs, removeMobileTabs } from './mobile.js';
-import { setupDesktopTabs, removeDesktopTabs } from './desktop.js';
+import { setupDesktopTabs, removeDesktopTabs, updateStripWidgets } from './desktop.js';
 
 /**
  * Toggles the visibility of plot buttons based on settings.
@@ -243,6 +243,9 @@ export function setupCollapseToggle() {
             } else if ($panel.hasClass('rpg-position-left')) {
                 $icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
             }
+
+            // Update strip widgets when collapsing (they show in collapsed state)
+            updateStripWidgets();
         }
     });
 
@@ -431,6 +434,7 @@ export function updateGenerationModeUI() {
     if (extensionSettings.generationMode === 'together') {
         // In "together" mode, manual update button is hidden
         $('#rpg-manual-update').hide();
+        $('#rpg-strip-refresh').hide();
         $('#rpg-external-api-settings').slideUp(200);
         $('#rpg-separate-mode-settings').slideUp(200);
         // Hide auto-update toggle (not applicable in together mode)
@@ -438,6 +442,7 @@ export function updateGenerationModeUI() {
     } else if (extensionSettings.generationMode === 'separate') {
         // In "separate" mode, manual update button is visible
         $('#rpg-manual-update').show();
+        $('#rpg-strip-refresh').show();
         $('#rpg-external-api-settings').slideUp(200);
         $('#rpg-separate-mode-settings').slideDown(200);
         // Show auto-update toggle
@@ -445,6 +450,7 @@ export function updateGenerationModeUI() {
     } else if (extensionSettings.generationMode === 'external') {
         // In "external" mode, manual update button is visible AND both settings are shown
         $('#rpg-manual-update').show();
+        $('#rpg-strip-refresh').show();
         $('#rpg-external-api-settings').slideDown(200);
         $('#rpg-separate-mode-settings').slideDown(200);
         // Show auto-update toggle for external mode too

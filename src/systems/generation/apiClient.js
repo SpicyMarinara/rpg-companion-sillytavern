@@ -35,6 +35,7 @@ import { renderMusicPlayer } from '../rendering/musicPlayer.js';
 import { i18n } from '../../core/i18n.js';
 import { generateAvatarsForCharacters } from '../features/avatarGenerator.js';
 import { setFabLoadingState, updateFabWidgets } from '../ui/mobile.js';
+import { updateStripWidgets } from '../ui/desktop.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -240,8 +241,10 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
 
         // Update button to show "Updating..." state
         const $updateBtn = $('#rpg-manual-update');
+        const $stripRefreshBtn = $('#rpg-strip-refresh');
         const updatingText = i18n.getTranslation('template.mainPanel.updating') || 'Updating...';
         $updateBtn.html(`<i class="fa-solid fa-spinner fa-spin"></i> ${updatingText}`).prop('disabled', true);
+        $stripRefreshBtn.html('<i class="fa-solid fa-spinner fa-spin"></i>').prop('disabled', true);
 
         const prompt = await generateSeparateUpdatePrompt();
 
@@ -380,11 +383,14 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         setIsGenerating(false);
         setFabLoadingState(false); // Stop spinning FAB on mobile
         updateFabWidgets(); // Update FAB widgets with new data
+        updateStripWidgets(); // Update strip widgets with new data
 
         // Restore button to original state
         const $updateBtn = $('#rpg-manual-update');
+        const $stripRefreshBtn = $('#rpg-strip-refresh');
         const refreshText = i18n.getTranslation('template.mainPanel.refreshRpgInfo') || 'Refresh RPG Info';
         $updateBtn.html(`<i class="fa-solid fa-sync"></i> ${refreshText}`).prop('disabled', false);
+        $stripRefreshBtn.html('<i class="fa-solid fa-sync"></i>').prop('disabled', false);
 
         // Reset the flag after tracker generation completes
         // This ensures the flag persists through both main generation AND tracker generation

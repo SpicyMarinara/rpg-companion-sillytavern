@@ -10961,3 +10961,351 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-fab-widget:hover {
     border-color: rgba(52, 152, 219, 0.6);
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
 }
+
+/* ============================================
+   DESKTOP STRIP WIDGETS (Collapsed Panel)
+   Shows compact widgets when panel is collapsed
+   ============================================ */
+
+/* Strip Widget Container - hidden by default, shown when collapsed with strip widgets enabled */
+.rpg-strip-widget-container {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 4px;
+    padding-top: 40px;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rpg-border) transparent;
+    z-index: 10;
+}
+
+/* Show strip widgets when panel is collapsed and strip widgets are enabled */
+.rpg-panel.rpg-collapsed.rpg-strip-widgets-enabled .rpg-strip-widget-container {
+    display: flex;
+}
+
+/* Wider collapsed state when strip widgets are enabled */
+.rpg-panel.rpg-collapsed.rpg-strip-widgets-enabled {
+    max-width: 5rem !important;
+    min-width: 5rem !important;
+}
+
+/* Adjust collapse button position for wider strip */
+.rpg-panel.rpg-collapsed.rpg-strip-widgets-enabled .rpg-collapse-toggle {
+    left: -2rem;
+}
+
+.rpg-panel.rpg-position-left.rpg-collapsed.rpg-strip-widgets-enabled .rpg-collapse-toggle {
+    left: auto;
+    right: -2rem;
+}
+
+/* Fix positioning for wider strip */
+.rpg-panel.rpg-position-right.rpg-collapsed.rpg-strip-widgets-enabled {
+    left: calc(100vw - 5rem);
+}
+
+.rpg-panel.rpg-position-left.rpg-collapsed.rpg-strip-widgets-enabled {
+    right: calc(100vw - 5rem);
+}
+
+/* Base Strip Widget Styles */
+.rpg-strip-widget {
+    display: none; /* Hidden by default, shown via JS when enabled */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(20, 20, 35, 0.85);
+    border: 1px solid var(--rpg-border, rgba(100, 150, 255, 0.3));
+    border-radius: 6px;
+    padding: 4px;
+    font-size: 10px;
+    color: var(--rpg-text, #eaeaea);
+    backdrop-filter: blur(8px);
+    width: calc(100% - 8px);
+    min-width: 0;
+    transition: all 0.2s ease;
+}
+
+.rpg-strip-widget.rpg-strip-widget-visible {
+    display: flex;
+}
+
+.rpg-strip-widget:hover {
+    border-color: var(--rpg-highlight, #4a90e2);
+    box-shadow: 0 0 8px rgba(100, 150, 255, 0.3);
+}
+
+/* Weather Icon Widget */
+.rpg-strip-widget-weather {
+    font-size: 18px;
+    padding: 6px 4px;
+    gap: 2px;
+}
+
+.rpg-strip-widget-weather .rpg-strip-widget-icon {
+    line-height: 1;
+}
+
+.rpg-strip-widget-weather .rpg-strip-widget-desc {
+    font-size: 8px;
+    opacity: 0.8;
+    text-align: center;
+    word-break: break-word;
+    line-height: 1.2;
+}
+
+/* Clock Widget with animated face */
+.rpg-strip-widget-clock {
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 10px;
+    gap: 4px;
+    padding: 6px 4px;
+}
+
+/* Mini animated clock face for strip */
+.rpg-strip-clock-face {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--rpg-border, #4a7ba7);
+    border-radius: 50%;
+    background: var(--rpg-accent, rgba(22, 33, 62, 0.9));
+}
+
+.rpg-strip-clock-hour {
+    position: absolute;
+    width: 2px;
+    height: 8px;
+    background: var(--rpg-text, #eaeaea);
+    left: 50%;
+    bottom: 50%;
+    margin-left: -1px;
+    transform-origin: bottom center;
+    border-radius: 1px;
+}
+
+.rpg-strip-clock-minute {
+    position: absolute;
+    width: 1.5px;
+    height: 10px;
+    background: var(--rpg-highlight, #4a90e2);
+    left: 50%;
+    bottom: 50%;
+    margin-left: -0.75px;
+    transform-origin: bottom center;
+    border-radius: 1px;
+}
+
+.rpg-strip-clock-center {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--rpg-highlight, #4a90e2);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.rpg-strip-widget-clock .rpg-strip-widget-value {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    font-size: 10px;
+}
+
+/* Date Widget */
+.rpg-strip-widget-date {
+    font-size: 9px;
+    text-align: center;
+    gap: 2px;
+}
+
+.rpg-strip-widget-date i {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.rpg-strip-widget-date .rpg-strip-widget-value {
+    word-break: break-word;
+    line-height: 1.2;
+}
+
+/* Location Widget */
+.rpg-strip-widget-location {
+    font-size: 9px;
+    text-align: center;
+    gap: 2px;
+}
+
+.rpg-strip-widget-location i {
+    font-size: 11px;
+    color: var(--rpg-highlight, #4a90e2);
+}
+
+.rpg-strip-widget-location .rpg-strip-widget-value {
+    word-break: break-word;
+    line-height: 1.2;
+    max-height: 3em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Stats Widget - Vertical list */
+.rpg-strip-widget-stats {
+    padding: 4px 2px;
+}
+
+.rpg-strip-stats-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+}
+
+.rpg-strip-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 9px;
+    width: 100%;
+}
+
+.rpg-strip-stat-name {
+    font-size: 7px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rpg-strip-stat-value {
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* Attributes Widget - 2-column grid */
+.rpg-strip-widget-attributes {
+    padding: 4px 2px;
+}
+
+.rpg-strip-attributes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px 4px;
+    width: 100%;
+}
+
+.rpg-strip-attr-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.rpg-strip-attr-name {
+    font-size: 7px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.rpg-strip-attr-value {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--rpg-highlight, #6af);
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+}
+
+/* Strip Refresh Button */
+.rpg-strip-refresh-btn {
+    margin-top: auto;
+    padding: 8px;
+    background: var(--rpg-accent, rgba(22, 33, 62, 0.9));
+    border: 1px solid var(--rpg-border, rgba(100, 150, 255, 0.3));
+    border-radius: 6px;
+    color: var(--rpg-highlight, #4a90e2);
+    cursor: pointer;
+    font-size: 14px;
+    width: calc(100% - 8px);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rpg-strip-refresh-btn:hover {
+    background: var(--rpg-highlight, #4a90e2);
+    color: var(--rpg-bg, #1a1a2e);
+    box-shadow: 0 0 10px rgba(100, 150, 255, 0.4);
+}
+
+.rpg-strip-refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.rpg-strip-refresh-btn i.fa-spin {
+    animation: fa-spin 1s linear infinite;
+}
+
+/* ============================================
+   STRIP WIDGET THEME VARIATIONS
+   ============================================ */
+
+/* Sci-Fi Theme */
+body:has(.rpg-panel[data-theme="sci-fi"]) .rpg-strip-widget {
+    background: rgba(10, 14, 39, 0.9);
+    border-color: rgba(139, 0, 255, 0.5);
+    color: #00fff9;
+}
+
+/* Fantasy Theme */
+body:has(.rpg-panel[data-theme="fantasy"]) .rpg-strip-widget {
+    background: rgba(43, 24, 16, 0.9);
+    border-color: rgba(139, 105, 20, 0.6);
+    color: #f4e8d0;
+}
+
+/* Cyberpunk Theme */
+body:has(.rpg-panel[data-theme="cyberpunk"]) .rpg-strip-widget {
+    background: rgba(15, 5, 25, 0.9);
+    border-color: rgba(255, 0, 255, 0.4);
+    color: #00ffff;
+}
+
+/* Dark Theme */
+body:has(.rpg-panel[data-theme="dark"]) .rpg-strip-widget {
+    background: rgba(25, 25, 35, 0.9);
+    border-color: rgba(70, 70, 90, 0.6);
+    color: #e0e0e0;
+}
+
+/* Light Theme */
+body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(220, 220, 230, 0.8);
+    color: #2c3e50;
+}
+
+/* Hide strip widgets on mobile */
+@media (max-width: 768px) {
+    .rpg-strip-widget-container {
+        display: none !important;
+    }
+    
+    .rpg-panel.rpg-collapsed.rpg-strip-widgets-enabled {
+        max-width: 2.5rem !important;
+        min-width: 2.5rem !important;
+    }
+}

@@ -131,7 +131,8 @@ import {
 } from './src/systems/ui/mobile.js';
 import {
     setupDesktopTabs,
-    removeDesktopTabs
+    removeDesktopTabs,
+    updateStripWidgets
 } from './src/systems/ui/desktop.js';
 
 // Feature modules
@@ -726,9 +727,74 @@ async function initUI() {
         updateFabWidgets();
     });
 
+    // Desktop Strip Widget toggles
+    $('#rpg-toggle-strip-widgets-enabled').on('change', function() {
+        if (!extensionSettings.desktopStripWidgets) extensionSettings.desktopStripWidgets = {};
+        extensionSettings.desktopStripWidgets.enabled = $(this).prop('checked');
+        saveSettings();
+        updateStripWidgets();
+        $('#rpg-strip-widget-options').toggle(extensionSettings.desktopStripWidgets.enabled);
+    });
+
+    $('#rpg-toggle-strip-weather-icon').on('change', function() {
+        if (!extensionSettings.desktopStripWidgets) extensionSettings.desktopStripWidgets = {};
+        if (!extensionSettings.desktopStripWidgets.weatherIcon) extensionSettings.desktopStripWidgets.weatherIcon = {};
+        extensionSettings.desktopStripWidgets.weatherIcon.enabled = $(this).prop('checked');
+        saveSettings();
+        updateStripWidgets();
+    });
+
+    $('#rpg-toggle-strip-clock').on('change', function() {
+        if (!extensionSettings.desktopStripWidgets) extensionSettings.desktopStripWidgets = {};
+        if (!extensionSettings.desktopStripWidgets.clock) extensionSettings.desktopStripWidgets.clock = {};
+        extensionSettings.desktopStripWidgets.clock.enabled = $(this).prop('checked');
+        saveSettings();
+        updateStripWidgets();
+    });
+
+    $('#rpg-toggle-strip-date').on('change', function() {
+        if (!extensionSettings.desktopStripWidgets) extensionSettings.desktopStripWidgets = {};
+        if (!extensionSettings.desktopStripWidgets.date) extensionSettings.desktopStripWidgets.date = {};
+        extensionSettings.desktopStripWidgets.date.enabled = $(this).prop('checked');
+        saveSettings();
+        updateStripWidgets();
+    });
+
+    $('#rpg-toggle-strip-location').on('change', function() {
+        if (!extensionSettings.desktopStripWidgets) extensionSettings.desktopStripWidgets = {};
+        if (!extensionSettings.desktopStripWidgets.location) extensionSettings.desktopStripWidgets.location = {};
+        extensionSettings.desktopStripWidgets.location.enabled = $(this).prop('checked');
+        saveSettings();
+        updateStripWidgets();
+    });
+
+    $('#rpg-toggle-strip-stats').on('change', function() {
+        if (!extensionSettings.desktopStripWidgets) extensionSettings.desktopStripWidgets = {};
+        if (!extensionSettings.desktopStripWidgets.stats) extensionSettings.desktopStripWidgets.stats = {};
+        extensionSettings.desktopStripWidgets.stats.enabled = $(this).prop('checked');
+        saveSettings();
+        updateStripWidgets();
+    });
+
+    $('#rpg-toggle-strip-attributes').on('change', function() {
+        if (!extensionSettings.desktopStripWidgets) extensionSettings.desktopStripWidgets = {};
+        if (!extensionSettings.desktopStripWidgets.attributes) extensionSettings.desktopStripWidgets.attributes = {};
+        extensionSettings.desktopStripWidgets.attributes.enabled = $(this).prop('checked');
+        saveSettings();
+        updateStripWidgets();
+    });
+
     $('#rpg-manual-update').on('click', async function() {
         if (!extensionSettings.enabled) {
             // console.log('[RPG Companion] Extension is disabled. Please enable it in the Extensions tab.');
+            return;
+        }
+        await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
+    });
+
+    // Strip widget refresh button - same functionality as main refresh button
+    $('#rpg-strip-refresh').on('click', async function() {
+        if (!extensionSettings.enabled) {
             return;
         }
         await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
@@ -963,6 +1029,18 @@ async function initUI() {
     // Toggle visibility of widget options based on master toggle
     $('#rpg-fab-widget-options').toggle(fabWidgets.enabled || false);
 
+    // Initialize Desktop Strip Widget checkboxes
+    const stripWidgets = extensionSettings.desktopStripWidgets || {};
+    $('#rpg-toggle-strip-widgets-enabled').prop('checked', stripWidgets.enabled || false);
+    $('#rpg-toggle-strip-weather-icon').prop('checked', stripWidgets.weatherIcon?.enabled ?? true);
+    $('#rpg-toggle-strip-clock').prop('checked', stripWidgets.clock?.enabled ?? true);
+    $('#rpg-toggle-strip-date').prop('checked', stripWidgets.date?.enabled ?? true);
+    $('#rpg-toggle-strip-location').prop('checked', stripWidgets.location?.enabled ?? true);
+    $('#rpg-toggle-strip-stats').prop('checked', stripWidgets.stats?.enabled ?? true);
+    $('#rpg-toggle-strip-attributes').prop('checked', stripWidgets.attributes?.enabled ?? true);
+    // Toggle visibility of strip widget options based on master toggle
+    $('#rpg-strip-widget-options').toggle(stripWidgets.enabled || false);
+
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
     $('#rpg-theme-select').val(extensionSettings.theme);
@@ -1106,8 +1184,9 @@ jQuery(async () => {
         // Load chat-specific data for current chat
         try {
             loadChatData();
-            // Initialize FAB widgets with any loaded data
+            // Initialize FAB widgets and strip widgets with any loaded data
             updateFabWidgets();
+            updateStripWidgets();
         } catch (error) {
             console.error('[RPG Companion] Chat data load failed, using defaults:', error);
         }

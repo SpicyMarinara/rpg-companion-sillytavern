@@ -45,6 +45,7 @@ import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 
 // UI
 import { setFabLoadingState, updateFabWidgets } from '../ui/mobile.js';
+import { updateStripWidgets } from '../ui/desktop.js';
 
 // Chapter checkpoint
 import { updateAllCheckpointIndicators } from '../ui/checkpointUI.js';
@@ -232,8 +233,9 @@ export async function onMessageReceived(data) {
             renderQuests();
             renderMusicPlayer($musicPlayerContainer[0]);
 
-            // Update FAB widgets with newly parsed data
+            // Update FAB widgets and strip widgets with newly parsed data
             updateFabWidgets();
+            updateStripWidgets();
 
             // Then update the DOM to reflect the cleaned message
             // Using updateMessageBlock to perform macro substitutions + regex formatting
@@ -266,9 +268,10 @@ export async function onMessageReceived(data) {
         if (extensionSettings.autoUpdate && isAwaitingNewMessage) {
             setTimeout(async () => {
                 await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
-                // Update FAB widgets after separate/external mode update completes
+                // Update FAB widgets and strip widgets after separate/external mode update completes
                 setFabLoadingState(false);
                 updateFabWidgets();
+                updateStripWidgets();
             }, 500);
         }
     }
@@ -294,6 +297,7 @@ export async function onMessageReceived(data) {
     // Stop FAB loading state and update widgets
     setFabLoadingState(false);
     updateFabWidgets();
+    updateStripWidgets();
 
     // Re-apply checkpoint in case SillyTavern unhid messages during generation
     await restoreCheckpointOnLoad();
@@ -332,8 +336,9 @@ export function onCharacterChanged() {
     renderQuests();
     renderMusicPlayer($musicPlayerContainer[0]);
 
-    // Update FAB widgets with loaded data
+    // Update FAB widgets and strip widgets with loaded data
     updateFabWidgets();
+    updateStripWidgets();
 
     // Update chat thought overlays
     updateChatThoughts();
@@ -501,8 +506,9 @@ export function onMessageDeleted(messageIndex) {
         renderQuests();
         renderMusicPlayer($musicPlayerContainer[0]);
 
-        // Update FAB widgets
+        // Update FAB widgets and strip widgets
         updateFabWidgets();
+        updateStripWidgets();
 
         // Update chat thought overlays (removes any remaining)
         updateChatThoughts();
@@ -555,8 +561,9 @@ export function onMessageDeleted(messageIndex) {
                 renderQuests();
                 renderMusicPlayer($musicPlayerContainer[0]);
 
-                // Update FAB widgets
+                // Update FAB widgets and strip widgets
                 updateFabWidgets();
+                updateStripWidgets();
 
                 // Update chat thought overlays
                 updateChatThoughts();
@@ -591,8 +598,9 @@ export function onMessageDeleted(messageIndex) {
     renderQuests();
     renderMusicPlayer($musicPlayerContainer[0]);
 
-    // Update FAB widgets
+    // Update FAB widgets and strip widgets
     updateFabWidgets();
+    updateStripWidgets();
 
     // Update chat thought overlays
     updateChatThoughts();
