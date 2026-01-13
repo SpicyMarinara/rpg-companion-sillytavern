@@ -198,7 +198,9 @@ export function parseResponse(responseText) {
             if (depth === 0) {
                 // Found complete JSON object
                 const jsonContent = cleanedResponse.substring(i, j).trim();
-                extractedObjects.push(jsonContent);
+                if (jsonContent) {
+                    extractedObjects.push(jsonContent);
+                }
                 i = j;
             } else {
                 i++;
@@ -307,6 +309,9 @@ export function parseResponse(responseText) {
         for (let idx = 0; idx < jsonMatches.length; idx++) {
             const match = jsonMatches[idx];
             const jsonContent = match[1].trim();
+
+            if (!jsonContent) continue;
+
             // console.log(`[RPG Parser] Parsing JSON block ${idx + 1}:`, jsonContent.substring(0, 100) + '...');
 
             const parsed = repairJSON(jsonContent);
@@ -363,6 +368,9 @@ export function parseResponse(responseText) {
             debugLog('[RPG Parser] Found JSON blocks within XML tags');
             for (const match of xmlJsonMatches) {
                 const jsonContent = match[1].trim();
+
+                if (!jsonContent) continue;
+
                 const parsed = repairJSON(jsonContent);
 
                 if (parsed) {
@@ -524,7 +532,7 @@ export function parseUserStats(statsText) {
         // Check if this is v3 JSON format - try to parse it first
         let statsData = null;
         const trimmed = statsText.trim();
-        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        if (trimmed && (trimmed.startsWith('{') || trimmed.startsWith('['))) {
             statsData = repairJSON(statsText);
             if (statsData) {
                 debugLog('[RPG Parser] ✓ Parsed as v3 JSON format');

@@ -121,7 +121,7 @@ export async function buildEncounterInitPrompt() {
 
             // console.log('[RPG Companion] World info result:', { worldInfoString, length: worldInfoString?.length });
 
-            if (worldInfoString && worldInfoString.trim()) {
+            if (worldInfoString && typeof worldInfoString === 'string' && worldInfoString.trim()) {
                 systemMessage += worldInfoString.trim();
                 worldInfoAdded = true;
                 // console.log('[RPG Companion] ✅ Added world info from getWorldInfoPrompt');
@@ -258,6 +258,7 @@ export async function buildEncounterInitPrompt() {
 
     initInstruction += `The combat starts now.\n\n`;
     initInstruction += `Based on everything above, generate the initial combat state. Analyze who is in the party fighting alongside ${userName} (if anyone), and who the enemies are. Replace placeholders in [brackets] and X with actual values. Return ONLY a JSON object with the following structure:\n\n`;
+    initInstruction += `FORMAT:\n`;
     initInstruction += `{\n`;
     initInstruction += `  "party": [\n`;
     initInstruction += `    {\n`;
@@ -268,7 +269,7 @@ export async function buildEncounterInitPrompt() {
     initInstruction += `        {"name": "Attack", "type": "single-target|AoE|both"},\n`;
     initInstruction += `        {"name": "Skill1", "type": "single-target|AoE|both"}\n`;
     initInstruction += `      ],\n`;
-    initInstruction += `      "items": ["Item1", "Item2"],\n`;
+    initInstruction += `      "items": ["Item Name x3", "Another Item x1"],\n`;
     initInstruction += `      "statuses": [],\n`;
     initInstruction += `      "isPlayer": true\n`;
     initInstruction += `    }\n`;
@@ -302,11 +303,14 @@ export async function buildEncounterInitPrompt() {
     initInstruction += `  - "single-target": Can only target one character (enemy or ally)\n`;
     initInstruction += `  - "AoE": Area of Effect - targets all enemies, but some AoE attacks (like storms, explosions) can also harm allies if the attack is indiscriminate\n`;
     initInstruction += `  - "both": Player can choose to target a single enemy OR use as AoE\n`;
+    initInstruction += `- For items array: Include quantities using format "Item Name xN" (e.g., "Health Potion x3", "Bomb x1")\n`;
+    initInstruction += `  - If only one item exists, you can use "Item Name x1" or just "Item Name"\n`;
+    initInstruction += `  - Items will be consumed when used - the quantity will decrease in future turns\n`;
     initInstruction += `- Statuses array: May start empty, but don't have to if characters applied them before the combat\n`;
     initInstruction += `  - Each status has a format: {"name": "Status Name", "emoji": "💀", "duration": X}\n`;
     initInstruction += `  - Examples: Poisoned (🧪), Burning (🔥), Blessed (✨), Stunned (💫), Weakened (⬇️), Strengthened (⬆️)\n\n`;
     initInstruction += `The styleNotes object will be used to visually style the combat window - choose ONE value from each category that best fits the environment described in the chat history.\n\n`;
-    initInstruction += `Use the user's current stats, inventory, and skills to populate the party data. For ${userName}'s attacks array, include their available skills. For items, include usable items from their inventory. Set HP based on their current Health stat if available.\n\n`;
+    initInstruction += `Use the user's current stats, inventory, and skills to populate the party data. For ${userName}'s attacks array, include their available skills. For items, include usable items from their inventory WITH QUANTITIES (e.g., "Health Potion x3"). Set HP based on their current Health stat if available.\n\n`;
     initInstruction += `Ensure all party members and enemies have realistic HP values based on the setting and their descriptions. Return ONLY the JSON object, no other text.`;
 
     // Only add the instruction if it has meaningful content
@@ -364,7 +368,7 @@ export async function buildCombatActionPrompt(action, combatStats) {
             const result = await getWorldInfoFn(chatForWI, 8000, false);
             const worldInfoString = result?.worldInfoString || result;
 
-            if (worldInfoString && worldInfoString.trim()) {
+            if (worldInfoString && typeof worldInfoString === 'string' && worldInfoString.trim()) {
                 systemMessage += worldInfoString.trim();
                 worldInfoAdded = true;
             }
@@ -483,12 +487,25 @@ export async function buildCombatActionPrompt(action, combatStats) {
     stateMessage += `Party Members:\n`;
     combatStats.party.forEach(member => {
         stateMessage += `- ${member.name}${member.isPlayer ? ' (Player)' : ''}: ${member.hp}/${member.maxHp} HP\n`;
-        if (member.attacks && member.attacks.length > 0) {
-            stateMessage += `  Attacks: ${member.attacks.map(a => typeof a === 'string' ? a : a.name).join(', ')}\n`;
+
+        // For the player, use playerActions if available, otherwise fall back to member data
+        if (member.isPlayer && currentEncounter.playerActions) {
+            if (currentEncounter.playerActions.attacks && currentEncounter.playerActions.attacks.length > 0) {
+                stateMessage += `  Attacks: ${currentEncounter.playerActions.attacks.map(a => typeof a === 'string' ? a : a.name).join(', ')}\n`;
+            }
+            if (currentEncounter.playerActions.items && currentEncounter.playerActions.items.length > 0) {
+                stateMessage += `  Items: ${currentEncounter.playerActions.items.join(', ')}\n`;
+            }
+        } else {
+            // For non-player party members, use their own data
+            if (member.attacks && member.attacks.length > 0) {
+                stateMessage += `  Attacks: ${member.attacks.map(a => typeof a === 'string' ? a : a.name).join(', ')}\n`;
+            }
+            if (member.items && member.items.length > 0) {
+                stateMessage += `  Items: ${member.items.join(', ')}\n`;
+            }
         }
-        if (member.items && member.items.length > 0) {
-            stateMessage += `  Items: ${member.items.join(', ')}\n`;
-        }
+
         if (member.statuses && member.statuses.length > 0) {
             const validStatuses = member.statuses.filter(s => s && (s.emoji || s.name));
             if (validStatuses.length > 0) {
@@ -515,11 +532,39 @@ export async function buildCombatActionPrompt(action, combatStats) {
     });
 
     stateMessage += `\n${userName}'s Action: ${action}\n\n`;
-    stateMessage += `Respond with the exact JSON object as below, containing ONLY these specified values. Remember to consider the user's party and their moves. DO NOT regenerate character descriptions, sprites, or environment:\n`;
+    stateMessage += `Respond with the exact JSON object as below, containing ONLY these specified values. Remember to consider the user's party and their moves. DO NOT regenerate character descriptions, sprites, or environment.\n\n`;
+    stateMessage += `IMPORTANT - Update ${userName}'s attacks and items arrays based on what happens in combat:\n`;
+    stateMessage += `- ${userName}'s action is already specified above - do NOT regenerate it. Only update ${userName}'s attacks/items arrays if their action consumed resources (used item, lost ability, etc.).\n`;
+    stateMessage += `- If they use an item, decrement its quantity ("Health Potion x3" becomes "Health Potion x2"). If quantity reaches 0, remove the item entirely.\n`;
+    stateMessage += `- If they gain or lose an ability due to status effects, add or remove it from their attacks array.\n`;
+    stateMessage += `  Examples: Disarmed → remove weapon attacks. Bound → remove all attacks or set to []. Freed → restore attacks.\n`;
+    stateMessage += `- If they pick up a weapon/item during combat, add it to their items or attacks array.\n`;
+    stateMessage += `- If environmental changes enable new actions (near water → "Splash Attack"), add them. If they disable actions (fire goes out → remove "Ignite"), remove them.\n`;
+    stateMessage += `- Status effects should persist and decrease duration each turn. Remove statuses when duration reaches 0.\n\n`;
+    stateMessage += `FORMAT:\n`;
     stateMessage += `{\n`;
     stateMessage += `  "combatStats": {\n`;
-    stateMessage += `    "party": [{ "name": "Name", "hp": X, "maxHp": X, "statuses": [...] }],\n`;
-    stateMessage += `    "enemies": [{ "name": "Name", "hp": X, "maxHp": X, "statuses": [...] }]\n`;
+    stateMessage += `    "party": [\n`;
+    stateMessage += `      {\n`;
+    stateMessage += `        "name": "Name",\n`;
+    stateMessage += `        "hp": X,\n`;
+    stateMessage += `        "maxHp": X,\n`;
+    stateMessage += `        "statuses": [{"name": "Status", "emoji": "💀", "duration": X}],\n`;
+    stateMessage += `        "isPlayer": true|false\n`;
+    stateMessage += `      }\n`;
+    stateMessage += `    ],\n`;
+    stateMessage += `    "enemies": [\n`;
+    stateMessage += `      {\n`;
+    stateMessage += `        "name": "Name",\n`;
+    stateMessage += `        "hp": X,\n`;
+    stateMessage += `        "maxHp": X,\n`;
+    stateMessage += `        "statuses": [{"name": "Status", "emoji": "💀", "duration": X}]\n`;
+    stateMessage += `      }\n`;
+    stateMessage += `    ]\n`;
+    stateMessage += `  },\n`;
+    stateMessage += `  "playerActions": {\n`;
+    stateMessage += `    "attacks": [{"name": "Attack", "type": "single-target|AoE|both"}],\n`;
+    stateMessage += `    "items": ["Item Name x3", "Another Item x1"]\n`;
     stateMessage += `  },\n`;
     stateMessage += `  "enemyActions": [{ "enemyName": "Name", "action": "what they do", "target": "target" }],\n`;
     stateMessage += `  "partyActions": [{ "memberName": "Name", "action": "what they do", "target": "target" }],\n`;
@@ -587,7 +632,7 @@ export async function buildCombatSummaryPrompt(combatLog, result) {
             const result = await getWorldInfoFn(chatForWI, 8000, false);
             const worldInfoString = result?.worldInfoString || result;
 
-            if (worldInfoString && worldInfoString.trim()) {
+            if (worldInfoString && typeof worldInfoString === 'string' && worldInfoString.trim()) {
                 systemMessage += worldInfoString.trim();
                 worldInfoAdded = true;
             }
@@ -659,7 +704,9 @@ export async function buildCombatSummaryPrompt(combatLog, result) {
     summaryMessage += `\n\nProvide a narrative summary of the entire fight in a way that fits the style from the chat history. Start with [FIGHT CONCLUDED] on the first line, then provide the description.\n\n`;
     summaryMessage += `Write with intent in ${tense} tense ${person}-person ${narration} from ${pov}'s point of view.\n`;
     summaryMessage += `Build novel prose. Break patterns from your previous responses by varying sentence structures, rhythms, formats, and openings. If you last started with a narration, begin this one with dialogue; if with an action, switch to an internal thought. Track whether a sentence shape, cadence, sensory detail, or a descriptor appeared recently, and replace it with a different one or skip it entirely. If you mentioned a physical feature, mannerism, or expression once, move on. Don't fixate on the same traits every turn. Well-placed humor, unconventional similes, and subverted turns of phrase are encouraged. Avoid GPTisms, purple prose, and anaphoras, especially the negatives with "no/not/wasn't/didn't." Refrain from describing actions or emotions via negation; focus on what does happen, not what doesn't. Minimize asterisks, ellipses, and em-dashes. Explicit content is allowed. Never end on handover cues; finish naturally.\n\n`;
-    summaryMessage += `Express ${userName}'s actions and dialogue using indirect speech (e.g., "${userName} swung their sword" or "${userName} asked for help"). The summary should be 2-4 paragraphs and capture the essence of the battle.\n\n`;
+    summaryMessage += `Dialogue Guidelines:\n`;
+    summaryMessage += `- Include ALL dialogue lines spoken by enemies and NPC party members during the encounter in direct quotes.\n`;
+    summaryMessage += `- Never quote ${userName} directly. Express their actions and dialogue using ONLY indirect speech (e.g., "${userName} swung their sword" or "${userName} asked for help").\n\n`;
 
     // If in Together mode and trackers are enabled, add tracker update instructions
     if (extensionSettings.generationMode === 'together' && (extensionSettings.showUserStats || extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts)) {
@@ -721,6 +768,12 @@ export async function buildCombatSummaryPrompt(combatLog, result) {
  */
 export function parseEncounterJSON(response) {
     try {
+        // Ensure response is a string
+        if (!response || typeof response !== 'string') {
+            console.error('[RPG Companion] parseEncounterJSON received non-string input:', typeof response);
+            return null;
+        }
+
         // Remove code blocks if present
         let cleaned = response.trim();
 
@@ -736,6 +789,9 @@ export function parseEncounterJSON(response) {
 
         if (firstBrace !== -1 && lastBrace !== -1) {
             cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+        } else {
+            console.error('[RPG Companion] No JSON object found in response');
+            return null;
         }
 
         // Try to parse directly first
