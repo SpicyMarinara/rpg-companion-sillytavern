@@ -11227,6 +11227,38 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-fab-widget:hover {
     font-family: 'Roboto Mono', 'Consolas', monospace;
 }
 
+/* Strip Refresh Button */
+.rpg-strip-refresh-btn {
+    margin-top: auto;
+    padding: 8px;
+    background: var(--rpg-accent, rgba(22, 33, 62, 0.9));
+    border: 1px solid var(--rpg-border, rgba(100, 150, 255, 0.3));
+    border-radius: 6px;
+    color: var(--rpg-highlight, #4a90e2);
+    cursor: pointer;
+    font-size: 14px;
+    width: calc(100% - 8px);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rpg-strip-refresh-btn:hover {
+    background: var(--rpg-highlight, #4a90e2);
+    color: var(--rpg-bg, #1a1a2e);
+    box-shadow: 0 0 10px rgba(100, 150, 255, 0.4);
+}
+
+.rpg-strip-refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.rpg-strip-refresh-btn i.fa-spin {
+    animation: fa-spin 1s linear infinite;
+}
+
 /* ============================================
    STRIP WIDGET THEME VARIATIONS
    ============================================ */

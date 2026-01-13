@@ -792,6 +792,14 @@ async function initUI() {
         await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
     });
 
+    // Strip widget refresh button - same functionality as main refresh button
+    $('#rpg-strip-refresh').on('click', async function() {
+        if (!extensionSettings.enabled) {
+            return;
+        }
+        await updateRPGData(renderUserStats, renderInfoBox, renderThoughts, renderInventory);
+    });
+
     $('#rpg-stat-bar-color-low').on('change', function() {
         extensionSettings.statBarColorLow = String($(this).val());
         saveSettings();
