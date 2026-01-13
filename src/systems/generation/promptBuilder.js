@@ -546,12 +546,33 @@ function formatTrackerDataForContext(jsonData, trackerType, userName) {
         if (trackerType === 'userStats') {
             formatted += `${userName}'s Stats:\n`;
 
+            // Get display mode and custom stats config for maxValue lookup
+            const userStatsConfig = extensionSettings.trackerConfig?.userStats;
+            const displayMode = userStatsConfig?.statsDisplayMode || 'percentage';
+            const customStats = userStatsConfig?.customStats || [];
+
+            // Helper to get maxValue for a stat by id
+            const getMaxValue = (statId) => {
+                const statConfig = customStats.find(s => s.id === statId);
+                return statConfig?.maxValue || 100;
+            };
+
+            // Helper to format stat value based on display mode
+            const formatStatValue = (value, statId) => {
+                if (displayMode === 'number') {
+                    const maxValue = getMaxValue(statId);
+                    return `${value}/${maxValue}`;
+                }
+                return value;
+            };
+
             // Handle stats array format: [{id, name, value}, ...]
             if (data.stats && Array.isArray(data.stats)) {
                 for (const stat of data.stats) {
                     if (stat && stat.value !== undefined) {
                         const statName = stat.name || (stat.id ? stat.id.charAt(0).toUpperCase() + stat.id.slice(1) : 'Unknown');
-                        formatted += `${statName}: ${stat.value}\n`;
+                        const statId = stat.id || statName.toLowerCase();
+                        formatted += `${statName}: ${formatStatValue(stat.value, statId)}\n`;
                     }
                 }
             } else {
@@ -564,7 +585,7 @@ function formatTrackerDataForContext(jsonData, trackerType, userName) {
                         const value = getValue(data[statName]);
                         if (value) {
                             const displayName = statName.charAt(0).toUpperCase() + statName.slice(1);
-                            formatted += `${displayName}: ${value}\n`;
+                            formatted += `${displayName}: ${formatStatValue(value, statName)}\n`;
                         }
                     }
                 }
@@ -573,7 +594,7 @@ function formatTrackerDataForContext(jsonData, trackerType, userName) {
                 for (const [key, value] of Object.entries(data)) {
                     if (!statFieldOrder.includes(key) && !specialFields.includes(key) && typeof value === 'number') {
                         const displayName = key.charAt(0).toUpperCase() + key.slice(1);
-                        formatted += `${displayName}: ${getValue(value)}\n`;
+                        formatted += `${displayName}: ${formatStatValue(getValue(value), key)}\n`;
                     }
                 }
             }
