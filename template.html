@@ -4,6 +4,42 @@
         <i class="fa-solid fa-chevron-right"></i>
     </button>
 
+    <!-- Strip Widget Container (shown when collapsed with strip widgets enabled) -->
+    <div id="rpg-strip-widget-container" class="rpg-strip-widget-container">
+        <!-- Weather Icon Widget -->
+        <div class="rpg-strip-widget rpg-strip-widget-weather" data-widget="weatherIcon">
+            <span class="rpg-strip-widget-icon"></span>
+            <span class="rpg-strip-widget-desc"></span>
+        </div>
+        <!-- Clock Widget with animated face -->
+        <div class="rpg-strip-widget rpg-strip-widget-clock" data-widget="clock">
+            <div class="rpg-strip-clock-face">
+                <div class="rpg-strip-clock-hour"></div>
+                <div class="rpg-strip-clock-minute"></div>
+                <div class="rpg-strip-clock-center"></div>
+            </div>
+            <span class="rpg-strip-widget-value"></span>
+        </div>
+        <!-- Date Widget -->
+        <div class="rpg-strip-widget rpg-strip-widget-date" data-widget="date">
+            <i class="fa-solid fa-calendar"></i>
+            <span class="rpg-strip-widget-value"></span>
+        </div>
+        <!-- Location Widget -->
+        <div class="rpg-strip-widget rpg-strip-widget-location" data-widget="location">
+            <i class="fa-solid fa-location-dot"></i>
+            <span class="rpg-strip-widget-value"></span>
+        </div>
+        <!-- Stats Widget -->
+        <div class="rpg-strip-widget rpg-strip-widget-stats" data-widget="stats">
+            <div class="rpg-strip-stats-list"></div>
+        </div>
+        <!-- Attributes Widget -->
+        <div class="rpg-strip-widget rpg-strip-widget-attributes" data-widget="attributes">
+            <div class="rpg-strip-attributes-grid"></div>
+        </div>
+    </div>
+
     <!-- Main Game Panel -->
     <div class="rpg-game-container">
         <!-- Header with Controls -->
@@ -501,6 +537,56 @@
                     <label class="checkbox_label">
                         <input type="checkbox" id="rpg-toggle-fab-attributes" />
                         <span data-i18n-key="template.settingsModal.mobileFab.attributes">RPG Attributes (STR, DEX, etc.)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Desktop Strip Widgets Section -->
+            <div class="rpg-settings-group">
+                <h4 data-i18n-key="template.settingsModal.desktopStripTitle"><i class="fa-solid fa-bars-staggered" aria-hidden="true"></i> Desktop Collapsed Strip Widgets</h4>
+                <small class="notes" style="display: block; margin-bottom: 10px;"
+                    data-i18n-key="template.settingsModal.desktopStripNote">
+                    Show compact info widgets in the collapsed panel strip on desktop. Displays stats vertically without needing to expand the panel.
+                </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-strip-widgets-enabled" />
+                    <span data-i18n-key="template.settingsModal.desktopStrip.enabled">Enable Strip Widgets</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                    data-i18n-key="template.settingsModal.desktopStrip.enabledNote">
+                    Shows widgets in the collapsed panel strip for quick access to stats.
+                </small>
+
+                <div id="rpg-strip-widget-options" style="margin-left: 10px; border-left: 2px solid var(--SmartThemeBorderColor); padding-left: 10px; margin-top: 8px; display: none;">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-strip-weather-icon" />
+                        <span data-i18n-key="template.settingsModal.desktopStrip.weatherIcon">Weather Icon</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-strip-clock" />
+                        <span data-i18n-key="template.settingsModal.desktopStrip.clock">Time/Clock</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-strip-date" />
+                        <span data-i18n-key="template.settingsModal.desktopStrip.date">Date</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-strip-location" />
+                        <span data-i18n-key="template.settingsModal.desktopStrip.location">Location</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-strip-stats" />
+                        <span data-i18n-key="template.settingsModal.desktopStrip.stats">Stats (Health, Energy, etc.)</span>
+                    </label>
+
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-strip-attributes" />
+                        <span data-i18n-key="template.settingsModal.desktopStrip.attributes">RPG Attributes (STR, DEX, etc.)</span>
                     </label>
                 </div>
             </div>

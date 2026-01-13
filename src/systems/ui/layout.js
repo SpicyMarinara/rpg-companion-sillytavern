@@ -19,7 +19,7 @@ import {
 } from '../../core/state.js';
 import { i18n } from '../../core/i18n.js';
 import { setupMobileTabs, removeMobileTabs } from './mobile.js';
-import { setupDesktopTabs, removeDesktopTabs } from './desktop.js';
+import { setupDesktopTabs, removeDesktopTabs, updateStripWidgets } from './desktop.js';
 
 /**
  * Toggles the visibility of plot buttons based on settings.
@@ -243,6 +243,9 @@ export function setupCollapseToggle() {
             } else if ($panel.hasClass('rpg-position-left')) {
                 $icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
             }
+
+            // Update strip widgets when collapsing (they show in collapsed state)
+            updateStripWidgets();
         }
     });
 

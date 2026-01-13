@@ -84,6 +84,16 @@ export let extensionSettings = {
         stats: { enabled: true, position: 5 },            // All stats as compact numbers
         attributes: { enabled: true, position: 6 }        // Compact RPG attributes display
     },
+    // Desktop strip widget display options (shown in collapsed panel strip)
+    desktopStripWidgets: {
+        enabled: false, // Master toggle for strip widgets (disabled by default)
+        weatherIcon: { enabled: true },      // Weather emoji (☀️, 🌧️, etc.)
+        clock: { enabled: true },            // Current time display
+        date: { enabled: true },             // Date display
+        location: { enabled: true },         // Location name
+        stats: { enabled: true },            // All stats as compact numbers
+        attributes: { enabled: true }        // Compact RPG attributes display
+    },
     userStats: JSON.stringify({
         stats: [
             { id: 'health', name: 'Health', value: 100 },
