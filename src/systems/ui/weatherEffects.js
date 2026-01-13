@@ -237,9 +237,9 @@ function createMist() {
  * Returns { left: vw%, top: dvh% }
  */
 function calculateSunPosition(hour) {
-    // Daytime is roughly 6 AM to 8 PM (6-20)
+    // Daytime is roughly 5 AM to 8 PM (5-20)
     // Map hour to position along an arc
-    // 6 AM = far left, low | 12 PM = center, high | 6 PM = far right, low
+    // 5 AM = far left, low | 12 PM = center, high | 8 PM = far right, low
     
     if (hour === null) hour = 12; // Default to noon if unknown
     
@@ -249,14 +249,14 @@ function calculateSunPosition(hour) {
     // Normalize to 0-1 range (5 AM = 0, 20 PM = 1)
     const progress = (clampedHour - 5) / 15;
     
-    // Horizontal position: 5% to 85% (left to right)
-    const left = 5 + progress * 80;
+    // Horizontal position: 3% to 92% (left to right, wider range)
+    const left = 3 + progress * 89;
     
     // Vertical position: parabolic arc (high at noon, low at dawn/dusk)
     // At progress 0.5 (noon), top should be ~8% (high)
-    // At progress 0 or 1, top should be ~35% (low, near horizon)
+    // At progress 0 or 1, top should be ~40% (low, near horizon)
     const normalizedProgress = (progress - 0.5) * 2; // -1 to 1
-    const top = 8 + 27 * (normalizedProgress * normalizedProgress);
+    const top = 8 + 32 * (normalizedProgress * normalizedProgress);
     
     return { left, top };
 }
@@ -323,6 +323,134 @@ function createSunshine(hour) {
     const lensFlare = document.createElement('div');
     lensFlare.className = 'rpg-weather-particle rpg-clear-lens-flare';
     container.appendChild(lensFlare);
+
+    return container;
+}
+
+/**
+ * Create sunrise effect (dawn - warm orange/pink sky gradient with low sun)
+ */
+function createSunrise(hour) {
+    const container = document.createElement('div');
+    container.className = 'rpg-weather-particles rpg-sunrise-weather';
+
+    // Create sunrise gradient overlay
+    const sunriseOverlay = document.createElement('div');
+    sunriseOverlay.className = 'rpg-weather-particle rpg-sunrise-overlay';
+    container.appendChild(sunriseOverlay);
+
+    // Calculate sun position (rising from left horizon)
+    const sunPos = calculateSunPosition(hour);
+
+    // Create the rising sun
+    const sun = document.createElement('div');
+    sun.className = 'rpg-weather-particle rpg-clear-sun rpg-sunrise-sun';
+    sun.style.left = `${sunPos.left}vw`;
+    sun.style.top = `${sunPos.top}dvh`;
+    container.appendChild(sun);
+
+    // Create sun glow (more orange during sunrise)
+    const sunGlow = document.createElement('div');
+    sunGlow.className = 'rpg-weather-particle rpg-clear-sun-glow rpg-sunrise-glow';
+    sunGlow.style.left = `${sunPos.left}vw`;
+    sunGlow.style.top = `${sunPos.top}dvh`;
+    container.appendChild(sunGlow);
+
+    // Create horizon glow
+    const horizonGlow = document.createElement('div');
+    horizonGlow.className = 'rpg-weather-particle rpg-sunrise-horizon-glow';
+    container.appendChild(horizonGlow);
+
+    // Add some fading stars (still visible at dawn)
+    for (let i = 0; i < 15; i++) {
+        const star = document.createElement('div');
+        star.className = 'rpg-weather-particle rpg-night-star rpg-sunrise-fading-star';
+        star.style.left = `${Math.random() * 100}vw`;
+        star.style.top = `${Math.random() * 40}dvh`;
+        star.style.animationDelay = `${Math.random() * 3}s`;
+        const size = 1 + Math.random() * 1.5;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        container.appendChild(star);
+    }
+
+    // Add some golden dust motes
+    for (let i = 0; i < 12; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'rpg-weather-particle rpg-clear-dust-mote';
+        particle.style.left = `${Math.random() * 100}vw`;
+        particle.style.top = `${Math.random() * 100}dvh`;
+        particle.style.animationDelay = `${Math.random() * 15}s`;
+        particle.style.animationDuration = `${12 + Math.random() * 8}s`;
+        const size = 2 + Math.random() * 3;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        container.appendChild(particle);
+    }
+
+    return container;
+}
+
+/**
+ * Create sunset effect (dusk - warm red/purple sky gradient with low sun)
+ */
+function createSunset(hour) {
+    const container = document.createElement('div');
+    container.className = 'rpg-weather-particles rpg-sunset-weather';
+
+    // Create sunset gradient overlay
+    const sunsetOverlay = document.createElement('div');
+    sunsetOverlay.className = 'rpg-weather-particle rpg-sunset-overlay';
+    container.appendChild(sunsetOverlay);
+
+    // Calculate sun position (setting on right horizon)
+    const sunPos = calculateSunPosition(hour);
+
+    // Create the setting sun
+    const sun = document.createElement('div');
+    sun.className = 'rpg-weather-particle rpg-clear-sun rpg-sunset-sun';
+    sun.style.left = `${sunPos.left}vw`;
+    sun.style.top = `${sunPos.top}dvh`;
+    container.appendChild(sun);
+
+    // Create sun glow (more red during sunset)
+    const sunGlow = document.createElement('div');
+    sunGlow.className = 'rpg-weather-particle rpg-clear-sun-glow rpg-sunset-glow';
+    sunGlow.style.left = `${sunPos.left}vw`;
+    sunGlow.style.top = `${sunPos.top}dvh`;
+    container.appendChild(sunGlow);
+
+    // Create horizon glow
+    const horizonGlow = document.createElement('div');
+    horizonGlow.className = 'rpg-weather-particle rpg-sunset-horizon-glow';
+    container.appendChild(horizonGlow);
+
+    // Add some early stars (appearing at dusk)
+    for (let i = 0; i < 20; i++) {
+        const star = document.createElement('div');
+        star.className = 'rpg-weather-particle rpg-night-star rpg-sunset-emerging-star';
+        star.style.left = `${Math.random() * 100}vw`;
+        star.style.top = `${Math.random() * 50}dvh`;
+        star.style.animationDelay = `${Math.random() * 5}s`;
+        const size = 1 + Math.random() * 1.5;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        container.appendChild(star);
+    }
+
+    // Add some golden/pink dust motes
+    for (let i = 0; i < 12; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'rpg-weather-particle rpg-clear-dust-mote rpg-sunset-dust';
+        particle.style.left = `${Math.random() * 100}vw`;
+        particle.style.top = `${Math.random() * 100}dvh`;
+        particle.style.animationDelay = `${Math.random() * 15}s`;
+        particle.style.animationDuration = `${12 + Math.random() * 8}s`;
+        const size = 2 + Math.random() * 3;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        container.appendChild(particle);
+    }
 
     return container;
 }
@@ -572,9 +700,13 @@ export function updateWeatherEffect() {
             weatherContainer = createMist();
             break;
         case 'sunny':
-            // Use nighttime effect for clear weather at night
+            // Use appropriate effect based on time of day
             if (timeOfDay === 'night') {
                 weatherContainer = createNighttime(hour);
+            } else if (timeOfDay === 'dawn') {
+                weatherContainer = createSunrise(hour);
+            } else if (timeOfDay === 'dusk') {
+                weatherContainer = createSunset(hour);
             } else {
                 weatherContainer = createSunshine(hour);
             }
