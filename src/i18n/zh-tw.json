@@ -2,6 +2,7 @@
     "settings.language.label": "語言",
     "settings.language.option.en": "English",
     "settings.language.option.zh-tw": "繁體中文",
+    "settings.language.option.zh-tw": "Русский",
     "settings.extensionEnabled": "啟用 RPG Companion",
     "settings.note": "切換開關以啟用/停用 RPG Companion。其他設定可在面板內配置。",
     "template.settingsTitle": "RPG Companion 設定",
