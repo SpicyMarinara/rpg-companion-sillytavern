@@ -37,65 +37,23 @@ export const DEFAULT_DECEPTION_PROMPT = `When a character is lying or deceiving,
  * Default Omniscience Filter prompt text
  * This instructs the AI to separate information the player character cannot perceive
  */
-export const DEFAULT_OMNISCIENCE_FILTER_PROMPT = `=== MANDATORY OMNISCIENCE FILTER - YOU MUST FOLLOW THIS ===
+export const DEFAULT_OMNISCIENCE_FILTER_PROMPT = `OMNISCIENCE FILTER INSTRUCTIONS:
+You must strictly separate what the player character can directly perceive from what they cannot. The player should only read narrative content that their character can actually see, hear, smell, touch, or otherwise directly sense.
 
-You are REQUIRED to use the <filter> tag system. This is NOT optional. Every response that contains events happening outside the player character's direct perception MUST use filter tags.
+BEFORE writing any narrative content that involves events, actions, or details the player character CANNOT directly perceive (because they're not looking, too far away, behind them, in another room, happening silently, etc.), you MUST first output that hidden information inside a <filter> tag using this exact format:
+<filter event="[Brief description of what is happening that the player cannot perceive]" reason="[Why the player character cannot perceive this - e.g., 'behind them', 'in another room', 'too quiet to hear', 'focused elsewhere']"/>
 
-THE PLAYER CHARACTER HAS LIMITED SENSES. They can only perceive:
-- What is directly in front of them or within their field of view
-- Sounds loud enough to hear from their position
-- Things they are actively paying attention to
+CRITICAL RULES:
+1. The <filter> tag must come BEFORE any sensory hints (sounds, smells, etc.) that the player DOES perceive from that event
+2. Only write narrative that reflects what the player character actually experiences through their senses
+3. Instead of "Jake sweeps the floor behind you", write: <filter event="Jake is sweeping the floor" reason="Jake is behind Michael who is focused on reading"/> followed by narrative like "You hear soft sweeping sounds behind you"
+4. NPCs' internal thoughts, silent actions, and events in other locations MUST go in <filter> tags
+5. The player's narrative should create natural mystery and immersion - they experience the world through limited senses, not omniscient narration
 
-THE PLAYER CHARACTER CANNOT PERCEIVE:
-- Events happening BEHIND them (they turned away, facing another direction)
-- Events in OTHER ROOMS or distant locations
-- SILENT actions (quiet movements, whispered conversations, thoughts)
-- Things happening while they are DISTRACTED, ASLEEP, or FOCUSED elsewhere
-- Other characters' INTERNAL THOUGHTS or INTENTIONS
+EXAMPLE:
+Wrong: "As you read the newspaper, Sarah quietly pockets the key from the table behind you and slips out the back door."
+Correct: <filter event="Sarah quietly takes the key from the table and slips out the back door" reason="Sarah is behind Michael who is absorbed in reading, and she moves silently"/>You hear a faint click from somewhere behind you, but when you glance up from your newspaper, the room seems unchanged. The afternoon light streams through the windows as you return to your reading.`;
 
-=== REQUIRED FORMAT - USE THIS EXACT SYNTAX ===
-<filter event="[WHAT is happening that the player cannot see]" reason="[WHY they cannot perceive it]"/>
-
-=== WHEN TO USE FILTER TAGS ===
-You MUST use a <filter> tag WHENEVER:
-1. The player turns away, looks elsewhere, or focuses on something
-2. Another character does something behind the player's back
-3. Events occur in a different room or location
-4. A character thinks something, plans something, or has hidden intentions
-5. Something happens silently or subtly while the player is distracted
-
-=== CORRECT EXAMPLES ===
-
-SCENARIO: Player says "I turn to look out the window"
-CORRECT RESPONSE:
-<filter event="While you gaze out the window, Maria quietly slips the letter into her pocket" reason="Player is facing the window, away from Maria"/>
-You watch the rain streaking down the glass, lost in thought. Behind you, you hear a soft rustle of fabric.
-
-SCENARIO: Player is reading a book intently
-CORRECT RESPONSE:
-<filter event="Jake signals to Sarah with a subtle hand gesture, and she nods in understanding" reason="Player is absorbed in reading and not watching them"/>
-The words blur slightly as your eyes grow tired. You're vaguely aware of movement in your peripheral vision but the chapter is too engaging to look up.
-
-SCENARIO: Player is in the kitchen, someone is in the living room
-CORRECT RESPONSE:
-<filter event="In the living room, Tom carefully examines the locked drawer on the desk" reason="Player is in a different room and cannot see the living room"/>
-You hear floorboards creak from somewhere in the house as you continue preparing dinner.
-
-=== INCORRECT (NEVER DO THIS) ===
-WRONG: "You turn to the window. Behind you, Sarah quickly hides the knife in her bag."
-(This reveals hidden information directly to the player!)
-
-WRONG: "While you read, Jake thinks about how to steal the key later."
-(Player cannot read minds - this must be in a filter tag!)
-
-=== CRITICAL REMINDERS ===
-- ALWAYS use filter tags when the player's attention is directed away
-- The filter tag comes FIRST, then you write what the player actually experiences
-- Be generous with filter tags - when in doubt, USE THEM
-- This creates immersion and mystery - the player discovers things naturally
-- After using a filter tag, describe only sensory hints the player WOULD notice (sounds, peripheral movement, etc.)
-
-YOU MUST ACTIVELY LOOK FOR OPPORTUNITIES TO USE FILTER TAGS IN EVERY RESPONSE.`;
 
 /**
  * Default CYOA prompt text
