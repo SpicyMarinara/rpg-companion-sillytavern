@@ -138,7 +138,7 @@ import {
 // Feature modules
 import { setupPlotButtons, sendPlotProgression } from './src/systems/features/plotProgression.js';
 import { setupClassicStatsButtons } from './src/systems/features/classicStats.js';
-import { ensureHtmlCleaningRegex, detectConflictingRegexScripts, ensureTrackerCleaningRegex } from './src/systems/features/htmlCleaning.js';
+import { ensureHtmlCleaningRegex, detectConflictingRegexScripts, ensureTrackerCleaningRegex, ensureOmniscienceFilterCleaningRegex } from './src/systems/features/htmlCleaning.js';
 import { ensureJsonCleaningRegex, removeJsonCleaningRegex } from './src/systems/features/jsonCleaning.js';
 import { parseAndStoreSpotifyUrl } from './src/systems/features/musicPlayer.js';
 import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
@@ -1216,6 +1216,14 @@ jQuery(async () => {
             await ensureTrackerCleaningRegex(st_extension_settings, saveSettingsDebounced);
         } catch (error) {
             console.error('[RPG Companion] Tracker cleaning regex import failed:', error);
+            // Non-critical - continue without it
+        }
+
+        // Import the omniscience filter cleaning regex (hides <filter> tags from display)
+        try {
+            await ensureOmniscienceFilterCleaningRegex(st_extension_settings, saveSettingsDebounced);
+        } catch (error) {
+            console.error('[RPG Companion] Omniscience filter regex import failed:', error);
             // Non-critical - continue without it
         }
 

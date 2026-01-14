@@ -197,3 +197,87 @@ export async function ensureTrackerCleaningRegex(st_extension_settings, saveSett
         // Don't throw - this is a nice-to-have feature
     }
 }
+
+/**
+ * Automatically imports a regex script to clean <filter> tags from displayed messages.
+ * This hides omniscience filter content (events the player character cannot perceive)
+ * from the visible chat while keeping them in the message data.
+ * @param {Object} st_extension_settings - SillyTavern extension settings object
+ * @param {Function} saveSettingsDebounced - Function to save settings
+ */
+export async function ensureOmniscienceFilterCleaningRegex(st_extension_settings, saveSettingsDebounced) {
+    try {
+        // Validate extension settings structure
+        if (!st_extension_settings || typeof st_extension_settings !== 'object') {
+            console.warn('[RPG Companion] Invalid extension_settings object, skipping omniscience filter regex import');
+            return;
+        }
+
+        // Check if the omniscience filter cleaning regex already exists
+        const scriptName = 'Clean Omniscience Filter Tags (Display Only)';
+        const existingScripts = st_extension_settings?.regex || [];
+
+        // Validate regex array
+        if (!Array.isArray(existingScripts)) {
+            console.warn('[RPG Companion] extension_settings.regex is not an array, resetting to empty array');
+            st_extension_settings.regex = [];
+        }
+
+        const alreadyExists = existingScripts.some(script =>
+            script && typeof script === 'object' && script.scriptName === scriptName
+        );
+
+        if (alreadyExists) {
+            // console.log('[RPG Companion] Omniscience filter cleaning regex already exists, skipping import');
+            return;
+        }
+
+        // Generate a UUID for the script
+        const uuidv4 = () => {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        };
+
+        // Create the regex script to remove <filter event="..." reason="..."/> tags from display
+        // This regex matches the specific <filter> tag format used by omniscience filter
+        // Pattern: <filter followed by any attributes, ending with /> or </filter>
+        const regexScript = {
+            id: uuidv4(),
+            scriptName: scriptName,
+            findRegex: '/<filter\\s+[^>]*\\/?>(?:<\\/filter>)?/gi',
+            replaceString: '',
+            trimStrings: [],
+            placement: [1], // 1 = Display only (affects visible chat, not outgoing prompts)
+            disabled: false,
+            markdownOnly: false,
+            promptOnly: false,
+            runOnEdit: true,
+            substituteRegex: 0,
+            minDepth: null,
+            maxDepth: null
+        };
+
+        // Add to global regex scripts
+        if (!Array.isArray(st_extension_settings.regex)) {
+            st_extension_settings.regex = [];
+        }
+
+        st_extension_settings.regex.push(regexScript);
+
+        // Save the changes
+        if (typeof saveSettingsDebounced === 'function') {
+            saveSettingsDebounced();
+        } else {
+            console.warn('[RPG Companion] saveSettingsDebounced is not a function, cannot save omniscience filter regex');
+        }
+
+        // console.log('[RPG Companion] ✅ Omniscience filter cleaning regex imported successfully');
+    } catch (error) {
+        console.error('[RPG Companion] Failed to import omniscience filter cleaning regex:', error);
+        console.error('[RPG Companion] Error details:', error.message, error.stack);
+        // Don't throw - this is a nice-to-have feature
+    }
+}
