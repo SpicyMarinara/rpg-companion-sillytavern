@@ -129,6 +129,19 @@ export function onMessageSent() {
             // console.log('[RPG Companion] 💾 SEPARATE MODE: Committed displayed tracker (auto-update disabled)');
         }
     }
+
+    // For together mode with auto-update disabled, also commit displayed tracker
+    // This ensures manual edits made across multiple turns are preserved in committedTrackerData
+    // so they can be used as context for the next generation
+    if (extensionSettings.generationMode === 'together' && !extensionSettings.autoUpdate) {
+        if (lastGeneratedData.userStats || lastGeneratedData.infoBox || lastGeneratedData.characterThoughts) {
+            committedTrackerData.userStats = lastGeneratedData.userStats;
+            committedTrackerData.infoBox = lastGeneratedData.infoBox;
+            committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+
+            // console.log('[RPG Companion] 💾 TOGETHER MODE: Committed displayed tracker (auto-update disabled)');
+        }
+    }
 }
 
 /**
@@ -366,6 +379,33 @@ export function onMessageSwiped(messageIndex) {
         return;
     }
 
+    // IMPORTANT: SillyTavern moves message.extra to swipe_info[swipeId].extra when changing swipes.
+    // We need to consolidate rpg_companion_swipes from all swipe_info entries back into message.extra
+    // to ensure all swipe data is preserved in one place.
+    if (message.swipe_info && Array.isArray(message.swipe_info)) {
+        if (!message.extra) {
+            message.extra = {};
+        }
+        if (!message.extra.rpg_companion_swipes) {
+            message.extra.rpg_companion_swipes = {};
+        }
+
+        // Collect rpg_companion_swipes data from all swipe_info entries
+        for (let swipeIdx = 0; swipeIdx < message.swipe_info.length; swipeIdx++) {
+            const swipeInfo = message.swipe_info[swipeIdx];
+            if (swipeInfo?.extra?.rpg_companion_swipes) {
+                // Merge swipe data from swipe_info into message.extra.rpg_companion_swipes
+                for (const [swipeId, swipeData] of Object.entries(swipeInfo.extra.rpg_companion_swipes)) {
+                    if (!message.extra.rpg_companion_swipes[swipeId]) {
+                        message.extra.rpg_companion_swipes[swipeId] = swipeData;
+                    }
+                }
+                // Clean up the scattered data to prevent future duplication
+                delete swipeInfo.extra.rpg_companion_swipes;
+            }
+        }
+    }
+
     const currentSwipeId = message.swipe_id || 0;
 
     // Only set flag to true if this swipe will trigger a NEW generation
@@ -435,23 +475,70 @@ export function onMessageSwiped(messageIndex) {
         // This is navigating to an EXISTING swipe - don't change the flag
         // console.log('[RPG Companion] 🔵 EXISTING swipe navigation - lastActionWasSwipe unchanged =', lastActionWasSwipe);
 
-        // Load RPG data for this existing swipe for DISPLAY purposes
+        // Load RPG data for this existing swipe for DISPLAY and EDITING purposes
         if (message.extra && message.extra.rpg_companion_swipes && message.extra.rpg_companion_swipes[currentSwipeId]) {
             const swipeData = message.extra.rpg_companion_swipes[currentSwipeId];
 
-            // Load swipe data into lastGeneratedData for display
+            // Load swipe data into BOTH lastGeneratedData and committedTrackerData
+            // committedTrackerData is the source of truth for current state (used by inventory actions, etc.)
             lastGeneratedData.userStats = swipeData.userStats || null;
             lastGeneratedData.infoBox = swipeData.infoBox || null;
             lastGeneratedData.characterThoughts = swipeData.characterThoughts || null;
+            
+            committedTrackerData.userStats = swipeData.userStats || null;
+            committedTrackerData.infoBox = swipeData.infoBox || null;
+            committedTrackerData.characterThoughts = swipeData.characterThoughts || null;
 
             // Parse user stats if available
             if (swipeData.userStats) {
                 parseUserStats(swipeData.userStats);
             }
 
-            // console.log('[RPG Companion] 🔄 Loaded swipe data into lastGeneratedData for display:', currentSwipeId);
+            // console.log('[RPG Companion] 🔄 Loaded swipe data into lastGeneratedData and committedTrackerData for display:', currentSwipeId);
         } else {
-            // console.log('[RPG Companion] ℹ️ No stored data for swipe:', currentSwipeId);
+            // No stored swipe data for this existing swipe
+            // Look back through chat history to find the most recent RPG data BEFORE this message
+            // console.log('[RPG Companion] ℹ️ No stored swipe data for swipe:', currentSwipeId, '- searching history');
+
+            let foundHistoricalData = false;
+            for (let i = messageIndex - 1; i >= 0; i--) {
+                const prevMessage = currentChat[i];
+                if (!prevMessage.is_user && prevMessage.extra?.rpg_companion_swipes) {
+                    const prevSwipeId = prevMessage.swipe_id || 0;
+                    const prevSwipeData = prevMessage.extra.rpg_companion_swipes[prevSwipeId];
+
+                    if (prevSwipeData) {
+                        // Found historical data - use it
+                        lastGeneratedData.userStats = prevSwipeData.userStats || null;
+                        lastGeneratedData.infoBox = prevSwipeData.infoBox || null;
+                        lastGeneratedData.characterThoughts = prevSwipeData.characterThoughts || null;
+
+                        committedTrackerData.userStats = prevSwipeData.userStats || null;
+                        committedTrackerData.infoBox = prevSwipeData.infoBox || null;
+                        committedTrackerData.characterThoughts = prevSwipeData.characterThoughts || null;
+
+                        if (prevSwipeData.userStats) {
+                            parseUserStats(prevSwipeData.userStats);
+                        }
+
+                        // console.log('[RPG Companion] 🔄 Found historical data from message', i);
+                        foundHistoricalData = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!foundHistoricalData) {
+                // No historical data found - clear the display
+                // console.log('[RPG Companion] ℹ️ No historical RPG data found - clearing display');
+                lastGeneratedData.userStats = null;
+                lastGeneratedData.infoBox = null;
+                lastGeneratedData.characterThoughts = null;
+
+                committedTrackerData.userStats = null;
+                committedTrackerData.infoBox = null;
+                committedTrackerData.characterThoughts = null;
+            }
         }
     }
 

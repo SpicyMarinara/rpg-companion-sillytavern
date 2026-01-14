@@ -10,7 +10,7 @@ import {
     committedTrackerData,
     $infoBoxContainer
 } from '../../core/state.js';
-import { saveChatData } from '../../core/persistence.js';
+import { saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
 import { i18n } from '../../core/i18n.js';
 import { isItemLocked } from '../generation/lockManager.js';
 import { repairJSON } from '../../utils/jsonRepair.js';
@@ -735,6 +735,7 @@ export function updateInfoBoxField(field, value) {
             lastGeneratedData.infoBox = JSON.stringify(jsonData, null, 2);
             committedTrackerData.infoBox = lastGeneratedData.infoBox;
             saveChatData();
+            updateMessageSwipeData();
             renderInfoBox();
             // console.log('[RPG Companion] Updated info box field (v3 JSON):', { field, value });
             return;
@@ -980,25 +981,11 @@ export function updateInfoBoxField(field, value) {
     // This makes manual edits immediately visible to AI
     committedTrackerData.infoBox = updatedLines.join('\n');
 
-    // Update the message's swipe data
-    const chat = getContext().chat;
-    if (chat && chat.length > 0) {
-        for (let i = chat.length - 1; i >= 0; i--) {
-            const message = chat[i];
-            if (!message.is_user) {
-                if (message.extra && message.extra.rpg_companion_swipes) {
-                    const swipeId = message.swipe_id || 0;
-                    if (message.extra.rpg_companion_swipes[swipeId]) {
-                        message.extra.rpg_companion_swipes[swipeId].infoBox = updatedLines.join('\n');
-                        // console.log('[RPG Companion] Updated infoBox in message swipe data');
-                    }
-                }
-                break;
-            }
-        }
-    }
-
+    // Save to chat metadata and update message swipe data
+    // updateMessageSwipeData() ensures the data is saved to the last assistant message's
+    // rpg_companion_swipes, creating the structure if it doesn't exist
     saveChatData();
+    updateMessageSwipeData();
 
     // Only re-render if NOT editing date fields
     // Date fields will update on next tracker generation to avoid losing user input
@@ -1020,76 +1007,112 @@ function updateRecentEvent(field, value) {
         'event3': 2
     }[field];
 
-    if (eventIndex !== undefined) {
-        // Parse current infoBox to get existing events
-        const lines = (committedTrackerData.infoBox || '').split('\n');
-        let recentEvents = [];
-
-        // Find existing Recent Events line
-        const recentEventsLine = lines.find(line => line.startsWith('Recent Events:'));
-        if (recentEventsLine) {
-            const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
-            if (eventsString) {
-                recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
-            }
-        }
-
-        // Ensure array has enough slots
-        while (recentEvents.length <= eventIndex) {
-            recentEvents.push('');
-        }
-
-        // Update the specific event
-        recentEvents[eventIndex] = value;
-
-        // Filter out empty events and rebuild the line
-        const validEvents = recentEvents.filter(e => e && e.trim());
-        const newRecentEventsLine = validEvents.length > 0
-            ? `Recent Events: ${validEvents.join(', ')}`
-            : '';
-
-        // Update infoBox with new Recent Events line
-        const updatedLines = lines.filter(line => !line.startsWith('Recent Events:'));
-        if (newRecentEventsLine) {
-            // Add Recent Events line at the end (before any empty lines)
-            let insertIndex = updatedLines.length;
-            for (let i = updatedLines.length - 1; i >= 0; i--) {
-                if (updatedLines[i].trim() !== '') {
-                    insertIndex = i + 1;
-                    break;
-                }
-            }
-            updatedLines.splice(insertIndex, 0, newRecentEventsLine);
-        }
-
-        committedTrackerData.infoBox = updatedLines.join('\n');
-        lastGeneratedData.infoBox = updatedLines.join('\n');
-
-        // Update the message's swipe data
-        const chat = getContext().chat;
-        if (chat && chat.length > 0) {
-            for (let i = chat.length - 1; i >= 0; i--) {
-                const message = chat[i];
-                if (!message.is_user) {
-                    if (message.extra && message.extra.rpg_companion_swipes) {
-                        const swipeId = message.swipe_id || 0;
-                        if (message.extra.rpg_companion_swipes[swipeId]) {
-                            message.extra.rpg_companion_swipes[swipeId].infoBox = updatedLines.join('\n');
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
-        saveChatData();
-        renderInfoBox();
-
-        // Update weather effect after rendering
-        if (window.RPGCompanion?.updateWeatherEffect) {
-            window.RPGCompanion.updateWeatherEffect();
-        }
-
-        // console.log(`[RPG Companion] Updated recent event ${field}:`, value);
+    if (eventIndex === undefined) {
+        return;
     }
+
+    // Check if data is in v3 JSON format
+    const infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox || '';
+    const trimmed = infoBoxData.trim();
+    
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        // Handle v3 JSON format
+        const jsonData = repairJSON(infoBoxData);
+        if (jsonData) {
+            // Initialize recentEvents array if it doesn't exist
+            if (!jsonData.recentEvents) {
+                jsonData.recentEvents = [];
+            }
+            
+            // Ensure array has enough slots
+            while (jsonData.recentEvents.length <= eventIndex) {
+                jsonData.recentEvents.push('');
+            }
+            
+            // Update the specific event
+            jsonData.recentEvents[eventIndex] = value;
+            
+            // Filter out empty events (but keep array structure)
+            jsonData.recentEvents = jsonData.recentEvents.map(e => e || '').slice(0, 3);
+            // Remove trailing empty strings
+            while (jsonData.recentEvents.length > 0 && !jsonData.recentEvents[jsonData.recentEvents.length - 1]) {
+                jsonData.recentEvents.pop();
+            }
+            
+            // Save back as JSON
+            lastGeneratedData.infoBox = JSON.stringify(jsonData, null, 2);
+            committedTrackerData.infoBox = lastGeneratedData.infoBox;
+            
+            // Save to chat metadata and update message swipe data
+            saveChatData();
+            updateMessageSwipeData();
+            
+            renderInfoBox();
+            
+            // Update weather effect after rendering
+            if (window.RPGCompanion?.updateWeatherEffect) {
+                window.RPGCompanion.updateWeatherEffect();
+            }
+            
+            return;
+        }
+    }
+
+    // Fall back to text format handling
+    // Parse current infoBox to get existing events
+    const lines = (committedTrackerData.infoBox || '').split('\n');
+    let recentEvents = [];
+
+    // Find existing Recent Events line
+    const recentEventsLine = lines.find(line => line.startsWith('Recent Events:'));
+    if (recentEventsLine) {
+        const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
+        if (eventsString) {
+            recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
+        }
+    }
+
+    // Ensure array has enough slots
+    while (recentEvents.length <= eventIndex) {
+        recentEvents.push('');
+    }
+
+    // Update the specific event
+    recentEvents[eventIndex] = value;
+
+    // Filter out empty events and rebuild the line
+    const validEvents = recentEvents.filter(e => e && e.trim());
+    const newRecentEventsLine = validEvents.length > 0
+        ? `Recent Events: ${validEvents.join(', ')}`
+        : '';
+
+    // Update infoBox with new Recent Events line
+    const updatedLines = lines.filter(line => !line.startsWith('Recent Events:'));
+    if (newRecentEventsLine) {
+        // Add Recent Events line at the end (before any empty lines)
+        let insertIndex = updatedLines.length;
+        for (let i = updatedLines.length - 1; i >= 0; i--) {
+            if (updatedLines[i].trim() !== '') {
+                insertIndex = i + 1;
+                break;
+            }
+        }
+        updatedLines.splice(insertIndex, 0, newRecentEventsLine);
+    }
+
+    committedTrackerData.infoBox = updatedLines.join('\n');
+    lastGeneratedData.infoBox = updatedLines.join('\n');
+
+    // Save to chat metadata and update message swipe data
+    saveChatData();
+    updateMessageSwipeData();
+
+    renderInfoBox();
+
+    // Update weather effect after rendering
+    if (window.RPGCompanion?.updateWeatherEffect) {
+        window.RPGCompanion.updateWeatherEffect();
+    }
+
+    // console.log(`[RPG Companion] Updated recent event ${field}:`, value);
 }

@@ -1,17 +1,18 @@
 /**
  * Inventory Rendering Module
- * Handles UI rendering for inventory v2 system
+ * Handles UI rendering for inventory v3 system
  */
 
 import { extensionSettings, $inventoryContainer } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 import { getInventoryRenderOptions, restoreFormStates } from '../interaction/inventoryActions.js';
 import { updateInventoryItem } from '../interaction/inventoryEdit.js';
-import { parseItems } from '../../utils/itemParser.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
+import { getInventoryV3, formatItemDisplay } from '../../utils/inventoryHelper.js';
 
 // Type imports
-/** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
+/** @typedef {import('../../utils/inventoryHelper.js').V3Item} V3Item */
+/** @typedef {import('../../utils/inventoryHelper.js').V3Inventory} V3Inventory */
 
 /**
  * Helper to generate lock icon HTML if setting is enabled
@@ -67,38 +68,41 @@ export function renderInventorySubTabs(activeTab = 'onPerson') {
 
 /**
  * Renders the "On Person" inventory view with list or grid display
- * @param {string} onPersonItems - Current on-person items (comma-separated string)
+ * @param {V3Item[]} items - Array of v3 item objects with {name, quantity}
  * @param {string} viewMode - View mode ('list' or 'grid')
  * @returns {string} HTML for on-person view with items and add button
  */
-export function renderOnPersonView(onPersonItems, viewMode = 'list') {
-    const items = parseItems(onPersonItems);
+export function renderOnPersonView(items, viewMode = 'list') {
+    // Ensure items is an array
+    const itemsArray = Array.isArray(items) ? items : [];
 
     let itemsHtml = '';
-    if (items.length === 0) {
+    if (itemsArray.length === 0) {
         itemsHtml = '<div class="rpg-inventory-empty">No items carried</div>';
     } else {
         if (viewMode === 'grid') {
             // Grid view: card-style items
-            itemsHtml = items.map((item, index) => {
+            itemsHtml = itemsArray.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.onPerson[${index}]`);
+                const displayName = formatItemDisplay(item);
                 return `
                 <div class="rpg-item-card" data-field="onPerson" data-index="${index}">
                     ${lockIconHtml}
                     <button class="rpg-item-remove" data-action="remove-item" data-field="onPerson" data-index="${index}" title="Remove item">
                         <i class="fa-solid fa-times"></i>
                     </button>
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="Click to edit">${escapeHtml(displayName)}</span>
                 </div>
             `}).join('');
         } else {
             // List view: full-width rows
-            itemsHtml = items.map((item, index) => {
+            itemsHtml = itemsArray.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.onPerson[${index}]`);
+                const displayName = formatItemDisplay(item);
                 return `
                 <div class="rpg-item-row" data-field="onPerson" data-index="${index}">
                     ${lockIconHtml}
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="Click to edit">${escapeHtml(displayName)}</span>
                     <button class="rpg-item-remove" data-action="remove-item" data-field="onPerson" data-index="${index}" title="Remove item">
                         <i class="fa-solid fa-times"></i>
                     </button>
@@ -149,38 +153,41 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
 
 /**
  * Renders the "Clothing" inventory view with list or grid display
- * @param {string} clothingItems - Current clothing items (comma-separated string)
+ * @param {V3Item[]} items - Array of v3 item objects with {name, quantity}
  * @param {string} viewMode - View mode ('list' or 'grid')
  * @returns {string} HTML for clothing view with items and add button
  */
-export function renderClothingView(clothingItems, viewMode = 'list') {
-    const items = parseItems(clothingItems);
+export function renderClothingView(items, viewMode = 'list') {
+    // Ensure items is an array
+    const itemsArray = Array.isArray(items) ? items : [];
 
     let itemsHtml = '';
-    if (items.length === 0) {
+    if (itemsArray.length === 0) {
         itemsHtml = '<div class="rpg-inventory-empty">No clothing worn</div>';
     } else {
         if (viewMode === 'grid') {
             // Grid view: card-style items
-            itemsHtml = items.map((item, index) => {
+            itemsHtml = itemsArray.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.clothing[${index}]`);
+                const displayName = formatItemDisplay(item);
                 return `
                 <div class="rpg-item-card" data-field="clothing" data-index="${index}">
                     ${lockIconHtml}
                     <button class="rpg-item-remove" data-action="remove-item" data-field="clothing" data-index="${index}" title="Remove item">
                         <i class="fa-solid fa-times"></i>
                     </button>
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="Click to edit">${escapeHtml(displayName)}</span>
                 </div>
             `}).join('');
         } else {
             // List view: full-width rows
-            itemsHtml = items.map((item, index) => {
+            itemsHtml = itemsArray.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.clothing[${index}]`);
+                const displayName = formatItemDisplay(item);
                 return `
                 <div class="rpg-item-row" data-field="clothing" data-index="${index}">
                     ${lockIconHtml}
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="Click to edit">${escapeHtml(displayName)}</span>
                     <button class="rpg-item-remove" data-action="remove-item" data-field="clothing" data-index="${index}" title="Remove item">
                         <i class="fa-solid fa-times"></i>
                     </button>
@@ -231,7 +238,7 @@ export function renderClothingView(clothingItems, viewMode = 'list') {
 
 /**
  * Renders the "Stored" inventory view with collapsible locations and list/grid views
- * @param {Object.<string, string>} stored - Stored items by location
+ * @param {Object.<string, V3Item[]>} stored - Stored items by location (arrays of v3 items)
  * @param {string[]} collapsedLocations - Array of collapsed location names
  * @param {string} viewMode - View mode ('list' or 'grid')
  * @returns {string} HTML for stored inventory with all locations
@@ -279,36 +286,38 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
         `;
     } else {
         for (const location of locations) {
-            const itemString = stored[location];
-            const items = parseItems(itemString);
+            // V3 format: stored[location] is an array of {name, quantity} objects
+            const itemsArray = Array.isArray(stored[location]) ? stored[location] : [];
             const isCollapsed = collapsedLocations.includes(location);
             const locationId = getLocationId(location);
 
             let itemsHtml = '';
-            if (items.length === 0) {
+            if (itemsArray.length === 0) {
                 itemsHtml = '<div class="rpg-inventory-empty">No items stored here</div>';
             } else {
                 if (viewMode === 'grid') {
                     // Grid view: card-style items
-                    itemsHtml = items.map((item, index) => {
+                    itemsHtml = itemsArray.map((item, index) => {
                         const lockIconHtml = getLockIconHtml('userStats', `inventory.stored.${location}[${index}]`);
+                        const displayName = formatItemDisplay(item);
                         return `
                         <div class="rpg-item-card" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
                             ${lockIconHtml}
                             <button class="rpg-item-remove" data-action="remove-item" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Remove item">
                                 <i class="fa-solid fa-times"></i>
                             </button>
-                            <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                            <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Click to edit">${escapeHtml(displayName)}</span>
                         </div>
                     `}).join('');
                 } else {
                     // List view: full-width rows
-                    itemsHtml = items.map((item, index) => {
+                    itemsHtml = itemsArray.map((item, index) => {
                         const lockIconHtml = getLockIconHtml('userStats', `inventory.stored.${location}[${index}]`);
+                        const displayName = formatItemDisplay(item);
                         return `
                         <div class="rpg-item-row" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
                             ${lockIconHtml}
-                            <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                            <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Click to edit">${escapeHtml(displayName)}</span>
                             <button class="rpg-item-remove" data-action="remove-item" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="Remove item">
                                 <i class="fa-solid fa-times"></i>
                             </button>
@@ -379,38 +388,41 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
 
 /**
  * Renders the "Assets" inventory view with list or grid display
- * @param {string} assets - Current assets (vehicles, property, equipment)
+ * @param {V3Item[]} items - Array of v3 item objects with {name, quantity}
  * @param {string} viewMode - View mode ('list' or 'grid')
  * @returns {string} HTML for assets view with items and add button
  */
-export function renderAssetsView(assets, viewMode = 'list') {
-    const items = parseItems(assets);
+export function renderAssetsView(items, viewMode = 'list') {
+    // Ensure items is an array
+    const itemsArray = Array.isArray(items) ? items : [];
 
     let itemsHtml = '';
-    if (items.length === 0) {
+    if (itemsArray.length === 0) {
         itemsHtml = '<div class="rpg-inventory-empty">No assets owned</div>';
     } else {
         if (viewMode === 'grid') {
             // Grid view: card-style items
-            itemsHtml = items.map((item, index) => {
+            itemsHtml = itemsArray.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.assets[${index}]`);
+                const displayName = formatItemDisplay(item);
                 return `
                 <div class="rpg-item-card" data-field="assets" data-index="${index}">
                     ${lockIconHtml}
                     <button class="rpg-item-remove" data-action="remove-item" data-field="assets" data-index="${index}" title="Remove asset">
                         <i class="fa-solid fa-times"></i>
                     </button>
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="Click to edit">${escapeHtml(displayName)}</span>
                 </div>
             `}).join('');
         } else {
             // List view: full-width rows
-            itemsHtml = items.map((item, index) => {
+            itemsHtml = itemsArray.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.assets[${index}]`);
+                const displayName = formatItemDisplay(item);
                 return `
                 <div class="rpg-item-row" data-field="assets" data-index="${index}">
                     ${lockIconHtml}
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="Click to edit">${escapeHtml(item)}</span>
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="Click to edit">${escapeHtml(displayName)}</span>
                     <button class="rpg-item-remove" data-action="remove-item" data-field="assets" data-index="${index}" title="Remove asset">
                         <i class="fa-solid fa-times"></i>
                     </button>
@@ -465,50 +477,20 @@ export function renderAssetsView(assets, viewMode = 'list') {
 }
 
 /**
- * Generates inventory HTML (internal helper)
- * @param {InventoryV2} inventory - Inventory data to render
+ * Generates inventory HTML using v3 data from lastGeneratedData/committedTrackerData
  * @param {Object} options - Rendering options
- * @param {string} options.activeSubTab - Currently active sub-tab ('onPerson', 'stored', 'assets')
+ * @param {string} options.activeSubTab - Currently active sub-tab ('onPerson', 'clothing', 'stored', 'assets')
  * @param {string[]} options.collapsedLocations - Collapsed storage locations
  * @returns {string} Complete HTML for inventory tab content
  */
-function generateInventoryHTML(inventory, options = {}) {
+function generateInventoryHTML(options = {}) {
     const {
         activeSubTab = 'onPerson',
         collapsedLocations = []
     } = options;
 
-    // Handle legacy v1 format - convert to v2 for display
-    let v2Inventory = inventory;
-    if (typeof inventory === 'string') {
-        v2Inventory = {
-            version: 2,
-            onPerson: inventory,
-            stored: {},
-            assets: 'None'
-        };
-    }
-
-    // Ensure v2 structure has all required fields
-    if (!v2Inventory || typeof v2Inventory !== 'object') {
-        v2Inventory = {
-            version: 2,
-            onPerson: 'None',
-            stored: {},
-            assets: 'None'
-        };
-    }
-
-    // Additional safety check: ensure required properties exist and are correct type
-    if (!v2Inventory.onPerson || typeof v2Inventory.onPerson !== 'string') {
-        v2Inventory.onPerson = 'None';
-    }
-    if (!v2Inventory.stored || typeof v2Inventory.stored !== 'object' || Array.isArray(v2Inventory.stored)) {
-        v2Inventory.stored = {};
-    }
-    if (!v2Inventory.assets || typeof v2Inventory.assets !== 'string') {
-        v2Inventory.assets = 'None';
-    }
+    // Get v3 inventory data from lastGeneratedData/committedTrackerData
+    const v3Inventory = getInventoryV3();
 
     let html = `
         <div class="rpg-inventory-container">
@@ -524,22 +506,22 @@ function generateInventoryHTML(inventory, options = {}) {
         assets: 'list'
     };
 
-    // Render the active view
+    // Render the active view using v3 arrays
     switch (activeSubTab) {
         case 'onPerson':
-            html += renderOnPersonView(v2Inventory.onPerson, viewModes.onPerson);
+            html += renderOnPersonView(v3Inventory.onPerson, viewModes.onPerson);
             break;
         case 'clothing':
-            html += renderClothingView(v2Inventory.clothing, viewModes.clothing);
+            html += renderClothingView(v3Inventory.clothing, viewModes.clothing);
             break;
         case 'stored':
-            html += renderStoredView(v2Inventory.stored, collapsedLocations, viewModes.stored);
+            html += renderStoredView(v3Inventory.stored, collapsedLocations, viewModes.stored);
             break;
         case 'assets':
-            html += renderAssetsView(v2Inventory.assets, viewModes.assets);
+            html += renderAssetsView(v3Inventory.assets, viewModes.assets);
             break;
         default:
-            html += renderOnPersonView(v2Inventory.onPerson, viewModes.onPerson);
+            html += renderOnPersonView(v3Inventory.onPerson, viewModes.onPerson);
     }
 
     html += `
@@ -562,8 +544,8 @@ export function updateInventoryDisplay(containerId, options = {}) {
         return;
     }
 
-    const inventory = extensionSettings.userStats.inventory;
-    const html = generateInventoryHTML(inventory, options);
+    // Now uses v3 data from lastGeneratedData/committedTrackerData
+    const html = generateInventoryHTML(options);
     container.innerHTML = html;
 
     // Restore form states after re-rendering
@@ -572,7 +554,7 @@ export function updateInventoryDisplay(containerId, options = {}) {
 
 /**
  * Main inventory rendering function (matches pattern of other render functions)
- * Gets data from state/settings and updates DOM directly.
+ * Gets data from lastGeneratedData/committedTrackerData and updates DOM directly.
  * Call this after AI generation, character changes, or swipes.
  */
 export function renderInventory() {
@@ -581,14 +563,11 @@ export function renderInventory() {
         return;
     }
 
-    // Get inventory data from settings
-    const inventory = extensionSettings.userStats.inventory;
-
     // Get current render options (active tab, collapsed locations)
     const options = getInventoryRenderOptions();
 
-    // Generate HTML and update DOM
-    const html = generateInventoryHTML(inventory, options);
+    // Generate HTML from v3 data and update DOM
+    const html = generateInventoryHTML(options);
     $inventoryContainer.html(html);
 
     // Restore form states after re-rendering (fixes Bug #1)

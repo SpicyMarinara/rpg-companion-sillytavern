@@ -567,50 +567,10 @@ export function parseUserStats(statsText) {
                     }
                 }
 
-                // Extract inventory (convert v3 array format to v2 string format)
-                if (statsData.inventory) {
-                    const inv = statsData.inventory;
+                // Inventory is now kept in v3 format in lastGeneratedData.userStats
+                // No conversion needed - UI reads directly from lastGeneratedData
 
-                    // Convert arrays of {name, quantity} objects to comma-separated strings
-                    const convertItems = (items) => {
-                        if (!items || !Array.isArray(items)) return '';
-                        return items.map(item => {
-                            if (typeof item === 'object' && item.name) {
-                                // Include quantity if > 1
-                                return item.quantity && item.quantity > 1
-                                    ? `${item.quantity}x ${item.name}`
-                                    : item.name;
-                            }
-                            return String(item);
-                        }).join(', ');
-                    };
-
-                    // Convert stored object {location: [items]} to {location: "item1, item2"}
-                    const convertStoredInventory = (stored) => {
-                        if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {};
-                        const result = {};
-                        for (const [location, items] of Object.entries(stored)) {
-                            if (Array.isArray(items)) {
-                                result[location] = convertItems(items);
-                            } else if (typeof items === 'string') {
-                                result[location] = items;
-                            } else {
-                                result[location] = '';
-                            }
-                        }
-                        return result;
-                    };
-
-                    extensionSettings.userStats.inventory = {
-                        onPerson: convertItems(inv.onPerson),
-                        clothing: convertItems(inv.clothing),
-                        stored: convertStoredInventory(inv.stored),
-                        assets: convertItems(inv.assets)
-                    };
-                    // console.log('[RPG Parser] ✓ Converted v3 inventory:', extensionSettings.userStats.inventory);
-                }
-
-                // Extract quests (convert v3 object format to v2 string format)
+                // Extract quests (convert v3 object format to simple format for extensionSettings)
                 if (statsData.quests) {
                     // Convert quest objects to strings
                     const convertQuest = (quest) => {
@@ -618,7 +578,15 @@ export function parseUserStats(statsText) {
                         if (typeof quest === 'string') return quest;
                         if (typeof quest === 'object') {
                             // v3 format: {title, description, status}
-                            return quest.title || quest.description || JSON.stringify(quest);
+                            // Check if 'title' property exists (even if empty string)
+                            if ('title' in quest) {
+                                return quest.title || '';
+                            }
+                            if ('description' in quest) {
+                                return quest.description || '';
+                            }
+                            // Fallback to JSON only if no known properties
+                            return JSON.stringify(quest);
                         }
                         return String(quest);
                     };

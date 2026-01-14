@@ -14,7 +14,7 @@ import {
     FALLBACK_AVATAR_DATA_URI,
     addDebugLog
 } from '../../core/state.js';
-import { saveChatData, saveSettings } from '../../core/persistence.js';
+import { saveChatData, saveSettings, updateMessageSwipeData } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
 
@@ -765,24 +765,9 @@ export function removeCharacter(characterName) {
         committedTrackerData.characterThoughts = lines.join('\n');
     }
 
-    // Update message swipe data
-    const chat = getContext().chat;
-    if (chat && chat.length > 0) {
-        for (let i = chat.length - 1; i >= 0; i--) {
-            const message = chat[i];
-            if (!message.is_user) {
-                if (message.extra && message.extra.rpg_companion_swipes) {
-                    const swipeId = message.swipe_id || 0;
-                    if (message.extra.rpg_companion_swipes[swipeId]) {
-                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = lastGeneratedData.characterThoughts;
-                    }
-                }
-                break;
-            }
-        }
-    }
-
+    // Save to chat metadata and update message swipe data
     saveChatData();
+    updateMessageSwipeData();
 
     // Re-render to show updated character list
     renderThoughts();
@@ -875,12 +860,28 @@ export function updateCharacterField(characterName, field, value) {
             } else {
                 // Check if it's a character stat
                 const isStatField = enabledCharStats.findIndex(s => s.name === field) !== -1;
+                // console.log('[RPG Companion] Stat field check:', { field, isStatField, enabledCharStats: enabledCharStats.map(s => s.name) });
                 if (isStatField) {
-                    if (!char.stats) char.stats = {};
                     let numValue = parseInt(value.replace('%', '').trim());
                     if (isNaN(numValue)) numValue = 0;
                     numValue = Math.max(0, Math.min(100, numValue));
-                    char.stats[field] = numValue;
+                    
+                    // Handle both array format [{name: "Health", value: 100}] and object format {Health: 100}
+                    if (Array.isArray(char.stats)) {
+                        // Array format - find and update the stat entry
+                        const statIndex = char.stats.findIndex(s => s.name === field);
+                        if (statIndex !== -1) {
+                            char.stats[statIndex].value = numValue;
+                        } else {
+                            // Stat not found, add it
+                            char.stats.push({ name: field, value: numValue });
+                        }
+                    } else {
+                        // Object format or stats doesn't exist
+                        if (!char.stats) char.stats = {};
+                        char.stats[field] = numValue;
+                    }
+                    // console.log('[RPG Companion] Updated stat:', { characterName, field, numValue, charStats: char.stats });
                 } else {
                     // It's a custom detail field
                     if (!char.details) char.details = {};
@@ -889,31 +890,19 @@ export function updateCharacterField(characterName, field, value) {
             }
         }
 
-        // Save back to lastGeneratedData
-        lastGeneratedData.characterThoughts = Array.isArray(parsedData) ? charactersArray : { ...parsedData, characters: charactersArray };
+        // Save back to lastGeneratedData as JSON string for consistency
+        // This ensures the data is properly parsed on next read and stored correctly in swipe data
+        const updatedData = Array.isArray(parsedData) ? charactersArray : { ...parsedData, characters: charactersArray };
+        // console.log('[RPG Companion] Saving updatedData:', JSON.stringify(updatedData, null, 2));
+        lastGeneratedData.characterThoughts = JSON.stringify(updatedData, null, 2);
         committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
 
         // console.log('[RPG Companion] Saved to lastGeneratedData.characterThoughts:', JSON.stringify(lastGeneratedData.characterThoughts));
         // console.log('[RPG Companion] Saved to committedTrackerData.characterThoughts:', JSON.stringify(committedTrackerData.characterThoughts));
 
-        // Update in chat metadata
-        const chat = getContext().chat;
-        if (chat && chat.length > 0) {
-            for (let i = chat.length - 1; i >= 0; i--) {
-                const message = chat[i];
-                if (!message.is_user) {
-                    if (message.extra && message.extra.rpg_companion_swipes) {
-                        const swipeId = message.swipe_id || 0;
-                        if (message.extra.rpg_companion_swipes[swipeId]) {
-                            message.extra.rpg_companion_swipes[swipeId].characterThoughts = lastGeneratedData.characterThoughts;
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
+        // Save to chat metadata and update message swipe data
         saveChatData();
+        updateMessageSwipeData();
 
         // console.log('[RPG Companion] JSON format updated successfully');
         // console.log('[RPG Companion] Updated data:', lastGeneratedData.characterThoughts);
@@ -1116,23 +1105,9 @@ export function updateCharacterField(characterName, field, value) {
 
     // console.log('[RPG Companion] Updated characterThoughts data:', lastGeneratedData.characterThoughts);
 
-    const chat = getContext().chat;
-    if (chat && chat.length > 0) {
-        for (let i = chat.length - 1; i >= 0; i--) {
-            const message = chat[i];
-            if (!message.is_user) {
-                if (message.extra && message.extra.rpg_companion_swipes) {
-                    const swipeId = message.swipe_id || 0;
-                    if (message.extra.rpg_companion_swipes[swipeId]) {
-                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = lines.join('\n');
-                    }
-                }
-                break;
-            }
-        }
-    }
-
+    // Save to chat metadata and update message swipe data
     saveChatData();
+    updateMessageSwipeData();
 
     // Don't re-render to avoid overwriting user edits while they're still editing
     // The changes are already saved to lastGeneratedData and committedTrackerData
