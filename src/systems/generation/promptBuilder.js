@@ -41,20 +41,20 @@ export const DEFAULT_OMNISCIENCE_FILTER_PROMPT = `OMNISCIENCE FILTER INSTRUCTION
 You must strictly separate what the player character can directly perceive from what they cannot. The player should only read narrative content that their character can actually see, hear, smell, touch, or otherwise directly sense.
 If the player character cannot directly perceive something, but it is happening, it ABSOLUTELY MUST be placed inside of a <filter> tag.
 BEFORE writing any narrative content that involves events, actions, or details the player character CANNOT directly perceive (because they're not looking, too far away, behind them, in another room, happening silently, etc.), you MUST first output that hidden information inside a <filter> tag using this exact format:
-<filter event="[Brief description of what is happening that the player cannot perceive]" reason="[Why the player character cannot perceive this - e.g., 'behind them', 'in another room', 'too quiet to hear', 'focused elsewhere']">
+<filter event="[Brief description of what is happening that the player cannot perceive]" reason="[Why the player character cannot perceive this - e.g., 'behind them', 'in another room', 'too quiet to hear', 'focused elsewhere']"/>
 
 CRITICAL RULES:
 1. The <filter> tag must come BEFORE any sensory hints (sounds, smells, etc.) that the player DOES perceive from that event
 2. Only write narrative that reflects what the player character actually experiences through their senses
-3. Instead of "Jake sweeps the floor behind you", write: <filter event="Jake is sweeping the floor" reason="Jake is behind Michael who is focused on reading"> followed by narrative like "You hear soft sweeping sounds behind you"
+3. Instead of "Jake sweeps the floor behind you", write: <filter event="Jake is sweeping the floor" reason="Jake is behind Michael who is focused on reading"/> followed by narrative like "You hear soft sweeping sounds behind you"
 4. NPCs' internal thoughts, silent actions, and events in other locations MUST go in <filter> tags
 5. The player's narrative should create natural mystery and immersion - they experience the world through limited senses, not omniscient narration
 6. Be liberal and proactive in using <filter> tags to hide information the player cannot perceive directly
-7. Don't forget to properly enclose the <filter> tag.
+7. Don't forget to properly close the <filter> tag with />.
 
 EXAMPLE:
 Wrong: "As you read the newspaper, Sarah quietly pockets the key from the table behind you and slips out the back door."
-Correct: <filter event="Sarah quietly takes the key from the table and slips out the back door" reason="Sarah is behind Michael who is absorbed in reading, and she moves silently">You hear a faint click from somewhere behind you, but when you glance up from your newspaper, the room seems unchanged. The afternoon light streams through the windows as you return to your reading.`;
+Correct: <filter event="Sarah quietly takes the key from the table and slips out the back door" reason="Sarah is behind Michael who is absorbed in reading, and she moves silently"/>You hear a faint click from somewhere behind you, but when you glance up from your newspaper, the room seems unchanged. The afternoon light streams through the windows as you return to your reading.`;
 
 
 /**
