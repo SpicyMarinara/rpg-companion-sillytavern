@@ -113,33 +113,82 @@ function parseWeatherType(weatherText) {
 
     const text = weatherText.toLowerCase();
 
-    // Check for specific weather conditions (order matters - check combined effects first)
-    if (text.includes('blizzard')) {
-        return 'blizzard'; // Snow + Wind
-    }
-    if (text.includes('storm') || text.includes('thunder') || text.includes('lightning')) {
-        return 'storm'; // Rain + Lightning
-    }
-    if (text.includes('wind') || text.includes('breeze') || text.includes('gust') || text.includes('gale')) {
-        return 'wind';
-    }
-    if (text.includes('snow') || text.includes('flurries')) {
-        return 'snow';
-    }
-    if (text.includes('rain') || text.includes('drizzle') || text.includes('shower')) {
-        return 'rain';
-    }
-    if (text.includes('mist') || text.includes('fog') || text.includes('haze')) {
-        return 'mist';
-    }
-    if (text.includes('sunny') || text.includes('clear') || text.includes('bright')) {
-        return 'sunny';
-    }
-    if (text.includes('cloud') || text.includes('overcast') || text.includes('indoor') || text.includes('inside')) {
-        return 'none';
-    }
+    const weather_en = new Map([
+    ["blizzard", "blizzard"],
+    ["storm", "storm,thunder,lightning"],
+    ["wind", "wind,breeze,gust,gale"],
+    ["snow", "snow,flurries"],
+    ["rain", "rain,drizzle,shower"],
+    ["mist", "mist,fog,haze"],
+    ["sunny", "sunny,clear,bright"],
+    ["none", "cloud,overcast,indoor,inside"],
+  ]);
 
-    return 'none';
+  const weather_ru = new Map([
+    ["blizzard", "метель"],
+    ["storm", "гроза,буря,шторм"],
+    [
+      "wind",
+      "ветер,ветренно,ветерок,бриз,легкий бриз,слегка ветренно,легкий ветер,шквол,буря",
+    ],
+    ["snow", "снег,снегопад"],
+    ["rain", "дождь,морось,ливень"],
+    ["mist", "мгла,туман,туманно"],
+    ["sunny", "солнечно,ясно,ярко,ясное утро,ясный день"],
+    ["none", "облачно,пасмурно,в помещении,внутри"],
+  ]);
+
+    // Check for specific weather conditions (order matters - check combined effects first)
+    if (
+    weather_en.get("blizzard").includes(text) ||
+    weather_ru.get("blizzard").includes(text)
+  ) {
+    return "blizzard"; // Snow + Wind
+  }
+  if (
+    weather_en.get("storm").includes(text) ||
+    weather_ru.get("storm").includes(text)
+  ) {
+    return "storm"; // Rain + Lightning
+  }
+  if (
+    weather_en.get("wind").includes(text) ||
+    weather_ru.get("wind").includes(text)
+  ) {
+    return "wind";
+  }
+  if (
+    weather_en.get("snow").includes(text) ||
+    weather_ru.get("snow").includes(text)
+  ) {
+    return "snow";
+  }
+  if (
+    weather_en.get("rain").includes(text) ||
+    weather_ru.get("rain").includes(text)
+  ) {
+    return "rain";
+  }
+  if (
+    weather_en.get("mist").includes(text) ||
+    weather_ru.get("mist").includes(text)
+  ) {
+    return "mist";
+  }
+  if (
+    weather_en.get("sunny").includes(text) ||
+    weather_ru.get("sunny").includes(text)
+  ) {
+    return "sunny";
+  }
+  if (
+    weather_en.get("none").includes(text) ||
+    weather_ru.get("none").includes(text)
+  ) {
+    return "none";
+  }
+
+  return "none";
 }
 
 /**
