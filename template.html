@@ -1038,6 +1038,48 @@
                 </button>
             </div>
 
+            <!-- System Prompt -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-system-prompt" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-robot"></i> System Prompt
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Defines the AI's role as an RPG Companion. Sets the overall behavior and purpose.
+                </small>
+                <textarea id="rpg-prompt-system-prompt" class="rpg-prompt-textarea" rows="4"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="systemPrompt" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i>&nbsp;Restore Default
+                </button>
+            </div>
+
+            <!-- Context Preamble Prompt -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-context-preamble" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-file-lines"></i> Context Preamble Prompt
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Introduces the context section in separate/external generation modes. Appears before the scene data.
+                </small>
+                <textarea id="rpg-prompt-context-preamble" class="rpg-prompt-textarea" rows="2"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="contextPreamble" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i>&nbsp;Restore Default
+                </button>
+            </div>
+
+            <!-- Narrative Influence Prompt -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-narrative-influence" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-feather-pointed"></i> Narrative Influence Prompt
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Instructs AI to let tracker details (fatigue, hygiene, mood, etc.) naturally influence the narrative.
+                </small>
+                <textarea id="rpg-prompt-narrative-influence" class="rpg-prompt-textarea" rows="3"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="narrativeInfluence" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i>&nbsp;Restore Default
+                </button>
+            </div>
+
             <!-- Random Plot Progression Prompt -->
             <div class="rpg-prompt-editor-section">
                 <label for="rpg-prompt-plot-random" style="display: block; margin-bottom: 8px; font-weight: 600;">

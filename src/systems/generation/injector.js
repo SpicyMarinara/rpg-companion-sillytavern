@@ -24,7 +24,9 @@ import {
     DEFAULT_DECEPTION_PROMPT,
     DEFAULT_CYOA_PROMPT,
     DEFAULT_SPOTIFY_PROMPT,
-    SPOTIFY_FORMAT_INSTRUCTION
+    SPOTIFY_FORMAT_INSTRUCTION,
+    DEFAULT_CONTEXT_PREAMBLE_PROMPT,
+    DEFAULT_NARRATIVE_INFLUENCE_PROMPT
 } from './promptBuilder.js';
 import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
 
@@ -823,11 +825,15 @@ export async function onGenerationStarted(type, data, dryRun) {
         const contextSummary = generateContextualSummary();
 
         if (contextSummary) {
-            const wrappedContext = `\nHere is context information about the current scene, and what follows is the last message in the chat history:
+            // Use custom prompts if set, otherwise use defaults
+            const contextPreamble = extensionSettings.customContextPreamblePrompt || DEFAULT_CONTEXT_PREAMBLE_PROMPT;
+            const narrativeInfluence = extensionSettings.customNarrativeInfluencePrompt || DEFAULT_NARRATIVE_INFLUENCE_PROMPT;
+
+            const wrappedContext = `\n${contextPreamble}
 <context>
 ${contextSummary}
 
-Ensure these details naturally reflect and influence the narrative. Character behavior, dialogue, and story events should acknowledge these conditions when relevant, such as fatigue affecting performance, low hygiene influencing social interactions, environmental factors shaping the scene, or a character's emotional state coloring their responses.
+${narrativeInfluence}
 </context>\n\n`;
 
             // Inject context at depth 1 (before last user message) as SYSTEM

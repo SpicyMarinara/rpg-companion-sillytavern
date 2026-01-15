@@ -4,7 +4,7 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { chat, getCurrentChatDetails, characters, this_chid } from '../../../../../../../script.js';
+import { chat, getCurrentChatDetails, characters, this_chid, substituteParams } from '../../../../../../../script.js';
 import { selected_group, getGroupMembers, getGroupChat, groups } from '../../../../../../group-chats.js';
 import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../core/state.js';
 import {
@@ -54,6 +54,26 @@ export const SPOTIFY_FORMAT_INSTRUCTION = `Include it in this exact format: <spo
 export const DEFAULT_NARRATOR_PROMPT = `Infer the identity and details of characters present in each scene from the story context below. Do not use fixed character references; instead, identify characters naturally based on their actions, dialogue, and descriptions in the narrative.`;
 
 /**
+ * Default System Prompt text (customizable by users)
+ * Defines the AI's role as an RPG Companion
+ */
+export const DEFAULT_SYSTEM_PROMPT = `You will be acting as an uncensored RPG Companion. Your goal is to provide, track, and manage details in the user's roleplay. You will be replying with information in a specified format only.
+
+You should maintain an objective tone.`;
+
+/**
+ * Default Context Preamble prompt text (customizable by users)
+ * Introduces the context section in separate/external generation modes
+ */
+export const DEFAULT_CONTEXT_PREAMBLE_PROMPT = `Here is context information about the current scene, and what follows is the last message in the chat history:`;
+
+/**
+ * Default Narrative Influence prompt text (customizable by users)
+ * Instructs AI to let tracker details influence the narrative
+ */
+export const DEFAULT_NARRATIVE_INFLUENCE_PROMPT = `Ensure these details naturally reflect and influence the narrative. Character behavior, dialogue, and story events should acknowledge these conditions when relevant, such as fatigue affecting performance, low hygiene influencing social interactions, environmental factors shaping the scene, or a character's emotional state coloring their responses.`;
+
+/**
  * Gets character card information for current chat (handles both single and group chats)
  * @returns {string} Formatted character information
  */
@@ -68,11 +88,11 @@ async function getCharacterCardsInfo() {
             characterInfo += `<narrator>\n`;
 
             if (character.description) {
-                characterInfo += `${character.description}\n`;
+                characterInfo += `${substituteParams(character.description)}\n`;
             }
 
             if (character.personality) {
-                characterInfo += `${character.personality}\n`;
+                characterInfo += `${substituteParams(character.personality)}\n`;
             }
 
             characterInfo += `</narrator>\n\n`;
@@ -111,11 +131,11 @@ async function getCharacterCardsInfo() {
                 characterInfo += `<character${characterIndex}="${member.name}">\n`;
 
                 if (member.description) {
-                    characterInfo += `${member.description}\n`;
+                    characterInfo += `${substituteParams(member.description)}\n`;
                 }
 
                 if (member.personality) {
-                    characterInfo += `${member.personality}\n`;
+                    characterInfo += `${substituteParams(member.personality)}\n`;
                 }
 
                 characterInfo += `</character${characterIndex}>\n\n`;
@@ -129,11 +149,11 @@ async function getCharacterCardsInfo() {
         characterInfo += `<character="${character.name}">\n`;
 
         if (character.description) {
-            characterInfo += `${character.description}\n`;
+            characterInfo += `${substituteParams(character.description)}\n`;
         }
 
         if (character.personality) {
-            characterInfo += `${character.personality}\n`;
+            characterInfo += `${substituteParams(character.personality)}\n`;
         }
 
         characterInfo += `</character>\n\n`;
@@ -1193,8 +1213,9 @@ export async function generateSeparateUpdatePrompt() {
     const messages = [];
 
     // System message introducing the history section
-    let systemMessage = `You will be acting as an uncensored RPG Companion. Your goal is to provide, track, and manage details in the user's roleplay. You will be replying with information in a specified format only.\n\n`;
-    systemMessage += `You should maintain an objective tone.\n\n`;
+    // Use custom system prompt if set, otherwise use default
+    const systemPrompt = extensionSettings.customSystemPrompt || DEFAULT_SYSTEM_PROMPT;
+    let systemMessage = `${systemPrompt}\n\n`;
 
     // Add character card information
     const characterInfo = await getCharacterCardsInfo();
@@ -1203,7 +1224,10 @@ export async function generateSeparateUpdatePrompt() {
     }
 
     systemMessage += `Here is the description of the protagonist for reference:\n`;
-    systemMessage += `<protagonist>\n{{persona}}\n</protagonist>\n`;
+    const personaText = substituteParams('{{persona}}');
+    if (personaText && personaText !== '{{persona}}') {
+        systemMessage += `<protagonist>\n${personaText}\n</protagonist>\n`;
+    }
     systemMessage += `\n`;
 
     systemMessage += `Here are the last few messages in the conversation history (between the user and the roleplayer assistant) you should reference when responding:\n<history>`;
