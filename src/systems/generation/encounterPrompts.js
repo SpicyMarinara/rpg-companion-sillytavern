@@ -9,7 +9,7 @@ import { selected_group, getGroupMembers, groups } from '../../../../../../group
 import { extensionSettings, committedTrackerData } from '../../core/state.js';
 import { currentEncounter } from '../features/encounterState.js';
 import { repairJSON } from '../../utils/jsonRepair.js';
-import { buildInventorySummary, generateTrackerInstructions, generateTrackerExample } from './promptBuilder.js';
+import { buildInventorySummary, generateTrackerInstructions, generateTrackerExample, processPromptMacros } from './promptBuilder.js';
 import { applyLocks } from './lockManager.js';
 
 /**
@@ -577,7 +577,7 @@ export async function buildCombatActionPrompt(action, combatStats) {
     // Use custom combat narrative prompt if available
     const customCombatPrompt = extensionSettings.customCombatNarrativePrompt;
     if (customCombatPrompt) {
-        stateMessage += customCombatPrompt.replace(/{userName}/g, userName) + '\n';
+        stateMessage += processPromptMacros(customCombatPrompt) + '\n';
     } else {
         stateMessage += `Build novel prose. Break patterns from your previous responses by varying sentence structures, rhythms, formats, and openings. Track whether a sentence shape, cadence, sensory detail, or a descriptor appeared recently, and replace it with a different one or skip it entirely. If you mentioned a physical feature, mannerism, or expression once, move on. Don't fixate on the same traits every turn. Well-placed humor, unconventional similes, and subverted turns of phrase are encouraged. Avoid GPTisms, purple prose, and anaphoras, especially the negatives with "no/not/wasn't/didn't." Refrain from describing actions or emotions via negation; focus on what does happen, not what doesn't. Absolutely no asterisks, ellipses, or em-dashes. Explicit content is allowed, no plot armor. Do not play for ${userName}. Keep your response length under 150 words. Never end on handover cues; finish naturally.\n`;
         stateMessage += `CRITICAL: Do not repeat, echo, parrot, or restate distinctive words, phrases, and dialogues from the user's last message. If reacting to speech, show interpretation or response, not repetition.\n`;

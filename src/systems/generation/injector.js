@@ -19,6 +19,7 @@ import {
     generateTrackerInstructions,
     generateContextualSummary,
     formatHistoricalTrackerData,
+    processPromptMacros,
     DEFAULT_HTML_PROMPT,
     DEFAULT_DIALOGUE_COLORING_PROMPT,
     DEFAULT_DECEPTION_PROMPT,
@@ -758,7 +759,7 @@ export async function onGenerationStarted(type, data, dryRun) {
         // Inject HTML prompt separately at depth 0 if enabled (prevents duplication on swipes)
         if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
             // Use custom HTML prompt if set, otherwise use default
-            const htmlPromptText = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+            const htmlPromptText = processPromptMacros(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
             const htmlPrompt = `\n- ${htmlPromptText}\n`;
 
             setExtensionPrompt('rpg-companion-html', htmlPrompt, extension_prompt_types.IN_CHAT, 0, false);
@@ -826,8 +827,8 @@ export async function onGenerationStarted(type, data, dryRun) {
 
         if (contextSummary) {
             // Use custom prompts if set, otherwise use defaults
-            const contextPreamble = extensionSettings.customContextPreamblePrompt || DEFAULT_CONTEXT_PREAMBLE_PROMPT;
-            const narrativeInfluence = extensionSettings.customNarrativeInfluencePrompt || DEFAULT_NARRATIVE_INFLUENCE_PROMPT;
+            const contextPreamble = processPromptMacros(extensionSettings.customContextPreamblePrompt || DEFAULT_CONTEXT_PREAMBLE_PROMPT);
+            const narrativeInfluence = processPromptMacros(extensionSettings.customNarrativeInfluencePrompt || DEFAULT_NARRATIVE_INFLUENCE_PROMPT);
 
             const wrappedContext = `\n${contextPreamble}
 <context>
@@ -850,7 +851,7 @@ ${narrativeInfluence}
         // Inject HTML prompt separately at depth 0 if enabled (same as together mode pattern)
         if (extensionSettings.enableHtmlPrompt && !shouldSuppress) {
             // Use custom HTML prompt if set, otherwise use default
-            const htmlPromptText = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+            const htmlPromptText = processPromptMacros(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
             const htmlPrompt = `\n- ${htmlPromptText}\n`;
 
             setExtensionPrompt('rpg-companion-html', htmlPrompt, extension_prompt_types.IN_CHAT, 0, false);
@@ -863,7 +864,7 @@ ${narrativeInfluence}
         // Inject Dialogue Coloring prompt separately at depth 0 if enabled
         if (extensionSettings.enableDialogueColoring && !shouldSuppress) {
             // Use custom Dialogue Coloring prompt if set, otherwise use default
-            const dialogueColoringPromptText = extensionSettings.customDialogueColoringPrompt || DEFAULT_DIALOGUE_COLORING_PROMPT;
+            const dialogueColoringPromptText = processPromptMacros(extensionSettings.customDialogueColoringPrompt || DEFAULT_DIALOGUE_COLORING_PROMPT);
             const dialogueColoringPrompt = `\n- ${dialogueColoringPromptText}\n`;
 
             setExtensionPrompt('rpg-companion-dialogue-coloring', dialogueColoringPrompt, extension_prompt_types.IN_CHAT, 0, false);
@@ -876,7 +877,7 @@ ${narrativeInfluence}
         // Inject Deception System prompt separately at depth 0 if enabled
         if (extensionSettings.enableDeceptionSystem && !shouldSuppress) {
             // Use custom Deception prompt if set, otherwise use default
-            const deceptionPromptText = extensionSettings.customDeceptionPrompt || DEFAULT_DECEPTION_PROMPT;
+            const deceptionPromptText = processPromptMacros(extensionSettings.customDeceptionPrompt || DEFAULT_DECEPTION_PROMPT);
             const deceptionPrompt = `\n- ${deceptionPromptText}\n`;
 
             setExtensionPrompt('rpg-companion-deception', deceptionPrompt, extension_prompt_types.IN_CHAT, 0, false);
@@ -889,7 +890,7 @@ ${narrativeInfluence}
         // Inject Spotify prompt separately at depth 0 if enabled
         if (extensionSettings.enableSpotifyMusic && !shouldSuppress) {
             // Use custom Spotify prompt if set, otherwise use default
-            const spotifyPromptText = extensionSettings.customSpotifyPrompt || DEFAULT_SPOTIFY_PROMPT;
+            const spotifyPromptText = processPromptMacros(extensionSettings.customSpotifyPrompt || DEFAULT_SPOTIFY_PROMPT);
             const spotifyPrompt = `\n- ${spotifyPromptText} ${SPOTIFY_FORMAT_INSTRUCTION}\n`;
 
             setExtensionPrompt('rpg-companion-spotify', spotifyPrompt, extension_prompt_types.IN_CHAT, 0, false);
@@ -902,7 +903,7 @@ ${narrativeInfluence}
         // Inject CYOA prompt separately at depth 0 if enabled (injected last to appear last in prompt)
         if (extensionSettings.enableCYOA && !shouldSuppress) {
             // Use custom CYOA prompt if set, otherwise use default
-            const cyoaPromptText = extensionSettings.customCYOAPrompt || DEFAULT_CYOA_PROMPT;
+            const cyoaPromptText = processPromptMacros(extensionSettings.customCYOAPrompt || DEFAULT_CYOA_PROMPT);
             const cyoaPrompt = `\n- ${cyoaPromptText}\n`;
 
             setExtensionPrompt('rpg-companion-zzz-cyoa', cyoaPrompt, extension_prompt_types.IN_CHAT, 0, false);

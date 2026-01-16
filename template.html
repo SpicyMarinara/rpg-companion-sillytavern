@@ -951,7 +951,8 @@
 
         <div class="rpg-settings-popup-body">
             <small class="notes" style="display: block; margin-bottom: 16px;">
-                Customize the AI prompts used throughout the extension. Leave fields empty to use defaults.
+                Customize the AI prompts used throughout the extension. Leave fields empty to use defaults.<br>
+                All prompts support SillyTavern macros: <code>&#123;&#123;user&#125;&#125;</code>, <code>&#123;&#123;char&#125;&#125;</code>, <code>&#123;&#123;persona&#125;&#125;</code>, etc.
             </small>
 
             <!-- HTML Prompt -->
@@ -1128,7 +1129,7 @@
                     <i class="fa-solid fa-list-check"></i> Tracker Instructions
                 </label>
                 <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
-                    Instruction portion only (format specification is hardcoded). {userName} will be replaced with the user's name.
+                    Instruction portion only (format specification is hardcoded). Supports SillyTavern macros: &#123;&#123;user&#125;&#125;, &#123;&#123;char&#125;&#125;, &#123;&#123;persona&#125;&#125;, etc.
                 </small>
                 <textarea id="rpg-prompt-tracker-instructions" class="rpg-prompt-textarea" rows="4"></textarea>
                 <button class="menu_button rpg-restore-prompt-btn" data-prompt="trackerInstructions" style="margin-top: 8px;">
@@ -1156,7 +1157,7 @@
                     <i class="fa-solid fa-fire"></i> Combat Narrative Style Instruction
                 </label>
                 <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
-                    Writing style instructions for combat encounters. Includes prose quality guidelines and anti-repetition rules. {userName} will be replaced with the user's name.
+                    Writing style instructions for combat encounters. Includes prose quality guidelines and anti-repetition rules. Supports SillyTavern macros: &#123;&#123;user&#125;&#125;, &#123;&#123;char&#125;&#125;, &#123;&#123;persona&#125;&#125;, etc.
                 </small>
                 <textarea id="rpg-prompt-combat-narrative" class="rpg-prompt-textarea" rows="6"></textarea>
                 <button class="menu_button rpg-restore-prompt-btn" data-prompt="combatNarrative" style="margin-top: 8px;">

@@ -19,6 +19,27 @@ import { applyLocks } from './lockManager.js';
 /** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
 
 /**
+ * Process a prompt string to substitute all macros.
+ * Converts legacy {userName} to {{user}} for backward compatibility,
+ * then runs SillyTavern's substituteParams to handle all standard macros
+ * ({{user}}, {{char}}, {{persona}}, {{time}}, {{date}}, etc.)
+ *
+ * @param {string} prompt - The prompt text to process
+ * @returns {string} The prompt with all macros substituted
+ */
+export function processPromptMacros(prompt) {
+    if (!prompt) return prompt;
+
+    // Convert legacy {userName} to {{user}} for backward compatibility
+    let processed = prompt.replace(/{userName}/g, '{{user}}');
+
+    // Run SillyTavern's macro substitution for all standard macros
+    processed = substituteParams(processed);
+
+    return processed;
+}
+
+/**
  * Default HTML prompt text
  */
 export const DEFAULT_HTML_PROMPT = `If appropriate, include inline HTML, CSS, and JS segments whenever they enhance visual storytelling (e.g., for in-world screens, posters, books, letters, signs, crests, labels, etc.). Style them to match the setting's theme (e.g., fantasy, sci-fi), keep the text readable, and embed all assets directly (using inline SVGs only with no external scripts, libraries, or fonts). Use these elements freely and naturally within the narrative as characters would encounter them, including animations, 3D effects, pop-ups, dropdowns, websites, and so on. Do not wrap the HTML/CSS/JS in code fences!`;
@@ -98,7 +119,7 @@ async function getCharacterCardsInfo() {
             characterInfo += `</narrator>\n\n`;
 
             // Use custom narrator prompt if available, otherwise use default
-            const narratorPrompt = extensionSettings.customNarratorPrompt || DEFAULT_NARRATOR_PROMPT;
+            const narratorPrompt = processPromptMacros(extensionSettings.customNarratorPrompt || DEFAULT_NARRATOR_PROMPT);
             characterInfo += narratorPrompt + '\n\n';
         }
         return characterInfo;
@@ -348,7 +369,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         // Append custom instruction portion if available
         const customPrompt = extensionSettings.customTrackerInstructionsPrompt;
         if (customPrompt) {
-            instructions += customPrompt.replace(/{userName}/g, userName);
+            instructions += processPromptMacros(customPrompt);
         } else {
             instructions += `Replace X with actual numbers (e.g., 69) and replace all placeholders with concrete in-world details that ${userName} perceives about the current scene and the present characters. For example: "Location" becomes "Forest Clearing", "Mood Emoji" becomes "😊". DO NOT include ${userName} in the characters section, only NPCs. `;
             instructions += `Consider the last trackers in the conversation (if they exist). Manage them accordingly and realistically; raise, lower, change, or keep the values unchanged based on the user's actions, the passage of time, and logical consequences.`;
@@ -401,7 +422,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
 
         // Only add continuation instruction if includeContinuation is true
         if (includeContinuation) {
-            const customPrompt = extensionSettings.customTrackerContinuationPrompt;
+            const customPrompt = processPromptMacros(extensionSettings.customTrackerContinuationPrompt);
             if (customPrompt) {
                 instructions += '\n\n' + customPrompt + '\n\n';
             } else {
@@ -448,7 +469,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         }
 
         // Use custom HTML prompt if set, otherwise use default
-        const htmlPrompt = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+        const htmlPrompt = processPromptMacros(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
         instructions += htmlPrompt;
     }
 
@@ -462,7 +483,7 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         }
 
         // Use custom Spotify prompt if set, otherwise use default
-        const spotifyPrompt = extensionSettings.customSpotifyPrompt || DEFAULT_SPOTIFY_PROMPT;
+        const spotifyPrompt = processPromptMacros(extensionSettings.customSpotifyPrompt || DEFAULT_SPOTIFY_PROMPT);
         instructions += spotifyPrompt + ' ' + SPOTIFY_FORMAT_INSTRUCTION;
     }
 
@@ -1214,7 +1235,7 @@ export async function generateSeparateUpdatePrompt() {
 
     // System message introducing the history section
     // Use custom system prompt if set, otherwise use default
-    const systemPrompt = extensionSettings.customSystemPrompt || DEFAULT_SYSTEM_PROMPT;
+    const systemPrompt = processPromptMacros(extensionSettings.customSystemPrompt || DEFAULT_SYSTEM_PROMPT);
     let systemMessage = `${systemPrompt}\n\n`;
 
     // Add character card information
@@ -1453,7 +1474,7 @@ export async function generateAvatarPromptGenerationPrompt(characterName) {
 
     // Build instruction message
     let instructionMessage = `</history>\n\n`;
-    const customInstruction = extensionSettings.avatarLLMCustomInstruction || DEFAULT_AVATAR_CUSTOM_INSTRUCTION;
+    const customInstruction = processPromptMacros(extensionSettings.avatarLLMCustomInstruction || DEFAULT_AVATAR_CUSTOM_INSTRUCTION);
 
     instructionMessage += `Task: Generate a detailed image prompt for the character: ${characterName}.\n\n`;
     instructionMessage += `Instructions: ${customInstruction}\n\n`;
