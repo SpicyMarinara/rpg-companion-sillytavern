@@ -19,6 +19,28 @@ export const extensionFolderPath = isUserExtension
     : `scripts/extensions/${extensionName}`;
 
 /**
+ * Default character brain configuration
+ * Used when creating new character brains
+ */
+export const defaultBrainConfig = {
+    provider: 'default',        // 'default' uses main chat model, or: 'openai', 'anthropic', 'local', 'custom'
+    model: '',                  // Model name/ID (e.g., 'gpt-4o-mini', 'claude-3-haiku')
+    apiKeyEnvVar: '',           // localStorage key for API key
+    endpoint: '',               // Custom endpoint URL
+    temperature: 0.7,           // Generation temperature
+    maxTokens: 2048,            // Maximum tokens for generation
+    systemPromptOverride: '',   // Optional custom system prompt
+    memoryEnabled: true,        // Use vector memory
+    journalEnabled: false,      // Character keeps a journal
+    contextWindow: 4096,        // Context window size
+    presencePenalty: 0,         // Presence penalty
+    frequencyPenalty: 0,        // Frequency penalty
+    topP: 1.0,                  // Top-p sampling
+    stopSequences: [],          // Custom stop sequences
+    enabled: false              // Whether custom brain is active
+};
+
+/**
  * Default extension settings
  */
 export const defaultSettings = {
@@ -85,5 +107,10 @@ export const defaultSettings = {
         cha: 10
     },
     lastDiceRoll: null, // Store last dice roll result
-    collapsedInventoryLocations: [] // Array of collapsed storage location names
+    collapsedInventoryLocations: [], // Array of collapsed storage location names
+    // Character Brain Configuration System
+    enableMultiLLM: true, // Master toggle for multi-LLM feature
+    characterBrains: {}, // Stored brain configs per character ID
+    characterBrainPresets: {}, // Saved brain presets for quick application
+    defaultBrainConfig: defaultBrainConfig // Default config for new brains
 };

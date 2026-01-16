@@ -17,6 +17,7 @@ import {
 import { saveChatData, saveSettings } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
+import { createJournalButton } from '../features/journal/journalUI.js';
 
 /**
  * Helper to generate lock icon HTML if setting is enabled
@@ -500,7 +501,10 @@ export function renderThoughts() {
                                 <div class="rpg-character-header">
                                     <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${char.name}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
                                     <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="name" title="Click to edit name">${char.name}</span>
-                                    <button class="rpg-character-remove" data-character="${char.name}" title="Remove character">×</button>
+                                    <div class="rpg-character-actions">
+                                        ${createJournalButton(char.name.toLowerCase().replace(/\s+/g, '_'), char.name)}
+                                        <button class="rpg-character-remove" data-character="${char.name}" title="Remove character">×</button>
+                                    </div>
                                 </div>
                 `;
 

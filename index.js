@@ -45,6 +45,18 @@ import {
 import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData } from './src/core/persistence.js';
 import { registerAllEvents } from './src/core/events.js';
 
+// Journal feature
+import { initJournalUI } from './src/systems/features/journal/index.js';
+
+// Memory system
+import { getMemoryManager, processMessageForMemories, MemoryPanel } from './src/systems/features/memory/index.js';
+
+// Archetype system
+import { initArchetypeSystem, loadArchetypeData, saveArchetypeData } from './src/systems/features/archetypes/index.js';
+
+// Real-world context system
+import { RealWorldContextBuilder, getQuickContext } from './src/systems/features/realworld/index.js';
+
 // Generation & Parsing modules
 import {
     generateTrackerExample,
@@ -143,6 +155,8 @@ import { ensureJsonCleaningRegex, removeJsonCleaningRegex } from './src/systems/
 import { parseAndStoreSpotifyUrl } from './src/systems/features/musicPlayer.js';
 import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
 import { openEncounterModal } from './src/systems/ui/encounterUI.js';
+import { initBrainIntegration } from './src/systems/features/characterBrainIntegration.js';
+import { initCharacterBrainUI, addBrainConfigButton } from './src/systems/ui/characterBrainUI.js';
 
 // Integration modules
 import {
@@ -1111,11 +1125,19 @@ async function initUI() {
     initChapterCheckpointUI();
     injectCheckpointButton();
 
-    // Expose weather effect functions globally for cross-module access
+    // Add character brain config button to panel
+    addBrainConfigButton();
+
+    // Expose functions globally for cross-module access
     if (!window.RPGCompanion) {
         window.RPGCompanion = {};
     }
     window.RPGCompanion.updateWeatherEffect = updateWeatherEffect;
+    window.RPGCompanion.getMemoryManager = getMemoryManager;
+    window.RPGCompanion.processMessageForMemories = processMessageForMemories;
+    window.RPGCompanion.saveArchetypeData = saveArchetypeData;
+    window.RPGCompanion.loadArchetypeData = loadArchetypeData;
+    window.RPGCompanion.getQuickContext = getQuickContext;
 }
 
 
@@ -1180,6 +1202,14 @@ jQuery(async () => {
             throw error; // This is critical - can't continue without UI
         }
 
+        // Initialize Journal UI
+        try {
+            initJournalUI();
+        } catch (error) {
+            console.error('[RPG Companion] Journal UI initialization failed:', error);
+            // Non-critical - extension can still work without journal feature
+        }
+
         // Load chat-specific data for current chat
         try {
             loadChatData();
@@ -1241,6 +1271,41 @@ jQuery(async () => {
             initHistoryInjection();
         } catch (error) {
             console.error('[RPG Companion] History injection init failed:', error);
+            // Non-critical - continue without it
+        }
+
+        // Initialize character brain system for per-character LLM configuration
+        try {
+            initBrainIntegration();
+            initCharacterBrainUI();
+            // console.log('[RPG Companion] Character brain system initialized');
+        } catch (error) {
+            console.error('[RPG Companion] Character brain init failed:', error);
+            // Non-critical - continue without it
+        }
+
+        // Initialize Jungian archetype system
+        try {
+            initArchetypeSystem();
+            // Load saved archetype data from chat metadata if available
+            if (chat_metadata?.rpg_archetypes) {
+                loadArchetypeData(chat_metadata.rpg_archetypes);
+            }
+            console.log('[RPG Companion] Archetype system initialized');
+        } catch (error) {
+            console.error('[RPG Companion] Archetype system init failed:', error);
+            // Non-critical - continue without it
+        }
+
+        // Initialize real-world context system
+        try {
+            window.RPGCompanion.realWorldContext = new RealWorldContextBuilder({
+                weather: { temperatureUnit: 'F' } // US default
+            });
+            // Don't auto-request location - let user opt-in via privacy settings
+            console.log('[RPG Companion] Real-world context system initialized');
+        } catch (error) {
+            console.error('[RPG Companion] Real-world context init failed:', error);
             // Non-critical - continue without it
         }
 

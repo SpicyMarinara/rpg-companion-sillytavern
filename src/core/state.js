@@ -307,7 +307,12 @@ export let extensionSettings = {
         activePresetId: null,
         // Default preset ID (used when no character association exists)
         defaultPresetId: null
-    }
+    },
+    // Character Brain Configuration System
+    // Allows each character/NPC to have their own LLM provider and model
+    enableMultiLLM: true, // Master toggle for multi-LLM feature
+    characterBrains: {}, // Stored brain configs per character ID
+    characterBrainPresets: {} // Saved brain presets for quick application
 };
 
 /**
