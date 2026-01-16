@@ -841,15 +841,21 @@ export function updateCharacterField(characterName, field, value) {
                 char.emoji = value;
             } else if (field === 'Relationship') {
                 // Store relationship as text, converting emoji if needed
+                // Find existing relationship key (case-insensitive) to avoid duplicates
+                const existingRelKey = Object.keys(char).find(
+                    k => k.toLowerCase() === 'relationship'
+                );
+                const relKeyToUse = existingRelKey || 'Relationship';
+                
                 // First check if it's an emoji → convert to text
                 if (emojiToRelationship[value]) {
-                    char.Relationship = emojiToRelationship[value];
+                    char[relKeyToUse] = emojiToRelationship[value];
                 } else {
                     // It's text - find matching relationship name (case-insensitive)
                     const matchingRelationship = Object.keys(relationshipEmojis).find(
                         name => name.toLowerCase() === value.toLowerCase()
                     );
-                    char.Relationship = matchingRelationship || value;
+                    char[relKeyToUse] = matchingRelationship || value;
                 }
                 // console.log('[RPG Companion] After update - char.Relationship:', char.Relationship);
                 // console.log('[RPG Companion] relationshipEmojis:', relationshipEmojis);
@@ -885,7 +891,14 @@ export function updateCharacterField(characterName, field, value) {
                 } else {
                     // It's a custom detail field
                     if (!char.details) char.details = {};
-                    char.details[field] = value;
+                    
+                    // Find the existing key in details that matches (case-insensitive)
+                    // to avoid creating duplicate keys like "Appearance" and "appearance"
+                    const existingKey = Object.keys(char.details).find(
+                        k => k.toLowerCase() === field.toLowerCase()
+                    );
+                    const keyToUse = existingKey || field;
+                    char.details[keyToUse] = value;
                 }
             }
         }

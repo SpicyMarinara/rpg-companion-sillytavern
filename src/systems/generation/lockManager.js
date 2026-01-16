@@ -4,8 +4,353 @@
  * Locks prevent AI from modifying specific values
  */
 
-import { extensionSettings } from '../../core/state.js';
+import { extensionSettings, committedTrackerData } from '../../core/state.js';
 import { repairJSON } from '../../utils/jsonRepair.js';
+
+/**
+ * Preserve locked field values from current data when AI returns new data.
+ * This enforces locks by preventing AI changes to locked fields.
+ *
+ * @param {string} newData - JSON string of new data from AI
+ * @param {string} trackerType - Type of tracker ('userStats', 'infoBox', 'characters')
+ * @returns {string} Merged data with locked fields preserved from committedTrackerData
+ */
+export function preserveLockedValues(newData, trackerType) {
+    if (!newData) return newData;
+
+    // Map trackerType to the correct committedTrackerData key
+    // 'characterThoughts' data is stored in committedTrackerData.characterThoughts
+    // but locks are stored under extensionSettings.lockedItems.characters
+    const dataKey = trackerType;
+    const lockKey = trackerType === 'characterThoughts' ? 'characters' : trackerType;
+
+    // Get current committed data for this tracker type
+    const currentData = committedTrackerData[dataKey];
+    if (!currentData) return newData;
+
+    // Parse both JSON strings
+    const parsedNew = repairJSON(newData);
+    const parsedCurrent = repairJSON(currentData);
+    if (!parsedNew || !parsedCurrent) return newData;
+
+    // Get locked items for this tracker type (use lockKey for characters)
+    const lockedItems = extensionSettings.lockedItems?.[lockKey];
+    if (!lockedItems || Object.keys(lockedItems).length === 0) return newData;
+
+    // Apply preservation based on tracker type
+    switch (trackerType) {
+        case 'userStats':
+            return preserveUserStatsLocked(parsedNew, parsedCurrent, lockedItems);
+        case 'infoBox':
+            return preserveInfoBoxLocked(parsedNew, parsedCurrent, lockedItems);
+        case 'characters':
+        case 'characterThoughts':
+            return preserveCharactersLocked(parsedNew, parsedCurrent, lockedItems);
+        default:
+            return newData;
+    }
+}
+
+/**
+ * Preserve locked values in User Stats tracker
+ */
+function preserveUserStatsLocked(newData, currentData, lockedItems) {
+    // Preserve locked stats
+    if (newData.stats && currentData.stats && lockedItems.stats) {
+        const isStatsLocked = lockedItems.stats === true;
+        if (isStatsLocked) {
+            // Entire stats section is locked - preserve all stats
+            newData.stats = currentData.stats;
+        } else {
+            // Individual stats are locked
+            for (const statName in lockedItems.stats) {
+                if (lockedItems.stats[statName] && currentData.stats[statName] !== undefined) {
+                    newData.stats[statName] = currentData.stats[statName];
+                }
+            }
+        }
+    }
+
+    // Preserve locked status
+    if (lockedItems.status && currentData.status) {
+        newData.status = currentData.status;
+    }
+
+    // Preserve locked skills
+    if (newData.skills && currentData.skills && lockedItems.skills) {
+        if (Array.isArray(currentData.skills)) {
+            // Build a map of locked skill names
+            const lockedSkillNames = Object.keys(lockedItems.skills).filter(k => lockedItems.skills[k]);
+
+            // For each locked skill in current data, preserve it
+            if (Array.isArray(newData.skills)) {
+                for (const lockedSkillName of lockedSkillNames) {
+                    // Find the skill in current data
+                    const currentSkill = currentData.skills.find(s =>
+                        (typeof s === 'string' && s === lockedSkillName) ||
+                        (s.name === lockedSkillName)
+                    );
+                    if (currentSkill) {
+                        // Find and replace in new data, or add if missing
+                        const newIndex = newData.skills.findIndex(s =>
+                            (typeof s === 'string' && s === lockedSkillName) ||
+                            (s.name === lockedSkillName)
+                        );
+                        if (newIndex >= 0) {
+                            newData.skills[newIndex] = currentSkill;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Preserve locked inventory items
+    if (newData.inventory && currentData.inventory && lockedItems.inventory) {
+        const preserveInventoryItems = (newItems, currentItems, category) => {
+            if (!Array.isArray(newItems) || !Array.isArray(currentItems)) return newItems;
+
+            return newItems.map((item, index) => {
+                const bracketPath = `${category}[${index}]`;
+                if (lockedItems.inventory[bracketPath] && currentItems[index] !== undefined) {
+                    return currentItems[index];
+                }
+                return item;
+            });
+        };
+
+        if (newData.inventory.onPerson && currentData.inventory.onPerson) {
+            newData.inventory.onPerson = preserveInventoryItems(
+                newData.inventory.onPerson, currentData.inventory.onPerson, 'onPerson'
+            );
+        }
+
+        if (newData.inventory.clothing && currentData.inventory.clothing) {
+            newData.inventory.clothing = preserveInventoryItems(
+                newData.inventory.clothing, currentData.inventory.clothing, 'clothing'
+            );
+        }
+
+        if (newData.inventory.assets && currentData.inventory.assets) {
+            newData.inventory.assets = preserveInventoryItems(
+                newData.inventory.assets, currentData.inventory.assets, 'assets'
+            );
+        }
+
+        // Preserve locked stored items
+        if (newData.inventory.stored && currentData.inventory.stored && lockedItems.inventory.stored) {
+            for (const location in newData.inventory.stored) {
+                if (Array.isArray(newData.inventory.stored[location]) &&
+                    Array.isArray(currentData.inventory.stored?.[location])) {
+                    newData.inventory.stored[location] = newData.inventory.stored[location].map((item, index) => {
+                        const bracketPath = `${location}[${index}]`;
+                        if (lockedItems.inventory.stored[bracketPath] &&
+                            currentData.inventory.stored[location][index] !== undefined) {
+                            return currentData.inventory.stored[location][index];
+                        }
+                        return item;
+                    });
+                }
+            }
+        }
+    }
+
+    // Preserve locked quests
+    if (newData.quests && currentData.quests && lockedItems.quests) {
+        // Preserve main quest if locked
+        if (lockedItems.quests.main === true && currentData.quests.main) {
+            newData.quests.main = currentData.quests.main;
+        }
+
+        // Preserve locked optional quests
+        if (newData.quests.optional && Array.isArray(newData.quests.optional) &&
+            currentData.quests.optional && Array.isArray(currentData.quests.optional)) {
+            newData.quests.optional = newData.quests.optional.map((quest, index) => {
+                const bracketPath = `optional[${index}]`;
+                if (lockedItems.quests[bracketPath] && currentData.quests.optional[index] !== undefined) {
+                    return currentData.quests.optional[index];
+                }
+                return quest;
+            });
+        }
+    }
+
+    return JSON.stringify(newData, null, 2);
+}
+
+/**
+ * Preserve locked values in Info Box tracker
+ */
+function preserveInfoBoxLocked(newData, currentData, lockedItems) {
+    if (lockedItems.date && currentData.date) {
+        newData.date = currentData.date;
+    }
+
+    if (lockedItems.weather && currentData.weather) {
+        newData.weather = currentData.weather;
+    }
+
+    if (lockedItems.temperature && currentData.temperature) {
+        newData.temperature = currentData.temperature;
+    }
+
+    if (lockedItems.time && currentData.time) {
+        newData.time = currentData.time;
+    }
+
+    if (lockedItems.location && currentData.location) {
+        newData.location = currentData.location;
+    }
+
+    if (lockedItems.recentEvents && currentData.recentEvents) {
+        newData.recentEvents = currentData.recentEvents;
+    }
+
+    return JSON.stringify(newData, null, 2);
+}
+
+/**
+ * Preserve locked values in Characters tracker
+ */
+function preserveCharactersLocked(newData, currentData, lockedItems) {
+    // Handle both array format and object format
+    let newCharacters = Array.isArray(newData) ? newData : (newData.characters || []);
+    let currentCharacters = Array.isArray(currentData) ? currentData : (currentData.characters || []);
+
+    newCharacters = newCharacters.map((char, index) => {
+        const charName = char.name || char.characterName;
+
+        // Check if entire character is locked (index-based)
+        if (lockedItems[index] === true) {
+            // Preserve entire character from current data
+            if (currentCharacters[index]) {
+                return currentCharacters[index];
+            }
+            return char;
+        }
+
+        // Check if character name exists in locked items
+        const charLocks = lockedItems[charName];
+
+        if (charLocks === true) {
+            // Entire character is locked - find by name in current data
+            const currentChar = currentCharacters.find(c =>
+                (c.name || c.characterName) === charName
+            );
+            if (currentChar) {
+                return currentChar;
+            }
+            return char;
+        } else if (charLocks && typeof charLocks === 'object') {
+            // Character has field-level locks
+            const currentChar = currentCharacters.find(c =>
+                (c.name || c.characterName) === charName
+            );
+            if (!currentChar) return char;
+
+            const modifiedChar = { ...char };
+
+            for (const fieldName in charLocks) {
+                if (charLocks[fieldName] === true) {
+                    // Convert to snake_case for matching (AI often returns snake_case)
+                    const snakeCaseFieldName = fieldName
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '_')
+                        .replace(/^_+|_+$/g, '');
+                    
+                    // Also try lowercase without underscore conversion
+                    const lowerFieldName = fieldName.toLowerCase();
+
+                    let preserved = false;
+
+                    // Check at root level first
+                    if (currentChar[fieldName] !== undefined) {
+                        modifiedChar[fieldName] = currentChar[fieldName];
+                        preserved = true;
+                    } else if (currentChar[snakeCaseFieldName] !== undefined) {
+                        modifiedChar[snakeCaseFieldName] = currentChar[snakeCaseFieldName];
+                        preserved = true;
+                    } else if (currentChar[lowerFieldName] !== undefined) {
+                        modifiedChar[lowerFieldName] = currentChar[lowerFieldName];
+                        preserved = true;
+                    }
+
+                    // Check in nested details object
+                    if (!preserved && currentChar.details) {
+                        const currentValue = currentChar.details[fieldName] 
+                            ?? currentChar.details[snakeCaseFieldName] 
+                            ?? currentChar.details[lowerFieldName];
+                        
+                        if (currentValue !== undefined) {
+                            // Ensure modifiedChar.details exists
+                            if (!modifiedChar.details) {
+                                modifiedChar.details = {};
+                            } else {
+                                modifiedChar.details = { ...modifiedChar.details };
+                            }
+                            
+                            // Use the same key that exists in currentChar.details
+                            const keyToUse = currentChar.details[fieldName] !== undefined ? fieldName
+                                : currentChar.details[snakeCaseFieldName] !== undefined ? snakeCaseFieldName
+                                : lowerFieldName;
+                            modifiedChar.details[keyToUse] = currentValue;
+                            preserved = true;
+                        }
+                    }
+
+                    // Check in nested relationship object
+                    if (!preserved && currentChar.relationship) {
+                        const currentValue = currentChar.relationship[fieldName] 
+                            ?? currentChar.relationship[snakeCaseFieldName] 
+                            ?? currentChar.relationship[lowerFieldName];
+                        
+                        if (currentValue !== undefined) {
+                            if (!modifiedChar.relationship) {
+                                modifiedChar.relationship = {};
+                            } else {
+                                modifiedChar.relationship = { ...modifiedChar.relationship };
+                            }
+                            
+                            const keyToUse = currentChar.relationship[fieldName] !== undefined ? fieldName
+                                : currentChar.relationship[snakeCaseFieldName] !== undefined ? snakeCaseFieldName
+                                : lowerFieldName;
+                            modifiedChar.relationship[keyToUse] = currentValue;
+                            preserved = true;
+                        }
+                    }
+
+                    // Check in nested thoughts object
+                    if (!preserved && currentChar.thoughts) {
+                        const currentValue = currentChar.thoughts[fieldName] 
+                            ?? currentChar.thoughts[snakeCaseFieldName] 
+                            ?? currentChar.thoughts[lowerFieldName];
+                        
+                        if (currentValue !== undefined) {
+                            if (!modifiedChar.thoughts) {
+                                modifiedChar.thoughts = {};
+                            } else {
+                                modifiedChar.thoughts = { ...modifiedChar.thoughts };
+                            }
+                            
+                            const keyToUse = currentChar.thoughts[fieldName] !== undefined ? fieldName
+                                : currentChar.thoughts[snakeCaseFieldName] !== undefined ? snakeCaseFieldName
+                                : lowerFieldName;
+                            modifiedChar.thoughts[keyToUse] = currentValue;
+                        }
+                    }
+                }
+            }
+
+            return modifiedChar;
+        }
+
+        return char;
+    });
+
+    return Array.isArray(newData)
+        ? JSON.stringify(newCharacters, null, 2)
+        : JSON.stringify({ ...newData, characters: newCharacters }, null, 2);
+}
 
 /**
  * Apply locks to tracker data before sending to AI.

@@ -29,7 +29,7 @@ import { i18n } from '../../core/i18n.js';
 import { parseResponse, parseUserStats } from '../generation/parser.js';
 import { parseAndStoreSpotifyUrl, convertToEmbedUrl } from '../features/musicPlayer.js';
 import { updateRPGData } from '../generation/apiClient.js';
-import { removeLocks } from '../generation/lockManager.js';
+import { removeLocks, preserveLockedValues } from '../generation/lockManager.js';
 import { onGenerationStarted, initHistoryInjectionListeners } from '../generation/injector.js';
 
 // Rendering
@@ -173,12 +173,15 @@ export async function onMessageReceived(data) {
             // Remove locks from parsed data (JSON format only, text format is unaffected)
             if (parsedData.userStats) {
                 parsedData.userStats = removeLocks(parsedData.userStats);
+                parsedData.userStats = preserveLockedValues(parsedData.userStats, 'userStats');
             }
             if (parsedData.infoBox) {
                 parsedData.infoBox = removeLocks(parsedData.infoBox);
+                parsedData.infoBox = preserveLockedValues(parsedData.infoBox, 'infoBox');
             }
             if (parsedData.characterThoughts) {
                 parsedData.characterThoughts = removeLocks(parsedData.characterThoughts);
+                parsedData.characterThoughts = preserveLockedValues(parsedData.characterThoughts, 'characterThoughts');
             }
 
             // Parse and store Spotify URL if feature is enabled
@@ -484,7 +487,7 @@ export function onMessageSwiped(messageIndex) {
             lastGeneratedData.userStats = swipeData.userStats || null;
             lastGeneratedData.infoBox = swipeData.infoBox || null;
             lastGeneratedData.characterThoughts = swipeData.characterThoughts || null;
-            
+
             committedTrackerData.userStats = swipeData.userStats || null;
             committedTrackerData.infoBox = swipeData.infoBox || null;
             committedTrackerData.characterThoughts = swipeData.characterThoughts || null;

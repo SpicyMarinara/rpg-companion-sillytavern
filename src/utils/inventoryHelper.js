@@ -52,10 +52,16 @@ function filterNoneItems(items) {
  * Extracts v3 inventory data from lastGeneratedData.userStats or committedTrackerData.userStats
  * This is the single source of truth for inventory data in the v3 system.
  * 
+ * IMPORTANT: Prefer lastGeneratedData for UI rendering (current display state)
+ * The order matters: lastGeneratedData has the most recent data from AI response,
+ * while committedTrackerData has the data committed before the last generation
+ * (used for AI context, not for display)
+ * 
  * @returns {V3Inventory} V3 format inventory with arrays of {name, quantity} objects
  */
 export function getInventoryV3() {
-    const currentData = committedTrackerData.userStats || lastGeneratedData.userStats;
+    // Prefer lastGeneratedData for rendering - it has the most recent AI response
+    const currentData = lastGeneratedData.userStats || committedTrackerData.userStats;
     
     if (!currentData) {
         return getDefaultInventory();
@@ -140,7 +146,8 @@ function parseStringToV3Items(itemString) {
  * @param {V3Inventory} inventory - The updated v3 inventory
  */
 export function setInventoryV3(inventory) {
-    const currentData = committedTrackerData.userStats || lastGeneratedData.userStats;
+    // Prefer lastGeneratedData for reading current state (most recent)
+    const currentData = lastGeneratedData.userStats || committedTrackerData.userStats;
     
     if (!currentData) {
         console.warn('[RPG Companion] Cannot update inventory - no existing tracker data');
