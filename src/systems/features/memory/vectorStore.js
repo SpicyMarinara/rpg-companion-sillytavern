@@ -689,6 +689,32 @@ export class ChromaVectorStore extends VectorStoreBase {
     }
 
     /**
+     * Delete multiple items
+     * @param {string[]} ids - Array of item IDs to delete
+     * @returns {Promise<boolean>}
+     */
+    async deleteMany(ids) {
+        if (!ids || ids.length === 0) return true;
+        await this.init();
+
+        const response = await fetch(`${this.baseUrl}/api/v1/collections/${this.collectionId}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        });
+
+        return response.ok;
+    }
+
+    /**
+     * Get all items (alias for export for API consistency)
+     * @returns {Promise<Object[]>}
+     */
+    async getAll() {
+        return this.export();
+    }
+
+    /**
      * Clear all items
      * @returns {Promise<void>}
      */

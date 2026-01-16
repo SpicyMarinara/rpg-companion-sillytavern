@@ -119,6 +119,10 @@ export function getCharacterBrain(characterId) {
     }
 
     const normalizedId = normalizeCharacterId(characterId);
+    if (!normalizedId) {
+        return { ...defaultBrainConfig };
+    }
+
     const stored = characterBrainsCache[normalizedId];
 
     if (stored && stored.enabled) {
@@ -140,6 +144,10 @@ export function setCharacterBrain(characterId, config) {
     }
 
     const normalizedId = normalizeCharacterId(characterId);
+    if (!normalizedId) {
+        console.warn('[Character Brain] Invalid character ID after normalization');
+        return;
+    }
 
     // Merge with defaults, ensuring all required fields exist
     const fullConfig = {
@@ -163,6 +171,7 @@ export function removeCharacterBrain(characterId) {
     if (!characterId) return;
 
     const normalizedId = normalizeCharacterId(characterId);
+    if (!normalizedId) return;
 
     delete characterBrainsCache[normalizedId];
     removeStoredCharacterBrain(normalizedId);
@@ -187,6 +196,8 @@ export function hasCustomBrain(characterId) {
     if (!characterId) return false;
 
     const normalizedId = normalizeCharacterId(characterId);
+    if (!normalizedId) return false;
+
     const brain = characterBrainsCache[normalizedId];
 
     return brain && brain.enabled && brain.provider !== PROVIDERS.DEFAULT;
@@ -195,16 +206,19 @@ export function hasCustomBrain(characterId) {
 /**
  * Normalizes a character ID for consistent storage
  * @param {string} characterId - Raw character ID or name
- * @returns {string} Normalized ID
+ * @returns {string|null} Normalized ID or null if invalid
  */
 function normalizeCharacterId(characterId) {
-    if (!characterId) return '';
+    if (!characterId) return null;
 
     // Convert to string and lowercase, remove special characters
-    return String(characterId)
+    const normalized = String(characterId)
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9_-]/g, '_');
+
+    // Return null if result is empty after normalization
+    return normalized || null;
 }
 
 /**
@@ -315,8 +329,19 @@ export async function generateForCharacter(characterId, messages, options = {}) 
  * @returns {Promise<string>} Generated response
  */
 async function generateWithProvider(brain, messages, options = {}) {
+    if (!brain) {
+        throw new Error('Brain configuration is required for generation');
+    }
+
     const provider = brain.provider;
+    if (!provider) {
+        throw new Error('Brain configuration must specify a provider');
+    }
+
     const providerConfig = PROVIDER_CONFIGS[provider] || PROVIDER_CONFIGS[PROVIDERS.CUSTOM];
+    if (!providerConfig) {
+        throw new Error(`Unknown provider and no CUSTOM fallback: ${provider}`);
+    }
 
     // Get endpoint
     const endpoint = brain.endpoint || providerConfig.endpoint;

@@ -51,14 +51,14 @@ export function renderArchetypeBadge(manager, options = {}) {
 
     // Determine current display based on state
     let displayIcon, displayName, stateClass;
-    if (status.state === 'evolved') {
+    if (status.state === 'evolved' && status.nextEvolution) {
         const evolved = getEvolvedArchetype(status.nextEvolution.id);
-        displayIcon = evolved?.icon || status.archetype;
+        displayIcon = evolved?.icon || manager.archetype.icon;
         displayName = evolved?.name || status.archetypeName;
         stateClass = 'rpg-archetype-badge--evolved';
-    } else if (status.state === 'shadow') {
+    } else if (status.state === 'shadow' && status.nextDevolution) {
         const shadow = getShadowArchetype(status.nextDevolution.id);
-        displayIcon = shadow?.icon || status.archetype;
+        displayIcon = shadow?.icon || manager.archetype.icon;
         displayName = shadow?.name || status.archetypeName;
         stateClass = 'rpg-archetype-badge--shadow';
     } else {
