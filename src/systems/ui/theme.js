@@ -139,6 +139,7 @@ export function updateFeatureTogglesVisibility() {
     const $htmlToggle = $('#rpg-html-toggle-wrapper');
     const $dialogueColoringToggle = $('#rpg-dialogue-coloring-toggle-wrapper');
     const $deceptionToggle = $('#rpg-deception-toggle-wrapper');
+    const $omniscienceToggle = $('#rpg-omniscience-toggle-wrapper');
     const $cyoaToggle = $('#rpg-cyoa-toggle-wrapper');
     const $spotifyToggle = $('#rpg-spotify-toggle-wrapper');
 
@@ -150,6 +151,7 @@ export function updateFeatureTogglesVisibility() {
     $htmlToggle.toggle(extensionSettings.showHtmlToggle);
     $dialogueColoringToggle.toggle(extensionSettings.showDialogueColoringToggle);
     $deceptionToggle.toggle(extensionSettings.showDeceptionToggle ?? true);
+    $omniscienceToggle.toggle(extensionSettings.showOmniscienceToggle ?? true);
     $cyoaToggle.toggle(extensionSettings.showCYOAToggle ?? true);
     $spotifyToggle.toggle(extensionSettings.showSpotifyToggle);
 
@@ -161,6 +163,7 @@ export function updateFeatureTogglesVisibility() {
     const anyVisible = extensionSettings.showHtmlToggle ||
                       extensionSettings.showDialogueColoringToggle ||
                       (extensionSettings.showDeceptionToggle ?? true) ||
+                      (extensionSettings.showOmniscienceToggle ?? true) ||
                       (extensionSettings.showCYOAToggle ?? true) ||
                       extensionSettings.showSpotifyToggle ||
                       extensionSettings.showDynamicWeatherToggle ||

@@ -139,6 +139,15 @@
                     </label>
                 </div>
 
+                <!-- Omniscience Filter Toggle -->
+                <div class="rpg-toggle-container rpg-feature-col" id="rpg-omniscience-toggle-wrapper">
+                    <label class="rpg-toggle-label" title="Omniscience Filter">
+                        <input type="checkbox" id="rpg-toggle-omniscience">
+                        <i class="fa-solid fa-eye-slash"></i>
+                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.omniscienceFilter">Omniscience Filter</span>
+                    </label>
+                </div>
+
                 <!-- CYOA Toggle -->
                 <div class="rpg-toggle-container rpg-feature-col" id="rpg-cyoa-toggle-wrapper">
                     <label class="rpg-toggle-label" title="CYOA">
@@ -386,6 +395,15 @@
                 <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
                     data-i18n-key="template.settingsModal.display.showDeceptionToggleNote">
                     Display a toggle button to enable/disable special formatting of lies and deceptions crafted by the model, allowing it to easily track whenever one was committed, without showing it to the user.
+                </small>
+
+                <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-show-omniscience-toggle" />
+                    <span data-i18n-key="template.settingsModal.display.showOmniscienceToggle">Show Omniscience Filter</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                    data-i18n-key="template.settingsModal.display.showOmniscienceToggleNote">
+                    Display a toggle button to enable/disable the omniscience filter, which instructs the AI to hide information the player character cannot perceive (events behind them, in other rooms, etc.) in special tags.
                 </small>
 
                 <label class="checkbox_label">
@@ -992,6 +1010,20 @@
                 </small>
                 <textarea id="rpg-prompt-deception" class="rpg-prompt-textarea" rows="4"></textarea>
                 <button class="menu_button rpg-restore-prompt-btn" data-prompt="deception" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i>&nbsp;Restore Default
+                </button>
+            </div>
+
+            <!-- Omniscience Filter Prompt -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-omniscience" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-eye-slash"></i> Omniscience Filter Prompt
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Injected when "Enable Omniscience Filter" is enabled. Instructs AI to separate information the player character cannot perceive into hidden filter tags.
+                </small>
+                <textarea id="rpg-prompt-omniscience" class="rpg-prompt-textarea" rows="6"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="omniscience" style="margin-top: 8px;">
                     <i class="fa-solid fa-rotate-left"></i>&nbsp;Restore Default
                 </button>
             </div>

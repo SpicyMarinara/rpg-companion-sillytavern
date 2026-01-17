@@ -384,6 +384,11 @@ async function initUI() {
         saveSettings();
     });
 
+    $('#rpg-toggle-omniscience').on('change', function() {
+        extensionSettings.enableOmniscienceFilter = $(this).prop('checked');
+        saveSettings();
+    });
+
     $('#rpg-toggle-cyoa').on('change', function() {
         extensionSettings.enableCYOA = $(this).prop('checked');
         saveSettings();
@@ -568,6 +573,12 @@ async function initUI() {
 
     $('#rpg-toggle-show-deception-toggle').on('change', function() {
         extensionSettings.showDeceptionToggle = $(this).prop('checked');
+        saveSettings();
+        updateFeatureTogglesVisibility();
+    });
+
+    $('#rpg-toggle-show-omniscience-toggle').on('change', function() {
+        extensionSettings.showOmniscienceToggle = $(this).prop('checked');
         saveSettings();
         updateFeatureTogglesVisibility();
     });
@@ -969,6 +980,7 @@ async function initUI() {
     $('#rpg-toggle-html-prompt').prop('checked', extensionSettings.enableHtmlPrompt);
     $('#rpg-toggle-dialogue-coloring').prop('checked', extensionSettings.enableDialogueColoring);
     $('#rpg-toggle-deception').prop('checked', extensionSettings.enableDeceptionSystem ?? false);
+    $('#rpg-toggle-omniscience').prop('checked', extensionSettings.enableOmniscienceFilter ?? false);
     $('#rpg-toggle-cyoa').prop('checked', extensionSettings.enableCYOA ?? false);
     $('#rpg-toggle-spotify-music').prop('checked', extensionSettings.enableSpotifyMusic);
 
@@ -979,6 +991,7 @@ async function initUI() {
     $('#rpg-toggle-show-html-toggle').prop('checked', extensionSettings.showHtmlToggle ?? true);
     $('#rpg-toggle-show-dialogue-coloring-toggle').prop('checked', extensionSettings.showDialogueColoringToggle ?? true);
     $('#rpg-toggle-show-deception-toggle').prop('checked', extensionSettings.showDeceptionToggle ?? true);
+    $('#rpg-toggle-show-omniscience-toggle').prop('checked', extensionSettings.showOmniscienceToggle ?? true);
     $('#rpg-toggle-show-cyoa-toggle').prop('checked', extensionSettings.showCYOAToggle ?? true);
     $('#rpg-toggle-show-spotify-toggle').prop('checked', extensionSettings.showSpotifyToggle ?? true);
     $('#rpg-toggle-show-dynamic-weather-toggle').prop('checked', extensionSettings.showDynamicWeatherToggle ?? true);

@@ -4,7 +4,7 @@
  */
 import { extensionSettings } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
-import { DEFAULT_HTML_PROMPT, DEFAULT_DIALOGUE_COLORING_PROMPT, DEFAULT_DECEPTION_PROMPT, DEFAULT_CYOA_PROMPT, DEFAULT_SPOTIFY_PROMPT, DEFAULT_NARRATOR_PROMPT } from '../generation/promptBuilder.js';
+import { DEFAULT_HTML_PROMPT, DEFAULT_DIALOGUE_COLORING_PROMPT, DEFAULT_DECEPTION_PROMPT, DEFAULT_OMNISCIENCE_FILTER_PROMPT, DEFAULT_CYOA_PROMPT, DEFAULT_SPOTIFY_PROMPT, DEFAULT_NARRATOR_PROMPT } from '../generation/promptBuilder.js';
 
 let $editorModal = null;
 let tempPrompts = null; // Temporary prompts for cancel functionality
@@ -14,6 +14,7 @@ const DEFAULT_PROMPTS = {
     html: DEFAULT_HTML_PROMPT,
     dialogueColoring: DEFAULT_DIALOGUE_COLORING_PROMPT,
     deception: DEFAULT_DECEPTION_PROMPT,
+    omniscience: DEFAULT_OMNISCIENCE_FILTER_PROMPT,
     cyoa: DEFAULT_CYOA_PROMPT,
     spotify: DEFAULT_SPOTIFY_PROMPT,
     narrator: DEFAULT_NARRATOR_PROMPT,
@@ -96,6 +97,7 @@ function openPromptsEditor() {
         html: extensionSettings.customHtmlPrompt || '',
         dialogueColoring: extensionSettings.customDialogueColoringPrompt || '',
         deception: extensionSettings.customDeceptionPrompt || '',
+        omniscience: extensionSettings.customOmnisciencePrompt || '',
         cyoa: extensionSettings.customCYOAPrompt || '',
         spotify: extensionSettings.customSpotifyPrompt || '',
         narrator: extensionSettings.customNarratorPrompt || '',
@@ -111,6 +113,7 @@ function openPromptsEditor() {
     $('#rpg-prompt-html').val(extensionSettings.customHtmlPrompt || DEFAULT_PROMPTS.html);
     $('#rpg-prompt-dialogue-coloring').val(extensionSettings.customDialogueColoringPrompt || DEFAULT_PROMPTS.dialogueColoring);
     $('#rpg-prompt-deception').val(extensionSettings.customDeceptionPrompt || DEFAULT_PROMPTS.deception);
+    $('#rpg-prompt-omniscience').val(extensionSettings.customOmnisciencePrompt || DEFAULT_PROMPTS.omniscience);
     $('#rpg-prompt-cyoa').val(extensionSettings.customCYOAPrompt || DEFAULT_PROMPTS.cyoa);
     $('#rpg-prompt-spotify').val(extensionSettings.customSpotifyPrompt || DEFAULT_PROMPTS.spotify);
     $('#rpg-prompt-narrator').val(extensionSettings.customNarratorPrompt || DEFAULT_PROMPTS.narrator);
@@ -150,6 +153,7 @@ function savePrompts() {
     extensionSettings.customHtmlPrompt = $('#rpg-prompt-html').val().trim();
     extensionSettings.customDialogueColoringPrompt = $('#rpg-prompt-dialogue-coloring').val().trim();
     extensionSettings.customDeceptionPrompt = $('#rpg-prompt-deception').val().trim();
+    extensionSettings.customOmnisciencePrompt = $('#rpg-prompt-omniscience').val().trim();
     extensionSettings.customCYOAPrompt = $('#rpg-prompt-cyoa').val().trim();
     extensionSettings.customSpotifyPrompt = $('#rpg-prompt-spotify').val().trim();
     extensionSettings.customNarratorPrompt = $('#rpg-prompt-narrator').val().trim();
@@ -181,6 +185,9 @@ function restorePromptToDefault(promptType) {
             break;
         case 'deception':
             extensionSettings.customDeceptionPrompt = '';
+            break;
+        case 'omniscience':
+            extensionSettings.customOmnisciencePrompt = '';
             break;
         case 'cyoa':
             extensionSettings.customCYOAPrompt = '';
@@ -221,6 +228,7 @@ function restoreAllToDefaults() {
     $('#rpg-prompt-html').val(DEFAULT_PROMPTS.html);
     $('#rpg-prompt-dialogue-coloring').val(DEFAULT_PROMPTS.dialogueColoring);
     $('#rpg-prompt-deception').val(DEFAULT_PROMPTS.deception);
+    $('#rpg-prompt-omniscience').val(DEFAULT_PROMPTS.omniscience);
     $('#rpg-prompt-cyoa').val(DEFAULT_PROMPTS.cyoa);
     $('#rpg-prompt-spotify').val(DEFAULT_PROMPTS.spotify);
     $('#rpg-prompt-narrator').val(DEFAULT_PROMPTS.narrator);
@@ -235,6 +243,7 @@ function restoreAllToDefaults() {
     extensionSettings.customHtmlPrompt = '';
     extensionSettings.customDialogueColoringPrompt = '';
     extensionSettings.customDeceptionPrompt = '';
+    extensionSettings.customOmnisciencePrompt = '';
     extensionSettings.customCYOAPrompt = '';
     extensionSettings.customSpotifyPrompt = '';
     extensionSettings.customNarratorPrompt = '';
