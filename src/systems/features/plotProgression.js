@@ -5,7 +5,7 @@
 
 import { togglePlotButtons } from '../ui/layout.js';
 import { extensionSettings, setIsPlotProgression } from '../../core/state.js';
-import { DEFAULT_HTML_PROMPT, DEFAULT_DIALOGUE_COLORING_PROMPT, DEFAULT_DECEPTION_PROMPT, DEFAULT_CYOA_PROMPT } from '../generation/promptBuilder.js';
+import { DEFAULT_HTML_PROMPT, DEFAULT_DIALOGUE_COLORING_PROMPT, DEFAULT_DECEPTION_PROMPT, DEFAULT_CYOA_PROMPT, processPromptMacros } from '../generation/promptBuilder.js';
 import { Generate } from '../../../../../../../script.js';
 
 /**
@@ -101,37 +101,37 @@ export async function sendPlotProgression(type) {
         let prompt = '';
         if (type === 'random') {
             // Use custom prompt if set, otherwise use default
-            prompt = extensionSettings.customPlotRandomPrompt || 'Actually, the scene is getting stale. Introduce {{random::stakes::a plot twist::a new character::a cataclysm::a fourth-wall-breaking joke::a sudden atmospheric phenomenon::a plot hook::a running gag::an ecchi scenario::Death from Discworld::a new stake::a drama::a conflict::an angered entity::a god::a vision::a prophetic dream::Il Dottore from Genshin Impact::a new development::a civilian in need::an emotional bit::a threat::a villain::an important memory recollection::a marriage proposal::a date idea::an angry horde of villagers with pitchforks::a talking animal::an enemy::a cliffhanger::a short omniscient POV shift to a completely different character::a quest::an unexpected revelation::a scandal::an evil clone::death of an important character::harm to an important character::a romantic setup::a gossip::a messenger::a plot point from the past::a plot hole::a tragedy::a ghost::an otherworldly occurrence::a plot device::a curse::a magic device::a rival::an unexpected pregnancy::a brothel::a prostitute::a new location::a past lover::a completely random thing::a what-if scenario::a significant choice::war::love::a monster::lewd undertones::Professor Mari::a travelling troupe::a secret::a fortune-teller::something completely different::a killer::a murder mystery::a mystery::a skill check::a deus ex machina::three raccoons in a trench coat::a pet::a slave::an orphan::a psycho::tentacles::"there is only one bed" trope::accidental marriage::a fun twist::a boss battle::sexy corn::an eldritch horror::a character getting hungry, thirsty, or exhausted::horniness::a need for a bathroom break need::someone fainting::an assassination attempt::a meta narration of this all being an out of hand DND session::a dungeon::a friend in need::an old friend::a small time skip::a scene shift::Aurora Borealis, at this time of year, at this time of day, at this part of the country::a grand ball::a surprise party::zombies::foreshadowing::a Spanish Inquisition (nobody expects it)::a natural plot progression}} to make things more interesting! Be creative, but stay grounded in the setting.';
+            prompt = processPromptMacros(extensionSettings.customPlotRandomPrompt || 'Actually, the scene is getting stale. Introduce {{random::stakes::a plot twist::a new character::a cataclysm::a fourth-wall-breaking joke::a sudden atmospheric phenomenon::a plot hook::a running gag::an ecchi scenario::Death from Discworld::a new stake::a drama::a conflict::an angered entity::a god::a vision::a prophetic dream::Il Dottore from Genshin Impact::a new development::a civilian in need::an emotional bit::a threat::a villain::an important memory recollection::a marriage proposal::a date idea::an angry horde of villagers with pitchforks::a talking animal::an enemy::a cliffhanger::a short omniscient POV shift to a completely different character::a quest::an unexpected revelation::a scandal::an evil clone::death of an important character::harm to an important character::a romantic setup::a gossip::a messenger::a plot point from the past::a plot hole::a tragedy::a ghost::an otherworldly occurrence::a plot device::a curse::a magic device::a rival::an unexpected pregnancy::a brothel::a prostitute::a new location::a past lover::a completely random thing::a what-if scenario::a significant choice::war::love::a monster::lewd undertones::Professor Mari::a travelling troupe::a secret::a fortune-teller::something completely different::a killer::a murder mystery::a mystery::a skill check::a deus ex machina::three raccoons in a trench coat::a pet::a slave::an orphan::a psycho::tentacles::"there is only one bed" trope::accidental marriage::a fun twist::a boss battle::sexy corn::an eldritch horror::a character getting hungry, thirsty, or exhausted::horniness::a need for a bathroom break need::someone fainting::an assassination attempt::a meta narration of this all being an out of hand DND session::a dungeon::a friend in need::an old friend::a small time skip::a scene shift::Aurora Borealis, at this time of year, at this time of day, at this part of the country::a grand ball::a surprise party::zombies::foreshadowing::a Spanish Inquisition (nobody expects it)::a natural plot progression}} to make things more interesting! Be creative, but stay grounded in the setting.');
         } else {
             // Use custom prompt if set, otherwise use default
-            prompt = extensionSettings.customPlotNaturalPrompt || 'Actually, the scene is getting stale. Progress it, to make things more interesting! Reintroduce an unresolved plot point from the past, or push the story further towards the current main goal. Be creative, but stay grounded in the setting.';
+            prompt = processPromptMacros(extensionSettings.customPlotNaturalPrompt || 'Actually, the scene is getting stale. Progress it, to make things more interesting! Reintroduce an unresolved plot point from the past, or push the story further towards the current main goal. Be creative, but stay grounded in the setting.');
         }
 
         // Add HTML prompt if enabled
         if (extensionSettings.enableHtmlPrompt) {
             // Use custom HTML prompt if set, otherwise use default
-            const htmlPromptText = extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT;
+            const htmlPromptText = processPromptMacros(extensionSettings.customHtmlPrompt || DEFAULT_HTML_PROMPT);
             prompt += '\n\n' + htmlPromptText;
         }
 
         // Add Dialogue Coloring prompt if enabled
         if (extensionSettings.enableDialogueColoring) {
             // Use custom Dialogue Coloring prompt if set, otherwise use default
-            const dialogueColoringPromptText = extensionSettings.customDialogueColoringPrompt || DEFAULT_DIALOGUE_COLORING_PROMPT;
+            const dialogueColoringPromptText = processPromptMacros(extensionSettings.customDialogueColoringPrompt || DEFAULT_DIALOGUE_COLORING_PROMPT);
             prompt += '\n\n' + dialogueColoringPromptText;
         }
 
         // Add Deception System prompt if enabled
         if (extensionSettings.enableDeceptionSystem) {
             // Use custom Deception prompt if set, otherwise use default
-            const deceptionPromptText = extensionSettings.customDeceptionPrompt || DEFAULT_DECEPTION_PROMPT;
+            const deceptionPromptText = processPromptMacros(extensionSettings.customDeceptionPrompt || DEFAULT_DECEPTION_PROMPT);
             prompt += '\n\n' + deceptionPromptText;
         }
 
         // Add CYOA prompt if enabled
         if (extensionSettings.enableCYOA) {
             // Use custom CYOA prompt if set, otherwise use default
-            const cyoaPromptText = extensionSettings.customCYOAPrompt || DEFAULT_CYOA_PROMPT;
+            const cyoaPromptText = processPromptMacros(extensionSettings.customCYOAPrompt || DEFAULT_CYOA_PROMPT);
             prompt += '\n\n' + cyoaPromptText;
         }
 
