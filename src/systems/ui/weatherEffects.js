@@ -107,7 +107,7 @@ function getCurrentTime() {
 
 // Patterns for specific weather conditions (order matters - combined effects first)
 // Grouped by languages for easy editing
-const weatherPatternsByLanguage = {
+const WEATHER_PATTERNS_BY_LANGUAGE = {
     en: [
         { id: "blizzard", patterns: [ "blizzard" ] }, // Snow + Wind
         { id: "storm", patterns: [ "storm", "thunder", "lightning" ] }, // Rain + Lightning
@@ -138,7 +138,7 @@ function parseWeatherType(weatherText) {
 
     const text = weatherText.toLowerCase();
 
-    for (const language of Object.values(weatherPatternsByLanguage)) {
+    for (const language of Object.values(WEATHER_PATTERNS_BY_LANGUAGE)) {
         for (const { id, patterns } of language) {
             if (patterns.some(p => text.includes(p))) {
                 return id;
