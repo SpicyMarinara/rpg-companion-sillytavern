@@ -397,10 +397,11 @@ export function onMessageSwiped(messageIndex) {
         lastGeneratedData.infoBox = swipeData.infoBox || null;
         lastGeneratedData.characterThoughts = swipeData.characterThoughts || null;
 
-        // Parse user stats if available
-        if (swipeData.userStats) {
-            parseUserStats(swipeData.userStats);
-        }
+        // DON'T parse user stats when loading swipe data
+        // This would overwrite manually edited fields (like Conditions) with old swipe data
+        // The lastGeneratedData is loaded for display purposes only
+        // parseUserStats() updates extensionSettings.userStats which should only be modified
+        // by new generations or manual edits, not by swipe navigation
 
         // console.log('[RPG Companion] 🔄 Loaded swipe data into lastGeneratedData for display:', currentSwipeId);
     } else {
