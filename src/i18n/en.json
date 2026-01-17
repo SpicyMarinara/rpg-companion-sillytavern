@@ -232,5 +232,12 @@
     "musicPlayer.noMusic": "AI will suggest music when appropriate for the scene",
     "errors.parsingError": "RPG Companion Trackers' parsing error! The model returned an incorrect format. If the issue persists, consider changing the model for generations.",
     "settings.recommendedModels.title": "Recommended Models",
-    "settings.recommendedModels.description": "For the extension to work properly, **it is not recommended to use any models below 20B, especially if they're old.** It works best with the SOTA models such as Deepseek, Claude, GPT, or Gemini."
+    "settings.recommendedModels.description": "For the extension to work properly, **it is not recommended to use any models below 20B, especially if they're old.** It works best with the SOTA models such as Deepseek, Claude, GPT, or Gemini.",
+    "refreshConfirm.title": "Refresh RPG Data",
+    "refreshConfirm.message": "This swipe already has RPG data. How would you like to proceed?",
+    "refreshConfirm.reset": "Discard Current & Refresh",
+    "refreshConfirm.resetHint": "Reverts to stats from the previous message, then generates new data. Use this to undo changes.",
+    "refreshConfirm.keep": "Use Current & Refresh",
+    "refreshConfirm.keepHint": "Keeps your current stats as the starting point and generates updated data from them.",
+    "refreshConfirm.cancel": "Cancel"
 }

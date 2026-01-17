@@ -1,18 +1,13 @@
 /**
  * Inventory Actions Module
- * Handles all user interactions with the inventory v2 system
+ * Handles all user interactions with the inventory v3 system
  */
 
 import { extensionSettings, lastGeneratedData, committedTrackerData } from '../../core/state.js';
 import { saveSettings, saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
-import { buildInventorySummary } from '../generation/promptBuilder.js';
-import { buildUserStatsText } from '../rendering/userStats.js';
 import { renderInventory, getLocationId } from '../rendering/inventory.js';
-import { parseItems, serializeItems } from '../../utils/itemParser.js';
 import { sanitizeLocationName, sanitizeItemName } from '../../utils/security.js';
-
-// Type imports
-/** @typedef {import('../../types/inventory.js').InventoryV2} InventoryV2 */
+import { getInventoryV3, setInventoryV3, createV3Item } from '../../utils/inventoryHelper.js';
 
 /**
  * Current active sub-tab for inventory UI
@@ -33,65 +28,10 @@ let collapsedLocations = [];
 let openForms = {
     addLocation: false,
     addItemOnPerson: false,
+    addItemClothing: false,
     addItemStored: {}, // { [locationName]: true/false }
     addItemAssets: false
 };
-
-/**
- * Updates lastGeneratedData.userStats AND committedTrackerData.userStats to include
- * current inventory.
- * Maintains JSON format if current data is JSON, otherwise uses text format.
- * This ensures manual edits are immediately visible to AI in next generation.
- */
-function updateLastGeneratedDataInventory() {
-    // Check if current data is in JSON format
-    const currentData = lastGeneratedData.userStats || committedTrackerData.userStats;
-    if (currentData) {
-        const trimmed = currentData.trim();
-        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-            // Maintain JSON format
-            try {
-                const jsonData = JSON.parse(currentData);
-                if (jsonData && typeof jsonData === 'object') {
-                    // Update inventory in JSON
-                    const stats = extensionSettings.userStats;
-
-                    // Convert inventory back to v3 format (arrays of {name, quantity})
-                    const convertToV3Items = (itemString) => {
-                        if (!itemString) return [];
-                        const items = itemString.split(',').map(s => s.trim()).filter(s => s);
-                        return items.map(item => {
-                            const qtyMatch = item.match(/^(\d+)x\s+(.+)$/);
-                            if (qtyMatch) {
-                                return { name: qtyMatch[2].trim(), quantity: parseInt(qtyMatch[1]) };
-                            }
-                            return { name: item, quantity: 1 };
-                        });
-                    };
-
-                    jsonData.inventory = {
-                        onPerson: convertToV3Items(stats.inventory.onPerson),
-                        clothing: convertToV3Items(stats.inventory.clothing),
-                        stored: stats.inventory.stored || {},
-                        assets: convertToV3Items(stats.inventory.assets)
-                    };
-
-                    const updatedJSON = JSON.stringify(jsonData, null, 2);
-                    lastGeneratedData.userStats = updatedJSON;
-                    committedTrackerData.userStats = updatedJSON;
-                    return;
-                }
-            } catch (e) {
-                console.warn('[RPG Companion] Failed to parse JSON, falling back to text format:', e);
-            }
-        }
-    }
-
-    // Fall back to text format
-    const statsText = buildUserStatsText();
-    lastGeneratedData.userStats = statsText;
-    committedTrackerData.userStats = statsText;
-}
 
 /**
  * Shows the inline form for adding a new item.
@@ -163,12 +103,11 @@ export function hideAddItemForm(field, location) {
 }
 
 /**
- * Adds a new item to the inventory.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * Adds a new item to the inventory (v3 format).
+ * @param {string} field - Field name ('onPerson', 'clothing', 'stored', 'assets')
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function saveAddItem(field, location) {
-    const inventory = extensionSettings.userStats.inventory;
     let inputId;
 
     if (field === 'stored') {
@@ -193,26 +132,24 @@ export function saveAddItem(field, location) {
         return;
     }
 
-    // Get current items, add new one, serialize back
-    let currentString;
+    // Get v3 inventory and modify directly
+    const inventory = getInventoryV3();
+    const newItem = createV3Item(itemName);
+
     if (field === 'stored') {
-        currentString = inventory.stored[location] || 'None';
+        if (!inventory.stored[location]) {
+            inventory.stored[location] = [];
+        }
+        inventory.stored[location].push(newItem);
     } else {
-        currentString = inventory[field] || 'None';
+        if (!inventory[field]) {
+            inventory[field] = [];
+        }
+        inventory[field].push(newItem);
     }
 
-    const items = parseItems(currentString);
-    items.push(itemName);
-    const newString = serializeItems(items);
-
-    // Save back to inventory
-    if (field === 'stored') {
-        inventory.stored[location] = newString;
-    } else {
-        inventory[field] = newString;
-    }
-
-    updateLastGeneratedDataInventory();
+    // Save v3 inventory back
+    setInventoryV3(inventory);
     saveSettings();
     saveChatData();
     updateMessageSwipeData();
@@ -223,52 +160,36 @@ export function saveAddItem(field, location) {
 }
 
 /**
- * Removes an item from the inventory.
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * Removes an item from the inventory (v3 format).
+ * @param {string} field - Field name ('onPerson', 'clothing', 'stored', 'assets')
  * @param {number} itemIndex - Index of item to remove
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function removeItem(field, itemIndex, location) {
-    const inventory = extensionSettings.userStats.inventory;
+    // Get v3 inventory
+    const inventory = getInventoryV3();
 
-    // console.log('[RPG Companion] DEBUG removeItem called:', { field, itemIndex, location });
-
-    // Get current items, remove the one at index, serialize back
-    let currentString;
     if (field === 'stored') {
-        currentString = inventory.stored[location] || 'None';
+        if (inventory.stored[location] && Array.isArray(inventory.stored[location])) {
+            inventory.stored[location].splice(itemIndex, 1);
+        }
     } else {
-        currentString = inventory[field] || 'None';
+        if (inventory[field] && Array.isArray(inventory[field])) {
+            inventory[field].splice(itemIndex, 1);
+        }
     }
 
-    // console.log('[RPG Companion] DEBUG currentString before removal:', currentString);
-
-    const items = parseItems(currentString);
-    // console.log('[RPG Companion] DEBUG items array before removal:', items);
-
-    items.splice(itemIndex, 1); // Remove item at index
-    // console.log('[RPG Companion] DEBUG items array after removal:', items);
-
-    const newString = serializeItems(items);
-    // console.log('[RPG Companion] DEBUG newString after removal:', newString);
-
-    // Save back to inventory
-    if (field === 'stored') {
-        inventory.stored[location] = newString;
-    } else {
-        inventory[field] = newString;
-    }
-
-    // console.log('[RPG Companion] DEBUG inventory after save:', inventory);
-
-    updateLastGeneratedDataInventory();
+    // Save v3 inventory back
+    setInventoryV3(inventory);
     saveSettings();
     saveChatData();
     updateMessageSwipeData();
 
     // Re-render
     renderInventory();
-}/**
+}
+
+/**
  * Shows the inline form for adding a new storage location.
  */
 export function showAddLocationForm() {
@@ -297,10 +218,9 @@ export function hideAddLocationForm() {
 }
 
 /**
- * Saves a new storage location from the inline form.
+ * Saves a new storage location from the inline form (v3 format).
  */
 export function saveAddLocation() {
-    const inventory = extensionSettings.userStats.inventory;
     const input = $('#rpg-new-location-name');
     const rawLocationName = input.val().trim();
 
@@ -317,16 +237,20 @@ export function saveAddLocation() {
         return;
     }
 
+    // Get v3 inventory
+    const inventory = getInventoryV3();
+
     // Check for duplicate
     if (inventory.stored[locationName]) {
         alert(`Storage location "${locationName}" already exists.`);
         return;
     }
 
-    // Create new location with default "None"
-    inventory.stored[locationName] = 'None';
+    // Create new location with empty array
+    inventory.stored[locationName] = [];
 
-    updateLastGeneratedDataInventory();
+    // Save v3 inventory back
+    setInventoryV3(inventory);
     saveSettings();
     saveChatData();
     updateMessageSwipeData();
@@ -369,16 +293,14 @@ export function hideRemoveConfirmation(locationName) {
 }
 
 /**
- * Confirms and removes a storage location from the inventory.
+ * Confirms and removes a storage location from the inventory (v3 format).
  * @param {string} locationName - Name of location to remove
  */
 export function confirmRemoveLocation(locationName) {
-    // console.log('[RPG Companion] DEBUG confirmRemoveLocation called for:', locationName);
-    const inventory = extensionSettings.userStats.inventory;
-    // console.log('[RPG Companion] DEBUG inventory.stored before deletion:', inventory.stored);
+    // Get v3 inventory
+    const inventory = getInventoryV3();
 
     delete inventory.stored[locationName];
-    // console.log('[RPG Companion] DEBUG inventory.stored after deletion:', inventory.stored);
 
     // Remove from collapsed list if present
     const index = collapsedLocations.indexOf(locationName);
@@ -386,13 +308,13 @@ export function confirmRemoveLocation(locationName) {
         collapsedLocations.splice(index, 1);
     }
 
-    updateLastGeneratedDataInventory();
+    // Save v3 inventory back
+    setInventoryV3(inventory);
     saveSettings();
     saveChatData();
     updateMessageSwipeData();
 
     // Re-render inventory UI
-    // console.log('[RPG Companion] DEBUG calling renderInventory()');
     renderInventory();
 }/**
  * Toggles the collapsed state of a storage location section.
@@ -629,7 +551,7 @@ export function restoreFormStates() {
     // Restore add item stored forms (for each location)
     // Clean up orphaned states for deleted locations (Bug #3 fix)
     if (openForms.addItemStored && typeof openForms.addItemStored === 'object') {
-        const inventory = extensionSettings.userStats.inventory;
+        const inventory = getInventoryV3();
         const locationsToDelete = [];
 
         for (const location in openForms.addItemStored) {

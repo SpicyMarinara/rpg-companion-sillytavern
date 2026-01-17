@@ -1,27 +1,24 @@
 /**
  * Inventory Item Editing Module
- * Handles inline editing of inventory item names
+ * Handles inline editing of inventory item names (v3 format)
  */
 
 import { extensionSettings, lastGeneratedData, committedTrackerData } from '../../core/state.js';
 import { saveSettings, saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
-import { buildInventorySummary } from '../generation/promptBuilder.js';
 import { renderInventory } from '../rendering/inventory.js';
-import { parseItems, serializeItems } from '../../utils/itemParser.js';
 import { sanitizeItemName } from '../../utils/security.js';
+import { getInventoryV3, setInventoryV3, createV3Item, formatItemDisplay } from '../../utils/inventoryHelper.js';
 
 /**
- * Updates an existing inventory item's name.
+ * Updates an existing inventory item's name (v3 format).
  * Validates, sanitizes, and persists the change.
  *
- * @param {string} field - Field name ('onPerson', 'stored', 'assets')
+ * @param {string} field - Field name ('onPerson', 'clothing', 'stored', 'assets')
  * @param {number} index - Index of item in the array
- * @param {string} newName - New name for the item
+ * @param {string} newName - New name for the item (can include quantity prefix like "3x Potion")
  * @param {string} [location] - Location name (required for 'stored' field)
  */
 export function updateInventoryItem(field, index, newName, location) {
-    const inventory = extensionSettings.userStats.inventory;
-
     // Validate and sanitize the new item name
     const sanitizedName = sanitizeItemName(newName);
     if (!sanitizedName) {
@@ -31,20 +28,20 @@ export function updateInventoryItem(field, index, newName, location) {
         return;
     }
 
-    // Get current items for the field
-    let currentString;
+    // Get v3 inventory
+    const inventory = getInventoryV3();
+
+    // Get current items array for the field
+    let items;
     if (field === 'stored') {
         if (!location) {
             console.error('[RPG Companion] Location required for stored items');
             return;
         }
-        currentString = inventory.stored[location] || 'None';
+        items = inventory.stored[location] || [];
     } else {
-        currentString = inventory[field] || 'None';
+        items = inventory[field] || [];
     }
-
-    // Parse current items
-    const items = parseItems(currentString);
 
     // Validate index
     if (index < 0 || index >= items.length) {
@@ -52,21 +49,21 @@ export function updateInventoryItem(field, index, newName, location) {
         return;
     }
 
-    // Update the item at this index
-    items[index] = sanitizedName;
+    // Create new v3 item from the sanitized name (parses quantity if present)
+    const newItem = createV3Item(sanitizedName);
 
-    // Serialize back to string
-    const newItemString = serializeItems(items);
+    // Update the item at this index
+    items[index] = newItem;
 
     // Update the inventory
     if (field === 'stored') {
-        inventory.stored[location] = newItemString;
+        inventory.stored[location] = items;
     } else {
-        inventory[field] = newItemString;
+        inventory[field] = items;
     }
 
-    // Update lastGeneratedData and committedTrackerData with new inventory
-    updateLastGeneratedDataInventory();
+    // Save v3 inventory back
+    setInventoryV3(inventory);
 
     // Save changes
     saveSettings();
@@ -75,70 +72,4 @@ export function updateInventoryItem(field, index, newName, location) {
 
     // Re-render inventory
     renderInventory();
-}
-
-/**
- * Updates lastGeneratedData.userStats AND committedTrackerData.userStats to include
- * current inventory.
- * Maintains JSON format if current data is JSON, otherwise uses text format.
- * This ensures manual edits are immediately visible to AI in next generation.
- * @private
- */
-function updateLastGeneratedDataInventory() {
-    // Check if current data is in JSON format
-    const currentData = lastGeneratedData.userStats || committedTrackerData.userStats;
-    if (currentData) {
-        const trimmed = currentData.trim();
-        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-            // Maintain JSON format
-            try {
-                const jsonData = JSON.parse(currentData);
-                if (jsonData && typeof jsonData === 'object') {
-                    // Update inventory in JSON
-                    const stats = extensionSettings.userStats;
-
-                    // Convert inventory back to v3 format (arrays of {name, quantity})
-                    const convertToV3Items = (itemString) => {
-                        if (!itemString) return [];
-                        const items = itemString.split(',').map(s => s.trim()).filter(s => s);
-                        return items.map(item => {
-                            const qtyMatch = item.match(/^(\d+)x\s+(.+)$/);
-                            if (qtyMatch) {
-                                return { name: qtyMatch[2].trim(), quantity: parseInt(qtyMatch[1]) };
-                            }
-                            return { name: item, quantity: 1 };
-                        });
-                    };
-
-                    jsonData.inventory = {
-                        onPerson: convertToV3Items(stats.inventory.onPerson),
-                        clothing: convertToV3Items(stats.inventory.clothing),
-                        stored: stats.inventory.stored || {},
-                        assets: convertToV3Items(stats.inventory.assets)
-                    };
-
-                    const updatedJSON = JSON.stringify(jsonData, null, 2);
-                    lastGeneratedData.userStats = updatedJSON;
-                    committedTrackerData.userStats = updatedJSON;
-                    return;
-                }
-            } catch (e) {
-                console.warn('[RPG Companion] Failed to parse JSON, falling back to text format:', e);
-            }
-        }
-    }
-
-    // Fall back to text format
-    const stats = extensionSettings.userStats;
-    const inventorySummary = buildInventorySummary(stats.inventory);
-    const statsText =
-        `Health: ${stats.health}%\n` +
-        `Satiety: ${stats.satiety}%\n` +
-        `Energy: ${stats.energy}%\n` +
-        `Hygiene: ${stats.hygiene}%\n` +
-        `Arousal: ${stats.arousal}%\n` +
-        `${stats.mood}: ${stats.conditions}\n` +
-        `${inventorySummary}`;
-    lastGeneratedData.userStats = statsText;
-    committedTrackerData.userStats = statsText;
 }

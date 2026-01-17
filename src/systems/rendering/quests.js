@@ -4,7 +4,7 @@
  */
 
 import { extensionSettings, $questsContainer, committedTrackerData, lastGeneratedData } from '../../core/state.js';
-import { saveSettings, saveChatData } from '../../core/persistence.js';
+import { saveSettings, saveChatData, updateMessageSwipeData } from '../../core/persistence.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
 
 /**
@@ -279,6 +279,7 @@ function attachQuestEventHandlers() {
             syncQuestsToCommittedData();
             saveSettings();
             saveChatData();
+            updateMessageSwipeData();
             renderQuests();
         }
     });
@@ -310,6 +311,7 @@ function attachQuestEventHandlers() {
             syncQuestsToCommittedData();
             saveSettings();
             saveChatData();
+            updateMessageSwipeData();
             renderQuests();
         }
     });
@@ -328,6 +330,7 @@ function attachQuestEventHandlers() {
         syncQuestsToCommittedData();
         saveSettings();
         saveChatData();
+        updateMessageSwipeData();
         renderQuests();
     });
 
@@ -344,6 +347,7 @@ function attachQuestEventHandlers() {
             syncQuestsToCommittedData();
             saveSettings();
             saveChatData();
+            updateMessageSwipeData();
         }
     });
 

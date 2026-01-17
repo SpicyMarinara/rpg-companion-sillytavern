@@ -27,7 +27,7 @@ import { parseResponse, parseUserStats } from './parser.js';
 import { parseAndStoreSpotifyUrl } from '../features/musicPlayer.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
-import { removeLocks } from './lockManager.js';
+import { removeLocks, preserveLockedValues } from './lockManager.js';
 import { renderThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
@@ -207,6 +207,254 @@ export async function switchToPreset(presetName) {
     }
 }
 
+/**
+ * Check if the current swipe has existing RPG data saved
+ * @returns {{hasData: boolean, swipeData: Object|null, previousData: Object|null}}
+ */
+function checkCurrentSwipeData() {
+    const lastMessage = chat && chat.length > 0 ? chat[chat.length - 1] : null;
+    
+    if (!lastMessage || lastMessage.is_user) {
+        return { hasData: false, swipeData: null, previousData: null };
+    }
+
+    const currentSwipeId = lastMessage.swipe_id || 0;
+    const swipeData = lastMessage.extra?.rpg_companion_swipes?.[currentSwipeId];
+    
+    // Check if any tracker data exists in the current swipe
+    const hasData = swipeData && (
+        (swipeData.userStats && swipeData.userStats.trim() !== '') ||
+        (swipeData.infoBox && swipeData.infoBox.trim() !== '') ||
+        (swipeData.characterThoughts && swipeData.characterThoughts.trim() !== '')
+    );
+
+    // Find previous message data to reset to (search backwards for assistant message with data)
+    let previousData = null;
+    for (let i = chat.length - 2; i >= 0; i--) {
+        const msg = chat[i];
+        if (!msg.is_user && msg.extra?.rpg_companion_swipes) {
+            const prevSwipeId = msg.swipe_id || 0;
+            const prevSwipeData = msg.extra.rpg_companion_swipes[prevSwipeId];
+            if (prevSwipeData && (prevSwipeData.userStats || prevSwipeData.infoBox || prevSwipeData.characterThoughts)) {
+                previousData = prevSwipeData;
+                break;
+            }
+        }
+    }
+
+    return { hasData: !!hasData, swipeData, previousData };
+}
+
+/**
+ * Show confirmation popup when refreshing with existing data
+ * @returns {Promise<'reset'|'keep'|'cancel'>} User's choice
+ */
+function showRefreshConfirmPopup() {
+    return new Promise((resolve) => {
+        // Create popup overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'rpg-refresh-confirm-overlay';
+        overlay.innerHTML = `
+            <div class="rpg-refresh-confirm-popup">
+                <div class="rpg-refresh-confirm-header">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>${i18n.getTranslation('refreshConfirm.title') || 'Refresh RPG Data'}</span>
+                </div>
+                <div class="rpg-refresh-confirm-body">
+                    <p>${i18n.getTranslation('refreshConfirm.message') || 'This swipe already has RPG data. How would you like to proceed?'}</p>
+                </div>
+                <div class="rpg-refresh-confirm-buttons">
+                    <div class="rpg-refresh-confirm-option">
+                        <button class="rpg-refresh-confirm-btn rpg-refresh-confirm-reset">
+                            <i class="fa-solid fa-trash-can"></i>
+                            ${i18n.getTranslation('refreshConfirm.reset') || 'Discard Current & Refresh'}
+                        </button>
+                        <div class="rpg-refresh-confirm-hint">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>${i18n.getTranslation('refreshConfirm.resetHint') || 'Reverts to stats from the previous message, then generates new data. Use this to undo changes.'}</span>
+                        </div>
+                    </div>
+                    <div class="rpg-refresh-confirm-option">
+                        <button class="rpg-refresh-confirm-btn rpg-refresh-confirm-keep">
+                            <i class="fa-solid fa-arrow-right"></i>
+                            ${i18n.getTranslation('refreshConfirm.keep') || 'Use Current & Refresh'}
+                        </button>
+                        <div class="rpg-refresh-confirm-hint">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>${i18n.getTranslation('refreshConfirm.keepHint') || 'Keeps your current stats as the starting point and generates updated data from them.'}</span>
+                        </div>
+                    </div>
+                    <button class="rpg-refresh-confirm-btn rpg-refresh-confirm-cancel">
+                        <i class="fa-solid fa-xmark"></i>
+                        ${i18n.getTranslation('refreshConfirm.cancel') || 'Cancel'}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add styles if not already present
+        if (!document.getElementById('rpg-refresh-confirm-styles')) {
+            const styles = document.createElement('style');
+            styles.id = 'rpg-refresh-confirm-styles';
+            styles.textContent = `
+                .rpg-refresh-confirm-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                    animation: rpg-fade-in 0.2s ease;
+                }
+                @keyframes rpg-fade-in {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                .rpg-refresh-confirm-popup {
+                    background: var(--SmartThemeBlurTintColor, #1a1a2e);
+                    border: 1px solid var(--SmartThemeBorderColor, #333);
+                    border-radius: 12px;
+                    padding: 20px;
+                    max-width: 480px;
+                    width: 90%;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+                    animation: rpg-slide-up 0.2s ease;
+                }
+                @keyframes rpg-slide-up {
+                    from { transform: translateY(20px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                .rpg-refresh-confirm-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 15px;
+                    font-size: 1.1em;
+                    font-weight: 600;
+                    color: var(--SmartThemeBodyColor, #eaeaea);
+                }
+                .rpg-refresh-confirm-header i {
+                    color: var(--SmartThemeQuoteColor, #59a8e8);
+                }
+                .rpg-refresh-confirm-body {
+                    margin-bottom: 20px;
+                    color: var(--SmartThemeBodyColor, #ccc);
+                    line-height: 1.5;
+                }
+                .rpg-refresh-confirm-buttons {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+                .rpg-refresh-confirm-option {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                }
+                .rpg-refresh-confirm-hint {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 6px;
+                    padding: 0 4px;
+                    font-size: 0.8em;
+                    color: var(--SmartThemeBodyColor, #999);
+                    opacity: 0.8;
+                }
+                .rpg-refresh-confirm-hint i {
+                    margin-top: 2px;
+                    font-size: 0.9em;
+                    flex-shrink: 0;
+                }
+                .rpg-refresh-confirm-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    padding: 12px 16px;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 0.95em;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                }
+                .rpg-refresh-confirm-reset {
+                    background: linear-gradient(135deg, #e74c3c, #c0392b);
+                    color: white;
+                }
+                .rpg-refresh-confirm-reset:hover {
+                    background: linear-gradient(135deg, #c0392b, #a93226);
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+                }
+                .rpg-refresh-confirm-keep {
+                    background: linear-gradient(135deg, #27ae60, #1e8449);
+                    color: white;
+                }
+                .rpg-refresh-confirm-keep:hover {
+                    background: linear-gradient(135deg, #1e8449, #186a3b);
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+                }
+                .rpg-refresh-confirm-cancel {
+                    background: transparent;
+                    border: 1px solid var(--SmartThemeBorderColor, #444);
+                    color: var(--SmartThemeBodyColor, #ccc);
+                    margin-top: 4px;
+                }
+                .rpg-refresh-confirm-cancel:hover {
+                    background: var(--SmartThemeBorderColor, #444);
+                }
+            `;
+            document.head.appendChild(styles);
+        }
+
+        // Add event handlers
+        const cleanup = () => {
+            overlay.remove();
+        };
+
+        overlay.querySelector('.rpg-refresh-confirm-reset').addEventListener('click', () => {
+            cleanup();
+            resolve('reset');
+        });
+
+        overlay.querySelector('.rpg-refresh-confirm-keep').addEventListener('click', () => {
+            cleanup();
+            resolve('keep');
+        });
+
+        overlay.querySelector('.rpg-refresh-confirm-cancel').addEventListener('click', () => {
+            cleanup();
+            resolve('cancel');
+        });
+
+        // Close on overlay click (outside popup)
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                cleanup();
+                resolve('cancel');
+            }
+        });
+
+        // Close on Escape key
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                document.removeEventListener('keydown', escHandler);
+                cleanup();
+                resolve('cancel');
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        document.body.appendChild(overlay);
+    });
+}
+
 
 /**
  * Updates RPG tracker data using separate API call (separate mode only).
@@ -231,6 +479,61 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
     if (extensionSettings.generationMode !== 'separate' && extensionSettings.generationMode !== 'external') {
         // console.log('[RPG Companion] Not in separate or external mode, skipping manual update');
         return;
+    }
+
+    // Check if current swipe already has saved data
+    const { hasData, swipeData, previousData } = checkCurrentSwipeData();
+    
+    if (hasData) {
+        // Show confirmation popup to user
+        const choice = await showRefreshConfirmPopup();
+        
+        if (choice === 'cancel') {
+            return; // User cancelled, do nothing
+        }
+        
+        if (choice === 'reset') {
+            // Reset to previous message's data - same behavior as creating a new swipe
+            // This matches the logic in onMessageSwiped for new swipes
+            if (previousData) {
+                committedTrackerData.userStats = previousData.userStats || null;
+                committedTrackerData.infoBox = previousData.infoBox || null;
+                committedTrackerData.characterThoughts = previousData.characterThoughts || null;
+            } else {
+                // No previous data found - clear committed data (same as swipe handler)
+                committedTrackerData.userStats = null;
+                committedTrackerData.infoBox = null;
+                committedTrackerData.characterThoughts = null;
+            }
+            
+            // Update lastGeneratedData to match (for UI display while generating)
+            lastGeneratedData.userStats = committedTrackerData.userStats;
+            lastGeneratedData.infoBox = committedTrackerData.infoBox;
+            lastGeneratedData.characterThoughts = committedTrackerData.characterThoughts;
+            
+            // Parse user stats for display if available
+            if (committedTrackerData.userStats) {
+                parseUserStats(committedTrackerData.userStats);
+            }
+            
+            // Re-render UI to show reset state while generating
+            renderUserStats();
+            renderInfoBox();
+            renderThoughts();
+            renderInventory();
+        } else if (choice === 'keep' && swipeData) {
+            // Keep current swipe's data as the base for regeneration
+            // Update committedTrackerData to use current swipe's data (not old committed data)
+            if (swipeData.userStats) {
+                committedTrackerData.userStats = swipeData.userStats;
+            }
+            if (swipeData.infoBox) {
+                committedTrackerData.infoBox = swipeData.infoBox;
+            }
+            if (swipeData.characterThoughts) {
+                committedTrackerData.characterThoughts = swipeData.characterThoughts;
+            }
+        }
     }
 
     const isExternalMode = extensionSettings.generationMode === 'external';
@@ -274,12 +577,15 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             // Remove locks from parsed data (JSON format only, text format is unaffected)
             if (parsedData.userStats) {
                 parsedData.userStats = removeLocks(parsedData.userStats);
+                parsedData.userStats = preserveLockedValues(parsedData.userStats, 'userStats');
             }
             if (parsedData.infoBox) {
                 parsedData.infoBox = removeLocks(parsedData.infoBox);
+                parsedData.infoBox = preserveLockedValues(parsedData.infoBox, 'infoBox');
             }
             if (parsedData.characterThoughts) {
                 parsedData.characterThoughts = removeLocks(parsedData.characterThoughts);
+                parsedData.characterThoughts = preserveLockedValues(parsedData.characterThoughts, 'characterThoughts');
             }
 
             // Parse and store Spotify URL if feature is enabled

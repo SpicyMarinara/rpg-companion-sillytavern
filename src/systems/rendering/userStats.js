@@ -130,25 +130,34 @@ function updateUserStatsData() {
                         jsonData.status[fieldKey] = stats[fieldKey] || 'None';
                     }
 
-                    // Update inventory (convert to v3 format)
-                    const convertToV3Items = (itemString) => {
-                        if (!itemString) return [];
-                        const items = itemString.split(',').map(s => s.trim()).filter(s => s);
-                        return items.map(item => {
-                            const qtyMatch = item.match(/^(\\d+)x\\s+(.+)$/);
-                            if (qtyMatch) {
-                                return { name: qtyMatch[2].trim(), quantity: parseInt(qtyMatch[1]) };
-                            }
-                            return { name: item, quantity: 1 };
-                        });
-                    };
+                    // Preserve existing inventory from JSON data
+                    // Inventory is stored in v3 format directly in the JSON, NOT in extensionSettings.userStats.inventory
+                    // Only update if stats.inventory has actual data (from legacy format migration)
+                    if (stats.inventory && typeof stats.inventory === 'object' && !Array.isArray(stats.inventory)) {
+                        // Legacy format detected in extensionSettings - convert to v3
+                        const convertToV3Items = (itemString) => {
+                            if (!itemString) return [];
+                            // Handle if already v3 array
+                            if (Array.isArray(itemString)) return itemString;
+                            const items = itemString.split(',').map(s => s.trim()).filter(s => s);
+                            return items.map(item => {
+                                const qtyMatch = item.match(/^(\d+)x\s+(.+)$/);
+                                if (qtyMatch) {
+                                    return { name: qtyMatch[2].trim(), quantity: parseInt(qtyMatch[1]) };
+                                }
+                                return { name: item, quantity: 1 };
+                            });
+                        };
 
-                    jsonData.inventory = {
-                        onPerson: convertToV3Items(stats.inventory?.onPerson),
-                        clothing: convertToV3Items(stats.inventory?.clothing),
-                        stored: stats.inventory?.stored || {},
-                        assets: convertToV3Items(stats.inventory?.assets)
-                    };
+                        jsonData.inventory = {
+                            onPerson: convertToV3Items(stats.inventory?.onPerson),
+                            clothing: convertToV3Items(stats.inventory?.clothing),
+                            stored: stats.inventory?.stored || jsonData.inventory?.stored || {},
+                            assets: convertToV3Items(stats.inventory?.assets)
+                        };
+                    }
+                    // If no inventory in extensionSettings, preserve existing JSON inventory
+                    // (this is the normal case - inventory lives in the JSON, not extensionSettings)
 
                     // Update quests
                     jsonData.quests = extensionSettings.quests || { main: '', optional: [] };
