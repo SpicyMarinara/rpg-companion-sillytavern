@@ -512,17 +512,20 @@ export function renderThoughts() {
                     const fieldNameLower = field.name.toLowerCase();
                     // Skip lock icons for thoughts field
                     const showLock = !fieldNameLower.includes('thought');
+                    // Add placeholder for empty fields
+                    const placeholder = fieldValue ? '' : `data-placeholder="${field.name}"`;
+                    const emptyClass = fieldValue ? '' : ' rpg-empty-field';
                     if (showLock) {
                         const lockIconHtml = getLockIconHtml('characters', `${char.name}.${field.name}`);
                         html += `
                                 <div class="rpg-character-field rpg-character-${fieldId}" style="position: relative;">
                                     ${lockIconHtml}
-                                    <span class="rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="Click to edit ${field.name}">${fieldValue}</span>
+                                    <span class="rpg-editable${emptyClass}" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="Click to edit ${field.name}" ${placeholder}>${fieldValue}</span>
                                 </div>
                         `;
                     } else {
                         html += `
-                                <div class="rpg-character-field rpg-character-${fieldId} rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="Click to edit ${field.name}">${fieldValue}</div>
+                                <div class="rpg-character-field rpg-character-${fieldId} rpg-editable${emptyClass}" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="Click to edit ${field.name}" ${placeholder}>${fieldValue}</div>
                         `;
                     }
                 }
@@ -564,6 +567,16 @@ export function renderThoughts() {
         }
 
         debugLog('[RPG Thoughts] Finished building all character cards');
+
+        // Add "Add Character" button if data exists (inside rpg-thoughts-content)
+        if (presentCharacters.length > 0) {
+            html += `
+                <button class="rpg-add-character-btn" title="Add a new character">
+                    <i class="fa-solid fa-plus"></i> Add Character
+                </button>
+            `;
+        }
+
         html += '</div>';
     }
 
@@ -660,6 +673,31 @@ export function renderThoughts() {
 
         // Trigger file selection
         fileInput.trigger('click');
+    });
+
+    // Add event listener for "Add Character" button (support both click and touch for mobile)
+    $thoughtsContainer.find('.rpg-add-character-btn').on('click touchend', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        addNewCharacter();
+    });
+
+    // Handle empty field focus - remove placeholder styling on focus
+    $thoughtsContainer.find('.rpg-editable.rpg-empty-field').on('focus', function() {
+        $(this).removeClass('rpg-empty-field');
+        $(this).removeAttr('data-placeholder');
+    });
+
+    // Restore placeholder if field becomes empty on blur (after the main blur handler)
+    $thoughtsContainer.find('.rpg-editable').on('blur', function() {
+        const $this = $(this);
+        if (!$this.text().trim()) {
+            const field = $this.data('field');
+            if (field) {
+                $this.addClass('rpg-empty-field');
+                $this.attr('data-placeholder', field);
+            }
+        }
     });
 
     // Remove updating class after animation
@@ -789,6 +827,136 @@ export function removeCharacter(characterName) {
 }
 
 /**
+ * Adds a new blank character to Present Characters data.
+ * Creates a character with empty fields based on the tracker template.
+ */
+export function addNewCharacter() {
+    const presentCharsConfig = extensionSettings.trackerConfig?.presentCharacters;
+    const enabledFields = presentCharsConfig?.customFields?.filter(f => f && f.enabled && f.name) || [];
+    const characterStats = presentCharsConfig?.characterStats;
+    const enabledCharStats = characterStats?.enabled && characterStats?.customStats?.filter(s => s && s.enabled && s.name) || [];
+    const hasRelationship = presentCharsConfig?.relationshipFields?.length > 0;
+
+    // Check if data is in JSON format
+    let isJSON = false;
+    let parsedData = null;
+
+    try {
+        parsedData = typeof lastGeneratedData.characterThoughts === 'string'
+            ? JSON.parse(lastGeneratedData.characterThoughts)
+            : lastGeneratedData.characterThoughts;
+
+        if (Array.isArray(parsedData) || (parsedData && parsedData.characters)) {
+            isJSON = true;
+        }
+    } catch (e) {
+        // Not JSON, treat as text format
+    }
+
+    if (isJSON) {
+        // JSON format - add new character object
+        const charactersArray = Array.isArray(parsedData) ? parsedData : (parsedData.characters || []);
+
+        const newCharacter = {
+            name: 'New Character',
+            emoji: '👤',
+            details: {}
+        };
+
+        // Add all enabled custom fields as empty
+        for (const field of enabledFields) {
+            newCharacter.details[field.name] = '';
+        }
+
+        // Add relationship if enabled
+        if (hasRelationship) {
+            newCharacter.relationship = 'Neutral';
+        }
+
+        // Add stats if enabled
+        if (enabledCharStats.length > 0) {
+            newCharacter.stats = {};
+            for (const stat of enabledCharStats) {
+                newCharacter.stats[stat.name] = 100;
+            }
+        }
+
+        charactersArray.push(newCharacter);
+
+        // Save back as JSON string
+        lastGeneratedData.characterThoughts = JSON.stringify(
+            Array.isArray(parsedData) ? charactersArray : { ...parsedData, characters: charactersArray },
+            null,
+            2
+        );
+        committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+    } else {
+        // Text format - add new character block
+        const lines = lastGeneratedData.characterThoughts.split('\n');
+        const dividerIndex = lines.findIndex(line => line.includes('---'));
+
+        if (dividerIndex >= 0) {
+            const newCharacterLines = ['- New Character'];
+
+            // Add custom detail fields as standalone lines
+            for (const customField of enabledFields) {
+                newCharacterLines.push(`  ${customField.name}: `);
+            }
+
+            // Add Relationship field if enabled
+            if (hasRelationship) {
+                newCharacterLines.push(`  Relationship: Neutral`);
+            }
+
+            // Add Stats if enabled
+            if (enabledCharStats.length > 0) {
+                const statsParts = enabledCharStats.map(s => `${s.name}: 100%`);
+                newCharacterLines.push(`  Stats: ${statsParts.join(' | ')}`);
+            }
+
+            // Find the last character and add after it, or after divider if no characters
+            let insertIndex = dividerIndex + 1;
+            for (let i = lines.length - 1; i > dividerIndex; i--) {
+                if (lines[i].trim().startsWith('- ')) {
+                    // Find the end of this character block
+                    insertIndex = i + 1;
+                    while (insertIndex < lines.length && lines[insertIndex].trim() && !lines[insertIndex].trim().startsWith('- ')) {
+                        insertIndex++;
+                    }
+                    break;
+                }
+            }
+
+            lines.splice(insertIndex, 0, ...newCharacterLines);
+            lastGeneratedData.characterThoughts = lines.join('\n');
+            committedTrackerData.characterThoughts = lines.join('\n');
+        }
+    }
+
+    // Update message swipe data
+    const chat = getContext().chat;
+    if (chat && chat.length > 0) {
+        for (let i = chat.length - 1; i >= 0; i--) {
+            const message = chat[i];
+            if (!message.is_user) {
+                if (message.extra && message.extra.rpg_companion_swipes) {
+                    const swipeId = message.swipe_id || 0;
+                    if (message.extra.rpg_companion_swipes[swipeId]) {
+                        message.extra.rpg_companion_swipes[swipeId].characterThoughts = lastGeneratedData.characterThoughts;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    saveChatData();
+
+    // Re-render to show new character
+    renderThoughts();
+}
+
+/**
  * Updates a specific character field in Present Characters data and re-renders.
  * Works with the new multi-line format.
  *
@@ -882,15 +1050,44 @@ export function updateCharacterField(characterName, field, value) {
                     numValue = Math.max(0, Math.min(100, numValue));
                     char.stats[field] = numValue;
                 } else {
-                    // It's a custom detail field
+                    // It's a custom detail field - store in details object
                     if (!char.details) char.details = {};
                     char.details[field] = value;
+
+                    // Clean up snake_case version if it exists (from AI generation)
+                    const fieldKey = toSnakeCase(field);
+                    if (fieldKey !== field && char.details[fieldKey] !== undefined) {
+                        delete char.details[fieldKey];
+                    }
+
+                    // Clean up old root-level field if it exists (from v2 format)
+                    if (char[field] !== undefined && field !== 'name' && field !== 'emoji') {
+                        delete char[field];
+                    }
+                    if (char[fieldKey] !== undefined && fieldKey !== 'name' && fieldKey !== 'emoji') {
+                        delete char[fieldKey];
+                    }
+                }
+            }
+
+            // Clean up ALL duplicate snake_case fields in details (not just the edited field)
+            // This prevents duplicates from AI-generated data
+            if (char.details) {
+                for (const customField of enabledFields) {
+                    const fieldName = customField.name;
+                    const snakeCaseKey = toSnakeCase(fieldName);
+                    // If both versions exist, keep the properly-cased one and remove snake_case
+                    if (snakeCaseKey !== fieldName &&
+                        char.details[fieldName] !== undefined &&
+                        char.details[snakeCaseKey] !== undefined) {
+                        delete char.details[snakeCaseKey];
+                    }
                 }
             }
         }
 
-        // Save back to lastGeneratedData
-        lastGeneratedData.characterThoughts = Array.isArray(parsedData) ? charactersArray : { ...parsedData, characters: charactersArray };
+        // Save back to lastGeneratedData as JSON string (consistent with infoBox and userStats)
+        lastGeneratedData.characterThoughts = JSON.stringify(Array.isArray(parsedData) ? charactersArray : { ...parsedData, characters: charactersArray }, null, 2);
         committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
 
         // console.log('[RPG Companion] Saved to lastGeneratedData.characterThoughts:', JSON.stringify(lastGeneratedData.characterThoughts));
@@ -971,6 +1168,9 @@ export function updateCharacterField(characterName, field, value) {
         const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
         const isThoughtsField = field.toLowerCase() === 'thoughts' || field === thoughtsFieldName;
 
+        // Track if field was found and updated
+        let fieldUpdated = false;
+
         // First pass: check if Stats line exists and update other fields
         for (let i = characterStartIndex; i < characterEndIndex; i++) {
             const line = lines[i].trim();
@@ -978,35 +1178,37 @@ export function updateCharacterField(characterName, field, value) {
             if (line.startsWith('Stats:')) {
                 statsLineExists = true;
                 statsLineIndex = i;
+                continue; // Skip to next line
             }
 
+            // Check for name update
             if (field === 'name' && line.startsWith('- ')) {
                 lines[i] = `- ${value}`;
+                fieldUpdated = true;
+                continue;
             }
-            else if (field === 'emoji' && line.startsWith('Details:')) {
-                const parts = line.substring(line.indexOf(':') + 1).split('|').map(p => p.trim());
-                parts[0] = value;
-                lines[i] = `Details: ${parts.join(' | ')}`;
-            }
-            else if (line.startsWith('Details:')) {
-                const fieldIndex = enabledFields.findIndex(f => f.name === field);
-                if (fieldIndex !== -1) {
-                    const parts = line.substring(line.indexOf(':') + 1).split('|').map(p => p.trim());
-                    if (parts.length > fieldIndex + 1) {
-                        parts[fieldIndex + 1] = value;
-                        lines[i] = `Details: ${parts.join(' | ')}`;
-                    }
-                }
-            }
-            else if (field === 'Relationship' && line.startsWith('Relationship:')) {
+
+            // Check for Relationship field
+            if (field === 'Relationship' && line.startsWith('Relationship:')) {
                 const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
                 const relationshipValue = emojiToRelationship[value] || value;
                 lines[i] = `Relationship: ${relationshipValue}`;
+                fieldUpdated = true;
+                continue;
             }
-            else if (isThoughtsField && line.startsWith(thoughtsFieldName + ':')) {
-                // Update thoughts field
-                lines[i] = `${thoughtsFieldName}: ${value}`;
-                // console.log('[RPG Companion] Updated thoughts:', lines[i]);
+
+            // Check for Thoughts field
+            if (isThoughtsField && line.startsWith(thoughtsFieldName + ':')) {
+                lines[i] = `  ${thoughtsFieldName}: ${value}`;
+                fieldUpdated = true;
+                continue;
+            }
+
+            // Check for v3 text format standalone field lines (e.g., "Appearance: ...", "Demeanor: ...")
+            if (line.startsWith(field + ':')) {
+                lines[i] = `  ${field}: ${value}`;
+                fieldUpdated = true;
+                // Don't break - update ALL instances of this field (in case of duplicates from previous bugs)
             }
         }
 
@@ -1073,23 +1275,28 @@ export function updateCharacterField(characterName, field, value) {
             }
         }
     } else {
-        // Create new character block
+        // Create new character block (v3 text format only)
         const dividerIndex = lines.findIndex(line => line.includes('---'));
         if (dividerIndex >= 0) {
             const newCharacterLines = [`- ${characterName}`];
 
-            let detailsParts = [field === 'emoji' ? value : '😊'];
-            for (let i = 0; i < enabledFields.length; i++) {
-                detailsParts.push(field === enabledFields[i].name ? value : '');
+            // Add custom detail fields as standalone lines
+            for (const customField of enabledFields) {
+                if (field === customField.name) {
+                    newCharacterLines.push(`  ${customField.name}: ${value}`);
+                } else {
+                    newCharacterLines.push(`  ${customField.name}: `);
+                }
             }
-            newCharacterLines.push(`Details: ${detailsParts.join(' | ')}`);
 
+            // Add Relationship field if enabled
             if (presentCharsConfig?.relationshipFields?.length > 0) {
                 const emojiToRelationship = { '⚔️': 'Enemy', '⚖️': 'Neutral', '⭐': 'Friend', '❤️': 'Lover' };
                 const relationshipValue = field === 'Relationship' ? (emojiToRelationship[value] || value) : 'Neutral';
-                newCharacterLines.push(`Relationship: ${relationshipValue}`);
+                newCharacterLines.push(`  Relationship: ${relationshipValue}`);
             }
 
+            // Add Stats if enabled
             if (enabledCharStats.length > 0) {
                 const statsParts = enabledCharStats.map(s => {
                     if (field === s.name) {
@@ -1104,7 +1311,7 @@ export function updateCharacterField(characterName, field, value) {
                     }
                     return `${s.name}: 0%`;
                 });
-                newCharacterLines.push(`Stats: ${statsParts.join(' | ')}`);
+                newCharacterLines.push(`  Stats: ${statsParts.join(' | ')}`);
             }
 
             lines.splice(dividerIndex + 1, 0, ...newCharacterLines);

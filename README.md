@@ -7,11 +7,10 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.6.1
+### v3.6.2
  
-- Fixed the bugs in the encounter system where you couldn't use the buttons after performing any custom action.
-- Improved combat actions and made them dynamic, depending on the current situation.
-- Added Russian as a supported language.
+- Various bug fixes.
+- Added the ability to add present characters manually.
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.

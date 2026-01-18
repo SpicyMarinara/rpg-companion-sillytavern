@@ -725,13 +725,14 @@ function formatTrackerDataForContext(jsonData, trackerType, userName) {
                         }
                     }
 
-                    // Relationship
-                    if (char.relationship) {
+                    // Relationship - check both Relationship (new format) and relationship (old format)
+                    const relationshipValue = char.Relationship || char.relationship;
+                    if (relationshipValue) {
                         let relValue;
-                        if (typeof char.relationship === 'object' && !Array.isArray(char.relationship) && 'status' in char.relationship) {
-                            relValue = getValue(char.relationship.status);
+                        if (typeof relationshipValue === 'object' && !Array.isArray(relationshipValue) && 'status' in relationshipValue) {
+                            relValue = getValue(relationshipValue.status);
                         } else {
-                            relValue = getValue(char.relationship);
+                            relValue = getValue(relationshipValue);
                         }
                         if (relValue) formatted += `  Relationship: ${relValue}\n`;
                     }

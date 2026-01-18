@@ -395,7 +395,13 @@ export function onMessageSwiped(messageIndex) {
         // Load swipe data into lastGeneratedData for display (both modes)
         lastGeneratedData.userStats = swipeData.userStats || null;
         lastGeneratedData.infoBox = swipeData.infoBox || null;
-        lastGeneratedData.characterThoughts = swipeData.characterThoughts || null;
+
+        // Normalize characterThoughts to string format (for backward compatibility with old object format)
+        if (swipeData.characterThoughts && typeof swipeData.characterThoughts === 'object') {
+            lastGeneratedData.characterThoughts = JSON.stringify(swipeData.characterThoughts, null, 2);
+        } else {
+            lastGeneratedData.characterThoughts = swipeData.characterThoughts || null;
+        }
 
         // DON'T parse user stats when loading swipe data
         // This would overwrite manually edited fields (like Conditions) with old swipe data
