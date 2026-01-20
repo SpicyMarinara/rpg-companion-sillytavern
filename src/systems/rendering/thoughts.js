@@ -1023,18 +1023,27 @@ export function updateCharacterField(characterName, field, value) {
             } else if (field === 'emoji') {
                 char.emoji = value;
             } else if (field === 'Relationship') {
-                // Store relationship as text, converting emoji if needed
+                // Store relationship in the correct nested format
+                // Remove old flat format if it exists
+                if (char.Relationship) {
+                    delete char.Relationship;
+                }
+
                 // First check if it's an emoji → convert to text
+                let relationshipValue;
                 if (emojiToRelationship[value]) {
-                    char.Relationship = emojiToRelationship[value];
+                    relationshipValue = emojiToRelationship[value];
                 } else {
                     // It's text - find matching relationship name (case-insensitive)
                     const matchingRelationship = Object.keys(relationshipEmojis).find(
                         name => name.toLowerCase() === value.toLowerCase()
                     );
-                    char.Relationship = matchingRelationship || value;
+                    relationshipValue = matchingRelationship || value;
                 }
-                // console.log('[RPG Companion] After update - char.Relationship:', char.Relationship);
+
+                // Store in the correct nested format
+                char.relationship = { status: relationshipValue };
+                // console.log('[RPG Companion] After update - char.relationship:', char.relationship);
                 // console.log('[RPG Companion] relationshipEmojis:', relationshipEmojis);
                 // console.log('[RPG Companion] emojiToRelationship:', emojiToRelationship);
             } else if (field.toLowerCase() === 'thoughts' || field === (presentCharsConfig?.thoughts?.name || 'Thoughts')) {
