@@ -98,16 +98,19 @@ function applyUserStatsLocks(data, lockedItems) {
         }
     }
 
-    // Lock inventory items - handle bracket notation paths like "inventory.onPerson[0]"
+    // Lock inventory items - match by item name instead of index
     if (data.inventory && lockedItems.inventory) {
-        // Helper function to parse bracket notation and apply lock
+        // Helper function to apply locks based on item name
         const applyInventoryLocks = (items, category) => {
             if (!Array.isArray(items)) return items;
+            if (!lockedItems.inventory[category]) return items;
 
-            return items.map((item, index) => {
-                // Check if this specific item is locked using bracket notation with inventory prefix
-                const bracketPath = `${category}[${index}]`;
-                if (lockedItems.inventory[bracketPath]) {
+            return items.map((item) => {
+                // Get item name (handle both string and object formats)
+                const itemName = typeof item === 'string' ? item : (item.item || item.name || '');
+
+                // Check if this specific item name is locked
+                if (lockedItems.inventory[category][itemName]) {
                     return typeof item === 'string'
                         ? { item, locked: true }
                         : { ...item, locked: true };
@@ -131,13 +134,13 @@ function applyUserStatsLocks(data, lockedItems) {
             data.inventory.assets = applyInventoryLocks(data.inventory.assets, 'assets');
         }
 
-        // Apply locks to stored items (nested structure with inventory.stored.location[index])
+        // Apply locks to stored items - match by item name
         if (data.inventory.stored && lockedItems.inventory.stored) {
             for (const location in data.inventory.stored) {
-                if (Array.isArray(data.inventory.stored[location])) {
-                    data.inventory.stored[location] = data.inventory.stored[location].map((item, index) => {
-                        const bracketPath = `${location}[${index}]`;
-                        if (lockedItems.inventory.stored[bracketPath]) {
+                if (Array.isArray(data.inventory.stored[location]) && lockedItems.inventory.stored[location]) {
+                    data.inventory.stored[location] = data.inventory.stored[location].map((item) => {
+                        const itemName = typeof item === 'string' ? item : (item.item || item.name || '');
+                        if (lockedItems.inventory.stored[location][itemName]) {
                             return typeof item === 'string'
                                 ? { item, locked: true }
                                 : { ...item, locked: true };

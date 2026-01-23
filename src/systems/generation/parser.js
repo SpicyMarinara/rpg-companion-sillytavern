@@ -617,6 +617,8 @@ export function parseUserStats(statsText) {
                         if (!quest) return '';
                         if (typeof quest === 'string') return quest;
                         if (typeof quest === 'object') {
+                            // Check for locked format: {value, locked}
+                            if (quest.value !== undefined) return String(quest.value);
                             // v3 format: {title, description, status}
                             return quest.title || quest.description || JSON.stringify(quest);
                         }
