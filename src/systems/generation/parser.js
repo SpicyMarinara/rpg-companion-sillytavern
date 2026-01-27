@@ -617,6 +617,13 @@ export function parseUserStats(statsText) {
                         if (!quest) return '';
                         if (typeof quest === 'string') return quest;
                         if (typeof quest === 'object') {
+                            // Check for locked format: {value, locked}
+                            // Recursively extract value if it's nested
+                            let extracted = quest;
+                            while (typeof extracted === 'object' && extracted.value !== undefined) {
+                                extracted = extracted.value;
+                            }
+                            if (typeof extracted === 'string') return extracted;
                             // v3 format: {title, description, status}
                             return quest.title || quest.description || JSON.stringify(quest);
                         }

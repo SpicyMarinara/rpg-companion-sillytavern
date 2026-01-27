@@ -816,10 +816,28 @@ async function initUI() {
         renderUserStats(); // Re-render with new colors
     });
 
+    $('#rpg-stat-bar-color-low-opacity').on('input', function() {
+        const opacity = Number($(this).val());
+        extensionSettings.statBarColorLowOpacity = opacity;
+        $('#rpg-stat-bar-color-low-opacity-value').text(opacity + '%');
+        renderUserStats();
+    }).on('change', function() {
+        saveSettings();
+    });
+
     $('#rpg-stat-bar-color-high').on('change', function() {
         extensionSettings.statBarColorHigh = String($(this).val());
         saveSettings();
         renderUserStats(); // Re-render with new colors
+    });
+
+    $('#rpg-stat-bar-color-high-opacity').on('input', function() {
+        const opacity = Number($(this).val());
+        extensionSettings.statBarColorHighOpacity = opacity;
+        $('#rpg-stat-bar-color-high-opacity-value').text(opacity + '%');
+        renderUserStats();
+    }).on('change', function() {
+        saveSettings();
     });
 
     // Theme selection
@@ -843,6 +861,19 @@ async function initUI() {
         }
     });
 
+    $('#rpg-custom-bg-opacity').on('input', function() {
+        const opacity = Number($(this).val());
+        extensionSettings.customColors.bgOpacity = opacity;
+        $('#rpg-custom-bg-opacity-value').text(opacity + '%');
+        if (extensionSettings.theme === 'custom') {
+            applyCustomTheme();
+            updateSettingsPopupTheme(getSettingsModal());
+            updateChatThoughts();
+        }
+    }).on('change', function() {
+        saveSettings();
+    });
+
     $('#rpg-custom-accent').on('change', function() {
         extensionSettings.customColors.accent = String($(this).val());
         saveSettings();
@@ -851,6 +882,19 @@ async function initUI() {
             updateSettingsPopupTheme(getSettingsModal()); // Update popup theme instantly
             updateChatThoughts(); // Update thought bubbles
         }
+    });
+
+    $('#rpg-custom-accent-opacity').on('input', function() {
+        const opacity = Number($(this).val());
+        extensionSettings.customColors.accentOpacity = opacity;
+        $('#rpg-custom-accent-opacity-value').text(opacity + '%');
+        if (extensionSettings.theme === 'custom') {
+            applyCustomTheme();
+            updateSettingsPopupTheme(getSettingsModal());
+            updateChatThoughts();
+        }
+    }).on('change', function() {
+        saveSettings();
     });
 
     $('#rpg-custom-text').on('change', function() {
@@ -863,6 +907,19 @@ async function initUI() {
         }
     });
 
+    $('#rpg-custom-text-opacity').on('input', function() {
+        const opacity = Number($(this).val());
+        extensionSettings.customColors.textOpacity = opacity;
+        $('#rpg-custom-text-opacity-value').text(opacity + '%');
+        if (extensionSettings.theme === 'custom') {
+            applyCustomTheme();
+            updateSettingsPopupTheme(getSettingsModal());
+            updateChatThoughts();
+        }
+    }).on('change', function() {
+        saveSettings();
+    });
+
     $('#rpg-custom-highlight').on('change', function() {
         extensionSettings.customColors.highlight = String($(this).val());
         saveSettings();
@@ -871,6 +928,19 @@ async function initUI() {
             updateSettingsPopupTheme(getSettingsModal()); // Update popup theme instantly
             updateChatThoughts(); // Update thought bubbles
         }
+    });
+
+    $('#rpg-custom-highlight-opacity').on('input', function() {
+        const opacity = Number($(this).val());
+        extensionSettings.customColors.highlightOpacity = opacity;
+        $('#rpg-custom-highlight-opacity-value').text(opacity + '%');
+        if (extensionSettings.theme === 'custom') {
+            applyCustomTheme();
+            updateSettingsPopupTheme(getSettingsModal());
+            updateChatThoughts();
+        }
+    }).on('change', function() {
+        saveSettings();
     });
 
     // External API settings event handlers
@@ -1054,12 +1124,29 @@ async function initUI() {
     $('#rpg-strip-widget-options').toggle(stripWidgets.enabled || false);
 
     $('#rpg-stat-bar-color-low').val(extensionSettings.statBarColorLow);
+    $('#rpg-stat-bar-color-low-opacity').val(extensionSettings.statBarColorLowOpacity ?? 100);
+    $('#rpg-stat-bar-color-low-opacity-value').text((extensionSettings.statBarColorLowOpacity ?? 100) + '%');
+
     $('#rpg-stat-bar-color-high').val(extensionSettings.statBarColorHigh);
+    $('#rpg-stat-bar-color-high-opacity').val(extensionSettings.statBarColorHighOpacity ?? 100);
+    $('#rpg-stat-bar-color-high-opacity-value').text((extensionSettings.statBarColorHighOpacity ?? 100) + '%');
+
     $('#rpg-theme-select').val(extensionSettings.theme);
     $('#rpg-custom-bg').val(extensionSettings.customColors.bg);
+    $('#rpg-custom-bg-opacity').val(extensionSettings.customColors.bgOpacity ?? 100);
+    $('#rpg-custom-bg-opacity-value').text((extensionSettings.customColors.bgOpacity ?? 100) + '%');
+
     $('#rpg-custom-accent').val(extensionSettings.customColors.accent);
+    $('#rpg-custom-accent-opacity').val(extensionSettings.customColors.accentOpacity ?? 100);
+    $('#rpg-custom-accent-opacity-value').text((extensionSettings.customColors.accentOpacity ?? 100) + '%');
+
     $('#rpg-custom-text').val(extensionSettings.customColors.text);
+    $('#rpg-custom-text-opacity').val(extensionSettings.customColors.textOpacity ?? 100);
+    $('#rpg-custom-text-opacity-value').text((extensionSettings.customColors.textOpacity ?? 100) + '%');
+
     $('#rpg-custom-highlight').val(extensionSettings.customColors.highlight);
+    $('#rpg-custom-highlight-opacity').val(extensionSettings.customColors.highlightOpacity ?? 100);
+    $('#rpg-custom-highlight-opacity-value').text((extensionSettings.customColors.highlightOpacity ?? 100) + '%');
 
     // Initialize External API settings values
     if (extensionSettings.externalApiSettings) {

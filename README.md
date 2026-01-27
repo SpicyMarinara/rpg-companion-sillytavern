@@ -7,11 +7,13 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.6.1
+### v3.7.0
  
-- Fixed the bugs in the encounter system where you couldn't use the buttons after performing any custom action.
-- Improved combat actions and made them dynamic, depending on the current situation.
-- Added Russian as a supported language.
+- Added omniscience filter.
+- Added opacity to the color selector.
+- Overwritten SillyTavern's dumb-ahh trim logic when joining prompts.
+- Fixed custom attributes not allowing value increase/decrease.
+- Various bug fixes.
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.

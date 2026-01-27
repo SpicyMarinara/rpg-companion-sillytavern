@@ -212,8 +212,12 @@ export function renderQuests() {
     // Get current sub-tab from container or default to 'main'
     const activeSubTab = $questsContainer.data('active-subtab') || 'main';
 
-    // Get quests data
-    const mainQuest = extensionSettings.quests.main || 'None';
+    // Get quests data - extract value if it's a locked object
+    let mainQuest = extensionSettings.quests.main || 'None';
+    // Recursively extract value if it's nested objects
+    while (typeof mainQuest === 'object' && mainQuest.value !== undefined) {
+        mainQuest = mainQuest.value;
+    }
     const optionalQuests = extensionSettings.quests.optional || [];
 
     // Build HTML

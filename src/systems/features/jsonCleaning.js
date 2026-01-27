@@ -76,7 +76,7 @@ export async function ensureJsonCleaningRegex(st_extension_settings, saveSetting
                 }
                 // Small delay to ensure save completes
                 await new Promise(resolve => setTimeout(resolve, 100));
-                console.log('[RPG Companion] ✅ Updated JSON cleaning regex to v3.2.6 settings.');
+                console.log('[RPG Companion] ✅ Updated JSON cleaning regex to v3.2.3 settings.');
             } else {
                 console.log('[RPG Companion] JSON Cleaning Regex is up to date.');
             }

@@ -23,6 +23,7 @@ export let extensionSettings = {
     showThoughtsInChat: true, // Show thoughts overlay in chat
     narratorMode: false, // Use character card as narrator instead of fixed character references
     customNarratorPrompt: '', // Custom narrator mode prompt text (empty = use default)
+    customContextInstructionsPrompt: '', // Custom context instructions prompt text (empty = use default)
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
     enableDialogueColoring: false, // Enable dialogue coloring prompt injection
@@ -65,12 +66,18 @@ export let extensionSettings = {
     theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom
     customColors: {
         bg: '#1a1a2e',
+        bgOpacity: 100,
         accent: '#16213e',
+        accentOpacity: 100,
         text: '#eaeaea',
-        highlight: '#e94560'
+        textOpacity: 100,
+        highlight: '#e94560',
+        highlightOpacity: 100
     },
     statBarColorLow: '#cc3333', // Color for low stat values (red)
+    statBarColorLowOpacity: 100,
     statBarColorHigh: '#33cc66', // Color for high stat values (green)
+    statBarColorHighOpacity: 100,
     enableAnimations: true, // Enable smooth animations for stats and content updates
     mobileFabPosition: {
         top: 'calc(var(--topBarBlockSize) + 60px)',

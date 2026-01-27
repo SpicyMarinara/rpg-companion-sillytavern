@@ -250,29 +250,49 @@
                     <div class="rpg-setting-row">
                         <label for="rpg-custom-bg"
                             data-i18n-key="template.settingsModal.themeOptions.custom.background">Background:</label>
-                        <input type="color" id="rpg-custom-bg" value="#1a1a2e" />
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="color" id="rpg-custom-bg" value="#1a1a2e" style="width: 60px;" />
+                            <input type="range" id="rpg-custom-bg-opacity" min="0" max="100" value="100" style="flex: 1;" />
+                            <span id="rpg-custom-bg-opacity-value" style="min-width: 35px; text-align: right;">100%</span>
+                        </div>
                     </div>
                     <div class="rpg-setting-row">
                         <label for="rpg-custom-accent"
                             data-i18n-key="template.settingsModal.themeOptions.custom.accent">Accent:</label>
-                        <input type="color" id="rpg-custom-accent" value="#16213e" />
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="color" id="rpg-custom-accent" value="#16213e" style="width: 60px;" />
+                            <input type="range" id="rpg-custom-accent-opacity" min="0" max="100" value="100" style="flex: 1;" />
+                            <span id="rpg-custom-accent-opacity-value" style="min-width: 35px; text-align: right;">100%</span>
+                        </div>
                     </div>
                     <div class="rpg-setting-row">
                         <label for="rpg-custom-text"
                             data-i18n-key="template.settingsModal.themeOptions.custom.text">Text:</label>
-                        <input type="color" id="rpg-custom-text" value="#eaeaea" />
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="color" id="rpg-custom-text" value="#eaeaea" style="width: 60px;" />
+                            <input type="range" id="rpg-custom-text-opacity" min="0" max="100" value="100" style="flex: 1;" />
+                            <span id="rpg-custom-text-opacity-value" style="min-width: 35px; text-align: right;">100%</span>
+                        </div>
                     </div>
                     <div class="rpg-setting-row">
                         <label for="rpg-custom-highlight"
                             data-i18n-key="template.settingsModal.themeOptions.custom.highlight">Highlight:</label>
-                        <input type="color" id="rpg-custom-highlight" value="#e94560" />
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="color" id="rpg-custom-highlight" value="#e94560" style="width: 60px;" />
+                            <input type="range" id="rpg-custom-highlight-opacity" min="0" max="100" value="100" style="flex: 1;" />
+                            <span id="rpg-custom-highlight-opacity-value" style="min-width: 35px; text-align: right;">100%</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="rpg-setting-row">
                     <label for="rpg-stat-bar-color-low" data-i18n-key="template.settingsModal.theme.statBarLow">Stat Bar
                         Color (Low):</label>
-                    <input type="color" id="rpg-stat-bar-color-low" value="#cc3333" />
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="color" id="rpg-stat-bar-color-low" value="#cc3333" style="width: 60px;" />
+                        <input type="range" id="rpg-stat-bar-color-low-opacity" min="0" max="100" value="100" style="flex: 1;" />
+                        <span id="rpg-stat-bar-color-low-opacity-value" style="min-width: 35px; text-align: right;">100%</span>
+                    </div>
                     <small data-i18n-key="template.settingsModal.theme.statBarLowNote">Color when stats are at
                         0%.</small>
                 </div>
@@ -280,7 +300,11 @@
                 <div class="rpg-setting-row">
                     <label for="rpg-stat-bar-color-high" data-i18n-key="template.settingsModal.theme.statBarHigh">Stat
                         Bar Color (High):</label>
-                    <input type="color" id="rpg-stat-bar-color-high" value="#33cc66" />
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="color" id="rpg-stat-bar-color-high" value="#33cc66" style="width: 60px;" />
+                        <input type="range" id="rpg-stat-bar-color-high-opacity" min="0" max="100" value="100" style="flex: 1;" />
+                        <span id="rpg-stat-bar-color-high-opacity-value" style="min-width: 35px; text-align: right;">100%</span>
+                    </div>
                     <small data-i18n-key="template.settingsModal.theme.statBarHighNote">Color when stats are at
                         100%.</small>
                 </div>
@@ -1070,6 +1094,20 @@
                 </button>
             </div>
 
+            <!-- Context Instructions Prompt -->
+            <div class="rpg-prompt-editor-section">
+                <label for="rpg-prompt-context-instructions" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                    <i class="fa-solid fa-comment-dots"></i> Context Instructions Prompt
+                </label>
+                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;">
+                    Injected in Separate/External mode after the context summary. Tells the AI how to use the context.
+                </small>
+                <textarea id="rpg-prompt-context-instructions" class="rpg-prompt-textarea" rows="4"></textarea>
+                <button class="menu_button rpg-restore-prompt-btn" data-prompt="contextInstructions" style="margin-top: 8px;">
+                    <i class="fa-solid fa-rotate-left"></i>&nbsp;Restore Default
+                </button>
+            </div>
+
             <!-- Random Plot Progression Prompt -->
             <div class="rpg-prompt-editor-section">
                 <label for="rpg-prompt-plot-random" style="display: block; margin-bottom: 8px; font-weight: 600;">
@@ -1156,9 +1194,6 @@
         </div>
 
         <footer class="rpg-settings-popup-footer">
-            <button id="rpg-prompts-restore-all" class="rpg-btn-secondary" type="button">
-                <i class="fa-solid fa-rotate-left"></i> Restore All To Default
-            </button>
             <div class="rpg-footer-right">
                 <button id="rpg-prompts-cancel" class="rpg-btn-secondary" type="button">Cancel</button>
                 <button id="rpg-prompts-save" class="rpg-btn-primary" type="button">

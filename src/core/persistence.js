@@ -118,6 +118,22 @@ export function loadSettings() {
                 settingsChanged = true;
             }
 
+            // Migration to version 5: Add opacity properties for all colors
+            if (currentVersion < 5) {
+                // console.log('[RPG Companion] Migrating settings to version 5 (adding color opacity)');
+                if (!extensionSettings.customColors) {
+                    extensionSettings.customColors = {};
+                }
+                if (extensionSettings.customColors.bgOpacity === undefined) extensionSettings.customColors.bgOpacity = 100;
+                if (extensionSettings.customColors.accentOpacity === undefined) extensionSettings.customColors.accentOpacity = 100;
+                if (extensionSettings.customColors.textOpacity === undefined) extensionSettings.customColors.textOpacity = 100;
+                if (extensionSettings.customColors.highlightOpacity === undefined) extensionSettings.customColors.highlightOpacity = 100;
+                if (extensionSettings.statBarColorLowOpacity === undefined) extensionSettings.statBarColorLowOpacity = 100;
+                if (extensionSettings.statBarColorHighOpacity === undefined) extensionSettings.statBarColorHighOpacity = 100;
+                extensionSettings.settingsVersion = 5;
+                settingsChanged = true;
+            }
+
             // Save migrated settings
             if (settingsChanged) {
                 saveSettings();
