@@ -8,6 +8,7 @@ import { saveSettings } from '../../core/persistence.js';
 import { closeMobilePanelWithAnimation, updateCollapseToggleIcon } from './layout.js';
 import { setupDesktopTabs, removeDesktopTabs } from './desktop.js';
 import { i18n } from '../../core/i18n.js';
+import { hexToRgba } from './theme.js';
 
 /**
  * Updates the text labels of the mobile navigation tabs based on the current language.
@@ -1451,7 +1452,7 @@ export function updateFabWidgets() {
     if (widgetSettings.attributes?.enabled) {
         // Check if RPG attributes are enabled in trackerConfig
         const showRPGAttributes = extensionSettings.trackerConfig?.userStats?.showRPGAttributes !== false;
-        
+
         if (showRPGAttributes && extensionSettings.classicStats) {
             // Get enabled attributes from trackerConfig
             const configuredAttrs = extensionSettings.trackerConfig?.userStats?.rpgAttributes || [];
@@ -1541,10 +1542,10 @@ export function updateFabWidgets() {
             e.stopPropagation();
             const $this = $(this);
             const wasExpanded = $this.hasClass('expanded');
-            
+
             // Collapse all other expanded widgets
             $container.find('.rpg-fab-widget.expanded').removeClass('expanded');
-            
+
             // Toggle this one
             if (!wasExpanded) {
                 $this.addClass('expanded');
@@ -1567,7 +1568,9 @@ export function updateFabWidgets() {
  */
 function getStatColor(value) {
     const lowColor = extensionSettings.statBarColorLow || '#cc3333';
+    const lowOpacity = extensionSettings.statBarColorLowOpacity ?? 100;
     const highColor = extensionSettings.statBarColorHigh || '#33cc66';
+    const highOpacity = extensionSettings.statBarColorHighOpacity ?? 100;
 
     // Simple linear interpolation between low and high colors
     const percent = Math.min(100, Math.max(0, value)) / 100;
@@ -1576,13 +1579,14 @@ function getStatColor(value) {
     const lowRGB = hexToRgb(lowColor);
     const highRGB = hexToRgb(highColor);
 
-    if (!lowRGB || !highRGB) return value > 50 ? highColor : lowColor;
+    if (!lowRGB || !highRGB) return value > 50 ? hexToRgba(highColor, highOpacity) : hexToRgba(lowColor, lowOpacity);
 
     const r = Math.round(lowRGB.r + (highRGB.r - lowRGB.r) * percent);
     const g = Math.round(lowRGB.g + (highRGB.g - lowRGB.g) * percent);
     const b = Math.round(lowRGB.b + (highRGB.b - lowRGB.b) * percent);
+    const a = (lowOpacity + (highOpacity - lowOpacity) * percent) / 100;
 
-    return `rgb(${r}, ${g}, ${b})`;
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 /**

@@ -214,7 +214,8 @@ export function renderQuests() {
 
     // Get quests data - extract value if it's a locked object
     let mainQuest = extensionSettings.quests.main || 'None';
-    if (typeof mainQuest === 'object' && mainQuest.value !== undefined) {
+    // Recursively extract value if it's nested objects
+    while (typeof mainQuest === 'object' && mainQuest.value !== undefined) {
         mainQuest = mainQuest.value;
     }
     const optionalQuests = extensionSettings.quests.optional || [];

@@ -5,6 +5,7 @@
 
 import { i18n } from '../../core/i18n.js';
 import { extensionSettings, lastGeneratedData, committedTrackerData } from '../../core/state.js';
+import { hexToRgba } from './theme.js';
 
 /**
  * Helper to parse time string and calculate clock hand angles
@@ -28,7 +29,7 @@ function parseTimeForClock(timeStr) {
 export function updateStripWidgets() {
     const $panel = $('#rpg-companion-panel');
     const $container = $('#rpg-strip-widget-container');
-    
+
     if ($panel.length === 0 || $container.length === 0) return;
 
     // Check if strip widgets are enabled
@@ -118,7 +119,7 @@ export function updateStripWidgets() {
     const $statsWidget = $container.find('.rpg-strip-widget-stats');
     if (widgetSettings.stats?.enabled) {
         let allStats = [];
-        
+
         // Try to get stats from tracker data first (most current)
         const userStatsData = lastGeneratedData?.userStats || committedTrackerData?.userStats;
         if (userStatsData) {
@@ -131,7 +132,7 @@ export function updateStripWidgets() {
                 console.warn('[RPG Strip Widgets] Failed to parse tracker userStats:', e);
             }
         }
-        
+
         // Fallback to extensionSettings.userStats
         if (allStats.length === 0 && extensionSettings.userStats) {
             try {
@@ -237,7 +238,9 @@ export function updateStripWidgets() {
  */
 function getStatColor(value) {
     const lowColor = extensionSettings.statBarColorLow || '#cc3333';
+    const lowOpacity = extensionSettings.statBarColorLowOpacity ?? 100;
     const highColor = extensionSettings.statBarColorHigh || '#33cc66';
+    const highOpacity = extensionSettings.statBarColorHighOpacity ?? 100;
 
     // Simple linear interpolation between low and high colors
     const percent = Math.min(100, Math.max(0, value)) / 100;
@@ -246,13 +249,14 @@ function getStatColor(value) {
     const lowRGB = hexToRgb(lowColor);
     const highRGB = hexToRgb(highColor);
 
-    if (!lowRGB || !highRGB) return value > 50 ? highColor : lowColor;
+    if (!lowRGB || !highRGB) return value > 50 ? hexToRgba(highColor, highOpacity) : hexToRgba(lowColor, lowOpacity);
 
     const r = Math.round(lowRGB.r + (highRGB.r - lowRGB.r) * percent);
     const g = Math.round(lowRGB.g + (highRGB.g - lowRGB.g) * percent);
     const b = Math.round(lowRGB.b + (highRGB.b - lowRGB.b) * percent);
+    const a = (lowOpacity + (highOpacity - lowOpacity) * percent) / 100;
 
-    return `rgb(${r}, ${g}, ${b})`;
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 /**

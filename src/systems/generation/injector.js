@@ -4,7 +4,7 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { setExtensionPrompt, extension_prompt_types, extension_prompt_roles, eventSource, event_types } from '../../../../../../../script.js';
+import { extension_prompt_types, extension_prompt_roles, setExtensionPrompt, eventSource, event_types } from '../../../../../../../script.js';
 import {
     extensionSettings,
     committedTrackerData,
@@ -22,8 +22,11 @@ import {
     DEFAULT_HTML_PROMPT,
     DEFAULT_DIALOGUE_COLORING_PROMPT,
     DEFAULT_DECEPTION_PROMPT,
+    DEFAULT_OMNISCIENCE_FILTER_PROMPT,
     DEFAULT_CYOA_PROMPT,
     DEFAULT_SPOTIFY_PROMPT,
+    DEFAULT_NARRATOR_PROMPT,
+    DEFAULT_CONTEXT_INSTRUCTIONS_PROMPT,
     SPOTIFY_FORMAT_INSTRUCTION
 } from './promptBuilder.js';
 import { restoreCheckpointOnLoad } from '../features/chapterCheckpoint.js';
@@ -478,6 +481,7 @@ function onGenerateBeforeCombinePrompts(eventData) {
 /**
  * Event handler for GENERATE_AFTER_COMBINE_PROMPTS (text completion).
  * This is now a backup/fallback - primary injection happens in BEFORE_COMBINE.
+ * Also fixes newline spacing after </context> tag.
  *
  * @param {Object} eventData - Event data with prompt property
  */
@@ -490,24 +494,30 @@ function onGenerateAfterCombinePrompts(eventData) {
         return;
     }
 
-    // Skip if injection already happened in BEFORE_COMBINE
-    if (historyInjectionDone) {
-        return;
+    let didInjectHistory = false;
+
+    // Inject historical context if available and not already done
+    if (!historyInjectionDone && pendingContextMap.size > 0) {
+        // Fallback injection for edge cases where BEFORE_COMBINE didn't work
+        console.log('[RPG Companion] Using fallback string-based injection (AFTER_COMBINE)');
+        eventData.prompt = injectContextIntoTextPrompt(eventData.prompt);
+        didInjectHistory = true;
     }
 
-    // Only inject if we have pending context
-    if (pendingContextMap.size === 0) {
-        return;
-    }
+    // Always fix newlines around context tags (whether we just injected or not)
+    eventData.prompt = eventData.prompt.replace(/<context>/g, '\n<context>');
+    eventData.prompt = eventData.prompt.replace(/<\/context>/g, '</context>\n');
 
-    // Fallback injection for edge cases where BEFORE_COMBINE didn't work
-    console.log('[RPG Companion] Using fallback string-based injection (AFTER_COMBINE)');
-    eventData.prompt = injectContextIntoTextPrompt(eventData.prompt);
+    // Remove extra newlines after last_message opening and closing tags
+    // Match exactly the double newline pattern
+    eventData.prompt = eventData.prompt.replace(/<last_message>\n\n/g, '<last_message>\n');
+    eventData.prompt = eventData.prompt.replace(/\n\n<\/last_message>/g, '\n</last_message>');
 }
 
 /**
  * Event handler for CHAT_COMPLETION_PROMPT_READY.
  * Injects historical context into the chat message array.
+ * Also fixes newline spacing around <context> tags.
  *
  * @param {Object} eventData - Event data with chat property
  */
@@ -520,14 +530,20 @@ function onChatCompletionPromptReady(eventData) {
         return;
     }
 
-    // Only inject if we have pending context
-    if (pendingContextMap.size === 0) {
-        return;
+    // Inject historical context if we have pending context
+    if (pendingContextMap.size > 0) {
+        eventData.chat = injectContextIntoChatPrompt(eventData.chat);
+        // DON'T clear pendingContextMap here - let it persist for other generations
+        // (e.g., prewarm extensions). It will be cleared on GENERATION_ENDED.
     }
 
-    eventData.chat = injectContextIntoChatPrompt(eventData.chat);
-    // DON'T clear pendingContextMap here - let it persist for other generations
-    // (e.g., prewarm extensions). It will be cleared on GENERATION_ENDED.
+    // Fix newlines around context tags for all messages
+    for (const message of eventData.chat) {
+        if (message.content && typeof message.content === 'string') {
+            message.content = message.content.replace(/<context>/g, '\n<context>');
+            message.content = message.content.replace(/<\/context>/g, '</context>\n');
+        }
+    }
 }
 
 /**
@@ -792,6 +808,19 @@ export async function onGenerationStarted(type, data, dryRun) {
             setExtensionPrompt('rpg-companion-deception', '', extension_prompt_types.IN_CHAT, 0, false);
         }
 
+        // Inject Omniscience Filter prompt separately at depth 0 if enabled
+        if (extensionSettings.enableOmniscienceFilter && !shouldSuppress) {
+            // Use custom Omniscience Filter prompt if set, otherwise use default
+            const omnisciencePromptText = extensionSettings.customOmnisciencePrompt || DEFAULT_OMNISCIENCE_FILTER_PROMPT;
+            const omnisciencePrompt = `\n${omnisciencePromptText}\n`;
+
+            setExtensionPrompt('rpg-companion-omniscience', omnisciencePrompt, extension_prompt_types.IN_CHAT, 0, false);
+            // console.log('[RPG Companion] Injected Omniscience Filter prompt at depth 0 for together mode');
+        } else {
+            // Clear Omniscience Filter prompt if disabled
+            setExtensionPrompt('rpg-companion-omniscience', '', extension_prompt_types.IN_CHAT, 0, false);
+        }
+
         // Inject Spotify prompt separately at depth 0 if enabled
         if (extensionSettings.enableSpotifyMusic && !shouldSuppress) {
             // Use custom Spotify prompt if set, otherwise use default
@@ -823,12 +852,14 @@ export async function onGenerationStarted(type, data, dryRun) {
         const contextSummary = generateContextualSummary();
 
         if (contextSummary) {
-            const wrappedContext = `\nHere is context information about the current scene, and what follows is the last message in the chat history:
+            // Use custom context instructions prompt if set, otherwise use default
+            const contextInstructionsText = extensionSettings.customContextInstructionsPrompt || DEFAULT_CONTEXT_INSTRUCTIONS_PROMPT;
+
+            const wrappedContext = `
 <context>
 ${contextSummary}
-
-Ensure these details naturally reflect and influence the narrative. Character behavior, dialogue, and story events should acknowledge these conditions when relevant, such as fatigue affecting performance, low hygiene influencing social interactions, environmental factors shaping the scene, or a character's emotional state coloring their responses.
-</context>\n\n`;
+${contextInstructionsText}
+</context>`;
 
             // Inject context at depth 1 (before last user message) as SYSTEM
             // Skip when a guided generation injection is present to avoid conflicting instructions
@@ -880,6 +911,19 @@ Ensure these details naturally reflect and influence the narrative. Character be
             setExtensionPrompt('rpg-companion-deception', '', extension_prompt_types.IN_CHAT, 0, false);
         }
 
+        // Inject Omniscience Filter prompt separately at depth 0 if enabled
+        if (extensionSettings.enableOmniscienceFilter && !shouldSuppress) {
+            // Use custom Omniscience Filter prompt if set, otherwise use default
+            const omnisciencePromptText = extensionSettings.customOmnisciencePrompt || DEFAULT_OMNISCIENCE_FILTER_PROMPT;
+            const omnisciencePrompt = `\n${omnisciencePromptText}\n`;
+
+            setExtensionPrompt('rpg-companion-omniscience', omnisciencePrompt, extension_prompt_types.IN_CHAT, 0, false);
+            // console.log('[RPG Companion] Injected Omniscience Filter prompt at depth 0 for separate/external mode');
+        } else {
+            // Clear Omniscience Filter prompt if disabled
+            setExtensionPrompt('rpg-companion-omniscience', '', extension_prompt_types.IN_CHAT, 0, false);
+        }
+
         // Inject Spotify prompt separately at depth 0 if enabled
         if (extensionSettings.enableSpotifyMusic && !shouldSuppress) {
             // Use custom Spotify prompt if set, otherwise use default
@@ -917,6 +961,7 @@ Ensure these details naturally reflect and influence the narrative. Character be
         setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-dialogue-coloring', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-deception', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-omniscience', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-zzz-cyoa', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
     }

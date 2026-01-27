@@ -50,9 +50,11 @@ function debugLog(message, data = null) {
  * @param {number} percentage - Value from 0-100
  * @param {string} lowColor - Hex color for low values (e.g., '#ff0000')
  * @param {string} highColor - Hex color for high values (e.g., '#00ff00')
- * @returns {string} Interpolated hex color
+ * @param {number} lowOpacity - Opacity for low values (0-100)
+ * @param {number} highOpacity - Opacity for high values (0-100)
+ * @returns {string} Interpolated rgba color
  */
-function getStatColor(percentage, lowColor, highColor) {
+function getStatColor(percentage, lowColor, highColor, lowOpacity = 100, highOpacity = 100) {
     // Clamp percentage to 0-100
     const percent = Math.max(0, Math.min(100, percentage)) / 100;
 
@@ -73,10 +75,9 @@ function getStatColor(percentage, lowColor, highColor) {
     const r = Math.round(low.r + (high.r - low.r) * percent);
     const g = Math.round(low.g + (high.g - low.g) * percent);
     const b = Math.round(low.b + (high.b - low.b) * percent);
+    const a = (lowOpacity + (highOpacity - lowOpacity) * percent) / 100;
 
-    // Convert back to hex
-    const toHex = (n) => n.toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 /**
@@ -542,7 +543,13 @@ export function renderThoughts() {
                         <div class="rpg-character-stats-inner">`;
                     for (const stat of enabledCharStats) {
                         const statValue = char[stat.name] || 0;
-                        const statColor = getStatColor(statValue, extensionSettings.statBarColorLow, extensionSettings.statBarColorHigh);
+                        const statColor = getStatColor(
+                            statValue,
+                            extensionSettings.statBarColorLow,
+                            extensionSettings.statBarColorHigh,
+                            extensionSettings.statBarColorLowOpacity ?? 100,
+                            extensionSettings.statBarColorHighOpacity ?? 100
+                        );
                         html += `
                                 <div class="rpg-character-stat">
                                     <span class="rpg-stat-name">${stat.name}: </span><span class="rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${stat.name}" style="color: ${statColor}" title="Click to edit ${stat.name}">${statValue}%</span>

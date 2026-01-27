@@ -21,6 +21,7 @@ import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 import { buildInventorySummary } from '../generation/promptBuilder.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
 import { updateFabWidgets } from '../ui/mobile.js';
+import { getStatBarColors } from '../ui/theme.js';
 
 /**
  * Builds the user stats text string using custom stat names
@@ -251,8 +252,9 @@ export function renderUserStats() {
         }
     }
 
-    // Create gradient from low to high color
-    const gradient = `linear-gradient(to right, ${extensionSettings.statBarColorLow}, ${extensionSettings.statBarColorHigh})`;
+    // Create gradient from low to high color with opacity
+    const colors = getStatBarColors();
+    const gradient = `linear-gradient(to right, ${colors.low}, ${colors.high})`;
 
     // Check if stats bars section is locked
     const isStatsLocked = isItemLocked('userStats', 'stats');

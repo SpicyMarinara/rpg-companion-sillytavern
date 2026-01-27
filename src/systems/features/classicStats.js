@@ -20,6 +20,10 @@ export function setupClassicStatsButtons() {
     // Delegated event listener for increase buttons
     $userStatsContainer.on('click', '.rpg-stat-increase', function() {
         const stat = $(this).data('stat');
+        // Initialize custom attributes if they don't exist
+        if (extensionSettings.classicStats[stat] === undefined) {
+            extensionSettings.classicStats[stat] = 10;
+        }
         if (extensionSettings.classicStats[stat] < 999) {
             extensionSettings.classicStats[stat]++;
             saveSettings();
@@ -33,6 +37,10 @@ export function setupClassicStatsButtons() {
     // Delegated event listener for decrease buttons
     $userStatsContainer.on('click', '.rpg-stat-decrease', function() {
         const stat = $(this).data('stat');
+        // Initialize custom attributes if they don't exist
+        if (extensionSettings.classicStats[stat] === undefined) {
+            extensionSettings.classicStats[stat] = 10;
+        }
         if (extensionSettings.classicStats[stat] > 1) {
             extensionSettings.classicStats[stat]--;
             saveSettings();

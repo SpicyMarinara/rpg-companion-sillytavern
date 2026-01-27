@@ -23,12 +23,15 @@ export let extensionSettings = {
     showThoughtsInChat: true, // Show thoughts overlay in chat
     narratorMode: false, // Use character card as narrator instead of fixed character references
     customNarratorPrompt: '', // Custom narrator mode prompt text (empty = use default)
+    customContextInstructionsPrompt: '', // Custom context instructions prompt text (empty = use default)
     enableHtmlPrompt: false, // Enable immersive HTML prompt injection
     customHtmlPrompt: '', // Custom HTML prompt text (empty = use default)
     enableDialogueColoring: false, // Enable dialogue coloring prompt injection
     customDialogueColoringPrompt: '', // Custom dialogue coloring prompt text (empty = use default)
     enableDeceptionSystem: false, // Enable deception tracking with <lie> tags
     customDeceptionPrompt: '', // Custom deception prompt text (empty = use default)
+    enableOmniscienceFilter: false, // Enable omniscience filter with <filter> tags
+    customOmnisciencePrompt: '', // Custom omniscience filter prompt text (empty = use default)
     enableCYOA: false, // Enable "Choose Your Own Adventure" formatting with action choices
     customCYOAPrompt: '', // Custom CYOA prompt text (empty = use default)
     enableSpotifyMusic: false, // Enable Spotify music integration (asks AI for Spotify URLs)
@@ -41,6 +44,7 @@ export let extensionSettings = {
     showHtmlToggle: true, // Show Immersive HTML toggle in main panel
     showDialogueColoringToggle: true, // Show Dialogue Coloring toggle in main panel (enabled by default)
     showDeceptionToggle: true, // Show Deception System toggle in main panel
+    showOmniscienceToggle: true, // Show Omniscience Filter toggle in main panel
     showCYOAToggle: true, // Show CYOA toggle in main panel
     showSpotifyToggle: true, // Show Spotify Music toggle in main panel
 
@@ -62,12 +66,18 @@ export let extensionSettings = {
     theme: 'default', // Theme: default, sci-fi, fantasy, cyberpunk, custom
     customColors: {
         bg: '#1a1a2e',
+        bgOpacity: 100,
         accent: '#16213e',
+        accentOpacity: 100,
         text: '#eaeaea',
-        highlight: '#e94560'
+        textOpacity: 100,
+        highlight: '#e94560',
+        highlightOpacity: 100
     },
     statBarColorLow: '#cc3333', // Color for low stat values (red)
+    statBarColorLowOpacity: 100,
     statBarColorHigh: '#33cc66', // Color for high stat values (green)
+    statBarColorHighOpacity: 100,
     enableAnimations: true, // Enable smooth animations for stats and content updates
     mobileFabPosition: {
         top: 'calc(var(--topBarBlockSize) + 60px)',
