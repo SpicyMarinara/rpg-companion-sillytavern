@@ -2329,6 +2329,40 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     transform: scale(0.95);
 }
 
+/* Add Character Button (inside rpg-thoughts-content, after last character) */
+.rpg-add-character-btn {
+    background: var(--rpg-accent);
+    border: 1px solid var(--rpg-border);
+    color: var(--rpg-text);
+    padding: 0;
+    margin: 0.5rem auto 0;
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    opacity: 0.6;
+    width: auto;
+}
+
+.rpg-add-character-btn:hover {
+    background: var(--rpg-highlight);
+    border-color: var(--rpg-highlight);
+    color: var(--rpg-bg);
+    opacity: 1;
+}
+
+.rpg-add-character-btn:active {
+    transform: scale(0.95);
+}
+
+.rpg-add-character-btn i {
+    font-size: 0.875em;
+}
+
 /* Character traits/status line and custom fields */
 .rpg-character-traits,
 .rpg-character-field {
@@ -2340,12 +2374,20 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     word-wrap: break-word;
 }
 
-/* Placeholder for empty editable character fields */
-.rpg-character-field.rpg-editable:empty::before {
-    content: 'Click to edit...';
+/* Empty field placeholder using data-placeholder attribute */
+.rpg-editable.rpg-empty-field:empty::before {
+    content: attr(data-placeholder);
     color: var(--rpg-highlight);
-    opacity: 0.5;
+    opacity: 0.4;
     font-style: italic;
+    pointer-events: none;
+}
+
+/* Ensure empty fields have minimum height for clickability */
+.rpg-editable.rpg-empty-field {
+    min-height: 1.2em;
+    display: inline-block;
+    min-width: 3em;
 }
 
 /* Character stats display */

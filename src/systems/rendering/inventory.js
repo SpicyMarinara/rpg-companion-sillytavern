@@ -81,7 +81,7 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
         if (viewMode === 'grid') {
             // Grid view: card-style items
             itemsHtml = items.map((item, index) => {
-                const lockIconHtml = getLockIconHtml('userStats', `inventory.onPerson[${index}]`);
+                const lockIconHtml = getLockIconHtml('userStats', `inventory.onPerson.${item}`);
                 return `
                 <div class="rpg-item-card" data-field="onPerson" data-index="${index}">
                     ${lockIconHtml}
@@ -94,7 +94,7 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
         } else {
             // List view: full-width rows
             itemsHtml = items.map((item, index) => {
-                const lockIconHtml = getLockIconHtml('userStats', `inventory.onPerson[${index}]`);
+                const lockIconHtml = getLockIconHtml('userStats', `inventory.onPerson.${item}`);
                 return `
                 <div class="rpg-item-row" data-field="onPerson" data-index="${index}">
                     ${lockIconHtml}
@@ -163,7 +163,7 @@ export function renderClothingView(clothingItems, viewMode = 'list') {
         if (viewMode === 'grid') {
             // Grid view: card-style items
             itemsHtml = items.map((item, index) => {
-                const lockIconHtml = getLockIconHtml('userStats', `inventory.clothing[${index}]`);
+                const lockIconHtml = getLockIconHtml('userStats', `inventory.clothing.${item}`);
                 return `
                 <div class="rpg-item-card" data-field="clothing" data-index="${index}">
                     ${lockIconHtml}
@@ -176,7 +176,7 @@ export function renderClothingView(clothingItems, viewMode = 'list') {
         } else {
             // List view: full-width rows
             itemsHtml = items.map((item, index) => {
-                const lockIconHtml = getLockIconHtml('userStats', `inventory.clothing[${index}]`);
+                const lockIconHtml = getLockIconHtml('userStats', `inventory.clothing.${item}`);
                 return `
                 <div class="rpg-item-row" data-field="clothing" data-index="${index}">
                     ${lockIconHtml}
@@ -291,7 +291,7 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
                 if (viewMode === 'grid') {
                     // Grid view: card-style items
                     itemsHtml = items.map((item, index) => {
-                        const lockIconHtml = getLockIconHtml('userStats', `inventory.stored.${location}[${index}]`);
+                        const lockIconHtml = getLockIconHtml('userStats', `inventory.stored.${location}.${item}`);
                         return `
                         <div class="rpg-item-card" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
                             ${lockIconHtml}
@@ -304,7 +304,7 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
                 } else {
                     // List view: full-width rows
                     itemsHtml = items.map((item, index) => {
-                        const lockIconHtml = getLockIconHtml('userStats', `inventory.stored.${location}[${index}]`);
+                        const lockIconHtml = getLockIconHtml('userStats', `inventory.stored.${location}.${item}`);
                         return `
                         <div class="rpg-item-row" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
                             ${lockIconHtml}
@@ -393,7 +393,7 @@ export function renderAssetsView(assets, viewMode = 'list') {
         if (viewMode === 'grid') {
             // Grid view: card-style items
             itemsHtml = items.map((item, index) => {
-                const lockIconHtml = getLockIconHtml('userStats', `inventory.assets[${index}]`);
+                const lockIconHtml = getLockIconHtml('userStats', `inventory.assets.${item}`);
                 return `
                 <div class="rpg-item-card" data-field="assets" data-index="${index}">
                     ${lockIconHtml}
@@ -406,7 +406,7 @@ export function renderAssetsView(assets, viewMode = 'list') {
         } else {
             // List view: full-width rows
             itemsHtml = items.map((item, index) => {
-                const lockIconHtml = getLockIconHtml('userStats', `inventory.assets[${index}]`);
+                const lockIconHtml = getLockIconHtml('userStats', `inventory.assets.${item}`);
                 return `
                 <div class="rpg-item-row" data-field="assets" data-index="${index}">
                     ${lockIconHtml}

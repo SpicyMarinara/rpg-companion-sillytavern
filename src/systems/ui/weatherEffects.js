@@ -105,41 +105,48 @@ function getCurrentTime() {
     return null;
 }
 
+// Patterns for specific weather conditions (order matters - combined effects first)
+// Grouped by languages for easy editing
+const WEATHER_PATTERNS_BY_LANGUAGE = {
+    en: [
+        { id: "blizzard", patterns: [ "blizzard" ] }, // Snow + Wind
+        { id: "storm", patterns: [ "storm", "thunder", "lightning" ] }, // Rain + Lightning
+        { id: "wind", patterns: [ "wind", "breeze", "gust", "gale" ] },
+        { id: "snow", patterns: [ "snow", "flurries" ] },
+        { id: "rain", patterns: [ "rain", "drizzle", "shower" ] },
+        { id: "mist", patterns: [ "mist", "fog", "haze" ] },
+        { id: "sunny", patterns: [ "sunny", "clear", "bright" ] },
+        { id: "none", patterns: [ "cloud", "overcast", "indoor", "inside" ] },
+    ],
+    ru: [
+        { id: "blizzard", patterns: [ "метель" ] },
+        { id: "storm", patterns: [ "гроза", "буря", "шторм" ] },
+        { id: "wind", patterns: [ "ветер", "ветрено", "ветерок", "бриз", "легкий бриз", "слегка ветрено", "легкий ветер", "шквал,буря" ] },
+        { id: "snow", patterns: [ "снег", "снегопад" ] },
+        { id: "rain", patterns: [ "дождь", "морось", "ливень" ] },
+        { id: "mist", patterns: [ "мгла", "туман", "туманно" ] },
+        { id: "sunny", patterns: [ "солнечно", "ясно", "ярко", "ясное утро", "ясный день" ] },
+        { id: "none", patterns: [ "облачно", "пасмурно", "в помещении", "внутри" ] },
+    ],
+}
+
 /**
  * Parse weather text to determine effect type
  */
 function parseWeatherType(weatherText) {
-    if (!weatherText) return 'none';
+    if (!weatherText) return "none";
 
     const text = weatherText.toLowerCase();
 
-    // Check for specific weather conditions (order matters - check combined effects first)
-    if (text.includes('blizzard')) {
-        return 'blizzard'; // Snow + Wind
-    }
-    if (text.includes('storm') || text.includes('thunder') || text.includes('lightning')) {
-        return 'storm'; // Rain + Lightning
-    }
-    if (text.includes('wind') || text.includes('breeze') || text.includes('gust') || text.includes('gale')) {
-        return 'wind';
-    }
-    if (text.includes('snow') || text.includes('flurries')) {
-        return 'snow';
-    }
-    if (text.includes('rain') || text.includes('drizzle') || text.includes('shower')) {
-        return 'rain';
-    }
-    if (text.includes('mist') || text.includes('fog') || text.includes('haze')) {
-        return 'mist';
-    }
-    if (text.includes('sunny') || text.includes('clear') || text.includes('bright')) {
-        return 'sunny';
-    }
-    if (text.includes('cloud') || text.includes('overcast') || text.includes('indoor') || text.includes('inside')) {
-        return 'none';
+    for (const language of Object.values(WEATHER_PATTERNS_BY_LANGUAGE)) {
+        for (const { id, patterns } of language) {
+            if (patterns.some(p => text.includes(p))) {
+                return id;
+            }
+        }
     }
 
-    return 'none';
+    return "none";
 }
 
 /**
@@ -240,24 +247,24 @@ function calculateSunPosition(hour) {
     // Daytime is roughly 5 AM to 8 PM (5-20)
     // Map hour to position along an arc
     // 5 AM = far left, low | 12 PM = center, high | 8 PM = far right, low
-    
+
     if (hour === null) hour = 12; // Default to noon if unknown
-    
+
     // Clamp to daytime hours
     const clampedHour = Math.max(5, Math.min(20, hour));
-    
+
     // Normalize to 0-1 range (5 AM = 0, 20 PM = 1)
     const progress = (clampedHour - 5) / 15;
-    
+
     // Horizontal position: 3% to 92% (left to right, wider range)
     const left = 3 + progress * 89;
-    
+
     // Vertical position: parabolic arc (high at noon, low at dawn/dusk)
     // At progress 0.5 (noon), top should be ~8% (high)
     // At progress 0 or 1, top should be ~40% (low, near horizon)
     const normalizedProgress = (progress - 0.5) * 2; // -1 to 1
     const top = 8 + 32 * (normalizedProgress * normalizedProgress);
-    
+
     return { left, top };
 }
 
@@ -270,7 +277,7 @@ function createSunshine(hour) {
 
     // Create the sun based on current hour
     const sunPos = calculateSunPosition(hour);
-    
+
     const sun = document.createElement('div');
     sun.className = 'rpg-weather-particle rpg-clear-sun';
     sun.style.left = `${sunPos.left}vw`;
@@ -572,9 +579,9 @@ function calculateMoonPosition(hour) {
     // Nighttime is roughly 8 PM to 5 AM (20-5)
     // Map hour to position along an arc
     // 8 PM = far left, low | midnight = center-left, high | 5 AM = far right, low
-    
+
     if (hour === null) hour = 0; // Default to midnight if unknown
-    
+
     // Normalize night hours to 0-1 range
     // 20 (8 PM) = 0, 0 (midnight) = ~0.44, 5 (5 AM) = 1
     let progress;
@@ -585,16 +592,16 @@ function calculateMoonPosition(hour) {
         // Midnight to 5 AM: 0-5 maps to 0.44-1
         progress = (hour + 4) / 9;
     }
-    
+
     // Horizontal position: 10% to 80% (left to right)
     const left = 10 + progress * 70;
-    
+
     // Vertical position: parabolic arc (high at ~2 AM, low at dusk/dawn)
     // Peak should be around progress 0.67 (~2 AM)
     const peakProgress = 0.5;
     const normalizedProgress = (progress - peakProgress) * 2; // -1 to 1
     const top = 8 + 25 * (normalizedProgress * normalizedProgress);
-    
+
     return { left, top };
 }
 
@@ -607,7 +614,7 @@ function updateCelestialPosition(hour) {
     // Update sun position if it exists
     const sun = weatherContainer.querySelector('.rpg-clear-sun');
     const sunGlow = weatherContainer.querySelector('.rpg-clear-sun-glow');
-    
+
     if (sun && sunGlow) {
         const sunPos = calculateSunPosition(hour);
         sun.style.left = `${sunPos.left}vw`;
@@ -620,7 +627,7 @@ function updateCelestialPosition(hour) {
     // Update moon position if it exists
     const moon = weatherContainer.querySelector('.rpg-night-moon');
     const moonGlow = weatherContainer.querySelector('.rpg-night-moon-glow');
-    
+
     if (moon && moonGlow) {
         const moonPos = calculateMoonPosition(hour);
         moon.style.left = `${moonPos.left}vw`;
