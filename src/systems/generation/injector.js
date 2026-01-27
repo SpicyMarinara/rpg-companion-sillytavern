@@ -22,6 +22,7 @@ import {
     DEFAULT_HTML_PROMPT,
     DEFAULT_DIALOGUE_COLORING_PROMPT,
     DEFAULT_DECEPTION_PROMPT,
+    DEFAULT_OMNISCIENCE_FILTER_PROMPT,
     DEFAULT_CYOA_PROMPT,
     DEFAULT_SPOTIFY_PROMPT,
     SPOTIFY_FORMAT_INSTRUCTION
@@ -792,6 +793,19 @@ export async function onGenerationStarted(type, data, dryRun) {
             setExtensionPrompt('rpg-companion-deception', '', extension_prompt_types.IN_CHAT, 0, false);
         }
 
+        // Inject Omniscience Filter prompt separately at depth 0 if enabled
+        if (extensionSettings.enableOmniscienceFilter && !shouldSuppress) {
+            // Use custom Omniscience Filter prompt if set, otherwise use default
+            const omnisciencePromptText = extensionSettings.customOmnisciencePrompt || DEFAULT_OMNISCIENCE_FILTER_PROMPT;
+            const omnisciencePrompt = `\n${omnisciencePromptText}\n`;
+
+            setExtensionPrompt('rpg-companion-omniscience', omnisciencePrompt, extension_prompt_types.IN_CHAT, 0, false);
+            // console.log('[RPG Companion] Injected Omniscience Filter prompt at depth 0 for together mode');
+        } else {
+            // Clear Omniscience Filter prompt if disabled
+            setExtensionPrompt('rpg-companion-omniscience', '', extension_prompt_types.IN_CHAT, 0, false);
+        }
+
         // Inject Spotify prompt separately at depth 0 if enabled
         if (extensionSettings.enableSpotifyMusic && !shouldSuppress) {
             // Use custom Spotify prompt if set, otherwise use default
@@ -880,6 +894,19 @@ Ensure these details naturally reflect and influence the narrative. Character be
             setExtensionPrompt('rpg-companion-deception', '', extension_prompt_types.IN_CHAT, 0, false);
         }
 
+        // Inject Omniscience Filter prompt separately at depth 0 if enabled
+        if (extensionSettings.enableOmniscienceFilter && !shouldSuppress) {
+            // Use custom Omniscience Filter prompt if set, otherwise use default
+            const omnisciencePromptText = extensionSettings.customOmnisciencePrompt || DEFAULT_OMNISCIENCE_FILTER_PROMPT;
+            const omnisciencePrompt = `\n${omnisciencePromptText}\n`;
+
+            setExtensionPrompt('rpg-companion-omniscience', omnisciencePrompt, extension_prompt_types.IN_CHAT, 0, false);
+            // console.log('[RPG Companion] Injected Omniscience Filter prompt at depth 0 for separate/external mode');
+        } else {
+            // Clear Omniscience Filter prompt if disabled
+            setExtensionPrompt('rpg-companion-omniscience', '', extension_prompt_types.IN_CHAT, 0, false);
+        }
+
         // Inject Spotify prompt separately at depth 0 if enabled
         if (extensionSettings.enableSpotifyMusic && !shouldSuppress) {
             // Use custom Spotify prompt if set, otherwise use default
@@ -917,6 +944,7 @@ Ensure these details naturally reflect and influence the narrative. Character be
         setExtensionPrompt('rpg-companion-html', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-dialogue-coloring', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-deception', '', extension_prompt_types.IN_CHAT, 0, false);
+        setExtensionPrompt('rpg-companion-omniscience', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-zzz-cyoa', '', extension_prompt_types.IN_CHAT, 0, false);
         setExtensionPrompt('rpg-companion-spotify', '', extension_prompt_types.IN_CHAT, 0, false);
     }
