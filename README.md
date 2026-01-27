@@ -10,13 +10,14 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 ### v3.7.0
  
 - Added omniscience filter.
+- Added new prompts available for customization.
 - Added opacity to the color selector.
 - Overwritten SillyTavern's dumb-ahh trim logic when joining prompts.
 - Fixed custom attributes not allowing value increase/decrease.
 - Various bug fixes.
 
 **Special thanks to all the other contributors for this project:**
-Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.
+Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, Tomt610, and Jakstein!
 
 ## 📥 Installation
 
@@ -269,7 +270,7 @@ If you enjoy this extension, consider supporting development:
 ## 🙏 Credits
 
 **Contributors:**
-SpicyMarinara, Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, and Tomt610.
+SpicyMarinara, Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, Tomt610, and Jakstein.
 
 ## 🚀 Planned Features
 
