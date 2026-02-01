@@ -5,6 +5,8 @@
 
 import { extensionSettings, committedTrackerData } from '../../core/state.js';
 import { getContext } from '../../../../../../extensions.js';
+import { getWeatherKeywordsAsPromptString } from '../ui/weatherEffects.js';
+import { i18n } from '../../core/i18n.js';
 
 /**
  * Converts a field name to snake_case for use as JSON key
@@ -132,7 +134,10 @@ export function buildInfoBoxJSONInstruction() {
     }
 
     if (widgets.weather?.enabled) {
-        instruction += (hasFields ? ',\n' : '') + '  "weather": {"emoji": "Weather Emoji", "forecast": "Forecast"}';
+        // Get valid weather keywords for the current language to guide LLM generation
+        const currentLang = i18n.currentLanguage || 'en';
+        const weatherHint = getWeatherKeywordsAsPromptString(currentLang);
+        instruction += (hasFields ? ',\n' : '') + `  "weather": {"emoji": "Weather Emoji", "forecast": "Forecast"}  // ${weatherHint}`;
         hasFields = true;
     }
 

@@ -794,12 +794,17 @@ export function setupMobileKeyboardHandling() {
 /**
  * Handles focus on contenteditable fields to ensure they're visible when keyboard appears.
  * Uses smooth scrolling to bring focused field into view with proper padding.
+ * Only applies on mobile viewports where virtual keyboard can obscure content.
  */
 export function setupContentEditableScrolling() {
     const $panel = $('#rpg-companion-panel');
 
     // Use event delegation for all contenteditable fields
     $panel.on('focusin', '[contenteditable="true"]', function(e) {
+        // Only apply scrolling behavior on mobile (where virtual keyboard appears)
+        const isMobile = window.innerWidth <= 1000;
+        if (!isMobile) return;
+
         const $field = $(this);
 
         // Small delay to let keyboard animate in

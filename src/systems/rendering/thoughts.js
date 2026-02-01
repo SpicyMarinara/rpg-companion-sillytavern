@@ -492,17 +492,19 @@ export function renderThoughts() {
 
                 html += `
                     <div class="rpg-character-card" data-character-name="${char.name}">
-                        <div class="rpg-character-avatar rpg-avatar-upload" data-character="${char.name}" title="Click to upload avatar">
-                            <img src="${characterPortrait}" alt="${char.name}" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                            ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
+                        <div class="rpg-character-header-row">
+                            <div class="rpg-character-avatar rpg-avatar-upload" data-character="${char.name}" title="Click to upload avatar">
+                                <img src="${characterPortrait}" alt="${char.name}" onerror="this.style.opacity='0.5';this.onerror=null;" />
+                                ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
+                            </div>
+                            <div class="rpg-character-header">
+                                <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${char.name}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
+                                <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="name" title="Click to edit name">${char.name}</span>
+                                <button class="rpg-character-remove" data-character="${char.name}" title="Remove character">×</button>
+                            </div>
                         </div>
                         <div class="rpg-character-content">
                             <div class="rpg-character-info">
-                                <div class="rpg-character-header">
-                                    <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${char.name}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
-                                    <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="name" title="Click to edit name">${char.name}</span>
-                                    <button class="rpg-character-remove" data-character="${char.name}" title="Remove character">×</button>
-                                </div>
                 `;
 
                 // Render custom fields dynamically
@@ -1060,11 +1062,25 @@ export function updateCharacterField(characterName, field, value) {
                 // Check if it's a character stat
                 const isStatField = enabledCharStats.findIndex(s => s.name === field) !== -1;
                 if (isStatField) {
-                    if (!char.stats) char.stats = {};
                     let numValue = parseInt(value.replace('%', '').trim());
                     if (isNaN(numValue)) numValue = 0;
                     numValue = Math.max(0, Math.min(100, numValue));
-                    char.stats[field] = numValue;
+
+                    // Handle both array format (from LLM) and object format
+                    if (Array.isArray(char.stats)) {
+                        // Array format: [{name: "Health", value: 80}]
+                        const statIndex = char.stats.findIndex(s => s.name === field);
+                        if (statIndex !== -1) {
+                            char.stats[statIndex].value = numValue;
+                        } else {
+                            // Stat not found in array - add it
+                            char.stats.push({ name: field, value: numValue });
+                        }
+                    } else {
+                        // Object format: {Health: 80} or undefined
+                        if (!char.stats) char.stats = {};
+                        char.stats[field] = numValue;
+                    }
                 } else {
                     // It's a custom detail field - store in details object
                     if (!char.details) char.details = {};

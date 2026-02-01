@@ -159,7 +159,7 @@
     "template.trackerEditorModal.presentCharactersTab.aiInstructionLabel": "AI Instruction:",
     "template.trackerEditorModal.presentCharactersTab.characterStatsTitle": "Character Stats",
     "template.trackerEditorModal.presentCharactersTab.trackCharacterStats": "Track Character Stats",
-    "template.trackerEditorModal.presentCharactersTab.characterStatsHint": "Create stats to track for each character (displayed as colored bars).",
+    "template.trackerEditorModal.presentCharactersTab.characterStatsHint": "Create stats to track for each character (displayed as colored numbers).",
     "template.trackerEditorModal.presentCharactersTab.addCharacterStatButton": "Add Character Stat",
     "template.mainPanel.title": "RPG Companion",
     "template.mainPanel.lastRoll": "Last Roll:",

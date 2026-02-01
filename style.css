@@ -2118,8 +2118,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 /* Present Characters - Character Cards */
 .rpg-character-card {
     display: flex;
-    align-items: flex-start;
-    gap: clamp(8px, 1vw, 12px);
+    flex-direction: column;
+    gap: clamp(6px, 0.8vh, 10px);
     padding: clamp(6px, 1vh, 8px);
     background: rgba(0, 0, 0, 0.3);
     border-radius: clamp(4px, 0.5vh, 6px);
@@ -2157,6 +2157,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     border-color: var(--rpg-highlight);
 }
 
+/* Header row with avatar and name */
+.rpg-character-header-row {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vw, 12px);
+    width: 100%;
+}
+
 /* Character avatar container with relationship badge */
 .rpg-character-avatar {
     position: relative;
@@ -2164,8 +2172,8 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
 }
 
 .rpg-character-avatar img {
-    width: clamp(35px, 6vh, 45px);
-    height: clamp(35px, 6vh, 45px);
+    width: clamp(30px, 5vh, 40px);
+    height: clamp(30px, 5vh, 40px);
     border-radius: 50%;
     border: 2px solid var(--rpg-highlight);
     object-fit: cover;
@@ -2232,13 +2240,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Character info section */
+/* Character info section - now takes full width below header row */
 .rpg-character-content {
-    flex: 1;
-    min-width: 0;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: clamp(3px, 0.5vh, 5px);
     overflow: hidden;
 }
 
@@ -2271,13 +2278,14 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     background: var(--rpg-highlight);
 }
 
-/* Character header with emoji and name */
+/* Character header with emoji and name - now inside header row */
 .rpg-character-header {
     display: flex;
     align-items: center;
     gap: clamp(4px, 0.5vw, 6px);
     flex-wrap: nowrap; /* Prevent wrapping */
-    position: relative;
+    flex: 1;
+    min-width: 0;
 }
 
 .rpg-character-emoji {
