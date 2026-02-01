@@ -507,11 +507,6 @@ function onGenerateAfterCombinePrompts(eventData) {
     // Always fix newlines around context tags (whether we just injected or not)
     eventData.prompt = eventData.prompt.replace(/<context>/g, '\n<context>');
     eventData.prompt = eventData.prompt.replace(/<\/context>/g, '</context>\n');
-
-    // Remove extra newlines after last_message opening and closing tags
-    // Match exactly the double newline pattern
-    eventData.prompt = eventData.prompt.replace(/<last_message>\n\n/g, '<last_message>\n');
-    eventData.prompt = eventData.prompt.replace(/\n\n<\/last_message>/g, '\n</last_message>');
 }
 
 /**
