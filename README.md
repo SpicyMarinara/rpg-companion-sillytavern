@@ -13,7 +13,6 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 - Small fixes and updates to descriptions.
 - Fixed a scroll/viewport bug that moved everything up after you edited fields.
 - Changed the display of avatars for present characters.
-- 
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, Tomt610, and Jakstein!
