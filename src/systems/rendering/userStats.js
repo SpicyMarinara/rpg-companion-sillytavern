@@ -336,8 +336,11 @@ export function renderUserStats() {
             for (const fieldName of config.statusSection.customFields) {
                 const fieldKey = fieldName.toLowerCase();
                 let fieldValue = stats[fieldKey] || 'None';
-                // Strip brackets if present (from JSON array format)
-                if (typeof fieldValue === 'string') {
+                // Handle array format (from JSON)
+                if (Array.isArray(fieldValue)) {
+                    fieldValue = fieldValue.join(', ') || 'None';
+                } else if (typeof fieldValue === 'string') {
+                    // Strip brackets if present (from JSON array format)
                     fieldValue = fieldValue.replace(/^\[|\]$/g, '').trim();
                 }
                 html += `<div class="rpg-mood-conditions rpg-editable" contenteditable="true" data-field="${fieldKey}" title="Click to edit ${fieldName}">${fieldValue}</div>`;
