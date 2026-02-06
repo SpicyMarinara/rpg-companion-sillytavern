@@ -3,8 +3,9 @@
  * Handles API calls for RPG tracker generation
  */
 
-import { generateRaw, chat, eventSource } from '../../../../../../../script.js';
+import { chat, eventSource } from '../../../../../../../script.js';
 import { executeSlashCommandsOnChatInput } from '../../../../../../../scripts/slash-commands.js';
+import { safeGenerateRaw, extractTextFromResponse } from '../../utils/responseExtractor.js';
 
 // Custom event name for when RPG Companion finishes updating tracker data
 // Other extensions can listen for this event to know when RPG Companion is done
@@ -107,11 +108,10 @@ export async function generateWithExternalAPI(messages) {
 
         const data = await response.json();
 
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            throw new Error('Invalid response format from external API');
+        const content = extractTextFromResponse(data);
+        if (!content || !content.trim()) {
+            throw new Error('Invalid response format from external API — no text content found');
         }
-
-        const content = data.choices[0].message.content;
         // console.log('[RPG Companion] External API response received successfully');
 
         return content;
@@ -255,8 +255,8 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             // console.log('[RPG Companion] Using external API for tracker generation');
             response = await generateWithExternalAPI(prompt);
         } else {
-            // Separate mode: Use SillyTavern's generateRaw
-            response = await generateRaw({
+            // Separate mode: Use SillyTavern's generateRaw (with extended thinking fallback)
+            response = await safeGenerateRaw({
                 prompt: prompt,
                 quietToLoud: false
             });

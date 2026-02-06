@@ -9,7 +9,8 @@
  * - Manual regeneration support
  */
 
-import { generateRaw, characters, this_chid } from '../../../../../../../script.js';
+import { characters, this_chid } from '../../../../../../../script.js';
+import { safeGenerateRaw } from '../../utils/responseExtractor.js';
 import { executeSlashCommandsOnChatInput } from '../../../../../../../scripts/slash-commands.js';
 import { selected_group, getGroupMembers } from '../../../../../../group-chats.js';
 import { extensionSettings, sessionAvatarPrompts, setSessionAvatarPrompt } from '../../core/state.js';
@@ -254,7 +255,7 @@ async function generateAvatarPrompt(characterName) {
             // console.log('[RPG Avatar] Using external API for avatar prompt generation');
             response = await generateWithExternalAPI(promptMessages);
         } else {
-            response = await generateRaw({
+            response = await safeGenerateRaw({
                 prompt: promptMessages,
                 quietToLoud: false
             });

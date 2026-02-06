@@ -4,7 +4,8 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { generateRaw, chat, saveChatDebounced, characters, this_chid, user_avatar } from '../../../../../../../script.js';
+import { chat, saveChatDebounced, characters, this_chid, user_avatar } from '../../../../../../../script.js';
+import { safeGenerateRaw } from '../../utils/responseExtractor.js';
 import { selected_group, getGroupMembers, groups } from '../../../../../../group-chats.js';
 import { executeSlashCommandsOnChatInput } from '../../../../../../../scripts/slash-commands.js';
 import { extensionSettings } from '../../core/state.js';
@@ -81,7 +82,7 @@ export class EncounterModal {
             // Store request for potential regeneration
             this.lastRequest = { type: 'init', prompt: initPrompt };
 
-            const response = await generateRaw({
+            const response = await safeGenerateRaw({
                 prompt: initPrompt,
                 quietToLoud: false
             });
@@ -816,7 +817,7 @@ export class EncounterModal {
             // Store request for potential regeneration
             this.lastRequest = { type: 'action', action, prompt: actionPrompt };
 
-            const response = await generateRaw({
+            const response = await safeGenerateRaw({
                 prompt: actionPrompt,
                 quietToLoud: false
             });
@@ -1078,7 +1079,7 @@ export class EncounterModal {
             // Generate summary
             const summaryPrompt = await buildCombatSummaryPrompt(currentEncounter.encounterLog, result);
 
-            const summaryResponse = await generateRaw({
+            const summaryResponse = await safeGenerateRaw({
                 prompt: summaryPrompt,
                 quietToLoud: false
             });
