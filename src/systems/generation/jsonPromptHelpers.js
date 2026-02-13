@@ -22,6 +22,19 @@ function toSnakeCase(name) {
 }
 
 /**
+ * Extracts the base name (before parentheses) and converts to snake_case for use as JSON key.
+ * Parenthetical content is treated as a description/hint, not part of the key.
+ * Example: "Conditions (up to 5 traits)" -> "conditions"
+ * Example: "Status Effects" -> "status_effects"
+ * @param {string} name - Field name, possibly with parenthetical description
+ * @returns {string} snake_case key from the base name only
+ */
+function toFieldKey(name) {
+    const baseName = name.replace(/\s*\(.*\)\s*$/, '').trim();
+    return toSnakeCase(baseName);
+}
+
+/**
  * Builds User Stats JSON format instruction
  * @returns {string} JSON format instruction for user stats
  */
@@ -60,12 +73,12 @@ export function buildUserStatsJSONInstruction() {
         if (customFields.length > 0) {
             for (let i = 0; i < customFields.length; i++) {
                 const fieldName = customFields[i].toLowerCase();
-                const fieldKey = toSnakeCase(fieldName);
+                const fieldKey = toFieldKey(fieldName);
                 const comma = (i === customFields.length - 1 && !userStatsConfig.statusSection.showMoodEmoji) ? '' : (userStatsConfig.statusSection.showMoodEmoji || i < customFields.length - 1 ? ',\n' : '\n');
                 if (i === 0 && userStatsConfig.statusSection.showMoodEmoji) {
                     instruction += ',\n';
                 }
-                instruction += `    "${fieldKey}": "[${fieldName}1, ${fieldName}2]"${comma}`;
+                instruction += `    "${fieldKey}": "[${fieldName}]"${comma}`;
             }
         }
         if (!userStatsConfig.statusSection.showMoodEmoji && customFields.length > 0) {

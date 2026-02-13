@@ -10,6 +10,20 @@ import { extractInventory } from './inventoryParser.js';
 import { repairJSON } from '../../utils/jsonRepair.js';
 
 /**
+ * Extracts the base name (before parentheses) and converts to snake_case for use as JSON key.
+ * Example: "Conditions (up to 5 traits)" -> "conditions"
+ * @param {string} name - Field name, possibly with parenthetical description
+ * @returns {string} snake_case key from the base name only
+ */
+function toFieldKey(name) {
+    const baseName = name.replace(/\s*\(.*\)\s*$/, '').trim();
+    return baseName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+/**
  * Helper to separate emoji from text in a string
  * Handles cases where there's no comma or space after emoji
  * @param {string} str - String potentially containing emoji followed by text
@@ -559,10 +573,12 @@ export function parseUserStats(statsText) {
                     const trackerConfig = extensionSettings.trackerConfig;
                     const customFields = trackerConfig?.userStats?.statusSection?.customFields || [];
                     for (const fieldName of customFields) {
-                        const fieldKey = fieldName.toLowerCase();
-                        if (statsData.status[fieldKey]) {
-                            extensionSettings.userStats[fieldKey] = statsData.status[fieldKey];
-                            // console.log(`[RPG Parser] ✓ Set ${fieldKey} =`, statsData.status[fieldKey]);
+                        const fieldKey = toFieldKey(fieldName);
+                        // Try the base key first (e.g., "conditions"), then fall back to full lowercase name
+                        const value = statsData.status[fieldKey] || statsData.status[fieldName.toLowerCase()];
+                        if (value) {
+                            extensionSettings.userStats[fieldKey] = value;
+                            // console.log(`[RPG Parser] ✓ Set ${fieldKey} =`, value);
                         }
                     }
                 }

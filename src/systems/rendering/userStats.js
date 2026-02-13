@@ -24,6 +24,20 @@ import { updateFabWidgets } from '../ui/mobile.js';
 import { getStatBarColors } from '../ui/theme.js';
 
 /**
+ * Extracts the base name (before parentheses) and converts to snake_case for use as JSON key.
+ * Example: "Conditions (up to 5 traits)" -> "conditions"
+ * @param {string} name - Field name, possibly with parenthetical description
+ * @returns {string} snake_case key from the base name only
+ */
+function toFieldKey(name) {
+    const baseName = name.replace(/\s*\(.*\)\s*$/, '').trim();
+    return baseName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+/**
  * Builds the user stats text string using custom stat names
  * @returns {string} Formatted stats text for tracker
  */
@@ -107,7 +121,7 @@ function updateUserStatsData() {
                     // Then, add any other numeric stats from extensionSettings that aren't in config
                     // (these could be custom stats the AI added or disabled stats)
                     const customFields = config.statusSection?.customFields || [];
-                    const excludeFields = new Set(['mood', ...customFields.map(f => f.toLowerCase()), 'inventory', 'skills', 'level']);
+                    const excludeFields = new Set(['mood', ...customFields.map(f => toFieldKey(f)), 'inventory', 'skills', 'level']);
                     Object.entries(stats).forEach(([key, value]) => {
                         if (!processedIds.has(key) && !excludeFields.has(key) && typeof value === 'number') {
                             statsArray.push({
@@ -127,7 +141,7 @@ function updateUserStatsData() {
 
                     // Add all custom status fields
                     for (const fieldName of customFields) {
-                        const fieldKey = fieldName.toLowerCase();
+                        const fieldKey = toFieldKey(fieldName);
                         jsonData.status[fieldKey] = stats[fieldKey] || 'None';
                     }
 
@@ -334,7 +348,7 @@ export function renderUserStats() {
         // Render custom status fields
         if (config.statusSection.customFields && config.statusSection.customFields.length > 0) {
             for (const fieldName of config.statusSection.customFields) {
-                const fieldKey = fieldName.toLowerCase();
+                const fieldKey = toFieldKey(fieldName);
                 let fieldValue = stats[fieldKey] || 'None';
                 // Handle array format (from JSON)
                 if (Array.isArray(fieldValue)) {

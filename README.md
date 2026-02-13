@@ -7,12 +7,9 @@ An immersive RPG extension for browsers that tracks character stats, scene infor
 
 ## 🆕 What's New
 
-### v3.7.1
+### v3.7.2
  
-- Improved instructions for the model to generate dynamic weather.
-- Small fixes and updates to descriptions.
-- Fixed a scroll/viewport bug that moved everything up after you edited fields.
-- Changed the display of avatars for present characters.
+- Minor bug fixes
 
 **Special thanks to all the other contributors for this project:**
 Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDeathByte, Chungchandev, Joenunezb, Amauragis, Tomt610, and Jakstein!

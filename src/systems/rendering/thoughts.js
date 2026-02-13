@@ -153,9 +153,18 @@ function namesMatch(cardName, aiName) {
  * Displays character cards with avatars, relationship badges, and traits.
  * Includes event listeners for editable character fields.
  */
-export function renderThoughts() {
+export function renderThoughts({ preserveScroll = false } = {}) {
     if (!extensionSettings.showCharacterThoughts || !$thoughtsContainer) {
         return;
+    }
+
+    // Save scroll position before re-render if requested
+    let savedContentScroll = 0;
+    if (preserveScroll) {
+        const $content = $thoughtsContainer.find('.rpg-thoughts-content');
+        if ($content.length) {
+            savedContentScroll = $content[0].scrollTop;
+        }
     }
 
     // Don't render if no data exists (e.g., after cache clear)
@@ -714,6 +723,14 @@ export function renderThoughts() {
         setTimeout(() => $thoughtsContainer.removeClass('rpg-content-updating'), 600);
     }
 
+    // Restore scroll position after re-render
+    if (preserveScroll) {
+        const $content = $thoughtsContainer.find('.rpg-thoughts-content');
+        if ($content.length) {
+            $content[0].scrollTop = savedContentScroll;
+        }
+    }
+
     // Update chat overlay if enabled
     if (extensionSettings.showThoughtsInChat) {
         updateChatThoughts();
@@ -1147,8 +1164,8 @@ export function updateCharacterField(characterName, field, value) {
         // console.log('[RPG Companion] JSON format updated successfully');
         // console.log('[RPG Companion] Updated data:', lastGeneratedData.characterThoughts);
 
-        // Re-render the thoughts panel to show updated value
-        renderThoughts();
+        // Re-render the thoughts panel to show updated value (preserve scroll position)
+        renderThoughts({ preserveScroll: true });
 
         // Update chat thought overlays if editing thoughts
         const thoughtsFieldName = presentCharsConfig?.thoughts?.name || 'Thoughts';
