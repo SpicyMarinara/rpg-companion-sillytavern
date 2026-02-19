@@ -51,7 +51,7 @@ export function initTrackerEditor() {
     }
 
     // Tab switching
-    $(document).on('click', '.rpg-editor-tab', function() {
+    $(document).on('click', '.rpg-editor-tab', function () {
         $('.rpg-editor-tab').removeClass('active');
         $(this).addClass('active');
 
@@ -61,51 +61,51 @@ export function initTrackerEditor() {
     });
 
     // Save button
-    $(document).on('click', '#rpg-editor-save', function() {
+    $(document).on('click', '#rpg-editor-save', function () {
         applyTrackerConfig();
         closeTrackerEditor();
     });
 
     // Cancel button
-    $(document).on('click', '#rpg-editor-cancel', function() {
+    $(document).on('click', '#rpg-editor-cancel', function () {
         closeTrackerEditor();
     });
 
     // Close X button
-    $(document).on('click', '#rpg-close-tracker-editor', function() {
+    $(document).on('click', '#rpg-close-tracker-editor', function () {
         closeTrackerEditor();
     });
 
     // Reset button
-    $(document).on('click', '#rpg-editor-reset', function() {
+    $(document).on('click', '#rpg-editor-reset', function () {
         resetToDefaults();
         renderEditorUI();
     });
 
     // Close on background click
-    $(document).on('click', '#rpg-tracker-editor-popup', function(e) {
+    $(document).on('click', '#rpg-tracker-editor-popup', function (e) {
         if (e.target.id === 'rpg-tracker-editor-popup') {
             closeTrackerEditor();
         }
     });
 
     // Open button
-    $(document).on('click', '#rpg-open-tracker-editor', function() {
+    $(document).on('click', '#rpg-open-tracker-editor', function () {
         openTrackerEditor();
     });
 
     // Export button
-    $(document).on('click', '#rpg-editor-export', function() {
+    $(document).on('click', '#rpg-editor-export', function () {
         exportTrackerPreset();
     });
 
     // Import button
-    $(document).on('click', '#rpg-editor-import', function() {
+    $(document).on('click', '#rpg-editor-import', function () {
         importTrackerPreset();
     });
 
     // Preset select change
-    $(document).on('change', '#rpg-preset-select', function() {
+    $(document).on('change', '#rpg-preset-select', function () {
         const presetId = $(this).val();
         if (presetId && presetId !== getActivePresetId()) {
             // Check if the current character had an association (either original or pending)
@@ -139,7 +139,7 @@ export function initTrackerEditor() {
     });
 
     // New preset button
-    $(document).on('click', '#rpg-preset-new', function() {
+    $(document).on('click', '#rpg-preset-new', function () {
         const name = prompt('Enter a name for the new preset:');
         if (name && name.trim()) {
             const newId = createPreset(name.trim());
@@ -150,7 +150,7 @@ export function initTrackerEditor() {
     });
 
     // Set as default preset button
-    $(document).on('click', '#rpg-preset-default', function() {
+    $(document).on('click', '#rpg-preset-default', function () {
         const currentPresetId = getActivePresetId();
         if (currentPresetId) {
             setDefaultPreset(currentPresetId);
@@ -161,7 +161,7 @@ export function initTrackerEditor() {
     });
 
     // Delete preset button
-    $(document).on('click', '#rpg-preset-delete', function() {
+    $(document).on('click', '#rpg-preset-delete', function () {
         const currentPresetId = getActivePresetId();
         const presets = getPresets();
         if (Object.keys(presets).length <= 1) {
@@ -180,7 +180,7 @@ export function initTrackerEditor() {
     });
 
     // Associate preset checkbox
-    $(document).on('change', '#rpg-preset-associate', function() {
+    $(document).on('change', '#rpg-preset-associate', function () {
         const activePresetId = getActivePresetId();
         const preset = getPreset(activePresetId);
         const entityName = getCurrentEntityName();
@@ -334,20 +334,20 @@ function resetToDefaults() {
     extensionSettings.trackerConfig = {
         userStats: {
             customStats: [
-                { id: 'health', name: 'Health', enabled: true, persistInHistory: false },
-                { id: 'satiety', name: 'Satiety', enabled: true, persistInHistory: false },
-                { id: 'energy', name: 'Energy', enabled: true, persistInHistory: false },
-                { id: 'hygiene', name: 'Hygiene', enabled: true, persistInHistory: false },
-                { id: 'arousal', name: 'Arousal', enabled: true, persistInHistory: false }
+                { id: 'health', name: i18n.getTranslation('stats.health'), enabled: true, persistInHistory: false },
+                { id: 'satiety', name: i18n.getTranslation('stats.satiety'), enabled: true, persistInHistory: false },
+                { id: 'energy', name: i18n.getTranslation('stats.energy'), enabled: true, persistInHistory: false },
+                { id: 'hygiene', name: i18n.getTranslation('stats.hygiene'), enabled: true, persistInHistory: false },
+                { id: 'arousal', name: i18n.getTranslation('stats.arousal'), enabled: true, persistInHistory: false }
             ],
             showRPGAttributes: true,
             rpgAttributes: [
-                { id: 'str', name: 'STR', enabled: true, persistInHistory: false },
-                { id: 'dex', name: 'DEX', enabled: true, persistInHistory: false },
-                { id: 'con', name: 'CON', enabled: true, persistInHistory: false },
-                { id: 'int', name: 'INT', enabled: true, persistInHistory: false },
-                { id: 'wis', name: 'WIS', enabled: true, persistInHistory: false },
-                { id: 'cha', name: 'CHA', enabled: true, persistInHistory: false }
+                { id: 'str', name: i18n.getTranslation('stats.str'), enabled: true, persistInHistory: false },
+                { id: 'dex', name: i18n.getTranslation('stats.dex'), enabled: true, persistInHistory: false },
+                { id: 'con', name: i18n.getTranslation('stats.con'), enabled: true, persistInHistory: false },
+                { id: 'int', name: i18n.getTranslation('stats.int'), enabled: true, persistInHistory: false },
+                { id: 'wis', name: i18n.getTranslation('stats.wis'), enabled: true, persistInHistory: false },
+                { id: 'cha', name: i18n.getTranslation('stats.cha'), enabled: true, persistInHistory: false }
             ],
             statusSection: {
                 enabled: true,
@@ -408,8 +408,8 @@ function resetToDefaults() {
             characterStats: {
                 enabled: false,
                 customStats: [
-                    { id: 'health', name: 'Health', enabled: true, colorLow: '#ff4444', colorHigh: '#44ff44' },
-                    { id: 'energy', name: 'Energy', enabled: true, colorLow: '#ffaa00', colorHigh: '#44ffff' }
+                    { id: 'health', name: i18n.getTranslation('stats.health'), enabled: true, colorLow: '#ff4444', colorHigh: '#44ff44' },
+                    { id: 'energy', name: i18n.getTranslation('stats.energy'), enabled: true, colorLow: '#ffaa00', colorHigh: '#44ffff' }
                 ]
             }
         }
@@ -854,7 +854,7 @@ function renderUserStatsTab() {
  */
 function setupUserStatsListeners() {
     // Add stat
-    $('#rpg-add-stat').off('click').on('click', function() {
+    $('#rpg-add-stat').off('click').on('click', function () {
         const newId = 'custom_' + Date.now();
         extensionSettings.trackerConfig.userStats.customStats.push({
             id: newId,
@@ -870,39 +870,39 @@ function setupUserStatsListeners() {
     });
 
     // Remove stat
-    $('.rpg-stat-remove').off('click').on('click', function() {
+    $('.rpg-stat-remove').off('click').on('click', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats.splice(index, 1);
         renderUserStatsTab();
     });
 
     // Toggle stat
-    $('.rpg-stat-toggle').off('change').on('change', function() {
+    $('.rpg-stat-toggle').off('change').on('change', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats[index].enabled = $(this).is(':checked');
     });
 
     // Rename stat
-    $('.rpg-stat-name').off('blur').on('blur', function() {
+    $('.rpg-stat-name').off('blur').on('blur', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats[index].name = $(this).val();
     });
 
     // Change stat max value
-    $('.rpg-stat-max').off('blur').on('blur', function() {
+    $('.rpg-stat-max').off('blur').on('blur', function () {
         const index = $(this).data('index');
         const value = parseInt($(this).val()) || 100;
         extensionSettings.trackerConfig.userStats.customStats[index].maxValue = Math.max(1, value);
     });
 
     // Stats display mode toggle
-    $('input[name="stats-display-mode"]').off('change').on('change', function() {
+    $('input[name="stats-display-mode"]').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.statsDisplayMode = $(this).val();
         renderUserStatsTab(); // Re-render to show/hide max value fields
     });
 
     // Add attribute
-    $('#rpg-add-attr').off('click').on('click', function() {
+    $('#rpg-add-attr').off('click').on('click', function () {
         // Ensure rpgAttributes array exists with defaults if needed
         if (!extensionSettings.trackerConfig.userStats.rpgAttributes || extensionSettings.trackerConfig.userStats.rpgAttributes.length === 0) {
             extensionSettings.trackerConfig.userStats.rpgAttributes = [
@@ -928,64 +928,64 @@ function setupUserStatsListeners() {
     });
 
     // Remove attribute
-    $('.rpg-attr-remove').off('click').on('click', function() {
+    $('.rpg-attr-remove').off('click').on('click', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.rpgAttributes.splice(index, 1);
         renderUserStatsTab();
     });
 
     // Toggle attribute
-    $('.rpg-attr-toggle').off('change').on('change', function() {
+    $('.rpg-attr-toggle').off('change').on('change', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.rpgAttributes[index].enabled = $(this).is(':checked');
     });
 
     // Rename attribute
-    $('.rpg-attr-name').off('blur').on('blur', function() {
+    $('.rpg-attr-name').off('blur').on('blur', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.rpgAttributes[index].name = $(this).val();
     });
 
     // Enable/disable RPG Attributes section toggle
-    $('#rpg-show-rpg-attrs').off('change').on('change', function() {
+    $('#rpg-show-rpg-attrs').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.showRPGAttributes = $(this).is(':checked');
     });
 
     // Show/hide level toggle
-    $('#rpg-show-level').off('change').on('change', function() {
+    $('#rpg-show-level').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.showLevel = $(this).is(':checked');
     });
 
     // Always send attributes toggle
-    $('#rpg-always-send-attrs').off('change').on('change', function() {
+    $('#rpg-always-send-attrs').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.alwaysSendAttributes = $(this).is(':checked');
     });
 
     // Status section toggles
-    $('#rpg-status-enabled').off('change').on('change', function() {
+    $('#rpg-status-enabled').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.statusSection.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-mood-emoji').off('change').on('change', function() {
+    $('#rpg-mood-emoji').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.statusSection.showMoodEmoji = $(this).is(':checked');
     });
 
-    $('#rpg-status-fields').off('blur').on('blur', function() {
+    $('#rpg-status-fields').off('blur').on('blur', function () {
         const fields = $(this).val().split(',').map(f => f.trim()).filter(f => f);
         extensionSettings.trackerConfig.userStats.statusSection.customFields = fields;
     });
 
     // Skills section toggles
-    $('#rpg-skills-enabled').off('change').on('change', function() {
+    $('#rpg-skills-enabled').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.skillsSection.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-skills-label').off('blur').on('blur', function() {
+    $('#rpg-skills-label').off('blur').on('blur', function () {
         extensionSettings.trackerConfig.userStats.skillsSection.label = $(this).val();
         saveSettings();
     });
 
-    $('#rpg-skills-fields').off('blur').on('blur', function() {
+    $('#rpg-skills-fields').off('blur').on('blur', function () {
         const fields = $(this).val().split(',').map(f => f.trim()).filter(f => f);
         extensionSettings.trackerConfig.userStats.skillsSection.customFields = fields;
         saveSettings();
@@ -1057,35 +1057,35 @@ function renderInfoBoxTab() {
 function setupInfoBoxListeners() {
     const widgets = extensionSettings.trackerConfig.infoBox.widgets;
 
-    $('#rpg-widget-date').off('change').on('change', function() {
+    $('#rpg-widget-date').off('change').on('change', function () {
         widgets.date.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-date-format').off('change').on('change', function() {
+    $('#rpg-date-format').off('change').on('change', function () {
         widgets.date.format = $(this).val();
     });
 
-    $('#rpg-widget-weather').off('change').on('change', function() {
+    $('#rpg-widget-weather').off('change').on('change', function () {
         widgets.weather.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-widget-temperature').off('change').on('change', function() {
+    $('#rpg-widget-temperature').off('change').on('change', function () {
         widgets.temperature.enabled = $(this).is(':checked');
     });
 
-    $('input[name="temp-unit"]').off('change').on('change', function() {
+    $('input[name="temp-unit"]').off('change').on('change', function () {
         widgets.temperature.unit = $(this).val();
     });
 
-    $('#rpg-widget-time').off('change').on('change', function() {
+    $('#rpg-widget-time').off('change').on('change', function () {
         widgets.time.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-widget-location').off('change').on('change', function() {
+    $('#rpg-widget-location').off('change').on('change', function () {
         widgets.location.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-widget-events').off('change').on('change', function() {
+    $('#rpg-widget-events').off('change').on('change', function () {
         widgets.recentEvents.enabled = $(this).is(':checked');
     });
 }
@@ -1209,7 +1209,7 @@ function renderPresentCharactersTab() {
  */
 function setupPresentCharactersListeners() {
     // Relationships enabled toggle
-    $('#rpg-relationships-enabled').off('change').on('change', function() {
+    $('#rpg-relationships-enabled').off('change').on('change', function () {
         if (!extensionSettings.trackerConfig.presentCharacters.relationships) {
             extensionSettings.trackerConfig.presentCharacters.relationships = { enabled: true, relationshipEmojis: {} };
         }
@@ -1217,7 +1217,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Add new relationship
-    $('#rpg-add-relationship').off('click').on('click', function() {
+    $('#rpg-add-relationship').off('click').on('click', function () {
         // Ensure relationships object exists
         if (!extensionSettings.trackerConfig.presentCharacters.relationships) {
             extensionSettings.trackerConfig.presentCharacters.relationships = { enabled: true, relationshipEmojis: {} };
@@ -1254,7 +1254,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Remove relationship
-    $('.rpg-remove-relationship').off('click').on('click', function() {
+    $('.rpg-remove-relationship').off('click').on('click', function () {
         const relationship = $(this).data('relationship');
 
         // Remove from new structure
@@ -1275,7 +1275,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Update relationship name
-    $('.rpg-relationship-name').off('blur').on('blur', function() {
+    $('.rpg-relationship-name').off('blur').on('blur', function () {
         const newName = $(this).val();
         const $item = $(this).closest('.rpg-relationship-item');
         const emoji = $item.find('.rpg-relationship-emoji').val();
@@ -1309,7 +1309,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Update relationship emoji
-    $('.rpg-relationship-emoji').off('blur').on('blur', function() {
+    $('.rpg-relationship-emoji').off('blur').on('blur', function () {
         const name = $(this).closest('.rpg-relationship-item').find('.rpg-relationship-name').val();
 
         // Ensure structures exist
@@ -1326,21 +1326,21 @@ function setupPresentCharactersListeners() {
     });
 
     // Thoughts configuration
-    $('#rpg-thoughts-enabled').off('change').on('change', function() {
+    $('#rpg-thoughts-enabled').off('change').on('change', function () {
         if (!extensionSettings.trackerConfig.presentCharacters.thoughts) {
             extensionSettings.trackerConfig.presentCharacters.thoughts = {};
         }
         extensionSettings.trackerConfig.presentCharacters.thoughts.enabled = $(this).is(':checked');
     });
 
-    $('#rpg-thoughts-name').off('blur').on('blur', function() {
+    $('#rpg-thoughts-name').off('blur').on('blur', function () {
         if (!extensionSettings.trackerConfig.presentCharacters.thoughts) {
             extensionSettings.trackerConfig.presentCharacters.thoughts = {};
         }
         extensionSettings.trackerConfig.presentCharacters.thoughts.name = $(this).val();
     });
 
-    $('#rpg-thoughts-description').off('blur').on('blur', function() {
+    $('#rpg-thoughts-description').off('blur').on('blur', function () {
         if (!extensionSettings.trackerConfig.presentCharacters.thoughts) {
             extensionSettings.trackerConfig.presentCharacters.thoughts = {};
         }
@@ -1348,7 +1348,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Add field
-    $('#rpg-add-field').off('click').on('click', function() {
+    $('#rpg-add-field').off('click').on('click', function () {
         extensionSettings.trackerConfig.presentCharacters.customFields.push({
             id: 'custom_' + Date.now(),
             name: 'New Field',
@@ -1359,14 +1359,14 @@ function setupPresentCharactersListeners() {
     });
 
     // Remove field
-    $('.rpg-field-remove').off('click').on('click', function() {
+    $('.rpg-field-remove').off('click').on('click', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields.splice(index, 1);
         renderPresentCharactersTab();
     });
 
     // Move field up
-    $('.rpg-field-move-up').off('click').on('click', function() {
+    $('.rpg-field-move-up').off('click').on('click', function () {
         const index = $(this).data('index');
         if (index > 0) {
             const fields = extensionSettings.trackerConfig.presentCharacters.customFields;
@@ -1376,7 +1376,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Move field down
-    $('.rpg-field-move-down').off('click').on('click', function() {
+    $('.rpg-field-move-down').off('click').on('click', function () {
         const index = $(this).data('index');
         const fields = extensionSettings.trackerConfig.presentCharacters.customFields;
         if (index < fields.length - 1) {
@@ -1386,25 +1386,25 @@ function setupPresentCharactersListeners() {
     });
 
     // Toggle field
-    $('.rpg-field-toggle').off('change').on('change', function() {
+    $('.rpg-field-toggle').off('change').on('change', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields[index].enabled = $(this).is(':checked');
     });
 
     // Rename field
-    $('.rpg-field-label').off('blur').on('blur', function() {
+    $('.rpg-field-label').off('blur').on('blur', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields[index].name = $(this).val();
     });
 
     // Update description
-    $('.rpg-field-placeholder').off('blur').on('blur', function() {
+    $('.rpg-field-placeholder').off('blur').on('blur', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields[index].description = $(this).val();
     });
 
     // Character stats toggle
-    $('#rpg-char-stats-enabled').off('change').on('change', function() {
+    $('#rpg-char-stats-enabled').off('change').on('change', function () {
         if (!extensionSettings.trackerConfig.presentCharacters.characterStats) {
             extensionSettings.trackerConfig.presentCharacters.characterStats = { enabled: false, customStats: [] };
         }
@@ -1412,7 +1412,7 @@ function setupPresentCharactersListeners() {
     });
 
     // Add character stat
-    $('#rpg-add-char-stat').off('click').on('click', function() {
+    $('#rpg-add-char-stat').off('click').on('click', function () {
         if (!extensionSettings.trackerConfig.presentCharacters.characterStats) {
             extensionSettings.trackerConfig.presentCharacters.characterStats = { enabled: false, customStats: [] };
         }
@@ -1428,20 +1428,20 @@ function setupPresentCharactersListeners() {
     });
 
     // Remove character stat
-    $('.rpg-char-stat-remove').off('click').on('click', function() {
+    $('.rpg-char-stat-remove').off('click').on('click', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.characterStats.customStats.splice(index, 1);
         renderPresentCharactersTab();
     });
 
     // Toggle character stat
-    $('.rpg-char-stat-toggle').off('change').on('change', function() {
+    $('.rpg-char-stat-toggle').off('change').on('change', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.characterStats.customStats[index].enabled = $(this).is(':checked');
     });
 
     // Rename character stat
-    $('.rpg-char-stat-label').off('blur').on('blur', function() {
+    $('.rpg-char-stat-label').off('blur').on('blur', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.characterStats.customStats[index].name = $(this).val();
     });
@@ -1637,70 +1637,70 @@ function setupHistoryPersistenceListeners() {
     }
 
     // Main toggle
-    $('#rpg-history-persistence-enabled').off('change').on('change', function() {
+    $('#rpg-history-persistence-enabled').off('change').on('change', function () {
         extensionSettings.historyPersistence.enabled = $(this).is(':checked');
     });
 
     // Send All Enabled on Refresh toggle
-    $('#rpg-history-send-all-enabled').off('change').on('change', function() {
+    $('#rpg-history-send-all-enabled').off('change').on('change', function () {
         extensionSettings.historyPersistence.sendAllEnabledOnRefresh = $(this).is(':checked');
     });
 
     // Message count
-    $('#rpg-history-message-count').off('change').on('change', function() {
+    $('#rpg-history-message-count').off('change').on('change', function () {
         extensionSettings.historyPersistence.messageCount = parseInt($(this).val()) || 0;
     });
 
     // Injection position
-    $('#rpg-history-injection-position').off('change').on('change', function() {
+    $('#rpg-history-injection-position').off('change').on('change', function () {
         extensionSettings.historyPersistence.injectionPosition = $(this).val();
     });
 
     // Context preamble
-    $('#rpg-history-context-preamble').off('blur').on('blur', function() {
+    $('#rpg-history-context-preamble').off('blur').on('blur', function () {
         extensionSettings.historyPersistence.contextPreamble = $(this).val();
     });
 
     // User Stats toggles
-    $('.rpg-history-stat-toggle').off('change').on('change', function() {
+    $('.rpg-history-stat-toggle').off('change').on('change', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.userStats.customStats[index].persistInHistory = $(this).is(':checked');
     });
 
     // Status section
-    $('#rpg-history-status').off('change').on('change', function() {
+    $('#rpg-history-status').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.statusSection.persistInHistory = $(this).is(':checked');
     });
 
     // Skills section
-    $('#rpg-history-skills').off('change').on('change', function() {
+    $('#rpg-history-skills').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.skillsSection.persistInHistory = $(this).is(':checked');
     });
 
     // Inventory
-    $('#rpg-history-inventory').off('change').on('change', function() {
+    $('#rpg-history-inventory').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.inventoryPersistInHistory = $(this).is(':checked');
     });
 
     // Quests
-    $('#rpg-history-quests').off('change').on('change', function() {
+    $('#rpg-history-quests').off('change').on('change', function () {
         extensionSettings.trackerConfig.userStats.questsPersistInHistory = $(this).is(':checked');
     });
 
     // Info Box widget toggles
-    $('.rpg-history-widget-toggle').off('change').on('change', function() {
+    $('.rpg-history-widget-toggle').off('change').on('change', function () {
         const widgetId = $(this).data('widget');
         extensionSettings.trackerConfig.infoBox.widgets[widgetId].persistInHistory = $(this).is(':checked');
     });
 
     // Present Characters field toggles
-    $('.rpg-history-charfield-toggle').off('change').on('change', function() {
+    $('.rpg-history-charfield-toggle').off('change').on('change', function () {
         const index = $(this).data('index');
         extensionSettings.trackerConfig.presentCharacters.customFields[index].persistInHistory = $(this).is(':checked');
     });
 
     // Thoughts
-    $('#rpg-history-thoughts').off('change').on('change', function() {
+    $('#rpg-history-thoughts').off('change').on('change', function () {
         extensionSettings.trackerConfig.presentCharacters.thoughts.persistInHistory = $(this).is(':checked');
     });
 }

@@ -14,6 +14,7 @@ import {
     FALLBACK_AVATAR_DATA_URI,
     addDebugLog
 } from '../../core/state.js';
+import { i18n } from '../../core/i18n.js';
 import { saveChatData, saveSettings } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
@@ -30,7 +31,7 @@ function getLockIconHtml(tracker, path) {
 
     const isLocked = isItemLocked(tracker, path);
     const lockIcon = isLocked ? '🔒' : '🔓';
-    const lockTitle = isLocked ? 'Locked' : 'Unlocked';
+    const lockTitle = isLocked ? i18n.getTranslation('thoughts.locked') : i18n.getTranslation('thoughts.unlocked');
     const lockedClass = isLocked ? ' locked' : '';
     return `<span class="rpg-section-lock-icon${lockedClass}" data-tracker="${tracker}" data-path="${path}" title="${lockTitle}">${lockIcon}</span>`;
 }
@@ -300,88 +301,88 @@ export function renderThoughts({ preserveScroll = false } = {}) {
         debugLog('[RPG Thoughts] Split into lines count:', lines.length);
         debugLog('[RPG Thoughts] Lines:', lines);
 
-    // Parse new multi-line format:
-    // - [Name]
-    // Details: [Emoji] | [Field1] | [Field2] | ...
-    // Relationship: [Relationship]
-    // Stats: Stat1: X% | Stat2: X% | ...
-    // Thoughts: [Description]
-    let lineNumber = 0;
-    let currentCharacter = null;
+        // Parse new multi-line format:
+        // - [Name]
+        // Details: [Emoji] | [Field1] | [Field2] | ...
+        // Relationship: [Relationship]
+        // Stats: Stat1: X% | Stat2: X% | ...
+        // Thoughts: [Description]
+        let lineNumber = 0;
+        let currentCharacter = null;
 
-    for (const line of lines) {
-        lineNumber++;
+        for (const line of lines) {
+            lineNumber++;
 
-        // Skip empty lines, headers, dividers, and code fences
-        if (!line.trim() ||
-            line.includes('Present Characters') ||
-            line.includes('---') ||
-            line.trim().startsWith('```') ||
-            line.trim() === '- …' ||
-            line.includes('(Repeat the format')) {
-            continue;
-        }
-
-        debugLog(`[RPG Thoughts] Processing line ${lineNumber}:`, line);
-
-        // Check if this is a character name line (starts with "- ")
-        if (line.trim().startsWith('- ')) {
-            const name = line.trim().substring(2).trim();
-
-            if (name && name.toLowerCase() !== 'unavailable') {
-                currentCharacter = { name };
-                presentCharacters.push(currentCharacter);
-                debugLog(`[RPG Thoughts] ✓ Started new character: ${name}`);
-            } else {
-                currentCharacter = null;
-                debugLog(`[RPG Thoughts] ✗ Rejected character - name: "${name}" (unavailable or empty)`);
-            }
-        }
-        // Check if this is a Details line
-        else if (line.trim().startsWith('Details:') && currentCharacter) {
-            const detailsContent = line.substring(line.indexOf(':') + 1).trim();
-            const parts = detailsContent.split('|').map(p => p.trim());
-
-            // First part is the emoji
-            if (parts.length > 0) {
-                currentCharacter.emoji = parts[0];
-                debugLog(`[RPG Thoughts] Parsed emoji: ${parts[0]}`);
+            // Skip empty lines, headers, dividers, and code fences
+            if (!line.trim() ||
+                line.includes('Present Characters') ||
+                line.includes('---') ||
+                line.trim().startsWith('```') ||
+                line.trim() === '- …' ||
+                line.includes('(Repeat the format')) {
+                continue;
             }
 
-            // Remaining parts are custom fields
-            for (let i = 0; i < enabledFields.length && i + 1 < parts.length; i++) {
-                const fieldName = enabledFields[i].name;
-                currentCharacter[fieldName] = parts[i + 1];
-                debugLog(`[RPG Thoughts] Parsed field ${fieldName}: ${parts[i + 1]}`);
-            }
-        }
-        // Check if this is a Relationship line
-        else if (line.trim().startsWith('Relationship:') && currentCharacter) {
-            const relationship = line.substring(line.indexOf(':') + 1).trim();
-            currentCharacter.Relationship = relationship;
-            debugLog(`[RPG Thoughts] Parsed relationship: ${relationship}`);
-        }
-        // Check if this is a Stats line
-        else if (line.trim().startsWith('Stats:') && currentCharacter && enabledCharStats.length > 0) {
-            const statsContent = line.substring(line.indexOf(':') + 1).trim();
-            const statParts = statsContent.split('|').map(p => p.trim());
+            debugLog(`[RPG Thoughts] Processing line ${lineNumber}:`, line);
 
-            for (const statPart of statParts) {
-                const statMatch = statPart.match(/^(.+?):\s*(\d+)%$/);
-                if (statMatch) {
-                    const statName = statMatch[1].trim();
-                    const statValue = parseInt(statMatch[2]);
-                    currentCharacter[statName] = statValue;
-                    debugLog(`[RPG Thoughts] Parsed stat: ${statName} = ${statValue}%`);
+            // Check if this is a character name line (starts with "- ")
+            if (line.trim().startsWith('- ')) {
+                const name = line.trim().substring(2).trim();
+
+                if (name && name.toLowerCase() !== 'unavailable') {
+                    currentCharacter = { name };
+                    presentCharacters.push(currentCharacter);
+                    debugLog(`[RPG Thoughts] ✓ Started new character: ${name}`);
+                } else {
+                    currentCharacter = null;
+                    debugLog(`[RPG Thoughts] ✗ Rejected character - name: "${name}" (unavailable or empty)`);
                 }
             }
+            // Check if this is a Details line
+            else if (line.trim().startsWith('Details:') && currentCharacter) {
+                const detailsContent = line.substring(line.indexOf(':') + 1).trim();
+                const parts = detailsContent.split('|').map(p => p.trim());
+
+                // First part is the emoji
+                if (parts.length > 0) {
+                    currentCharacter.emoji = parts[0];
+                    debugLog(`[RPG Thoughts] Parsed emoji: ${parts[0]}`);
+                }
+
+                // Remaining parts are custom fields
+                for (let i = 0; i < enabledFields.length && i + 1 < parts.length; i++) {
+                    const fieldName = enabledFields[i].name;
+                    currentCharacter[fieldName] = parts[i + 1];
+                    debugLog(`[RPG Thoughts] Parsed field ${fieldName}: ${parts[i + 1]}`);
+                }
+            }
+            // Check if this is a Relationship line
+            else if (line.trim().startsWith('Relationship:') && currentCharacter) {
+                const relationship = line.substring(line.indexOf(':') + 1).trim();
+                currentCharacter.Relationship = relationship;
+                debugLog(`[RPG Thoughts] Parsed relationship: ${relationship}`);
+            }
+            // Check if this is a Stats line
+            else if (line.trim().startsWith('Stats:') && currentCharacter && enabledCharStats.length > 0) {
+                const statsContent = line.substring(line.indexOf(':') + 1).trim();
+                const statParts = statsContent.split('|').map(p => p.trim());
+
+                for (const statPart of statParts) {
+                    const statMatch = statPart.match(/^(.+?):\s*(\d+)%$/);
+                    if (statMatch) {
+                        const statName = statMatch[1].trim();
+                        const statValue = parseInt(statMatch[2]);
+                        currentCharacter[statName] = statValue;
+                        debugLog(`[RPG Thoughts] Parsed stat: ${statName} = ${statValue}%`);
+                    }
+                }
+            }
+            // Check if this is a Thoughts line (handled separately for thought bubbles)
+            else if (line.trim().match(/^[A-Z][a-z]+:/) && currentCharacter) {
+                // This could be Thoughts, Feelings, etc. - skip for now, handled in thought bubble rendering
+                debugLog(`[RPG Thoughts] Skipping thoughts/feelings line (handled in bubble rendering)`);
+            }
         }
-        // Check if this is a Thoughts line (handled separately for thought bubbles)
-        else if (line.trim().match(/^[A-Z][a-z]+:/) && currentCharacter) {
-            // This could be Thoughts, Feelings, etc. - skip for now, handled in thought bubble rendering
-            debugLog(`[RPG Thoughts] Skipping thoughts/feelings line (handled in bubble rendering)`);
-        }
-    }
     } // End of text format parsing
 
     // Get relationship emojis from config (with fallback defaults)
@@ -502,14 +503,14 @@ export function renderThoughts({ preserveScroll = false } = {}) {
                 html += `
                     <div class="rpg-character-card" data-character-name="${char.name}">
                         <div class="rpg-character-header-row">
-                            <div class="rpg-character-avatar rpg-avatar-upload" data-character="${char.name}" title="Click to upload avatar">
+                            <div class="rpg-character-avatar rpg-avatar-upload" data-character="${char.name}" title="${i18n.getTranslation('thoughts.clickToUpload')}">
                                 <img src="${characterPortrait}" alt="${char.name}" onerror="this.style.opacity='0.5';this.onerror=null;" />
-                                ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${relationshipFieldName}" title="Click to edit (use emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
+                                ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${relationshipFieldName}" title="${i18n.getTranslation('thoughts.clickToEdit')} (emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
                             </div>
                             <div class="rpg-character-header">
-                                <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${char.name}" data-field="emoji" title="Click to edit emoji">${char.emoji}</span>
-                                <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="name" title="Click to edit name">${char.name}</span>
-                                <button class="rpg-character-remove" data-character="${char.name}" title="Remove character">×</button>
+                                <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${char.name}" data-field="emoji" title="${i18n.getTranslation('thoughts.clickToEdit')}">${char.emoji}</span>
+                                <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="name" title="${i18n.getTranslation('thoughts.clickToEdit')}">${char.name}</span>
+                                <button class="rpg-character-remove" data-character="${char.name}" title="${i18n.getTranslation('thoughts.removeCharacter')}">×</button>
                             </div>
                         </div>
                         <div class="rpg-character-content">
@@ -532,12 +533,12 @@ export function renderThoughts({ preserveScroll = false } = {}) {
                         html += `
                                 <div class="rpg-character-field rpg-character-${fieldId}" style="position: relative;">
                                     ${lockIconHtml}
-                                    <span class="rpg-editable${emptyClass}" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="Click to edit ${field.name}" ${placeholder}>${fieldValue}</span>
+                                    <span class="rpg-editable${emptyClass}" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="${i18n.getTranslation('thoughts.clickToEdit')}" ${placeholder}>${fieldValue}</span>
                                 </div>
                         `;
                     } else {
                         html += `
-                                <div class="rpg-character-field rpg-character-${fieldId} rpg-editable${emptyClass}" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="Click to edit ${field.name}" ${placeholder}>${fieldValue}</div>
+                                <div class="rpg-character-field rpg-character-${fieldId} rpg-editable${emptyClass}" contenteditable="true" data-character="${char.name}" data-field="${field.name}" title="${i18n.getTranslation('thoughts.clickToEdit')}" ${placeholder}>${fieldValue}</div>
                         `;
                     }
                 }
@@ -563,7 +564,7 @@ export function renderThoughts({ preserveScroll = false } = {}) {
                         );
                         html += `
                                 <div class="rpg-character-stat">
-                                    <span class="rpg-stat-name">${stat.name}: </span><span class="rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${stat.name}" style="color: ${statColor}" title="Click to edit ${stat.name}">${statValue}%</span>
+                                    <span class="rpg-stat-name">${stat.name}: </span><span class="rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${stat.name}" style="color: ${statColor}" title="${i18n.getTranslation('thoughts.clickToEdit')}">${statValue}%</span>
                                 </div>
                         `;
                     }
@@ -589,8 +590,8 @@ export function renderThoughts({ preserveScroll = false } = {}) {
         // Add "Add Character" button if data exists (inside rpg-thoughts-content)
         if (presentCharacters.length > 0) {
             html += `
-                <button class="rpg-add-character-btn" title="Add a new character">
-                    <i class="fa-solid fa-plus"></i> Add Character
+                <button class="rpg-add-character-btn" title="${i18n.getTranslation('thoughts.addCharacter')}">
+                    <i class="fa-solid fa-plus"></i> ${i18n.getTranslation('thoughts.addCharacter')}
                 </button>
             `;
         }
@@ -604,7 +605,7 @@ export function renderThoughts({ preserveScroll = false } = {}) {
     debugLog('[RPG Thoughts] =======================================================');
 
     // Add event handlers for editable character fields
-    $thoughtsContainer.find('.rpg-editable').on('blur', function() {
+    $thoughtsContainer.find('.rpg-editable').on('blur', function () {
         const character = $(this).data('character');
         const field = $(this).data('field');
         const value = $(this).text().trim();
@@ -613,12 +614,12 @@ export function renderThoughts({ preserveScroll = false } = {}) {
     });
 
     // Prevent click events on editable elements from bubbling to avatar upload handler
-    $thoughtsContainer.find('.rpg-editable').on('click mousedown', function(e) {
+    $thoughtsContainer.find('.rpg-editable').on('click mousedown', function (e) {
         e.stopPropagation();
     });
 
     // Add event listener for section lock icon clicks (support both click and touch)
-    $thoughtsContainer.find('.rpg-section-lock-icon').on('click touchend', function(e) {
+    $thoughtsContainer.find('.rpg-section-lock-icon').on('click touchend', function (e) {
         e.preventDefault();
         e.stopPropagation();
         const $icon = $(this);
@@ -643,7 +644,7 @@ export function renderThoughts({ preserveScroll = false } = {}) {
     });
 
     // Add event listener for character remove button
-    $thoughtsContainer.find('.rpg-character-remove').on('click', function(e) {
+    $thoughtsContainer.find('.rpg-character-remove').on('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -652,7 +653,7 @@ export function renderThoughts({ preserveScroll = false } = {}) {
     });
 
     // Add event listener for avatar upload clicks
-    $thoughtsContainer.find('.rpg-avatar-upload').on('click', function(e) {
+    $thoughtsContainer.find('.rpg-avatar-upload').on('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -661,13 +662,13 @@ export function renderThoughts({ preserveScroll = false } = {}) {
         // Create hidden file input
         const fileInput = $('<input type="file" accept="image/*" style="display: none;">');
 
-        fileInput.on('change', function() {
+        fileInput.on('change', function () {
             const file = this.files[0];
             if (!file) return;
 
             // Read file as data URL
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 const imageUrl = e.target.result;
 
                 // Store in npcAvatars
@@ -694,20 +695,20 @@ export function renderThoughts({ preserveScroll = false } = {}) {
     });
 
     // Add event listener for "Add Character" button (support both click and touch for mobile)
-    $thoughtsContainer.find('.rpg-add-character-btn').on('click touchend', function(e) {
+    $thoughtsContainer.find('.rpg-add-character-btn').on('click touchend', function (e) {
         e.preventDefault();
         e.stopPropagation();
         addNewCharacter();
     });
 
     // Handle empty field focus - remove placeholder styling on focus
-    $thoughtsContainer.find('.rpg-editable.rpg-empty-field').on('focus', function() {
+    $thoughtsContainer.find('.rpg-editable.rpg-empty-field').on('focus', function () {
         $(this).removeClass('rpg-empty-field');
         $(this).removeAttr('data-placeholder');
     });
 
     // Restore placeholder if field becomes empty on blur (after the main blur handler)
-    $thoughtsContainer.find('.rpg-editable').on('blur', function() {
+    $thoughtsContainer.find('.rpg-editable').on('blur', function () {
         const $this = $(this);
         if (!$this.text().trim()) {
             const field = $this.data('field');
@@ -1494,59 +1495,59 @@ export function updateChatThoughts() {
     if (thoughtsArray.length === 0) {
         const lines = lastGeneratedData.characterThoughts.split('\n');
 
-    // console.log('[RPG Companion] Parsing thoughts from lines:', lines);
+        // console.log('[RPG Companion] Parsing thoughts from lines:', lines);
 
-    // Parse new format to build character map and thoughts
-    let currentCharName = null;
-    let currentCharEmoji = null;
+        // Parse new format to build character map and thoughts
+        let currentCharName = null;
+        let currentCharEmoji = null;
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
 
-        if (!line ||
-            line.includes('Present Characters') ||
-            line.includes('---') ||
-            line.startsWith('```') ||
-            line.trim() === '- …' ||
-            line.includes('(Repeat the format')) {
-            continue;
-        }
+            if (!line ||
+                line.includes('Present Characters') ||
+                line.includes('---') ||
+                line.startsWith('```') ||
+                line.trim() === '- …' ||
+                line.includes('(Repeat the format')) {
+                continue;
+            }
 
-        // Check if this is a character name line (starts with "- ")
-        if (line.startsWith('- ')) {
-            const name = line.substring(2).trim();
-            if (name && name.toLowerCase() !== 'unavailable') {
-                currentCharName = name;
-                currentCharEmoji = null; // Reset emoji for new character
-            } else {
-                currentCharName = null;
-                currentCharEmoji = null;
+            // Check if this is a character name line (starts with "- ")
+            if (line.startsWith('- ')) {
+                const name = line.substring(2).trim();
+                if (name && name.toLowerCase() !== 'unavailable') {
+                    currentCharName = name;
+                    currentCharEmoji = null; // Reset emoji for new character
+                } else {
+                    currentCharName = null;
+                    currentCharEmoji = null;
+                }
+            }
+            // Check if this is a Details line (contains the emoji)
+            else if (line.startsWith('Details:') && currentCharName) {
+                const detailsContent = line.substring(line.indexOf(':') + 1).trim();
+                const parts = detailsContent.split('|').map(p => p.trim());
+
+                // First part is the emoji
+                if (parts.length > 0) {
+                    currentCharEmoji = parts[0];
+                }
+            }
+            // Check if this is a Thoughts line
+            else if (line.startsWith(thoughtsLabel + ':') && currentCharName && currentCharEmoji) {
+                const thoughtContent = line.substring(thoughtsLabel.length + 1).trim();
+
+                // The thought content is just the text (no emoji prefix in new format)
+                if (thoughtContent) {
+                    thoughtsArray.push({
+                        name: currentCharName.toLowerCase(),
+                        emoji: currentCharEmoji,
+                        thought: thoughtContent
+                    });
+                }
             }
         }
-        // Check if this is a Details line (contains the emoji)
-        else if (line.startsWith('Details:') && currentCharName) {
-            const detailsContent = line.substring(line.indexOf(':') + 1).trim();
-            const parts = detailsContent.split('|').map(p => p.trim());
-
-            // First part is the emoji
-            if (parts.length > 0) {
-                currentCharEmoji = parts[0];
-            }
-        }
-        // Check if this is a Thoughts line
-        else if (line.startsWith(thoughtsLabel + ':') && currentCharName && currentCharEmoji) {
-            const thoughtContent = line.substring(thoughtsLabel.length + 1).trim();
-
-            // The thought content is just the text (no emoji prefix in new format)
-            if (thoughtContent) {
-                thoughtsArray.push({
-                    name: currentCharName.toLowerCase(),
-                    emoji: currentCharEmoji,
-                    thought: thoughtContent
-                });
-            }
-        }
-    }
     } // End of text format parsing for thoughts bubbles
 
     debugLog('[RPG Thoughts] Parsed thoughts:', thoughtsArray);
@@ -1628,7 +1629,7 @@ function attachDragHandlersToIcon($icon) {
     $icon.off('.thoughtIconDrag');
 
     // Test: add a simple click handler to verify events work
-    $icon.on('click.thoughtIconDrag', function(e) {
+    $icon.on('click.thoughtIconDrag', function (e) {
         // Check global flag set immediately after drag completes
         if (justFinishedDragging) {
             // console.log('[Thought Icon] CLICK blocked - just finished dragging');
@@ -1641,7 +1642,7 @@ function attachDragHandlersToIcon($icon) {
     });
 
     // Touch drag support - mobile only
-    $icon.on('touchstart.thoughtIconDrag', function(e) {
+    $icon.on('touchstart.thoughtIconDrag', function (e) {
         if (window.innerWidth > 1000) return;
 
         // console.log('[Thought Icon] touchstart');
@@ -1658,7 +1659,7 @@ function attachDragHandlersToIcon($icon) {
         isDragging = false;
     });
 
-    $icon.on('touchmove.thoughtIconDrag', function(e) {
+    $icon.on('touchmove.thoughtIconDrag', function (e) {
         if (window.innerWidth > 1000) return;
 
         if (!touchMoved) {
@@ -1701,7 +1702,7 @@ function attachDragHandlersToIcon($icon) {
         }
     });
 
-    $icon.on('touchend.thoughtIconDrag', function(e) {
+    $icon.on('touchend.thoughtIconDrag', function (e) {
         // console.log('[Thought Icon] touchend - isDragging:', isDragging, 'touchMoved:', touchMoved);
 
         if (isDragging) {
@@ -1756,7 +1757,7 @@ function attachDragHandlersToIcon($icon) {
     // Mouse drag support - mobile only
     let mouseDown = false;
 
-    $icon.on('mousedown.thoughtIconDrag', function(e) {
+    $icon.on('mousedown.thoughtIconDrag', function (e) {
         if (window.innerWidth > 1000) return;
 
         // console.log('[Thought Icon] mousedown');
@@ -1775,7 +1776,7 @@ function attachDragHandlersToIcon($icon) {
         isDragging = false;
     });
 
-    $(document).on('mousemove.thoughtIconDrag', function(e) {
+    $(document).on('mousemove.thoughtIconDrag', function (e) {
         if (!mouseDown || window.innerWidth > 1000) return;
 
         if (!touchMoved) {
@@ -1819,7 +1820,7 @@ function attachDragHandlersToIcon($icon) {
         }
     });
 
-    $(document).on('mouseup.thoughtIconDrag', function(e) {
+    $(document).on('mouseup.thoughtIconDrag', function (e) {
         if (!mouseDown) return;
 
         // console.log('[Thought Icon] mouseup - isDragging:', isDragging, 'touchMoved:', touchMoved);
@@ -2222,7 +2223,7 @@ export function createThoughtPanel($message, thoughtsArray) {
     });
 
     // Close button functionality - support both click and touch
-    $thoughtPanel.find('.rpg-thought-close').on('click touchend', function(e) {
+    $thoughtPanel.find('.rpg-thought-close').on('click touchend', function (e) {
         e.preventDefault();
         e.stopPropagation();
 
@@ -2230,7 +2231,7 @@ export function createThoughtPanel($message, thoughtsArray) {
 
         if (isMobileView) {
             // Mobile: hide panel and show icon
-            $thoughtPanel.fadeOut(200, function() {
+            $thoughtPanel.fadeOut(200, function () {
                 // Make sure icon is visible and clean state when panel closes (use selector, not variable)
                 const $icon = $('#rpg-thought-icon');
                 $icon.removeClass('rpg-hidden dragging');
@@ -2252,14 +2253,14 @@ export function createThoughtPanel($message, thoughtsArray) {
             $icon.addClass('rpg-collapsed-desktop');
 
             // Hide panel and show icon
-            $thoughtPanel.fadeOut(200, function() {
+            $thoughtPanel.fadeOut(200, function () {
                 $icon.removeClass('rpg-hidden rpg-force-hide');
             });
         }
     });
 
     // Icon click/tap to show panel
-    const handleThoughtIconTap = function(e) {
+    const handleThoughtIconTap = function (e) {
         const isMobileView = window.innerWidth <= 1000;
         const $icon = $('#rpg-thought-icon');
 
@@ -2303,7 +2304,7 @@ export function createThoughtPanel($message, thoughtsArray) {
     $thoughtIcon.on('click touchend', handleThoughtIconTap);
 
     // Add event handlers for editable thoughts in the bubble
-    $thoughtPanel.find('.rpg-editable').on('blur', function() {
+    $thoughtPanel.find('.rpg-editable').on('blur', function () {
         const character = $(this).data('character');
         const field = $(this).data('field');
         const value = $(this).text().trim();
@@ -2312,7 +2313,7 @@ export function createThoughtPanel($message, thoughtsArray) {
     });
 
     // Add event listener for section lock icon clicks (support both click and touch)
-    $thoughtPanel.find('.rpg-section-lock-icon').on('click touchend', function(e) {
+    $thoughtPanel.find('.rpg-section-lock-icon').on('click touchend', function (e) {
         e.preventDefault();
         e.stopPropagation();
         const $icon = $(this);
@@ -2363,7 +2364,7 @@ export function createThoughtPanel($message, thoughtsArray) {
     // Position stays fixed at top-left
 
     // Remove panel when clicking outside (mobile only)
-    $(document).on('click.thoughtPanel', function(e) {
+    $(document).on('click.thoughtPanel', function (e) {
         // Only hide on click outside in mobile view
         if (window.innerWidth <= 1000) {
             if (!$(e.target).closest('#rpg-thought-panel, #rpg-thought-icon').length) {

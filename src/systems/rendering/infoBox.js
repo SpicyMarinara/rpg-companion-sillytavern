@@ -159,171 +159,171 @@ export function renderInfoBox() {
         const lines = infoBoxData.split('\n');
         // console.log('[RPG Companion] Info Box split into lines:', lines);
 
-    // Track which fields we've already parsed to avoid duplicates from mixed formats
-    const parsedFields = {
-        date: false,
-        temperature: false,
-        time: false,
-        location: false,
-        weather: false
-    };
+        // Track which fields we've already parsed to avoid duplicates from mixed formats
+        const parsedFields = {
+            date: false,
+            temperature: false,
+            time: false,
+            location: false,
+            weather: false
+        };
 
-    for (const line of lines) {
-        // console.log('[RPG Companion] Processing line:', line);
+        for (const line of lines) {
+            // console.log('[RPG Companion] Processing line:', line);
 
-        // Support both new text format (Date:) and legacy emoji format (🗓️:)
-        // Prioritize text format over emoji format
-        if (line.startsWith('Date:')) {
-            if (!parsedFields.date) {
-                // console.log('[RPG Companion] → Matched DATE (text format)');
-                const dateStr = line.replace('Date:', '').trim();
-                const dateParts = dateStr.split(',').map(p => p.trim());
-                data.weekday = dateParts[0] || '';
-                data.month = dateParts[1] || '';
-                data.year = dateParts[2] || '';
-                data.date = dateStr;
-                parsedFields.date = true;
-            }
-        } else if (line.includes('🗓️:')) {
-            if (!parsedFields.date) {
-                // console.log('[RPG Companion] → Matched DATE (emoji format)');
-                const dateStr = line.replace('🗓️:', '').trim();
-                const dateParts = dateStr.split(',').map(p => p.trim());
-                data.weekday = dateParts[0] || '';
-                data.month = dateParts[1] || '';
-                data.year = dateParts[2] || '';
-                data.date = dateStr;
-                parsedFields.date = true;
-            }
-        } else if (line.startsWith('Temperature:')) {
-            if (!parsedFields.temperature) {
-                // console.log('[RPG Companion] → Matched TEMPERATURE (text format)');
-                const tempStr = line.replace('Temperature:', '').trim();
-                data.temperature = tempStr;
-                const tempMatch = tempStr.match(/(-?\d+)/);
-                if (tempMatch) {
-                    data.tempValue = parseInt(tempMatch[1]);
+            // Support both new text format (Date:) and legacy emoji format (🗓️:)
+            // Prioritize text format over emoji format
+            if (line.startsWith('Date:')) {
+                if (!parsedFields.date) {
+                    // console.log('[RPG Companion] → Matched DATE (text format)');
+                    const dateStr = line.replace('Date:', '').trim();
+                    const dateParts = dateStr.split(',').map(p => p.trim());
+                    data.weekday = dateParts[0] || '';
+                    data.month = dateParts[1] || '';
+                    data.year = dateParts[2] || '';
+                    data.date = dateStr;
+                    parsedFields.date = true;
                 }
-                parsedFields.temperature = true;
-            }
-        } else if (line.includes('🌡️:')) {
-            if (!parsedFields.temperature) {
-                // console.log('[RPG Companion] → Matched TEMPERATURE (emoji format)');
-                const tempStr = line.replace('🌡️:', '').trim();
-                data.temperature = tempStr;
-                const tempMatch = tempStr.match(/(-?\d+)/);
-                if (tempMatch) {
-                    data.tempValue = parseInt(tempMatch[1]);
+            } else if (line.includes('🗓️:')) {
+                if (!parsedFields.date) {
+                    // console.log('[RPG Companion] → Matched DATE (emoji format)');
+                    const dateStr = line.replace('🗓️:', '').trim();
+                    const dateParts = dateStr.split(',').map(p => p.trim());
+                    data.weekday = dateParts[0] || '';
+                    data.month = dateParts[1] || '';
+                    data.year = dateParts[2] || '';
+                    data.date = dateStr;
+                    parsedFields.date = true;
                 }
-                parsedFields.temperature = true;
-            }
-        } else if (line.startsWith('Time:')) {
-            if (!parsedFields.time) {
-                // console.log('[RPG Companion] → Matched TIME (text format)');
-                const timeStr = line.replace('Time:', '').trim();
-                data.time = timeStr;
-                const timeParts = timeStr.split('→').map(t => t.trim());
-                data.timeStart = timeParts[0] || '';
-                data.timeEnd = timeParts[1] || '';
-                parsedFields.time = true;
-            }
-        } else if (line.includes('🕒:')) {
-            if (!parsedFields.time) {
-                // console.log('[RPG Companion] → Matched TIME (emoji format)');
-                const timeStr = line.replace('🕒:', '').trim();
-                data.time = timeStr;
-                const timeParts = timeStr.split('→').map(t => t.trim());
-                data.timeStart = timeParts[0] || '';
-                data.timeEnd = timeParts[1] || '';
-                parsedFields.time = true;
-            }
-        } else if (line.startsWith('Location:')) {
-            if (!parsedFields.location) {
-                // console.log('[RPG Companion] → Matched LOCATION (text format)');
-                data.location = line.replace('Location:', '').trim();
-                parsedFields.location = true;
-            }
-        } else if (line.includes('🗺️:')) {
-            if (!parsedFields.location) {
-                // console.log('[RPG Companion] → Matched LOCATION (emoji format)');
-                data.location = line.replace('🗺️:', '').trim();
-                parsedFields.location = true;
-            }
-        } else if (line.startsWith('Weather:')) {
-            if (!parsedFields.weather) {
-                // New text format: Weather: [Emoji], [Forecast] OR Weather: [Emoji][Forecast] (no separator - FIXED)
-                const weatherStr = line.replace('Weather:', '').trim();
-                const { emoji, text } = separateEmojiFromText(weatherStr);
-
-                if (emoji && text) {
-                    data.weatherEmoji = emoji;
-                    data.weatherForecast = text;
-                } else if (weatherStr.includes(',')) {
-                    // Fallback to comma split if emoji detection failed - split only on FIRST comma
-                    const firstCommaIndex = weatherStr.indexOf(',');
-                    data.weatherEmoji = weatherStr.substring(0, firstCommaIndex).trim();
-                    data.weatherForecast = weatherStr.substring(firstCommaIndex + 1).trim();
-                } else {
-                    // No clear separation - assume it's all forecast text
-                    data.weatherEmoji = '🌤️'; // Default emoji
-                    data.weatherForecast = weatherStr;
+            } else if (line.startsWith('Temperature:')) {
+                if (!parsedFields.temperature) {
+                    // console.log('[RPG Companion] → Matched TEMPERATURE (text format)');
+                    const tempStr = line.replace('Temperature:', '').trim();
+                    data.temperature = tempStr;
+                    const tempMatch = tempStr.match(/(-?\d+)/);
+                    if (tempMatch) {
+                        data.tempValue = parseInt(tempMatch[1]);
+                    }
+                    parsedFields.temperature = true;
                 }
+            } else if (line.includes('🌡️:')) {
+                if (!parsedFields.temperature) {
+                    // console.log('[RPG Companion] → Matched TEMPERATURE (emoji format)');
+                    const tempStr = line.replace('🌡️:', '').trim();
+                    data.temperature = tempStr;
+                    const tempMatch = tempStr.match(/(-?\d+)/);
+                    if (tempMatch) {
+                        data.tempValue = parseInt(tempMatch[1]);
+                    }
+                    parsedFields.temperature = true;
+                }
+            } else if (line.startsWith('Time:')) {
+                if (!parsedFields.time) {
+                    // console.log('[RPG Companion] → Matched TIME (text format)');
+                    const timeStr = line.replace('Time:', '').trim();
+                    data.time = timeStr;
+                    const timeParts = timeStr.split('→').map(t => t.trim());
+                    data.timeStart = timeParts[0] || '';
+                    data.timeEnd = timeParts[1] || '';
+                    parsedFields.time = true;
+                }
+            } else if (line.includes('🕒:')) {
+                if (!parsedFields.time) {
+                    // console.log('[RPG Companion] → Matched TIME (emoji format)');
+                    const timeStr = line.replace('🕒:', '').trim();
+                    data.time = timeStr;
+                    const timeParts = timeStr.split('→').map(t => t.trim());
+                    data.timeStart = timeParts[0] || '';
+                    data.timeEnd = timeParts[1] || '';
+                    parsedFields.time = true;
+                }
+            } else if (line.startsWith('Location:')) {
+                if (!parsedFields.location) {
+                    // console.log('[RPG Companion] → Matched LOCATION (text format)');
+                    data.location = line.replace('Location:', '').trim();
+                    parsedFields.location = true;
+                }
+            } else if (line.includes('🗺️:')) {
+                if (!parsedFields.location) {
+                    // console.log('[RPG Companion] → Matched LOCATION (emoji format)');
+                    data.location = line.replace('🗺️:', '').trim();
+                    parsedFields.location = true;
+                }
+            } else if (line.startsWith('Weather:')) {
+                if (!parsedFields.weather) {
+                    // New text format: Weather: [Emoji], [Forecast] OR Weather: [Emoji][Forecast] (no separator - FIXED)
+                    const weatherStr = line.replace('Weather:', '').trim();
+                    const { emoji, text } = separateEmojiFromText(weatherStr);
 
-                parsedFields.weather = true;
-            }
-        } else {
-            // Check if it's a legacy weather line (emoji format)
-            // Only parse if we haven't already found weather in text format
-            if (!parsedFields.weather) {
-                // Since \p{Emoji} doesn't work reliably, use a simpler approach
-                const hasColon = line.includes(':');
-                const notInfoBox = !line.includes('Info Box');
-                const notDivider = !line.includes('---');
-                const notCodeFence = !line.trim().startsWith('```');
+                    if (emoji && text) {
+                        data.weatherEmoji = emoji;
+                        data.weatherForecast = text;
+                    } else if (weatherStr.includes(',')) {
+                        // Fallback to comma split if emoji detection failed - split only on FIRST comma
+                        const firstCommaIndex = weatherStr.indexOf(',');
+                        data.weatherEmoji = weatherStr.substring(0, firstCommaIndex).trim();
+                        data.weatherForecast = weatherStr.substring(firstCommaIndex + 1).trim();
+                    } else {
+                        // No clear separation - assume it's all forecast text
+                        data.weatherEmoji = '🌤️'; // Default emoji
+                        data.weatherForecast = weatherStr;
+                    }
 
-                // console.log('[RPG Companion] → Checking weather conditions:', {
-                //     line: line,
-                //     hasColon: hasColon,
-                //     notInfoBox: notInfoBox,
-                //     notDivider: notDivider
-                // });
+                    parsedFields.weather = true;
+                }
+            } else {
+                // Check if it's a legacy weather line (emoji format)
+                // Only parse if we haven't already found weather in text format
+                if (!parsedFields.weather) {
+                    // Since \p{Emoji} doesn't work reliably, use a simpler approach
+                    const hasColon = line.includes(':');
+                    const notInfoBox = !line.includes('Info Box');
+                    const notDivider = !line.includes('---');
+                    const notCodeFence = !line.trim().startsWith('```');
 
-                if (hasColon && notInfoBox && notDivider && notCodeFence && line.trim().length > 0) {
-                    // Match format: [Weather Emoji]: [Forecast]
-                    // Capture everything before colon as emoji, everything after as forecast
-                    // console.log('[RPG Companion] → Testing WEATHER match for:', line);
-                    const weatherMatch = line.match(/^\s*([^:]+):\s*(.+)$/);
-                    if (weatherMatch) {
-                        const potentialEmoji = weatherMatch[1].trim();
-                        const forecast = weatherMatch[2].trim();
+                    // console.log('[RPG Companion] → Checking weather conditions:', {
+                    //     line: line,
+                    //     hasColon: hasColon,
+                    //     notInfoBox: notInfoBox,
+                    //     notDivider: notDivider
+                    // });
 
-                        // If the first part is short (likely emoji), treat as weather
-                        if (potentialEmoji.length <= 5) {
-                            data.weatherEmoji = potentialEmoji;
-                            data.weatherForecast = forecast;
-                            parsedFields.weather = true;
-                            // console.log('[RPG Companion] ✓ Weather parsed:', data.weatherEmoji, data.weatherForecast);
+                    if (hasColon && notInfoBox && notDivider && notCodeFence && line.trim().length > 0) {
+                        // Match format: [Weather Emoji]: [Forecast]
+                        // Capture everything before colon as emoji, everything after as forecast
+                        // console.log('[RPG Companion] → Testing WEATHER match for:', line);
+                        const weatherMatch = line.match(/^\s*([^:]+):\s*(.+)$/);
+                        if (weatherMatch) {
+                            const potentialEmoji = weatherMatch[1].trim();
+                            const forecast = weatherMatch[2].trim();
+
+                            // If the first part is short (likely emoji), treat as weather
+                            if (potentialEmoji.length <= 5) {
+                                data.weatherEmoji = potentialEmoji;
+                                data.weatherForecast = forecast;
+                                parsedFields.weather = true;
+                                // console.log('[RPG Companion] ✓ Weather parsed:', data.weatherEmoji, data.weatherForecast);
+                            } else {
+                                // console.log('[RPG Companion] ✗ First part too long for emoji:', potentialEmoji);
+                            }
                         } else {
-                            // console.log('[RPG Companion] ✗ First part too long for emoji:', potentialEmoji);
+                            // console.log('[RPG Companion] ✗ Weather regex did not match');
                         }
                     } else {
-                        // console.log('[RPG Companion] ✗ Weather regex did not match');
+                        // console.log('[RPG Companion] → No match for this line');
                     }
-                } else {
-                    // console.log('[RPG Companion] → No match for this line');
                 }
             }
         }
-    }
 
-    // console.log('[RPG Companion] Parsed Info Box data:', {
-    //     date: data.date,
-    //     weatherEmoji: data.weatherEmoji,
-    //     weatherForecast: data.weatherForecast,
-    //     temperature: data.temperature,
-    //     timeStart: data.timeStart,
-    //     location: data.location
-    // });
+        // console.log('[RPG Companion] Parsed Info Box data:', {
+        //     date: data.date,
+        //     weatherEmoji: data.weatherEmoji,
+        //     weatherForecast: data.weatherForecast,
+        //     temperature: data.temperature,
+        //     timeStart: data.timeStart,
+        //     location: data.location
+        // });
     }
 
     // Get tracker configuration
@@ -363,9 +363,9 @@ export function renderInfoBox() {
         row1Widgets.push(`
             <div class="rpg-dashboard-widget rpg-calendar-widget">
                 ${dateLockIconHtml}
-                <div class="rpg-calendar-top rpg-editable" contenteditable="true" data-field="month" data-full-value="${data.month || ''}" title="Click to edit">${monthDisplay}</div>
-                <div class="rpg-calendar-day" title="Click to edit"><span class="rpg-calendar-day-text rpg-editable" contenteditable="true" data-field="weekday" data-full-value="${data.weekday || ''}">${weekdayDisplay}</span></div>
-                <div class="rpg-calendar-year rpg-editable" contenteditable="true" data-field="year" data-full-value="${data.year || ''}" title="Click to edit">${yearDisplay}</div>
+                <div class="rpg-calendar-top rpg-editable" contenteditable="true" data-field="month" data-full-value="${data.month || ''}" title="${i18n.getTranslation('infoBox.clickToEdit')}">${monthDisplay}</div>
+                <div class="rpg-calendar-day" title="${i18n.getTranslation('infoBox.clickToEdit')}"><span class="rpg-calendar-day-text rpg-editable" contenteditable="true" data-field="weekday" data-full-value="${data.weekday || ''}">${weekdayDisplay}</span></div>
+                <div class="rpg-calendar-year rpg-editable" contenteditable="true" data-field="year" data-full-value="${data.year || ''}" title="${i18n.getTranslation('infoBox.clickToEdit')}">${yearDisplay}</div>
             </div>
         `);
     }
@@ -373,14 +373,14 @@ export function renderInfoBox() {
     // Weather widget - show if enabled
     if (config?.widgets?.weather?.enabled) {
         const weatherEmoji = data.weatherEmoji || '🌤️';
-        const weatherForecast = data.weatherForecast || 'Weather';
+        const weatherForecast = data.weatherForecast || i18n.getTranslation('infoBox.weatherFallback');
         const weatherLockIconHtml = getLockIconHtml('infoBox', 'weather');
 
         row1Widgets.push(`
             <div class="rpg-dashboard-widget rpg-weather-widget">
                 ${weatherLockIconHtml}
-                <div class="rpg-weather-icon rpg-editable" contenteditable="true" data-field="weatherEmoji" title="Click to edit emoji">${weatherEmoji}</div>
-                <div class="rpg-weather-forecast rpg-editable" contenteditable="true" data-field="weatherForecast" title="Click to edit">${weatherForecast}</div>
+                <div class="rpg-weather-icon rpg-editable" contenteditable="true" data-field="weatherEmoji" title="${i18n.getTranslation('userStats.clickToEditEmoji')}">${weatherEmoji}</div>
+                <div class="rpg-weather-forecast rpg-editable" contenteditable="true" data-field="weatherForecast" title="${i18n.getTranslation('infoBox.clickToEdit')}">${weatherForecast}</div>
             </div>
         `);
     }
@@ -399,12 +399,12 @@ export function renderInfoBox() {
 
             if (preferredUnit === 'F' && isCelsius) {
                 // Convert C to F
-                const fahrenheit = Math.round((tempValue * 9/5) + 32);
+                const fahrenheit = Math.round((tempValue * 9 / 5) + 32);
                 tempDisplay = `${fahrenheit}°F`;
                 tempValue = fahrenheit;
             } else if (preferredUnit === 'C' && isFahrenheit) {
                 // Convert F to C
-                const celsius = Math.round((tempValue - 32) * 5/9);
+                const celsius = Math.round((tempValue - 32) * 5 / 9);
                 tempDisplay = `${celsius}°C`;
                 tempValue = celsius;
             }
@@ -415,7 +415,7 @@ export function renderInfoBox() {
         }
 
         // Calculate thermometer display (convert to Celsius for consistent thresholds)
-        const tempInCelsius = preferredUnit === 'F' ? Math.round((tempValue - 32) * 5/9) : tempValue;
+        const tempInCelsius = preferredUnit === 'F' ? Math.round((tempValue - 32) * 5 / 9) : tempValue;
         const tempPercent = Math.min(100, Math.max(0, ((tempInCelsius + 20) / 60) * 100));
         const tempColor = tempInCelsius < 10 ? '#4a90e2' : tempInCelsius < 25 ? '#67c23a' : '#e94560';
         const tempLockIconHtml = getLockIconHtml('infoBox', 'temperature');
@@ -429,7 +429,7 @@ export function renderInfoBox() {
                         <div class="rpg-thermometer-fill" style="height: ${tempPercent}%; background: ${tempColor}"></div>
                     </div>
                 </div>
-                <div class="rpg-temp-value rpg-editable" contenteditable="true" data-field="temperature" title="Click to edit">${tempDisplay}</div>
+                <div class="rpg-temp-value rpg-editable" contenteditable="true" data-field="temperature" title="${i18n.getTranslation('infoBox.clickToEdit')}">${tempDisplay}</div>
             </div>
         `);
     }
@@ -464,9 +464,9 @@ export function renderInfoBox() {
                     </div>
                 </div>
                 <div class="rpg-time-range">
-                    <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="timeStart" title="Click to edit start time">${timeStartDisplay}</div>
+                    <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="timeStart" title="${i18n.getTranslation('infoBox.clickToEdit')}">${timeStartDisplay}</div>
                     <span class="rpg-time-separator">→</span>
-                    <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="timeEnd" title="Click to edit end time">${timeEndDisplay}</div>
+                    <div class="rpg-time-value rpg-editable" contenteditable="true" data-field="timeEnd" title="${i18n.getTranslation('infoBox.clickToEdit')}">${timeEndDisplay}</div>
                 </div>
             </div>
         `);
@@ -481,7 +481,7 @@ export function renderInfoBox() {
 
     // Row 2: Location widget (full width) - show if enabled
     if (config?.widgets?.location?.enabled) {
-        const locationDisplay = data.location || 'Location';
+        const locationDisplay = data.location || i18n.getTranslation('infoBox.locationFallback');
         const locationLockIconHtml = getLockIconHtml('infoBox', 'location');
 
         html += `
@@ -491,7 +491,7 @@ export function renderInfoBox() {
                     <div class="rpg-map-bg">
                         <div class="rpg-map-marker">📍</div>
                     </div>
-                    <div class="rpg-location-text rpg-editable" contenteditable="true" data-field="location" title="Click to edit">${locationDisplay}</div>
+                    <div class="rpg-location-text rpg-editable" contenteditable="true" data-field="location" title="${i18n.getTranslation('infoBox.clickToEdit')}">${locationDisplay}</div>
                 </div>
             </div>
         `;
@@ -550,7 +550,7 @@ export function renderInfoBox() {
             html += `
                         <div class="rpg-notebook-line">
                             <span class="rpg-bullet">•</span>
-                            <span class="rpg-event-text rpg-editable" contenteditable="true" data-field="event${i + 1}" title="Click to edit">${validEvents[i]}</span>
+                            <span class="rpg-event-text rpg-editable" contenteditable="true" data-field="event${i + 1}" title="${i18n.getTranslation('infoBox.clickToEdit')}">${validEvents[i]}</span>
                         </div>
             `;
         }
@@ -591,7 +591,7 @@ export function renderInfoBox() {
     }
 
     // Add event handlers for editable Info Box fields
-    $infoBoxContainer.find('.rpg-editable').on('blur', function() {
+    $infoBoxContainer.find('.rpg-editable').on('blur', function () {
         const $this = $(this);
         const field = $this.data('field');
         const value = $this.text().trim();
@@ -624,12 +624,12 @@ export function renderInfoBox() {
     });
 
     // Update location size on input as well (real-time)
-    $infoBoxContainer.find('[data-field="location"]').on('input', function() {
+    $infoBoxContainer.find('[data-field="location"]').on('input', function () {
         updateLocationTextSize($(this));
     });
 
     // For date fields, show full value on focus
-    $infoBoxContainer.find('[data-field="month"], [data-field="weekday"], [data-field="year"]').on('focus', function() {
+    $infoBoxContainer.find('[data-field="month"], [data-field="weekday"], [data-field="year"]').on('focus', function () {
         const fullValue = $(this).data('full-value');
         if (fullValue) {
             $(this).text(fullValue);
@@ -637,7 +637,7 @@ export function renderInfoBox() {
     });
 
     // Add event handler for lock icons (support both click and touch)
-    $infoBoxContainer.find('.rpg-section-lock-icon').on('click touchend', function(e) {
+    $infoBoxContainer.find('.rpg-section-lock-icon').on('click touchend', function (e) {
         e.preventDefault();
         e.stopPropagation();
         const $lockIcon = $(this);
@@ -652,7 +652,7 @@ export function renderInfoBox() {
 
             // Update icon
             $lockIcon.text(newLockState ? '🔒' : '🔓');
-            $lockIcon.attr('title', newLockState ? 'Locked - AI cannot change this' : 'Unlocked - AI can change this');
+            $lockIcon.attr('title', newLockState ? i18n.getTranslation('infoBox.locked') : i18n.getTranslation('infoBox.unlocked'));
             $lockIcon.toggleClass('locked', newLockState);
 
             // Save settings to persist lock state
