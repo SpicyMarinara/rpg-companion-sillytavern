@@ -1,0 +1,19 @@
+h1, h2{
+	text-align: center;
+}
+
+table, th, td {
+	border-collapse: collapse;
+	border: 1px solid black;
+}
+
+
+
+thead { 
+	display: static;
+	
+}
+
+.null {
+	background: rgba(0, 0, 0, 0.1);
+}
