@@ -3,8 +3,8 @@
  * Handles saving/loading extension settings and chat data
  */
 
-import { saveSettingsDebounced, chat_metadata, saveChatDebounced } from '../../../../../../script.js';
-import { getContext } from '../../../../../extensions.js';
+import { saveSettingsDebounced } from '../../../../../../script.js';
+import { getContext, saveMetadataDebounced } from '../../../../../extensions.js';
 import {
     extensionSettings,
     lastGeneratedData,
@@ -134,6 +134,58 @@ export function loadSettings() {
                 settingsChanged = true;
             }
 
+            // Migration to version 7: Add party companion system
+            if (currentVersion < 7) {
+                if (!Array.isArray(extensionSettings.partyMembers)) {
+                    extensionSettings.partyMembers = [];
+                }
+                if (extensionSettings.showParty === undefined) {
+                    extensionSettings.showParty = true;
+                }
+                if (extensionSettings.showPartyToggle === undefined) {
+                    extensionSettings.showPartyToggle = true;
+                }
+                extensionSettings.settingsVersion = 7;
+                settingsChanged = true;
+            }
+
+            // Migration to version 6: Add avatarStats config and storyArc widget
+            if (currentVersion < 6) {
+                if (!extensionSettings.trackerConfig) {
+                    extensionSettings.trackerConfig = {};
+                }
+                if (!extensionSettings.trackerConfig.avatarStats) {
+                    extensionSettings.trackerConfig.avatarStats = {
+                        statsDisplayMode: 'percentage',
+                        customStats: [
+                            { id: 'hp', name: 'HP', enabled: true, persistInHistory: false, maxValue: 100 },
+                            { id: 'mp', name: 'MP', enabled: true, persistInHistory: false, maxValue: 100 }
+                        ],
+                        statusSection: { enabled: true, customFields: ['Conditions'], persistInHistory: false }
+                    };
+                }
+                if (extensionSettings.trackerConfig.infoBox?.widgets && !extensionSettings.trackerConfig.infoBox.widgets.storyArc) {
+                    extensionSettings.trackerConfig.infoBox.widgets.storyArc = { enabled: false, persistInHistory: false };
+                }
+                if (extensionSettings.showAvatarStats === undefined) {
+                    extensionSettings.showAvatarStats = false;
+                }
+                if (!extensionSettings.avatarStatsLabel) {
+                    extensionSettings.avatarStatsLabel = 'Game Avatar';
+                }
+                if (!extensionSettings.avatarStats) {
+                    extensionSettings.avatarStats = { hp: 100, mp: 50, conditions: 'None' };
+                }
+                if (extensionSettings.lockedItems?.infoBox && extensionSettings.lockedItems.infoBox.storyArc === undefined) {
+                    extensionSettings.lockedItems.infoBox.storyArc = false;
+                }
+                if (extensionSettings.lockedItems && !extensionSettings.lockedItems.avatarStats) {
+                    extensionSettings.lockedItems.avatarStats = { stats: [], status: [] };
+                }
+                extensionSettings.settingsVersion = 6;
+                settingsChanged = true;
+            }
+
             // Save migrated settings
             if (settingsChanged) {
                 saveSettings();
@@ -200,28 +252,25 @@ export function saveSettings() {
  * Saves RPG data to the current chat's metadata.
  */
 export function saveChatData() {
-    if (!chat_metadata) {
+    const context = getContext();
+    if (!context.chatMetadata) {
         return;
     }
 
-    // console.log('[RPG Companion] 💾 saveChatData called - committedTrackerData:', {
-    //     userStats: committedTrackerData.userStats ? `${committedTrackerData.userStats.substring(0, 50)}...` : 'null',
-    //     infoBox: committedTrackerData.infoBox ? 'exists' : 'null',
-    //     characterThoughts: committedTrackerData.characterThoughts ? 'exists' : 'null'
-    // });
-    // console.log('[RPG Companion] 💾 saveChatData RAW committedTrackerData:', committedTrackerData);
-    // console.log('[RPG Companion] 💾 saveChatData RAW lastGeneratedData:', lastGeneratedData);
+    context.updateChatMetadata({
+        rpg_companion: {
+            userStats: extensionSettings.userStats,
+            avatarStats: extensionSettings.avatarStats,
+            classicStats: extensionSettings.classicStats,
+            quests: extensionSettings.quests,
+            lastGeneratedData: lastGeneratedData,
+            committedTrackerData: committedTrackerData,
+            partyMembers: extensionSettings.partyMembers || [],
+            timestamp: Date.now()
+        }
+    });
 
-    chat_metadata.rpg_companion = {
-        userStats: extensionSettings.userStats,
-        classicStats: extensionSettings.classicStats,
-        quests: extensionSettings.quests,
-        lastGeneratedData: lastGeneratedData,
-        committedTrackerData: committedTrackerData,
-        timestamp: Date.now()
-    };
-
-    saveChatDebounced();
+    saveMetadataDebounced();
 }
 
 /**
@@ -249,8 +298,10 @@ export function updateMessageSwipeData() {
             const swipeId = message.swipe_id || 0;
             message.extra.rpg_companion_swipes[swipeId] = {
                 userStats: lastGeneratedData.userStats,
+                avatarStats: lastGeneratedData.avatarStats,
                 infoBox: lastGeneratedData.infoBox,
-                characterThoughts: lastGeneratedData.characterThoughts
+                characterThoughts: lastGeneratedData.characterThoughts,
+                party: lastGeneratedData.party
             };
 
             // console.log('[RPG Companion] Updated message swipe data after user edit');
@@ -264,7 +315,8 @@ export function updateMessageSwipeData() {
  * Automatically migrates v1 inventory to v2 format if needed.
  */
 export function loadChatData() {
-    if (!chat_metadata || !chat_metadata.rpg_companion) {
+    const chat_metadata = getContext().chatMetadata ?? {};
+    if (!chat_metadata.rpg_companion) {
         // Reset to defaults if no data exists
         updateExtensionSettings({
             userStats: {
@@ -286,16 +338,19 @@ export function loadChatData() {
             quests: {
                 main: "None",
                 optional: []
-            }
+            },
+            partyMembers: []
         });
         setLastGeneratedData({
             userStats: null,
+            avatarStats: null,
             infoBox: null,
             characterThoughts: null,
             html: null
         });
         setCommittedTrackerData({
             userStats: null,
+            avatarStats: null,
             infoBox: null,
             characterThoughts: null
         });
@@ -307,6 +362,11 @@ export function loadChatData() {
     // Restore stats
     if (savedData.userStats) {
         extensionSettings.userStats = { ...savedData.userStats };
+    }
+
+    // Restore avatar stats (per-chat)
+    if (savedData.avatarStats) {
+        extensionSettings.avatarStats = { ...savedData.avatarStats };
     }
 
     // Restore classic stats
@@ -323,6 +383,16 @@ export function loadChatData() {
             main: "None",
             optional: []
         };
+    }
+
+    // Restore per-chat party members (full array takes priority over legacy partyState snapshot)
+    if (Array.isArray(savedData.partyMembers)) {
+        extensionSettings.partyMembers = savedData.partyMembers;
+    } else if (savedData.partyState) {
+        // Legacy fallback: apply state snapshot to existing global members
+        applyPartyStateToMembers(savedData.partyState);
+    } else {
+        extensionSettings.partyMembers = [];
     }
 
     // Restore committed tracker data first
@@ -1109,5 +1179,53 @@ export function importPresets(importData, overwrite = false) {
     }
 
     return importCount;
+}
+
+/**
+ * Builds a per-chat party state snapshot from extensionSettings.partyMembers.
+ * Keyed by member name for fast lookup on load.
+ * @returns {Object} Dict of party state by name
+ */
+function buildPartyStateSnapshot() {
+    const state = {};
+    for (const member of extensionSettings.partyMembers || []) {
+        state[member.name] = {
+            hp: member.hp?.current ?? 100,
+            mp: member.mp?.current ?? 50,
+            conditions: member.conditions || 'None',
+            location: member.location || 'party',
+            lastAction: member._lastAction || ''
+        };
+    }
+    return state;
+}
+
+/**
+ * Applies saved per-chat party state back to extensionSettings.partyMembers in-memory.
+ * Uses fuzzy name matching to handle minor name variations.
+ * @param {Object} partyState - Dict of party state keyed by member name
+ */
+function applyPartyStateToMembers(partyState) {
+    if (!partyState || !extensionSettings.partyMembers?.length) return;
+    for (const member of extensionSettings.partyMembers) {
+        let state = partyState[member.name];
+        if (!state) {
+            const nameLower = member.name.toLowerCase();
+            const matchKey = Object.keys(partyState).find(k => k.toLowerCase() === nameLower);
+            if (matchKey) state = partyState[matchKey];
+        }
+        if (!state) continue;
+        if (state.hp !== undefined) {
+            if (!member.hp) member.hp = { current: 100, max: 100 };
+            member.hp.current = state.hp;
+        }
+        if (state.mp !== undefined) {
+            if (!member.mp) member.mp = { current: 50, max: 50 };
+            member.mp.current = state.mp;
+        }
+        if (state.conditions !== undefined) member.conditions = state.conditions;
+        if (state.location !== undefined) member.location = state.location;
+        if (state.lastAction !== undefined) member._lastAction = state.lastAction;
+    }
 }
 

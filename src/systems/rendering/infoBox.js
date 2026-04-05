@@ -117,6 +117,7 @@ export function renderInfoBox() {
         timeStart: '',
         timeEnd: '',
         location: '',
+        storyArc: '',
         characters: []
     };
 
@@ -133,6 +134,7 @@ export function renderInfoBox() {
             data.timeStart = jsonData.time?.start || '';
             data.timeEnd = jsonData.time?.end || '';
             data.location = jsonData.location?.value || '';
+            data.storyArc = jsonData.storyArc || '';
 
             // Parse date string to extract weekday, month, year
             if (jsonData.date?.value) {
@@ -545,8 +547,8 @@ export function renderInfoBox() {
                     <div class="rpg-notebook-lines">
         `;
 
-        // Dynamically generate event lines (max 3)
-        for (let i = 0; i < Math.min(validEvents.length, 3); i++) {
+        // Generate a line for every accumulated event
+        for (let i = 0; i < validEvents.length; i++) {
             html += `
                         <div class="rpg-notebook-line">
                             <span class="rpg-bullet">•</span>
@@ -555,15 +557,13 @@ export function renderInfoBox() {
             `;
         }
 
-        // If we have less than 3 events, add empty placeholders with + icon
-        for (let i = validEvents.length; i < 3; i++) {
-            html += `
+        // One placeholder line to add a new event
+        html += `
                         <div class="rpg-notebook-line rpg-event-add">
                             <span class="rpg-bullet">+</span>
-                            <span class="rpg-event-text rpg-editable rpg-event-placeholder" contenteditable="true" data-field="event${i + 1}" title="Click to add event" data-i18n-key="infobox.recentEvents.addEventPlaceholder">${i18n.getTranslation('infobox.recentEvents.addEventPlaceholder')}</span>
+                            <span class="rpg-event-text rpg-editable rpg-event-placeholder" contenteditable="true" data-field="event${validEvents.length + 1}" title="Click to add event" data-i18n-key="infobox.recentEvents.addEventPlaceholder">${i18n.getTranslation('infobox.recentEvents.addEventPlaceholder')}</span>
                         </div>
-            `;
-        }
+        `;
 
         html += `
                     </div>
@@ -571,6 +571,34 @@ export function renderInfoBox() {
             </div>
         `;
     }
+
+    // Row 4: Story Arc summary - show if enabled
+    if (config?.widgets?.storyArc?.enabled) {
+        const storyArcText = data.storyArc || 'No story arc recorded yet. This will be filled in by the AI after the first message.';
+        const storyArcLockIconHtml = getLockIconHtml('infoBox', 'storyArc');
+
+        html += `
+            <div class="rpg-dashboard rpg-dashboard-row-4">
+                <div class="rpg-dashboard-widget rpg-story-arc-widget">
+                    ${storyArcLockIconHtml}
+                    <div class="rpg-story-arc-title">Story Arc</div>
+                    <div class="rpg-story-arc-text rpg-editable" contenteditable="true"
+                        data-field="storyArc"
+                        title="Click to edit story arc">${storyArcText}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Background generation controls
+    const hasCachedBg = extensionSettings.sceneBackgrounds?.[data.location];
+    const bgBtnLabel = hasCachedBg ? '🖼 Regenerate Background' : '🖼 Generate Background';
+    html += `
+        <div class="rpg-background-controls">
+            <button id="rpg-generate-background-btn" class="rpg-bg-btn" data-location="${data.location || ''}">${bgBtnLabel}</button>
+            <button id="rpg-clear-background-btn" class="rpg-bg-btn rpg-bg-btn--clear" title="Restore original background">✕ Clear BG</button>
+        </div>
+    `;
 
     // Close the scrollable content wrapper
     html += '</div>';
@@ -613,7 +641,7 @@ export function renderInfoBox() {
         }
 
         // Handle recent events separately
-        if (field === 'event1' || field === 'event2' || field === 'event3') {
+        if (/^event\d+$/.test(field)) {
             updateRecentEvent(field, value);
         } else {
             updateInfoBoxField(field, value);
@@ -714,6 +742,8 @@ export function updateInfoBoxField(field, value) {
             } else if (field === 'location') {
                 if (!jsonData.location) jsonData.location = {};
                 jsonData.location.value = value;
+            } else if (field === 'storyArc') {
+                jsonData.storyArc = value;
             } else if (field === 'weekday' || field === 'month' || field === 'year') {
                 // Update date components
                 if (!jsonData.date) jsonData.date = {};
@@ -1013,83 +1043,56 @@ export function updateInfoBoxField(field, value) {
  * @param {string} value - New event text
  */
 function updateRecentEvent(field, value) {
-    // Map field to index
-    const eventIndex = {
-        'event1': 0,
-        'event2': 1,
-        'event3': 2
-    }[field];
+    const match = field.match(/^event(\d+)$/);
+    if (!match) return;
+    const eventIndex = parseInt(match[1], 10) - 1;
 
-    if (eventIndex !== undefined) {
-        // Parse current infoBox to get existing events
-        const lines = (committedTrackerData.infoBox || '').split('\n');
-        let recentEvents = [];
+    // Parse existing infoBox (JSON format)
+    let infoBox = {};
+    try {
+        infoBox = typeof committedTrackerData.infoBox === 'string'
+            ? JSON.parse(committedTrackerData.infoBox)
+            : { ...(committedTrackerData.infoBox || {}) };
+    } catch (e) { /* start fresh */ }
 
-        // Find existing Recent Events line
-        const recentEventsLine = lines.find(line => line.startsWith('Recent Events:'));
-        if (recentEventsLine) {
-            const eventsString = recentEventsLine.replace('Recent Events:', '').trim();
-            if (eventsString) {
-                recentEvents = eventsString.split(',').map(e => e.trim()).filter(e => e);
-            }
-        }
+    let recentEvents = Array.isArray(infoBox.recentEvents) ? [...infoBox.recentEvents] : [];
 
-        // Ensure array has enough slots
-        while (recentEvents.length <= eventIndex) {
-            recentEvents.push('');
-        }
+    // Ensure array has enough slots
+    while (recentEvents.length <= eventIndex) {
+        recentEvents.push('');
+    }
 
-        // Update the specific event
-        recentEvents[eventIndex] = value;
+    recentEvents[eventIndex] = value;
 
-        // Filter out empty events and rebuild the line
-        const validEvents = recentEvents.filter(e => e && e.trim());
-        const newRecentEventsLine = validEvents.length > 0
-            ? `Recent Events: ${validEvents.join(', ')}`
-            : '';
+    // Filter out empty events
+    infoBox.recentEvents = recentEvents.filter(e => e && e.trim());
 
-        // Update infoBox with new Recent Events line
-        const updatedLines = lines.filter(line => !line.startsWith('Recent Events:'));
-        if (newRecentEventsLine) {
-            // Add Recent Events line at the end (before any empty lines)
-            let insertIndex = updatedLines.length;
-            for (let i = updatedLines.length - 1; i >= 0; i--) {
-                if (updatedLines[i].trim() !== '') {
-                    insertIndex = i + 1;
-                    break;
-                }
-            }
-            updatedLines.splice(insertIndex, 0, newRecentEventsLine);
-        }
+    const updated = JSON.stringify(infoBox);
+    committedTrackerData.infoBox = updated;
+    lastGeneratedData.infoBox = updated;
 
-        committedTrackerData.infoBox = updatedLines.join('\n');
-        lastGeneratedData.infoBox = updatedLines.join('\n');
-
-        // Update the message's swipe data
-        const chat = getContext().chat;
-        if (chat && chat.length > 0) {
-            for (let i = chat.length - 1; i >= 0; i--) {
-                const message = chat[i];
-                if (!message.is_user) {
-                    if (message.extra && message.extra.rpg_companion_swipes) {
-                        const swipeId = message.swipe_id || 0;
-                        if (message.extra.rpg_companion_swipes[swipeId]) {
-                            message.extra.rpg_companion_swipes[swipeId].infoBox = updatedLines.join('\n');
-                        }
+    // Update the message's swipe data
+    const chat = getContext().chat;
+    if (chat && chat.length > 0) {
+        for (let i = chat.length - 1; i >= 0; i--) {
+            const message = chat[i];
+            if (!message.is_user) {
+                if (message.extra && message.extra.rpg_companion_swipes) {
+                    const swipeId = message.swipe_id || 0;
+                    if (message.extra.rpg_companion_swipes[swipeId]) {
+                        message.extra.rpg_companion_swipes[swipeId].infoBox = updated;
                     }
-                    break;
                 }
+                break;
             }
         }
+    }
 
-        saveChatData();
-        renderInfoBox();
+    saveChatData();
+    renderInfoBox();
 
-        // Update weather effect after rendering
-        if (window.RPGCompanion?.updateWeatherEffect) {
-            window.RPGCompanion.updateWeatherEffect();
-        }
-
-        // console.log(`[RPG Companion] Updated recent event ${field}:`, value);
+    // Update weather effect after rendering
+    if (window.RPGCompanion?.updateWeatherEffect) {
+        window.RPGCompanion.updateWeatherEffect();
     }
 }

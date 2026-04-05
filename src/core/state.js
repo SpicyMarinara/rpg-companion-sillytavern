@@ -10,12 +10,14 @@
  * Extension settings - persisted to SillyTavern settings
  */
 export let extensionSettings = {
-    settingsVersion: 4, // Version number for settings migrations (v4 = FAB widgets enabled by default)
+    settingsVersion: 7, // Version number for settings migrations (v7 = party companion system)
     enabled: true,
     autoUpdate: false,
     updateDepth: 4, // How many messages to include in the context
     generationMode: 'together', // 'separate' or 'together' - whether to generate with main response or separately
     showUserStats: true,
+    showAvatarStats: false,
+    avatarStatsLabel: 'Game Avatar',
     showInfoBox: true,
     showCharacterThoughts: true,
     showInventory: true, // Show inventory section (v2 system)
@@ -51,6 +53,9 @@ export let extensionSettings = {
     showDynamicWeatherToggle: true, // Show Dynamic Weather Effects toggle in main panel
     showNarratorMode: true, // Show Narrator Mode toggle in main panel
     showAutoAvatars: true, // Show Auto-generate Avatars toggle in main panel
+    showParty: true, // Show Party Companions section in main panel
+    showPartyToggle: true, // Show Party toggle in features row
+    partyMembers: [], // Array of persistent party companion objects
     skipInjectionsForGuided: 'none', // skip injections for instruct injections and quiet prompts (GuidedGenerations compatibility)
     enableRandomizedPlot: true, // Show randomized plot progression button above chat input
     enableNaturalPlot: true, // Show natural plot progression button above chat input
@@ -125,6 +130,11 @@ export let extensionSettings = {
             completed: []
         }
     }, null, 2),
+    avatarStats: {
+        hp: 100,
+        mp: 50,
+        conditions: 'None'
+    },
     statNames: {
         health: 'Health',
         satiety: 'Satiety',
@@ -176,6 +186,14 @@ export let extensionSettings = {
             // Quests persistence
             questsPersistInHistory: false // Persist quests in historical messages
         },
+        avatarStats: {
+            statsDisplayMode: 'percentage',
+            customStats: [
+                { id: 'hp', name: 'HP', enabled: true, persistInHistory: false, maxValue: 100 },
+                { id: 'mp', name: 'MP', enabled: true, persistInHistory: false, maxValue: 100 }
+            ],
+            statusSection: { enabled: true, customFields: ['Conditions'], persistInHistory: false }
+        },
         infoBox: {
             widgets: {
                 date: { enabled: true, format: 'Weekday, Month, Year', persistInHistory: true }, // Date enabled by default for history
@@ -183,7 +201,8 @@ export let extensionSettings = {
                 temperature: { enabled: true, unit: 'C', persistInHistory: false }, // 'C' or 'F'
                 time: { enabled: true, persistInHistory: true }, // Time enabled by default for history
                 location: { enabled: true, persistInHistory: true }, // Location enabled by default for history
-                recentEvents: { enabled: true, persistInHistory: false }
+                recentEvents: { enabled: true, persistInHistory: false },
+                storyArc: { enabled: false, persistInHistory: false }
             }
         },
         presentCharacters: {
@@ -273,7 +292,18 @@ export let extensionSettings = {
     },
     // Auto avatar generation settings
     autoGenerateAvatars: true, // Master toggle for auto-generating avatars
+    showNPCSprites: true, // Show NPC sprites in ST's expression display area with cycling
+    autoGenerateExpressions: false, // Auto-generate main expressions after avatar generation
+    npcExpressionsGenerated: {}, // Tracks which characters have had expressions generated
     avatarLLMCustomInstruction: '', // Custom instruction for LLM prompt generation
+    // Scene background settings
+    sceneBackgrounds: {}, // { "Location Name": "/user/images/backgrounds/..." } — cached by location
+    backgroundCustomInstruction: '', // Optional SD prompt modifier appended to LLM-generated background prompt
+    useComfyUIBackgroundWorkflow: false, // Use the dedicated background ComfyUI workflow instead of /sd
+    backgroundCheckpoint: '', // Checkpoint model name for the background ComfyUI workflow (required if useComfyUIBackgroundWorkflow)
+    useComfyUISpriteWorkflow: false, // Use ComfyUI "Sprite generator V1.2" workflow instead of /sd command
+    comfyUIUrl: 'http://127.0.0.1:8188', // ComfyUI server URL (local)
+    removeSpriteBg: true, // After ComfyUI sprite generation, run "Remove Grey Background" workflow
     // External API settings for 'external' generation mode
     externalApiSettings: {
         baseUrl: '',           // OpenAI-compatible API base URL (e.g., "https://api.openai.com/v1")
@@ -282,6 +312,8 @@ export let extensionSettings = {
         maxTokens: 8192,       // Maximum tokens for generation
         temperature: 0.7       // Temperature setting for generation
     },
+    // Use ST's secondary connection profile for the Refresh RPG Info call
+    useSecondaryProfileForRefresh: false,
     // Lock state for tracker items (v3 JSON format feature)
     lockedItems: {
         stats: [],              // Array of locked stat IDs (e.g., ["health", "satiety"])
@@ -302,7 +334,12 @@ export let extensionSettings = {
             temperature: false, // Boolean for temperature widget lock
             time: false,        // Boolean for time widget lock
             location: false,    // Boolean for location widget lock
-            recentEvents: false // Boolean for recent events widget lock
+            recentEvents: false, // Boolean for recent events widget lock
+            storyArc: false // Boolean for story arc widget lock
+        },
+        avatarStats: {
+            stats: [],   // Array of locked stat IDs
+            status: []   // Array of locked status field keys
         },
         characters: {}          // Object mapping character names to their locked fields (e.g., {"Sarah": {relationship: true, thoughts: false}})
     },
@@ -325,9 +362,11 @@ export let extensionSettings = {
  */
 export let lastGeneratedData = {
     userStats: null,
+    avatarStats: null,
     infoBox: null,
     characterThoughts: null,
-    html: null
+    html: null,
+    party: null
 };
 
 /**
@@ -336,8 +375,10 @@ export let lastGeneratedData = {
  */
 export let committedTrackerData = {
     userStats: null,
+    avatarStats: null,
     infoBox: null,
-    characterThoughts: null
+    characterThoughts: null,
+    party: null
 };
 
 /**
@@ -346,6 +387,8 @@ export let committedTrackerData = {
  * Resets on new chat (not persisted to extensionSettings)
  */
 export let sessionAvatarPrompts = {};
+export let sessionAvatarPhysical = {};
+export let sessionAvatarClothing = {};
 
 export function setSessionAvatarPrompt(characterName, prompt) {
     sessionAvatarPrompts[characterName] = prompt;
@@ -355,8 +398,26 @@ export function getSessionAvatarPrompt(characterName) {
     return sessionAvatarPrompts[characterName] || null;
 }
 
+export function setSessionAvatarPhysical(characterName, description) {
+    sessionAvatarPhysical[characterName] = description;
+}
+
+export function getSessionAvatarPhysical(characterName) {
+    return sessionAvatarPhysical[characterName] || null;
+}
+
+export function setSessionAvatarClothing(characterName, description) {
+    sessionAvatarClothing[characterName] = description;
+}
+
+export function getSessionAvatarClothing(characterName) {
+    return sessionAvatarClothing[characterName] || null;
+}
+
 export function clearSessionAvatarPrompts() {
     sessionAvatarPrompts = {};
+    sessionAvatarPhysical = {};
+    sessionAvatarClothing = {};
 }
 
 /**
@@ -427,7 +488,9 @@ export let $infoBoxContainer = null;
 export let $thoughtsContainer = null;
 export let $inventoryContainer = null;
 export let $questsContainer = null;
+export let $avatarStatsContainer = null;
 export let $musicPlayerContainer = null;
+export let $partyContainer = null;
 
 /**
  * State setters - provide controlled mutation of state variables
@@ -517,6 +580,14 @@ export function setQuestsContainer($element) {
     $questsContainer = $element;
 }
 
+export function setAvatarStatsContainer($element) {
+    $avatarStatsContainer = $element;
+}
+
 export function setMusicPlayerContainer($element) {
     $musicPlayerContainer = $element;
+}
+
+export function setPartyContainer($element) {
+    $partyContainer = $element;
 }

@@ -18,6 +18,7 @@ import {
     FALLBACK_AVATAR_DATA_URI,
     $panelContainer,
     $userStatsContainer,
+    $avatarStatsContainer,
     $infoBoxContainer,
     $thoughtsContainer,
     $inventoryContainer,
@@ -35,11 +36,13 @@ import {
     setPendingDiceRoll,
     setPanelContainer,
     setUserStatsContainer,
+    setAvatarStatsContainer,
     setInfoBoxContainer,
     setThoughtsContainer,
     setInventoryContainer,
     setQuestsContainer,
     setMusicPlayerContainer,
+    setPartyContainer,
     clearSessionAvatarPrompts
 } from './src/core/state.js';
 import { loadSettings, saveSettings, saveChatData, loadChatData, updateMessageSwipeData } from './src/core/persistence.js';
@@ -60,6 +63,7 @@ import { onGenerationStarted } from './src/systems/generation/injector.js';
 // Rendering modules
 import { getSafeThumbnailUrl } from './src/utils/avatars.js';
 import { renderUserStats } from './src/systems/rendering/userStats.js';
+import { renderAvatarStats } from './src/systems/rendering/avatarStats.js';
 import { renderInfoBox, updateInfoBoxField } from './src/systems/rendering/infoBox.js';
 import {
     renderThoughts,
@@ -71,8 +75,11 @@ import {
 import { renderInventory } from './src/systems/rendering/inventory.js';
 import { renderQuests } from './src/systems/rendering/quests.js';
 import { renderMusicPlayer } from './src/systems/rendering/musicPlayer.js';
+import { renderParty } from './src/systems/rendering/party.js';
+import { initPartyManager } from './src/systems/features/partyManager.js';
 import { toggleSnowflakes, initSnowflakes } from './src/systems/ui/snowflakes.js';
 import { toggleDynamicWeather, initWeatherEffects, updateWeatherEffect } from './src/systems/ui/weatherEffects.js';
+import { generateAndApplyBackground, clearBackground, extractLocationFromInfoBox } from './src/systems/features/backgroundGenerator.js';
 
 // Interaction modules
 import { initInventoryEventListeners } from './src/systems/interaction/inventoryActions.js';
@@ -137,12 +144,15 @@ import {
 
 // Feature modules
 import { setupPlotButtons, sendPlotProgression } from './src/systems/features/plotProgression.js';
+import { initNPCSpriteDisplay, updateNPCSpriteDisplay } from './src/systems/features/npcSpriteDisplay.js';
 import { setupClassicStatsButtons } from './src/systems/features/classicStats.js';
 import { ensureHtmlCleaningRegex, detectConflictingRegexScripts, ensureTrackerCleaningRegex } from './src/systems/features/htmlCleaning.js';
 import { ensureJsonCleaningRegex, removeJsonCleaningRegex } from './src/systems/features/jsonCleaning.js';
 import { parseAndStoreSpotifyUrl } from './src/systems/features/musicPlayer.js';
 import { DEFAULT_HTML_PROMPT } from './src/systems/generation/promptBuilder.js';
 import { openEncounterModal } from './src/systems/ui/encounterUI.js';
+
+import { isBackgroundWorkerAvailable, fetchAllJobs, deleteJob } from './src/utils/backgroundWorker.js';
 
 // Integration modules
 import {
@@ -289,6 +299,8 @@ async function initUI() {
     setInventoryContainer($('#rpg-inventory'));
     setQuestsContainer($('#rpg-quests'));
     setMusicPlayerContainer($('#rpg-music-player'));
+    setAvatarStatsContainer($('#rpg-avatar-stats'));
+    setPartyContainer($('#rpg-party'));
 
     // Re-apply translations to the entire body to catch all new elements from the template
     i18n.applyTranslations(document.body);
@@ -319,10 +331,28 @@ async function initUI() {
         updateGenerationModeUI();
     });
 
+    $('#rpg-use-secondary-profile').on('change', function() {
+        extensionSettings.useSecondaryProfileForRefresh = $(this).prop('checked');
+        saveSettings();
+    });
+
     $('#rpg-toggle-user-stats').on('change', function() {
         extensionSettings.showUserStats = $(this).prop('checked');
         saveSettings();
         updateSectionVisibility();
+    });
+
+    $('#rpg-toggle-avatar-stats').on('change', function() {
+        extensionSettings.showAvatarStats = $(this).prop('checked');
+        saveSettings();
+        updateSectionVisibility();
+        renderAvatarStats();
+    });
+
+    $('#rpg-avatar-stats-label').on('input', function() {
+        extensionSettings.avatarStatsLabel = $(this).val() || 'Game Avatar';
+        saveSettings();
+        renderAvatarStats();
     });
 
     $('#rpg-toggle-info-box').on('change', function() {
@@ -354,6 +384,7 @@ async function initUI() {
         saveSettings();
         // Re-render all sections to show/hide lock icons
         renderUserStats();
+        renderAvatarStats();
         renderInfoBox();
         renderThoughts();
         renderInventory();
@@ -657,13 +688,98 @@ async function initUI() {
         updateFeatureTogglesVisibility();
     });
 
+    // Auto avatar generation — settings modal toggle (keep in sync with panel toggle)
+    $('#rpg-toggle-auto-generate-avatars').on('change', function() {
+        extensionSettings.autoGenerateAvatars = $(this).prop('checked');
+        $('#rpg-toggle-auto-avatars-panel').prop('checked', extensionSettings.autoGenerateAvatars);
+        saveSettings();
+    });
+
     // Auto avatar generation panel toggle
     $('#rpg-toggle-auto-avatars-panel').on('change', function() {
         extensionSettings.autoGenerateAvatars = $(this).prop('checked');
+        $('#rpg-toggle-auto-generate-avatars').prop('checked', extensionSettings.autoGenerateAvatars);
         saveSettings();
 
         // Re-render thoughts to update tooltips (regenerate vs delete)
         renderThoughts();
+    });
+
+    // NPC sprites toggle
+    $('#rpg-toggle-npc-sprites').on('change', function() {
+        extensionSettings.showNPCSprites = $(this).prop('checked');
+        saveSettings();
+        updateNPCSpriteDisplay();
+    });
+
+    // Background generation — delegated (info box re-renders, so button is recreated each time)
+    $(document).on('click', '#rpg-generate-background-btn', async function() {
+        const $btn = $(this);
+        const locationName = $btn.data('location') || extractLocationFromInfoBox(lastGeneratedData.infoBox);
+        if (!locationName) {
+            toastr.warning('No location found in Info Box. Update the tracker first.');
+            return;
+        }
+        $btn.text('⏳ Generating...').prop('disabled', true);
+        try {
+            const result = await generateAndApplyBackground(locationName, lastGeneratedData.infoBox);
+            if (result) {
+                $btn.text('✅ Applied!');
+                setTimeout(() => {
+                    $btn.text('🖼 Regenerate Background').prop('disabled', false);
+                }, 2000);
+            } else {
+                toastr.error('Background generation failed. Check console for details.');
+                $btn.text('🖼 Generate Background').prop('disabled', false);
+            }
+        } catch (e) {
+            console.error('[RPG Background] Generation failed:', e);
+            toastr.error('Background generation failed.');
+            $btn.text('🖼 Generate Background').prop('disabled', false);
+        }
+    });
+
+    $(document).on('click', '#rpg-clear-background-btn', function() {
+        clearBackground();
+    });
+
+    // Party toggle
+    $('#rpg-toggle-party').on('change', function() {
+        extensionSettings.showParty = $(this).prop('checked');
+        saveSettings();
+        updateSectionVisibility();
+        renderParty();
+    });
+
+    // ComfyUI sprite workflow toggle
+    $('#rpg-toggle-comfyui-sprite').on('change', function() {
+        extensionSettings.useComfyUISpriteWorkflow = $(this).prop('checked');
+        saveSettings();
+    });
+
+    $('#rpg-toggle-remove-sprite-bg').on('change', function() {
+        extensionSettings.removeSpriteBg = $(this).prop('checked');
+        saveSettings();
+    });
+
+    $('#rpg-comfyui-url').on('change', function() {
+        extensionSettings.comfyUIUrl = $(this).val().trim() || 'http://127.0.0.1:8188';
+        saveSettings();
+    });
+
+    $('#rpg-background-custom-instruction').on('input', function() {
+        extensionSettings.backgroundCustomInstruction = $(this).val();
+        saveSettings();
+    });
+
+    $('#rpg-toggle-comfyui-background').on('change', function() {
+        extensionSettings.useComfyUIBackgroundWorkflow = $(this).prop('checked');
+        saveSettings();
+    });
+
+    $('#rpg-background-checkpoint').on('change', function() {
+        extensionSettings.backgroundCheckpoint = $(this).val().trim();
+        saveSettings();
     });
 
     $('#rpg-toggle-dice-display').on('change', function() {
@@ -814,6 +930,7 @@ async function initUI() {
         extensionSettings.statBarColorLow = String($(this).val());
         saveSettings();
         renderUserStats(); // Re-render with new colors
+        renderAvatarStats();
     });
 
     $('#rpg-stat-bar-color-low-opacity').on('input', function() {
@@ -829,6 +946,7 @@ async function initUI() {
         extensionSettings.statBarColorHigh = String($(this).val());
         saveSettings();
         renderUserStats(); // Re-render with new colors
+        renderAvatarStats();
     });
 
     $('#rpg-stat-bar-color-high-opacity').on('input', function() {
@@ -1041,6 +1159,8 @@ async function initUI() {
     $('#rpg-position-select').val(extensionSettings.panelPosition);
     $('#rpg-update-depth').val(extensionSettings.updateDepth);
     $('#rpg-toggle-user-stats').prop('checked', extensionSettings.showUserStats);
+    $('#rpg-toggle-avatar-stats').prop('checked', extensionSettings.showAvatarStats ?? false);
+    $('#rpg-avatar-stats-label').val(extensionSettings.avatarStatsLabel || 'Game Avatar');
     $('#rpg-toggle-info-box').prop('checked', extensionSettings.showInfoBox);
     $('#rpg-toggle-thoughts').prop('checked', extensionSettings.showCharacterThoughts);
     $('#rpg-toggle-inventory').prop('checked', extensionSettings.showInventory);
@@ -1093,8 +1213,27 @@ async function initUI() {
     $('#rpg-summary-narration').val(extensionSettings.encounterSettings?.summaryNarrative?.narration ?? 'omniscient');
     $('#rpg-summary-pov').val(extensionSettings.encounterSettings?.summaryNarrative?.pov ?? 'narrator');
 
-    // Initialize avatar options (panel toggle)
+    // Initialize avatar options (settings modal + panel toggle, both bound to same setting)
+    $('#rpg-toggle-auto-generate-avatars').prop('checked', extensionSettings.autoGenerateAvatars || false);
     $('#rpg-toggle-auto-avatars-panel').prop('checked', extensionSettings.autoGenerateAvatars || false);
+
+    // Initialize ComfyUI sprite workflow settings
+    $('#rpg-toggle-comfyui-sprite').prop('checked', extensionSettings.useComfyUISpriteWorkflow || false);
+    $('#rpg-toggle-remove-sprite-bg').prop('checked', extensionSettings.removeSpriteBg ?? true);
+    $('#rpg-comfyui-url').val(extensionSettings.comfyUIUrl || 'http://127.0.0.1:8188');
+
+    // Initialize background custom instruction
+    $('#rpg-background-custom-instruction').val(extensionSettings.backgroundCustomInstruction || '');
+
+    // Initialize ComfyUI background workflow settings
+    $('#rpg-toggle-comfyui-background').prop('checked', extensionSettings.useComfyUIBackgroundWorkflow || false);
+    $('#rpg-background-checkpoint').val(extensionSettings.backgroundCheckpoint || '');
+
+    // NPC sprites toggle
+    $('#rpg-toggle-npc-sprites').prop('checked', extensionSettings.showNPCSprites ?? true);
+
+    // Party toggle
+    $('#rpg-toggle-party').prop('checked', extensionSettings.showParty ?? true);
 
     $('#rpg-toggle-dice-display').prop('checked', extensionSettings.showDiceDisplay);
 
@@ -1162,6 +1301,7 @@ async function initUI() {
     }
 
     $('#rpg-generation-mode').val(extensionSettings.generationMode);
+    $('#rpg-use-secondary-profile').prop('checked', extensionSettings.useSecondaryProfileForRefresh || false);
     $('#rpg-skip-guided-mode').val(extensionSettings.skipInjectionsForGuided);
 
     updatePanelVisibility();
@@ -1190,17 +1330,20 @@ async function initUI() {
 
     // Render initial data if available
     renderUserStats();
+    renderAvatarStats();
     renderInfoBox();
     renderThoughts();
     renderInventory();
     renderQuests();
     renderMusicPlayer($musicPlayerContainer[0]);
+    renderParty();
     updateDiceDisplay();
     setupDiceRoller();
     setupClassicStatsButtons();
     setupSettingsPopup();
     initTrackerEditor();
     initPromptsEditor();
+    initPartyManager();
     addDiceQuickReply();
     setupPlotButtons(sendPlotProgression, openEncounterModal);
     setupMobileKeyboardHandling();
@@ -1283,6 +1426,13 @@ jQuery(async () => {
         // Load chat-specific data for current chat
         try {
             loadChatData();
+            // Render all panels with loaded data (in case CHAT_CHANGED fired before event handlers were registered)
+            renderUserStats();
+            renderInfoBox();
+            renderThoughts();
+            renderInventory();
+            renderQuests();
+            renderParty();
             // Initialize FAB widgets and strip widgets with any loaded data
             updateFabWidgets();
             updateStripWidgets();
@@ -1352,7 +1502,7 @@ jQuery(async () => {
                 [event_types.MESSAGE_RECEIVED]: onMessageReceived,
                 [event_types.GENERATION_STOPPED]: onGenerationEnded,
                 [event_types.GENERATION_ENDED]: onGenerationEnded,
-                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar, restoreCheckpointOnLoad, clearSessionAvatarPrompts],
+                [event_types.CHAT_CHANGED]: [onCharacterChanged, updatePersonaAvatar, restoreCheckpointOnLoad, clearSessionAvatarPrompts, () => setTimeout(() => updateNPCSpriteDisplay(), 500)],
                 [event_types.MESSAGE_SWIPED]: onMessageSwiped,
                 [event_types.USER_MESSAGE_RENDERED]: updatePersonaAvatar,
                 [event_types.SETTINGS_UPDATED]: updatePersonaAvatar
@@ -1381,6 +1531,18 @@ jQuery(async () => {
             // Non-critical - continue without it
         }
 
+        // Initialize NPC sprite display (injects holder into #expression-wrapper)
+        try {
+            initNPCSpriteDisplay();
+        } catch (error) {
+            console.error('[RPG Companion] NPC sprite display initialization failed:', error);
+        }
+
+        // Pick up any background jobs that completed while the browser was closed
+        applyCompletedBackgroundJobs().catch(err =>
+            console.warn('[RPG Companion] Background job recovery failed:', err)
+        );
+
         console.log('[RPG Companion] ✅ Extension loaded successfully.');
     } catch (error) {
         console.error('[RPG Companion] ❌ Critical initialization failure:', error);
@@ -1394,6 +1556,69 @@ jQuery(async () => {
         );
     }
 });
+
+/**
+ * Checks the background worker for completed jobs and applies their results.
+ * Called once on startup so results from jobs that ran while the browser was
+ * closed are not lost.
+ */
+async function applyCompletedBackgroundJobs() {
+    if (!(await isBackgroundWorkerAvailable())) return;
+
+    const jobs = await fetchAllJobs();
+    const completed = jobs.filter(j => j.status === 'completed' || j.status === 'failed');
+    if (completed.length === 0) return;
+
+    console.log(`[RPG Companion] Applying ${completed.length} completed background job(s)...`);
+
+    let hadAvatarUpdates = false;
+
+    for (const job of completed) {
+        try {
+            if (job.status === 'completed' && job.result) {
+                if (job.type === 'avatar_pipeline') {
+                    const { characterName, imagePath, expressionPaths } = job.result;
+                    if (characterName && imagePath) {
+                        if (!extensionSettings.npcAvatars) extensionSettings.npcAvatars = {};
+                        extensionSettings.npcAvatars[characterName] = imagePath;
+                        console.log(`[RPG Companion] Recovered avatar for ${characterName}: ${imagePath}`);
+
+                        // Also patch any party members with this character name so the
+                        // party card shows the new avatar after a regeneration that was
+                        // started and then abandoned by closing the browser.
+                        const partyMembers = extensionSettings.partyMembers || [];
+                        for (const member of partyMembers) {
+                            if (member.name === characterName) {
+                                member.avatar = imagePath;
+                            }
+                        }
+
+                        hadAvatarUpdates = true;
+                    }
+                    if (characterName && expressionPaths && Object.keys(expressionPaths).length > 0) {
+                        if (!extensionSettings.npcExpressionsGenerated) extensionSettings.npcExpressionsGenerated = {};
+                        extensionSettings.npcExpressionsGenerated[characterName] = true;
+                    }
+                }
+                // tracker_update results aren't applied on reconnect — they're only
+                // useful while the browser is open to receive and render them.
+            }
+        } catch (err) {
+            console.warn(`[RPG Companion] Failed to apply background job ${job.id}:`, err);
+        }
+
+        // Clean up the job regardless of success/failure
+        await deleteJob(job.id);
+    }
+
+    if (hadAvatarUpdates) {
+        saveSettingsDebounced();
+        saveChatData();
+        renderThoughts();
+        renderParty();
+        updateNPCSpriteDisplay();
+    }
+}
 
 /**
  * Updates the visibility of weather sub-options in settings based on dynamic weather toggle

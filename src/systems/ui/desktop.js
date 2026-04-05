@@ -291,11 +291,12 @@ export function setupDesktopTabs() {
     const $userStats = $('#rpg-user-stats');
     const $infoBox = $('#rpg-info-box');
     const $thoughts = $('#rpg-thoughts');
+    const $party = $('#rpg-party');
     const $inventory = $('#rpg-inventory');
     const $quests = $('#rpg-quests');
 
     // If no sections exist, nothing to organize
-    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $inventory.length === 0 && $quests.length === 0) {
+    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $party.length === 0 && $inventory.length === 0 && $quests.length === 0) {
         return;
     }
 
@@ -356,6 +357,10 @@ export function setupDesktopTabs() {
         $statusTab.append($thoughts.detach());
         if (extensionSettings.showCharacterThoughts) $thoughts.show();
     }
+    if ($party.length > 0) {
+        $statusTab.append($party.detach());
+        if (extensionSettings.showParty) $party.show(); else $party.hide();
+    }
     if ($inventory.length > 0) {
         $inventoryTab.append($inventory.detach());
         // Only show if enabled (will be part of tab structure)
@@ -409,6 +414,7 @@ export function removeDesktopTabs() {
     const $userStats = $('#rpg-user-stats').detach();
     const $infoBox = $('#rpg-info-box').detach();
     const $thoughts = $('#rpg-thoughts').detach();
+    const $party = $('#rpg-party').detach();
     const $inventory = $('#rpg-inventory').detach();
     const $quests = $('#rpg-quests').detach();
 
@@ -423,11 +429,17 @@ export function removeDesktopTabs() {
     // Restore original sections to content box in correct order
     const $contentBox = $('.rpg-content-box');
 
-    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory, Quests
+    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Party, Inventory, Quests
+    const $dividerParty = $('#rpg-divider-party');
     if ($dividerStats.length) {
         $dividerStats.before($userStats);
         $dividerInfo.before($infoBox);
         $dividerThoughts.before($thoughts);
+        if ($dividerParty.length) {
+            $dividerParty.before($party);
+        } else {
+            $contentBox.append($party);
+        }
         $contentBox.append($inventory);
         $contentBox.append($quests);
     } else {
@@ -435,6 +447,7 @@ export function removeDesktopTabs() {
         $contentBox.append($userStats);
         $contentBox.append($infoBox);
         $contentBox.append($thoughts);
+        $contentBox.append($party);
         $contentBox.append($inventory);
         $contentBox.append($quests);
     }
@@ -446,6 +459,7 @@ export function removeDesktopTabs() {
         if (infoBoxData) $infoBox.show();
     }
     if (extensionSettings.showCharacterThoughts) $thoughts.show();
+    if (extensionSettings.showParty) $party.show(); else $party.hide();
     if (extensionSettings.showInventory) $inventory.show();
     if (extensionSettings.showQuests) $quests.show();
     $('.rpg-divider').show();

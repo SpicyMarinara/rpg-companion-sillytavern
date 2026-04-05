@@ -24,19 +24,24 @@ import { saveChatData } from '../../core/persistence.js';
 import {
     generateSeparateUpdatePrompt
 } from './promptBuilder.js';
-import { parseResponse, parseUserStats } from './parser.js';
+import { parseResponse, parseUserStats, parseAvatarStats } from './parser.js';
 import { parseAndStoreSpotifyUrl } from '../features/musicPlayer.js';
 import { renderUserStats } from '../rendering/userStats.js';
+import { renderAvatarStats } from '../rendering/avatarStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { removeLocks } from './lockManager.js';
 import { renderThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
 import { renderMusicPlayer } from '../rendering/musicPlayer.js';
+import { renderParty } from '../rendering/party.js';
+import { applyParsedPartyState } from '../features/partyManager.js';
 import { i18n } from '../../core/i18n.js';
 import { generateAvatarsForCharacters } from '../features/avatarGenerator.js';
+import { updateNPCSpriteDisplay } from '../features/npcSpriteDisplay.js';
 import { setFabLoadingState, updateFabWidgets } from '../ui/mobile.js';
 import { updateStripWidgets } from '../ui/desktop.js';
+import { isBackgroundWorkerAvailable, runTrackerUpdateInBackground } from '../../utils/backgroundWorker.js';
 
 // Store the original preset name to restore after tracker generation
 let originalPresetName = null;
@@ -207,6 +212,65 @@ export async function switchToPreset(presetName) {
     }
 }
 
+/**
+ * Gets the name of the currently active connection profile via /profile.
+ * @returns {Promise<string|null>} Profile name, or null if none is active
+ */
+export async function getCurrentProfileName() {
+    try {
+        const result = await executeSlashCommandsOnChatInput('/profile', { quiet: true });
+        if (result && typeof result === 'object' && result.pipe) {
+            const name = String(result.pipe).trim();
+            return (name && name !== '<None>') ? name : null;
+        }
+        if (typeof result === 'string') {
+            const name = result.trim();
+            return (name && name !== '<None>') ? name : null;
+        }
+        return null;
+    } catch (error) {
+        console.error('[RPG Companion] Error getting current profile:', error);
+        return null;
+    }
+}
+
+/**
+ * Gets the name of the ST secondary connection profile via /profile-secondary.
+ * @returns {Promise<string|null>} Secondary profile name, or null if not set
+ */
+async function getSecondaryProfileName() {
+    try {
+        const result = await executeSlashCommandsOnChatInput('/profile-secondary', { quiet: true });
+        if (result && typeof result === 'object' && result.pipe) {
+            const name = String(result.pipe).trim();
+            return (name && name !== '<None>') ? name : null;
+        }
+        if (typeof result === 'string') {
+            const name = result.trim();
+            return (name && name !== '<None>') ? name : null;
+        }
+        return null;
+    } catch (error) {
+        console.error('[RPG Companion] Error getting secondary profile:', error);
+        return null;
+    }
+}
+
+/**
+ * Switches to a connection profile by name using the /profile slash command.
+ * @param {string} profileName - Name of the profile to switch to
+ * @returns {Promise<boolean>} True if switching succeeded, false otherwise
+ */
+export async function switchToProfile(profileName) {
+    try {
+        await executeSlashCommandsOnChatInput(`/profile ${profileName}`, { quiet: true });
+        return true;
+    } catch (error) {
+        console.error('[RPG Companion] Error switching profile:', error);
+        return false;
+    }
+}
+
 
 /**
  * Updates RPG tracker data using separate API call (separate mode only).
@@ -234,8 +298,20 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
     }
 
     const isExternalMode = extensionSettings.generationMode === 'external';
+    // Profile switching only applies in separate mode — external mode uses its own API config
+    const shouldUseSecondaryProfile = extensionSettings.useSecondaryProfileForRefresh === true && !isExternalMode;
+    let originalProfileName = null;
 
     try {
+        // Switch to secondary connection profile if configured (separate mode only)
+        if (shouldUseSecondaryProfile) {
+            const secondaryProfileName = await getSecondaryProfileName();
+            if (secondaryProfileName) {
+                originalProfileName = await getCurrentProfileName();
+                await switchToProfile(secondaryProfileName);
+            }
+        }
+
         setIsGenerating(true);
         setFabLoadingState(true); // Show spinning FAB on mobile
 
@@ -251,9 +327,20 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
         // Generate response based on mode
         let response;
         if (isExternalMode) {
-            // External mode: Use external OpenAI-compatible API directly
-            // console.log('[RPG Companion] Using external API for tracker generation');
-            response = await generateWithExternalAPI(prompt);
+            // External mode: prefer background worker so the call survives browser close
+            const { baseUrl, model, maxTokens, temperature } = extensionSettings.externalApiSettings || {};
+            const apiKey = localStorage.getItem('rpg_companion_external_api_key');
+            const bgAvailable = await isBackgroundWorkerAvailable();
+
+            if (bgAvailable) {
+                response = await runTrackerUpdateInBackground(
+                    prompt,
+                    { baseUrl, model, maxTokens, temperature, apiKey },
+                );
+            } else {
+                // console.log('[RPG Companion] Using external API for tracker generation');
+                response = await generateWithExternalAPI(prompt);
+            }
         } else {
             // Separate mode: Use SillyTavern's generateRaw (with extended thinking fallback)
             response = await safeGenerateRaw({
@@ -275,11 +362,48 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             if (parsedData.userStats) {
                 parsedData.userStats = removeLocks(parsedData.userStats);
             }
+            if (parsedData.avatarStats) {
+                parsedData.avatarStats = removeLocks(parsedData.avatarStats);
+            }
             if (parsedData.infoBox) {
                 parsedData.infoBox = removeLocks(parsedData.infoBox);
+
+                // Append new events onto the accumulated event log instead of replacing it
+                try {
+                    const newInfoBox = typeof parsedData.infoBox === 'string'
+                        ? JSON.parse(parsedData.infoBox)
+                        : { ...parsedData.infoBox };
+                    const newEvents = Array.isArray(newInfoBox.recentEvents)
+                        ? newInfoBox.recentEvents.filter(e => e && e.trim())
+                        : [];
+                    let existingEvents = [];
+                    if (committedTrackerData.infoBox) {
+                        try {
+                            const existingInfoBox = typeof committedTrackerData.infoBox === 'string'
+                                ? JSON.parse(committedTrackerData.infoBox)
+                                : committedTrackerData.infoBox;
+                            if (Array.isArray(existingInfoBox.recentEvents)) {
+                                existingEvents = existingInfoBox.recentEvents.filter(e => e && e.trim());
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                    const merged = [...existingEvents];
+                    for (const evt of newEvents) {
+                        if (!merged.includes(evt)) merged.push(evt);
+                    }
+                    newInfoBox.recentEvents = merged;
+                    parsedData.infoBox = JSON.stringify(newInfoBox);
+                } catch (e) {
+                    console.warn('[RPG Companion] Failed to merge recentEvents:', e);
+                }
             }
             if (parsedData.characterThoughts) {
                 parsedData.characterThoughts = removeLocks(parsedData.characterThoughts);
+            }
+
+            // Apply party state update
+            if (parsedData.party) {
+                applyParsedPartyState(parsedData.party);
             }
 
             // Parse and store Spotify URL if feature is enabled
@@ -300,11 +424,18 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 lastGeneratedData.userStats = parsedData.userStats;
                 parseUserStats(parsedData.userStats);
             }
+            if (parsedData.avatarStats) {
+                lastGeneratedData.avatarStats = parsedData.avatarStats;
+                parseAvatarStats(parsedData.avatarStats);
+            }
             if (parsedData.infoBox) {
                 lastGeneratedData.infoBox = parsedData.infoBox;
             }
             if (parsedData.characterThoughts) {
                 lastGeneratedData.characterThoughts = parsedData.characterThoughts;
+            }
+            if (parsedData.party) {
+                lastGeneratedData.party = parsedData.party;
             }
 
             // Also store on assistant message if present (existing behavior)
@@ -319,8 +450,10 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                 const currentSwipeId = lastMessage.swipe_id || 0;
                 lastMessage.extra.rpg_companion_swipes[currentSwipeId] = {
                     userStats: parsedData.userStats,
+                    avatarStats: parsedData.avatarStats,
                     infoBox: parsedData.infoBox,
-                    characterThoughts: parsedData.characterThoughts
+                    characterThoughts: parsedData.characterThoughts,
+                    party: parsedData.party
                 };
 
                 // console.log('[RPG Companion] Stored separate mode RPG data for message swipe', currentSwipeId);
@@ -330,6 +463,7 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             // This prevents auto-commit after refresh when we have saved committed data
             const hasAnyCommittedContent = (
                 (committedTrackerData.userStats && committedTrackerData.userStats.trim() !== '') ||
+                (committedTrackerData.avatarStats && committedTrackerData.avatarStats.trim() !== '') ||
                 (committedTrackerData.infoBox && committedTrackerData.infoBox.trim() !== '' && committedTrackerData.infoBox !== 'Info Box\n---\n') ||
                 (committedTrackerData.characterThoughts && committedTrackerData.characterThoughts.trim() !== '' && committedTrackerData.characterThoughts !== 'Present Characters\n---\n')
             );
@@ -337,15 +471,19 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
             // Only commit if we have NO committed content at all (truly first time ever)
             if (!hasAnyCommittedContent) {
                 committedTrackerData.userStats = parsedData.userStats;
+                committedTrackerData.avatarStats = parsedData.avatarStats;
                 committedTrackerData.infoBox = parsedData.infoBox;
                 committedTrackerData.characterThoughts = parsedData.characterThoughts;
+                committedTrackerData.party = parsedData.party;
                 // console.log('[RPG Companion] 🔆 FIRST TIME: Auto-committed tracker data');
             }
 
             // Render the updated data
             renderUserStats();
+            renderAvatarStats();
             renderInfoBox();
             renderThoughts();
+            renderParty();
             renderInventory();
             renderQuests();
             renderMusicPlayer($musicPlayerContainer[0]);
@@ -372,14 +510,28 @@ export async function updateRPGData(renderUserStats, renderInfoBox, renderThough
                     renderThoughts();
                 }
             }
+
+            // Update NPC sprite display (after avatars so images are ready)
+            await updateNPCSpriteDisplay();
         }
 
     } catch (error) {
         console.error('[RPG Companion] Error updating RPG data:', error);
-        if (isExternalMode) {
-            toastr.error(error.message, 'RPG Companion External API Error');
+        if (isExternalMode || shouldUseSecondaryProfile) {
+            toastr.error(error.message, 'RPG Companion API Error');
         }
     } finally {
+        // Restore original connection profile if we switched
+        // Note: do NOT separately restore the preset — the profile re-application handles preset AND
+        // max-context together. A separate switchToPreset would undo the profile's max-context restore.
+        if (shouldUseSecondaryProfile) {
+            if (originalProfileName) {
+                await switchToProfile(originalProfileName);
+            } else {
+                await executeSlashCommandsOnChatInput('/profile <None>', { quiet: true });
+            }
+        }
+
         setIsGenerating(false);
         setFabLoadingState(false); // Stop spinning FAB on mobile
         updateFabWidgets(); // Update FAB widgets with new data

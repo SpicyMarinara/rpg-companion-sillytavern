@@ -1,5 +1,120 @@
 
-/* Ensure chat stays centered when panel is visible */
+/* ── NPC Sprite Display ──────────────────────────────────────────────────── */
+
+/* The holder slots into ST's #expression-wrapper alongside the normal holder */
+.rpg-npc-holder {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Reuse ST's .expression img sizing; nothing extra needed for the image */
+
+/* Cycling bar overlaid at the bottom of the sprite image */
+.rpg-npc-cycle-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 6px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 0 0 6px 6px;
+    gap: 4px;
+    pointer-events: all;
+    z-index: 5;
+}
+
+.rpg-npc-name-label {
+    flex: 1;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--rpg-text, #eaeaea);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    letter-spacing: 0.03em;
+}
+
+.rpg-npc-btn {
+    background: var(--rpg-highlight, #e94560);
+    border: none;
+    color: #fff;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.1s;
+    padding: 0;
+}
+
+.rpg-npc-btn:hover {
+    background: var(--rpg-border, #4a7ba7);
+    transform: scale(1.1);
+}
+
+.rpg-npc-btn:active {
+    transform: scale(0.95);
+}
+
+/* ── Background generation controls (in Info Box) */
+.rpg-background-controls {
+    display: flex;
+    gap: 0.4em;
+    padding: 0.4em 0.5em 0.2em;
+    flex-wrap: wrap;
+}
+
+.rpg-bg-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 0.3em 0.6em;
+    font-size: 0.75em;
+    background: var(--rpg-accent);
+    color: var(--rpg-text);
+    border: 1px solid var(--rpg-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rpg-bg-btn:hover:not(:disabled) {
+    background: var(--rpg-highlight);
+    border-color: var(--rpg-highlight);
+    color: #fff;
+}
+
+.rpg-bg-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.rpg-bg-btn--clear {
+    flex: 0 0 auto;
+    opacity: 0.7;
+}
+
+.rpg-bg-btn--clear:hover {
+    opacity: 1;
+}
+
+/* ── Ensure chat stays centered when panel is visible */
 body:has(.rpg-panel.rpg-position-right) #sheld {
     margin: auto !important;
 }
@@ -1741,6 +1856,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     gap: 0;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     min-height: 0;
+    max-height: 220px;
     overflow: hidden;
     position: relative;
 }
@@ -2305,6 +2421,75 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     flex: 1;
 }
 
+/* Character avatar regenerate button */
+.rpg-avatar-regenerate {
+    background: transparent;
+    border: none;
+    color: var(--rpg-text);
+    font-size: clamp(11px, 1.6vw, 14px);
+    cursor: pointer;
+    padding: 0;
+    margin-left: auto;
+    width: clamp(16px, 2.5vh, 20px);
+    height: clamp(16px, 2.5vh, 20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.rpg-avatar-regenerate:hover {
+    opacity: 1;
+    background: rgba(0, 150, 255, 0.2);
+    color: #4da6ff;
+    transform: scale(1.1);
+}
+
+.rpg-avatar-regenerate:active {
+    transform: scale(0.95);
+}
+
+.rpg-avatar-regenerate:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+}
+
+/* Promote NPC to companion button */
+.rpg-promote-to-companion {
+    background: transparent;
+    border: none;
+    color: var(--rpg-text);
+    font-size: clamp(11px, 1.6vw, 14px);
+    cursor: pointer;
+    padding: 0;
+    margin-left: 2px;
+    width: clamp(16px, 2.5vh, 20px);
+    height: clamp(16px, 2.5vh, 20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.rpg-promote-to-companion:hover {
+    opacity: 1;
+    background: rgba(100, 220, 100, 0.2);
+    color: #66dd66;
+    transform: scale(1.1);
+}
+
+.rpg-promote-to-companion--active {
+    opacity: 0.4;
+    color: #66dd66;
+    cursor: default;
+}
+
 /* Character remove button */
 .rpg-character-remove {
     background: transparent;
@@ -2314,7 +2499,7 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-weight: bold;
     cursor: pointer;
     padding: 0;
-    margin-left: auto;
+    margin-left: 2px;
     width: clamp(16px, 2.5vh, 20px);
     height: clamp(16px, 2.5vh, 20px);
     display: flex;
@@ -11677,3 +11862,507 @@ body:has(.rpg-panel[data-theme="light"]) .rpg-strip-widget {
         min-width: 2.5rem !important;
     }
 }
+
+/* Avatar Stats section label */
+.rpg-avatar-section-label {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    letter-spacing: 0.05em;
+    padding-bottom: 4px;
+    display: block;
+}
+
+/* Story Arc widget */
+.rpg-story-arc-widget {
+    margin-top: 0.5em;
+}
+
+.rpg-story-arc-title {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.25em;
+    display: block;
+}
+
+.rpg-story-arc-text {
+    font-size: 0.85em;
+    line-height: 1.5;
+    min-height: 3em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    border-radius: 4px;
+    padding: 0.25em 0.4em;
+    cursor: text;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+/* ============================================
+   PARTY COMPANION SYSTEM
+   ============================================ */
+
+/* Party section wrapper */
+.rpg-party-section {
+    width: 100%;
+}
+
+/* Scrollable content area */
+.rpg-party-content {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 0.8vh, 10px);
+    overflow-y: auto;
+    max-height: clamp(200px, 35vh, 450px);
+    padding: clamp(4px, 0.5vh, 6px) 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rpg-border) transparent;
+}
+
+.rpg-party-content::-webkit-scrollbar {
+    width: 4px;
+}
+.rpg-party-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+.rpg-party-content::-webkit-scrollbar-thumb {
+    background: var(--rpg-border);
+    border-radius: 2px;
+}
+
+/* Empty state */
+.rpg-party-empty {
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
+    color: var(--rpg-text);
+    opacity: 0.5;
+    text-align: center;
+    padding: 0.5em 0;
+    font-style: italic;
+}
+
+/* Party member card */
+.rpg-party-card {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(4px, 0.5vh, 6px);
+    padding: clamp(6px, 1vh, 8px);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: clamp(4px, 0.5vh, 6px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.rpg-party-card:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: var(--rpg-highlight);
+}
+
+/* Elsewhere — dimmed and collapsed */
+.rpg-party-card--elsewhere {
+    opacity: 0.45;
+    filter: grayscale(0.4);
+    max-height: clamp(44px, 5.5vh, 56px);
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+.rpg-party-card--elsewhere:hover {
+    opacity: 0.7;
+    max-height: 500px;
+}
+
+/* Dead */
+.rpg-party-card--dead {
+    opacity: 0.3;
+}
+
+.rpg-party-card--dead .rpg-party-name {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* Card header row */
+.rpg-party-card-header {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vw, 12px);
+    width: 100%;
+}
+
+/* Avatar circle */
+.rpg-party-avatar {
+    position: relative;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.rpg-party-avatar img {
+    width: clamp(30px, 5vh, 40px);
+    height: clamp(30px, 5vh, 40px);
+    border-radius: 50%;
+    border: 2px solid var(--rpg-highlight);
+    object-fit: cover;
+    display: block;
+}
+
+/* Status badge overlaid on avatar corner */
+.rpg-party-status-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 0.5rem;
+    font-weight: 700;
+    padding: 1px 3px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+    border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.rpg-party-status-active  { background: #33cc66; color: #000; }
+.rpg-party-status-inactive { background: #888888; color: #fff; }
+.rpg-party-status-dead    { background: #cc3333; color: #fff; }
+
+/* Identity block */
+.rpg-party-card-identity {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 1px;
+}
+
+.rpg-party-emoji {
+    font-size: clamp(0.75rem, 0.8vw, 0.875rem);
+    line-height: 1;
+}
+
+.rpg-party-name {
+    font-weight: 700;
+    font-size: clamp(0.75rem, 0.7vw, 0.875rem);
+    color: var(--rpg-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rpg-party-class {
+    font-size: clamp(0.6rem, 0.6vw, 0.7rem);
+    color: var(--rpg-highlight);
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Card controls */
+.rpg-party-card-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.rpg-party-regen-avatar,
+.rpg-party-edit-btn,
+.rpg-party-demote-btn,
+.rpg-party-remove-btn {
+    background: transparent;
+    border: none;
+    color: var(--rpg-text);
+    cursor: pointer;
+    padding: 3px 5px;
+    border-radius: 3px;
+    opacity: 0.4;
+    transition: all 0.2s ease;
+    font-size: clamp(0.7rem, 0.7vw, 0.8rem);
+    line-height: 1;
+}
+
+.rpg-party-regen-avatar:hover,
+.rpg-party-edit-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.rpg-party-demote-btn:hover {
+    opacity: 1;
+    color: #f0a030;
+}
+
+.rpg-party-remove-btn:hover {
+    opacity: 1;
+    color: var(--rpg-highlight);
+}
+
+/* HP/MP stat bars — reuse existing .rpg-stat-row pattern */
+.rpg-party-stats {
+    width: 100%;
+    padding: 0 2px;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2px, 0.3vh, 4px);
+}
+
+/* Relationship / personality details row */
+.rpg-party-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: clamp(0.58rem, 0.6vw, 0.68rem);
+    opacity: 0.85;
+    line-height: 1.3;
+    padding: 2px 0;
+}
+
+.rpg-party-relationship {
+    color: var(--rpg-highlight, #e94560);
+    font-weight: 600;
+}
+
+.rpg-party-personality {
+    color: var(--rpg-text);
+    font-style: italic;
+}
+
+/* Appearance / clothing description block */
+.rpg-party-description {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: clamp(0.58rem, 0.6vw, 0.68rem);
+    color: var(--rpg-text);
+    opacity: 0.8;
+    line-height: 1.4;
+    padding: 2px 0;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.rpg-party-desc-label {
+    font-weight: 600;
+    opacity: 0.7;
+    margin-right: 3px;
+}
+
+/* Conditions line */
+.rpg-party-conditions {
+    font-size: clamp(0.6rem, 0.6vw, 0.7rem);
+    color: var(--rpg-text);
+    opacity: 0.8;
+    line-height: 1.3;
+}
+
+.rpg-party-conditions-label {
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+/* Last action text */
+.rpg-party-action {
+    font-size: clamp(0.6rem, 0.6vw, 0.7rem);
+    color: var(--rpg-text);
+    opacity: 0.65;
+    font-style: italic;
+    line-height: 1.4;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    padding-top: 4px;
+    margin-top: 2px;
+}
+
+/* Add Companion button */
+.rpg-add-party-member-btn {
+    background: var(--rpg-accent);
+    border: 1px solid var(--rpg-border);
+    color: var(--rpg-text);
+    padding: 4px 8px;
+    margin: 0.25rem auto 0;
+    font-size: clamp(0.625rem, 0.6vw, 0.75rem);
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    opacity: 0.6;
+    width: fit-content;
+}
+
+.rpg-add-party-member-btn:hover {
+    background: var(--rpg-highlight);
+    border-color: var(--rpg-highlight);
+    color: #000;
+    opacity: 1;
+}
+
+/* Party editor modal */
+.rpg-party-editor-content {
+    max-width: 540px;
+    width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.rpg-party-editor-row--inline {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.rpg-party-editor-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    background: var(--rpg-bg);
+    color: var(--rpg-text);
+    border: 1px solid var(--rpg-border);
+    border-radius: 0.375em;
+    padding: 6px 8px;
+    font-family: inherit;
+    font-size: clamp(0.75rem, 0.8vw, 0.875rem);
+    line-height: 1.5;
+}
+
+.rpg-party-editor-textarea:focus {
+    outline: none;
+    border-color: var(--rpg-highlight);
+    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.2);
+}
+
+/* Cancel button style */
+.rpg-btn-cancel {
+    background: var(--rpg-accent);
+    border: 1px solid var(--rpg-border);
+    color: var(--rpg-text);
+    padding: 0.5em 1em;
+    border-radius: 0.375em;
+    cursor: pointer;
+    font-size: clamp(0.75rem, 0.8vw, 0.875rem);
+    transition: all 0.2s ease;
+}
+
+.rpg-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--rpg-text);
+}
+
+/* ── Avatar full-size expand button ─────────────────────────────────────── */
+
+.rpg-avatar-view-full {
+    position: absolute;
+    bottom: -2px;
+    left: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.72);
+    border: none;
+    color: #fff;
+    font-size: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 3;
+    padding: 0;
+    pointer-events: all;
+}
+
+.rpg-character-avatar:hover .rpg-avatar-view-full {
+    opacity: 1;
+}
+
+/* Always visible on touch / mobile viewport */
+@media (max-width: 1000px), (hover: none) {
+    .rpg-avatar-view-full {
+        opacity: 1;
+    }
+}
+
+/* ── Avatar lightbox ─────────────────────────────────────────────────────── */
+
+#rpg-avatar-lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rpg-avatar-lightbox-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.rpg-avatar-lightbox-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+.rpg-avatar-lightbox-content img {
+    max-width: 85vw;
+    max-height: 78vh;
+    border-radius: 10px;
+    object-fit: contain;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85);
+    border: 2px solid var(--rpg-highlight, #e94560);
+    display: block;
+}
+
+.rpg-avatar-lightbox-name {
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+    letter-spacing: 0.04em;
+}
+
+.rpg-avatar-lightbox-close {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--rpg-highlight, #e94560);
+    border: none;
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    transition: background 0.15s ease;
+}
+
+.rpg-avatar-lightbox-close:hover {
+    background: #c73050;
+}
+

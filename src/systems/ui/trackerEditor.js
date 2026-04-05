@@ -1045,6 +1045,12 @@ function renderInfoBoxTab() {
     html += `<label for="rpg-widget-events">${i18n.getTranslation('template.trackerEditorModal.infoBoxTab.recentEventsWidget')}</label>`;
     html += '</div>';
 
+    // Story Arc widget
+    html += '<div class="rpg-editor-widget-row">';
+    html += `<input type="checkbox" id="rpg-widget-story-arc" ${config.widgets.storyArc?.enabled ? 'checked' : ''}>`;
+    html += '<label for="rpg-widget-story-arc">Story Arc Summary <small style="opacity:0.6">(AI-maintained plot overview — costs extra tokens)</small></label>';
+    html += '</div>';
+
     html += '</div>';
 
     $('#rpg-editor-tab-infoBox').html(html);
@@ -1087,6 +1093,11 @@ function setupInfoBoxListeners() {
 
     $('#rpg-widget-events').off('change').on('change', function () {
         widgets.recentEvents.enabled = $(this).is(':checked');
+    });
+
+    $('#rpg-widget-story-arc').off('change').on('change', function () {
+        if (!widgets.storyArc) widgets.storyArc = { enabled: false, persistInHistory: false };
+        widgets.storyArc.enabled = $(this).is(':checked');
     });
 }
 
@@ -1571,7 +1582,8 @@ function renderHistoryPersistenceTab() {
         temperature: 'Temperature',
         time: 'Time',
         location: 'Location',
-        recentEvents: 'Recent Events'
+        recentEvents: 'Recent Events',
+        storyArc: 'Story Arc Summary'
     };
 
     for (const [widgetId, widget] of Object.entries(infoBoxConfig.widgets)) {

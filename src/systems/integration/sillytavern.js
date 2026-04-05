@@ -4,7 +4,7 @@
  */
 
 import { getContext } from '../../../../../../extensions.js';
-import { chat, user_avatar, setExtensionPrompt, extension_prompt_types, saveChatDebounced } from '../../../../../../../script.js';
+import { chat, user_avatar, setExtensionPrompt, extension_prompt_types, saveChatDebounced, updateMessageBlock } from '../../../../../../../script.js';
 
 // Core modules
 import {
@@ -26,7 +26,7 @@ import { saveChatData, loadChatData, autoSwitchPresetForEntity } from '../../cor
 import { i18n } from '../../core/i18n.js';
 
 // Generation & Parsing
-import { parseResponse, parseUserStats } from '../generation/parser.js';
+import { parseResponse, parseUserStats, parseAvatarStats } from '../generation/parser.js';
 import { parseAndStoreSpotifyUrl, convertToEmbedUrl } from '../features/musicPlayer.js';
 import { updateRPGData } from '../generation/apiClient.js';
 import { removeLocks } from '../generation/lockManager.js';
@@ -34,11 +34,14 @@ import { onGenerationStarted, initHistoryInjectionListeners } from '../generatio
 
 // Rendering
 import { renderUserStats } from '../rendering/userStats.js';
+import { renderAvatarStats, updateAvatarStatsData } from '../rendering/avatarStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
 import { renderThoughts, updateChatThoughts } from '../rendering/thoughts.js';
 import { renderInventory } from '../rendering/inventory.js';
 import { renderQuests } from '../rendering/quests.js';
 import { renderMusicPlayer } from '../rendering/musicPlayer.js';
+import { renderParty } from '../rendering/party.js';
+import { applyParsedPartyState } from '../features/partyManager.js';
 
 // Utils
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
@@ -74,8 +77,10 @@ export function commitTrackerData() {
                 if (swipeData) {
                     // console.log('[RPG Companion] Committing tracker data from assistant message at index', i, 'swipe', swipeId);
                     committedTrackerData.userStats = swipeData.userStats || null;
+                    committedTrackerData.avatarStats = swipeData.avatarStats || null;
                     committedTrackerData.infoBox = swipeData.infoBox || null;
                     committedTrackerData.characterThoughts = swipeData.characterThoughts || null;
+                    committedTrackerData.party = swipeData.party || null;
                 } else {
                     // console.log('[RPG Companion] No swipe data found for swipe', swipeId);
                 }
@@ -121,10 +126,12 @@ export function onMessageSent() {
 
     // For separate mode with auto-update disabled, commit displayed tracker
     if (extensionSettings.generationMode === 'separate' && !extensionSettings.autoUpdate) {
-        if (lastGeneratedData.userStats || lastGeneratedData.infoBox || lastGeneratedData.characterThoughts) {
+        if (lastGeneratedData.userStats || lastGeneratedData.avatarStats || lastGeneratedData.infoBox || lastGeneratedData.characterThoughts) {
             committedTrackerData.userStats = lastGeneratedData.userStats;
+            committedTrackerData.avatarStats = lastGeneratedData.avatarStats;
             committedTrackerData.infoBox = lastGeneratedData.infoBox;
             committedTrackerData.characterThoughts = lastGeneratedData.characterThoughts;
+            committedTrackerData.party = lastGeneratedData.party;
 
             // console.log('[RPG Companion] 💾 SEPARATE MODE: Committed displayed tracker (auto-update disabled)');
         }
@@ -161,6 +168,9 @@ export async function onMessageReceived(data) {
             if (parsedData.userStats) {
                 parsedData.userStats = removeLocks(parsedData.userStats);
             }
+            if (parsedData.avatarStats) {
+                parsedData.avatarStats = removeLocks(parsedData.avatarStats);
+            }
             if (parsedData.infoBox) {
                 parsedData.infoBox = removeLocks(parsedData.infoBox);
             }
@@ -177,11 +187,19 @@ export async function onMessageReceived(data) {
                 lastGeneratedData.userStats = parsedData.userStats;
                 parseUserStats(parsedData.userStats);
             }
+            if (parsedData.avatarStats) {
+                lastGeneratedData.avatarStats = parsedData.avatarStats;
+                parseAvatarStats(parsedData.avatarStats);
+            }
             if (parsedData.infoBox) {
                 lastGeneratedData.infoBox = parsedData.infoBox;
             }
             if (parsedData.characterThoughts) {
                 lastGeneratedData.characterThoughts = parsedData.characterThoughts;
+            }
+            if (parsedData.party) {
+                lastGeneratedData.party = parsedData.party;
+                applyParsedPartyState(parsedData.party);
             }
 
             // Store RPG data for this specific swipe in the message's extra field
@@ -195,8 +213,10 @@ export async function onMessageReceived(data) {
             const currentSwipeId = lastMessage.swipe_id || 0;
             lastMessage.extra.rpg_companion_swipes[currentSwipeId] = {
                 userStats: parsedData.userStats,
+                avatarStats: parsedData.avatarStats,
                 infoBox: parsedData.infoBox,
-                characterThoughts: parsedData.characterThoughts
+                characterThoughts: parsedData.characterThoughts,
+                party: parsedData.party
             };
 
             // console.log('[RPG Companion] Stored RPG data for swipe', currentSwipeId);
@@ -227,8 +247,10 @@ export async function onMessageReceived(data) {
 
             // Render the updated data FIRST (before cleaning DOM)
             renderUserStats();
+            renderAvatarStats();
             renderInfoBox();
             renderThoughts();
+            renderParty();
             renderInventory();
             renderQuests();
             renderMusicPlayer($musicPlayerContainer[0]);
@@ -330,8 +352,10 @@ export function onCharacterChanged() {
 
     // Re-render with the loaded data
     renderUserStats();
+    renderAvatarStats();
     renderInfoBox();
     renderThoughts();
+    renderParty();
     renderInventory();
     renderQuests();
     renderMusicPlayer($musicPlayerContainer[0]);
@@ -394,6 +418,7 @@ export function onMessageSwiped(messageIndex) {
 
         // Load swipe data into lastGeneratedData for display (both modes)
         lastGeneratedData.userStats = swipeData.userStats || null;
+        lastGeneratedData.avatarStats = swipeData.avatarStats || null;
         lastGeneratedData.infoBox = swipeData.infoBox || null;
 
         // Normalize characterThoughts to string format (for backward compatibility with old object format)

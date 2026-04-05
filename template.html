@@ -72,6 +72,14 @@
                 <!-- Divider after User Stats -->
                 <div id="rpg-divider-stats" class="rpg-divider"></div>
 
+                <!-- Avatar Stats Section -->
+                <div id="rpg-avatar-stats" class="rpg-section rpg-stats-section rpg-avatar-stats-section">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+
+                <!-- Divider after Avatar Stats -->
+                <div id="rpg-divider-avatar-stats" class="rpg-divider"></div>
+
                 <!-- Info Box Section -->
                 <div id="rpg-info-box" class="rpg-section rpg-info-section">
                     <!-- Content will be populated by JavaScript -->
@@ -87,6 +95,14 @@
 
                 <!-- Divider after Thoughts -->
                 <div id="rpg-divider-thoughts" class="rpg-divider"></div>
+
+                <!-- Party Companions Section -->
+                <div id="rpg-party" class="rpg-section rpg-party-section">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+
+                <!-- Divider after Party -->
+                <div id="rpg-divider-party" class="rpg-divider"></div>
 
                 <!-- Inventory Section -->
                 <div id="rpg-inventory" class="rpg-section rpg-inventory-section">
@@ -189,7 +205,24 @@
                         <i class="fa-solid fa-user-plus"></i>
                         <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.autoAvatars">Auto Avatars</span>
                     </label>
-                </div>            </div>
+                </div>
+                <!-- NPC Sprites Toggle -->
+                <div class="rpg-toggle-container rpg-feature-col" id="rpg-npc-sprites-toggle-wrapper">
+                    <label class="rpg-toggle-label" title="NPC Sprites — show NPC sprites in the expression display with cycling">
+                        <input type="checkbox" id="rpg-toggle-npc-sprites">
+                        <i class="fa-solid fa-images"></i>
+                        <span class="rpg-toggle-text">NPC Sprites</span>
+                    </label>
+                </div>
+                <!-- Party Toggle -->
+                <div class="rpg-toggle-container rpg-feature-col" id="rpg-party-toggle-wrapper">
+                    <label class="rpg-toggle-label" title="Party Companions — show persistent party companion tracker">
+                        <input type="checkbox" id="rpg-toggle-party">
+                        <i class="fa-solid fa-users"></i>
+                        <span class="rpg-toggle-text">Party</span>
+                    </label>
+                </div>
+            </div>
 
             <!-- Manual Update Button -->
             <button id="rpg-manual-update" class="rpg-btn-primary rpg-manual-update-btn">
@@ -340,6 +373,19 @@
                 </small>
 
                 <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-avatar-stats" />
+                    <span>Show Avatar Stats</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                    Track a separate stat panel for your in-game avatar/character.
+                </small>
+                <div style="display: flex; align-items: center; margin-left: 24px; margin-top: 4px; margin-bottom: 8px; gap: 6px;">
+                    <label style="font-size: 12px; color: #888;">Avatar Label:</label>
+                    <input type="text" id="rpg-avatar-stats-label" placeholder="Game Avatar"
+                        style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: inherit; border-radius: 4px; padding: 2px 6px; font-size: 12px; width: 120px;" />
+                </div>
+
+                <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-info-box" />
                     <span data-i18n-key="template.settingsModal.display.showInfoBox">Show Info Box</span>
                 </label>
@@ -486,13 +532,29 @@
                 </small>
 
                 <label class="checkbox_label">
+                    <input type="checkbox" id="rpg-toggle-auto-generate-avatars" />
+                    <span>Auto-generate Avatars on Refresh / Auto-send</span>
+                </label>
+                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                    Automatically generate portraits for NPCs that don't have one after each RPG info update.
+                </small>
+
+                <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-show-auto-avatars" />
-                    <span data-i18n-key="template.settingsModal.display.showAutoAvatars">Show Auto-generate Avatars</span>
+                    <span data-i18n-key="template.settingsModal.display.showAutoAvatars">Show Auto-generate Avatars button in panel</span>
                 </label>
                 <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
                     data-i18n-key="template.settingsModal.display.showAutoAvatarsNote">
-                    Display a toggle button to automatically generate avatars for characters without images.
+                    Display the quick-toggle button in the panel features row.
                 </small>
+
+                <div class="rpg-setting-row" style="margin-top: 10px;">
+                    <label for="rpg-background-custom-instruction" style="font-size: 12px; color: #888;">Background Prompt Custom Instruction (optional):</label>
+                    <textarea id="rpg-background-custom-instruction" class="rpg-input" rows="2"
+                        placeholder="e.g. cinematic, painterly style, wide angle, 16:9"
+                        style="width: 100%; margin-top: 4px; resize: vertical; font-size: 12px;"></textarea>
+                    <small style="color: #666; font-size: 11px;">Appended to the LLM-generated prompt when generating scene backgrounds.</small>
+                </div>
 
                 <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-randomized-plot" />
@@ -657,6 +719,13 @@
                     </select>
                     <small data-i18n-key="template.settingsModal.advanced.generationModeNote">Together: Adds RPG
                         tracking to main roleplay. Separate: Generates RPG data separately (manual or auto).</small>
+                    <label class="checkbox_label" style="margin-top: 8px;">
+                        <input type="checkbox" id="rpg-use-secondary-profile" />
+                        <span>Use secondary connection profile for Tracker Refresh</span>
+                    </label>
+                    <small style="display: block; margin-left: 24px; color: #888; font-size: 11px;">
+                        When enabled, the Refresh RPG Info button switches to the ST secondary connection profile for the tracker call, then restores the original.
+                    </small>
                 </div>
 
                 <!-- External API Settings (shown only when External API mode is selected) -->
@@ -725,6 +794,56 @@
                         </button>
                         <div id="rpg-external-api-test-result"
                             style="margin-top: 8px; padding: 8px; border-radius: 4px; display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- ComfyUI Sprite Workflow Settings -->
+                <div style="margin-top: 16px; padding: 12px; border-left: 2px solid var(--SmartThemeBorderColor);">
+                    <h5 style="margin-top: 0; margin-bottom: 12px; color: var(--SmartThemeBodyColor);">
+                        <i class="fa-solid fa-image" aria-hidden="true"></i> ComfyUI Sprite Workflow
+                    </h5>
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-comfyui-sprite" />
+                        <span>Use ComfyUI Sprite Workflow for Avatar Generation</span>
+                    </label>
+                    <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                        Use the "Sprite generator V1.2" ComfyUI workflow instead of the /sd command.
+                        ComfyUI must be running before generating.
+                    </small>
+                    <label class="checkbox_label" style="margin-top: 10px;">
+                        <input type="checkbox" id="rpg-toggle-remove-sprite-bg" />
+                        <span>Remove Grey Background After Generation</span>
+                    </label>
+                    <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                        After generating each sprite, automatically run the "Remove Grey Background"
+                        workflow to make the background transparent.
+                    </small>
+                    <div class="rpg-setting-row" style="margin-top: 12px;">
+                        <label for="rpg-comfyui-url">ComfyUI URL:</label>
+                        <input type="text" id="rpg-comfyui-url" class="rpg-input"
+                            placeholder="http://127.0.0.1:8188" style="width: 100%;" />
+                        <small>The base URL where ComfyUI is running.</small>
+                    </div>
+                </div>
+
+                <!-- ComfyUI Background Workflow Settings -->
+                <div style="margin-top: 16px; padding: 12px; border-left: 2px solid var(--SmartThemeBorderColor);">
+                    <h5 style="margin-top: 0; margin-bottom: 12px; color: var(--SmartThemeBodyColor);">
+                        <i class="fa-solid fa-mountain-sun" aria-hidden="true"></i> ComfyUI Background Workflow
+                    </h5>
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="rpg-toggle-comfyui-background" />
+                        <span>Use ComfyUI Background Workflow for Scene Generation</span>
+                    </label>
+                    <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;">
+                        Use the dedicated background generator workflow instead of the /sd command.
+                        Generates 896×512 landscape images. ComfyUI URL is shared with sprite settings above.
+                    </small>
+                    <div class="rpg-setting-row" style="margin-top: 12px;">
+                        <label for="rpg-background-checkpoint">Checkpoint Model:</label>
+                        <input type="text" id="rpg-background-checkpoint" class="rpg-input"
+                            placeholder="e.g. v1-5-pruned-emaonly.safetensors" style="width: 100%;" />
+                        <small>The checkpoint name exactly as it appears in ComfyUI (required for background generation).</small>
                     </div>
                 </div>
 
@@ -1289,6 +1408,138 @@
         <footer class="rpg-settings-popup-footer">
             <button id="rpg-welcome-got-it" class="rpg-btn-primary" type="button" style="width: 100%;">
                 <i class="fa-solid fa-check"></i> Got it!
+            </button>
+        </footer>
+    </div>
+</div>
+
+<!-- Party Member Editor Modal -->
+<div id="rpg-party-editor-popup" class="rpg-settings-popup" role="dialog" aria-modal="true"
+    aria-labelledby="rpg-party-editor-title" style="display:none;">
+    <div class="rpg-settings-popup-content rpg-party-editor-content">
+        <header class="rpg-settings-popup-header">
+            <h3 id="rpg-party-editor-title">
+                <i class="fa-solid fa-users" aria-hidden="true"></i>
+                <span id="rpg-party-editor-title-text">Add Companion</span>
+            </h3>
+            <button id="rpg-party-editor-close" class="rpg-popup-close" type="button" aria-label="Close">&times;</button>
+        </header>
+        <div class="rpg-settings-popup-body">
+            <div class="rpg-settings-group">
+
+                <!-- Row 1: Emoji + Name + Class -->
+                <div class="rpg-party-editor-row rpg-party-editor-row--inline">
+                    <div class="rpg-setting-row">
+                        <label for="rpg-party-editor-emoji">Emoji</label>
+                        <input type="text" id="rpg-party-editor-emoji" class="rpg-input" maxlength="4" placeholder="🧙" style="width:5ch;" />
+                    </div>
+                    <div class="rpg-setting-row" style="flex:1;">
+                        <label for="rpg-party-editor-name">Name *</label>
+                        <input type="text" id="rpg-party-editor-name" class="rpg-input" placeholder="Companion name" />
+                    </div>
+                    <div class="rpg-setting-row">
+                        <label for="rpg-party-editor-class">Class</label>
+                        <input type="text" id="rpg-party-editor-class" class="rpg-input" placeholder="Ranger" style="width:9ch;" />
+                    </div>
+                </div>
+
+                <!-- Row 2: Appearance + Clothing -->
+                <div class="rpg-setting-row">
+                    <label for="rpg-party-editor-appearance">Physical Appearance</label>
+                    <textarea id="rpg-party-editor-appearance" class="rpg-textarea rpg-party-editor-textarea"
+                        placeholder="Height, build, hair, eyes, distinguishing features..." rows="2"></textarea>
+                </div>
+                <div class="rpg-setting-row">
+                    <label for="rpg-party-editor-clothing">Clothing &amp; Equipment</label>
+                    <textarea id="rpg-party-editor-clothing" class="rpg-textarea rpg-party-editor-textarea"
+                        placeholder="What they're wearing and carrying..." rows="2"></textarea>
+                </div>
+
+                <!-- Row 3: Personality -->
+                <div class="rpg-setting-row">
+                    <label for="rpg-party-editor-personality">Personality (1-2 sentences)</label>
+                    <textarea id="rpg-party-editor-personality" class="rpg-textarea rpg-party-editor-textarea"
+                        placeholder="Describe their personality traits and demeanor..." rows="3"></textarea>
+                </div>
+
+                <!-- Row 3: Backstory -->
+                <div class="rpg-setting-row">
+                    <label for="rpg-party-editor-backstory">Backstory (2-3 sentences)</label>
+                    <textarea id="rpg-party-editor-backstory" class="rpg-textarea rpg-party-editor-textarea"
+                        placeholder="Their history, motivations, and how they met the player..." rows="4"></textarea>
+                </div>
+
+                <!-- Row 4: Relationship -->
+                <div class="rpg-setting-row">
+                    <label for="rpg-party-editor-relationship">Relationship to player</label>
+                    <input type="text" id="rpg-party-editor-relationship" class="rpg-input" placeholder="Loyal companion" />
+                </div>
+
+                <!-- Row 5: HP / MP -->
+                <div class="rpg-party-editor-row rpg-party-editor-row--inline">
+                    <div class="rpg-setting-row">
+                        <label>HP (current / max)</label>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <input type="number" id="rpg-party-editor-hp-current" class="rpg-input" min="0" value="100" style="width:5ch;" />
+                            <span>/</span>
+                            <input type="number" id="rpg-party-editor-hp-max" class="rpg-input" min="1" value="100" style="width:5ch;" />
+                        </div>
+                    </div>
+                    <div class="rpg-setting-row">
+                        <label>MP (current / max)</label>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <input type="number" id="rpg-party-editor-mp-current" class="rpg-input" min="0" value="50" style="width:5ch;" />
+                            <span>/</span>
+                            <input type="number" id="rpg-party-editor-mp-max" class="rpg-input" min="1" value="50" style="width:5ch;" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 6: Conditions -->
+                <div class="rpg-setting-row">
+                    <label for="rpg-party-editor-conditions">Conditions</label>
+                    <input type="text" id="rpg-party-editor-conditions" class="rpg-input" placeholder="None" value="None" />
+                </div>
+
+                <!-- Row 7: Status + Location -->
+                <div class="rpg-party-editor-row rpg-party-editor-row--inline">
+                    <div class="rpg-setting-row">
+                        <label for="rpg-party-editor-status">Status</label>
+                        <select id="rpg-party-editor-status" class="rpg-select">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="dead">Dead</option>
+                        </select>
+                    </div>
+                    <div class="rpg-setting-row">
+                        <label for="rpg-party-editor-location">Location</label>
+                        <select id="rpg-party-editor-location" class="rpg-select">
+                            <option value="party">With Party</option>
+                            <option value="elsewhere">Elsewhere</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 8: Skills -->
+                <div class="rpg-setting-row">
+                    <label for="rpg-party-editor-skills">Skills (comma-separated)</label>
+                    <input type="text" id="rpg-party-editor-skills" class="rpg-input"
+                        placeholder="Archery, Tracking, Stealth" />
+                </div>
+
+                <!-- Row 9: Personal Inventory -->
+                <div class="rpg-setting-row">
+                    <label for="rpg-party-editor-inventory">Personal Inventory (comma-separated)</label>
+                    <input type="text" id="rpg-party-editor-inventory" class="rpg-input"
+                        placeholder="Elven Longbow, Quiver of Arrows" />
+                </div>
+
+            </div>
+        </div>
+        <footer class="rpg-settings-popup-footer" style="display:flex; gap:8px; justify-content:flex-end; padding:12px;">
+            <button id="rpg-party-editor-cancel" class="rpg-btn-cancel" type="button">Cancel</button>
+            <button id="rpg-party-editor-save" class="rpg-btn-primary" type="button">
+                <i class="fa-solid fa-check"></i> Save Companion
             </button>
         </footer>
     </div>

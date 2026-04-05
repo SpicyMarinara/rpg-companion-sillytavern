@@ -130,6 +130,47 @@ export function buildUserStatsJSONInstruction() {
 }
 
 /**
+ * Builds Avatar Stats JSON format instruction (for the secondary game-avatar stat panel)
+ * @returns {string} JSON format instruction for avatar stats
+ */
+export function buildAvatarStatsJSONInstruction() {
+    const avatarConfig = extensionSettings.trackerConfig?.avatarStats;
+    const enabledStats = avatarConfig?.customStats?.filter(s => s && s.enabled && s.name) || [];
+    const displayMode = avatarConfig?.statsDisplayMode || 'percentage';
+
+    let instruction = '{\n';
+    instruction += '  "stats": [\n';
+
+    for (let i = 0; i < enabledStats.length; i++) {
+        const stat = enabledStats[i];
+        const comma = i < enabledStats.length - 1 ? ',' : '';
+        if (displayMode === 'number') {
+            const maxValue = stat.maxValue || 100;
+            instruction += `    {"id": "${stat.id}", "name": "${stat.name}", "value": X}${comma}  // 0 to ${maxValue}\n`;
+        } else {
+            instruction += `    {"id": "${stat.id}", "name": "${stat.name}", "value": X}${comma}  // 0 to 100 (percentage)\n`;
+        }
+    }
+
+    instruction += '  ]';
+
+    if (avatarConfig?.statusSection?.enabled) {
+        instruction += ',\n  "status": {\n';
+        const customFields = avatarConfig.statusSection.customFields || [];
+        for (let i = 0; i < customFields.length; i++) {
+            const fieldName = customFields[i];
+            const fieldKey = fieldName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            const comma = i < customFields.length - 1 ? ',' : '';
+            instruction += `    "${fieldKey}": "[${fieldName.toLowerCase()}]"${comma}\n`;
+        }
+        instruction += '  }';
+    }
+
+    instruction += '\n}';
+    return instruction;
+}
+
+/**
  * Builds Info Box JSON format instruction
  * @returns {string} JSON format instruction for info box
  */
@@ -171,7 +212,12 @@ export function buildInfoBoxJSONInstruction() {
     }
 
     if (widgets.recentEvents?.enabled) {
-        instruction += (hasFields ? ',\n' : '') + '  "recentEvents": ["Event1", "Event2", "Event3"]';
+        instruction += (hasFields ? ',\n' : '') + '  "recentEvents": ["Only NEW important events from this message that are not already tracked. Use an empty array [] if nothing significant happened."]';
+        hasFields = true;
+    }
+
+    if (widgets.storyArc?.enabled) {
+        instruction += (hasFields ? ',\n' : '') + '  "storyArc": "A one-paragraph summary of the current story arc and main ongoing plot threads"';
         hasFields = true;
     }
 
@@ -236,6 +282,39 @@ export function buildCharactersJSONInstruction() {
     instruction += '\n  }\n';
     instruction += ']';
 
+    return instruction;
+}
+
+/**
+ * Builds Party tracker JSON format instruction for the AI.
+ * Only includes members with location === 'party' and status !== 'dead'.
+ * Returns null if no active party members.
+ * @returns {string|null} JSON format instruction for party tracker, or null
+ */
+export function buildPartyJSONInstruction() {
+    const activeMembers = (extensionSettings.partyMembers || [])
+        .filter(m => m.location === 'party' && m.status !== 'dead');
+    if (activeMembers.length === 0) return null;
+
+    let instruction = '[\n';
+    for (let i = 0; i < activeMembers.length; i++) {
+        const m = activeMembers[i];
+        const comma = i < activeMembers.length - 1 ? ',' : '';
+        const hpMax = m.hp?.max ?? 100;
+        const mpMax = m.mp?.max ?? 50;
+        const hpCurrent = m.hp?.current ?? hpMax;
+        const mpCurrent = m.mp?.current ?? mpMax;
+        instruction += `  {\n`;
+        instruction += `    "name": "${m.name}",\n`;
+        instruction += `    "hp": ${hpCurrent},\n`;
+        instruction += `    "mp": ${mpCurrent},\n`;
+        instruction += `    "conditions": "${m.conditions || 'None'}",\n`;
+        instruction += `    "appearance": "${m.appearance || 'Current physical description'}",\n`;
+        instruction += `    "clothing": "${m.clothing || 'Current clothing and equipment'}",\n`;
+        instruction += `    "action": "What ${m.name} does or says this turn"\n`;
+        instruction += `  }${comma}\n`;
+    }
+    instruction += ']';
     return instruction;
 }
 

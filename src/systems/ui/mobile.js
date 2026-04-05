@@ -592,18 +592,20 @@ export function setupMobileTabs() {
     const $userStats = $('#rpg-user-stats');
     const $infoBox = $('#rpg-info-box');
     const $thoughts = $('#rpg-thoughts');
+    const $party = $('#rpg-party');
     const $inventory = $('#rpg-inventory');
     const $quests = $('#rpg-quests');
 
     // If no sections exist, nothing to organize
-    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $inventory.length === 0 && $quests.length === 0) {
+    if ($userStats.length === 0 && $infoBox.length === 0 && $thoughts.length === 0 && $party.length === 0 && $inventory.length === 0 && $quests.length === 0) {
         return;
     }
 
-    // Create tab navigation (3 tabs for mobile)
+    // Create tab navigation
     const tabs = [];
     const hasStats = $userStats.length > 0;
     const hasInfo = $infoBox.length > 0 || $thoughts.length > 0;
+    const hasParty = $party.length > 0 && extensionSettings.showParty;
     const hasInventory = $inventory.length > 0 && extensionSettings.showInventory;
     const hasQuests = $quests.length > 0 && extensionSettings.showQuests;
 
@@ -615,11 +617,15 @@ export function setupMobileTabs() {
     if (hasInfo) {
         tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="info"><i class="fa-solid fa-book"></i><span>' + i18n.getTranslation('global.info') + '</span></button>');
     }
-    // Tab 3: Inventory
+    // Tab 3: Party
+    if (hasParty) {
+        tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="party"><i class="fa-solid fa-users"></i><span>Party</span></button>');
+    }
+    // Tab 4: Inventory
     if (hasInventory) {
         tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="inventory"><i class="fa-solid fa-box"></i><span>' + i18n.getTranslation('global.inventory') + '</span></button>');
     }
-    // Tab 4: Quests
+    // Tab 5: Quests
     if (hasQuests) {
         tabs.push('<button class="rpg-mobile-tab ' + (tabs.length === 0 ? 'active' : '') + '" data-tab="quests"><i class="fa-solid fa-scroll"></i><span>' + i18n.getTranslation('global.quests') + '</span></button>');
     }
@@ -630,12 +636,14 @@ export function setupMobileTabs() {
     let firstTab = '';
     if (hasStats) firstTab = 'stats';
     else if (hasInfo) firstTab = 'info';
+    else if (hasParty) firstTab = 'party';
     else if (hasInventory) firstTab = 'inventory';
     else if (hasQuests) firstTab = 'quests';
 
     // Create tab content wrappers
     const $statsTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'stats' ? 'active' : '') + '" data-tab-content="stats"></div>');
     const $infoTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'info' ? 'active' : '') + '" data-tab-content="info"></div>');
+    const $partyTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'party' ? 'active' : '') + '" data-tab-content="party"></div>');
     const $inventoryTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'inventory' ? 'active' : '') + '" data-tab-content="inventory"></div>');
     const $questsTab = $('<div class="rpg-mobile-tab-content ' + (firstTab === 'quests' ? 'active' : '') + '" data-tab-content="quests"></div>');
 
@@ -656,6 +664,12 @@ export function setupMobileTabs() {
     if ($thoughts.length > 0) {
         $infoTab.append($thoughts.detach());
         $thoughts.show();
+    }
+
+    // Party tab: Party companions
+    if ($party.length > 0) {
+        $partyTab.append($party.detach());
+        $party.show();
     }
 
     // Inventory tab: Inventory only
@@ -681,6 +695,7 @@ export function setupMobileTabs() {
     // Tab buttons control visibility
     $mobileContainer.append($statsTab);
     $mobileContainer.append($infoTab);
+    $mobileContainer.append($partyTab);
     $mobileContainer.append($inventoryTab);
     $mobileContainer.append($questsTab);
 
@@ -709,6 +724,7 @@ export function removeMobileTabs() {
     const $userStats = $('#rpg-user-stats').detach();
     const $infoBox = $('#rpg-info-box').detach();
     const $thoughts = $('#rpg-thoughts').detach();
+    const $party = $('#rpg-party').detach();
     const $inventory = $('#rpg-inventory').detach();
     const $quests = $('#rpg-quests').detach();
 
@@ -719,21 +735,28 @@ export function removeMobileTabs() {
     const $dividerStats = $('#rpg-divider-stats');
     const $dividerInfo = $('#rpg-divider-info');
     const $dividerThoughts = $('#rpg-divider-thoughts');
+    const $dividerParty = $('#rpg-divider-party');
 
     // Restore original sections to content box in correct order
     const $contentBox = $('.rpg-content-box');
 
-    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Inventory, Quests
+    // Re-insert sections in original order: User Stats, Info Box, Thoughts, Party, Inventory, Quests
     if ($dividerStats.length) {
         $dividerStats.before($userStats);
         $dividerInfo.before($infoBox);
         $dividerThoughts.before($thoughts);
+        if ($dividerParty.length) {
+            $dividerParty.before($party);
+        } else {
+            $contentBox.append($party);
+        }
         $contentBox.append($inventory);
         $contentBox.append($quests);
     } else {
         // Fallback if dividers don't exist
         $contentBox.prepend($quests);
         $contentBox.prepend($inventory);
+        $contentBox.prepend($party);
         $contentBox.prepend($thoughts);
         $contentBox.prepend($infoBox);
         $contentBox.prepend($userStats);
@@ -746,6 +769,7 @@ export function removeMobileTabs() {
         if (infoBoxData) $infoBox.show();
     }
     if (extensionSettings.showCharacterThoughts) $thoughts.show();
+    if (extensionSettings.showParty) $party.show();
     if (extensionSettings.showInventory) $inventory.show();
     if (extensionSettings.showQuests) $quests.show();
     $('.rpg-divider').show();

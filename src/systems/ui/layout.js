@@ -7,13 +7,16 @@ import {
     extensionSettings,
     $panelContainer,
     $userStatsContainer,
+    $avatarStatsContainer,
     $infoBoxContainer,
     $thoughtsContainer,
+    $partyContainer,
     $inventoryContainer,
     $questsContainer,
     $musicPlayerContainer,
     setInventoryContainer,
     setQuestsContainer,
+    setPartyContainer,
     lastGeneratedData,
     committedTrackerData
 } from '../../core/state.js';
@@ -277,6 +280,7 @@ export function updateSectionVisibility() {
     // Refresh container references first (in case they were detached during tab operations)
     setInventoryContainer($('#rpg-inventory'));
     setQuestsContainer($('#rpg-quests'));
+    setPartyContainer($('#rpg-party'));
 
     // Show/hide sections based on settings
     // Use explicit .show()/.hide() instead of .toggle() to ensure proper state on reload
@@ -284,6 +288,14 @@ export function updateSectionVisibility() {
         $userStatsContainer.show();
     } else {
         $userStatsContainer.hide();
+    }
+
+    if ($avatarStatsContainer) {
+        if (extensionSettings.showAvatarStats) {
+            $avatarStatsContainer.show();
+        } else {
+            $avatarStatsContainer.hide();
+        }
     }
 
     if (extensionSettings.showInfoBox) {
@@ -302,6 +314,14 @@ export function updateSectionVisibility() {
         $thoughtsContainer.show();
     } else {
         $thoughtsContainer.hide();
+    }
+
+    if ($partyContainer) {
+        if (extensionSettings.showParty) {
+            $partyContainer.show();
+        } else {
+            $partyContainer.hide();
+        }
     }
 
     // Use direct DOM selectors for inventory and quests to avoid stale references
@@ -328,16 +348,25 @@ export function updateSectionVisibility() {
     // Show/hide dividers intelligently
     // Divider after User Stats: shown if User Stats is visible AND at least one section after it is visible
     const showDividerAfterStats = extensionSettings.showUserStats &&
-        (extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts || extensionSettings.showInventory || extensionSettings.showQuests || extensionSettings.enableSpotifyMusic);
+        (extensionSettings.showAvatarStats || extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts || extensionSettings.showParty || extensionSettings.showInventory || extensionSettings.showQuests || extensionSettings.enableSpotifyMusic);
     if (showDividerAfterStats) {
         $('#rpg-divider-stats').show();
     } else {
         $('#rpg-divider-stats').hide();
     }
 
+    // Divider after Avatar Stats: shown if Avatar Stats is visible AND at least one section after it is visible
+    const showDividerAfterAvatarStats = extensionSettings.showAvatarStats &&
+        (extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts || extensionSettings.showParty || extensionSettings.showInventory || extensionSettings.showQuests || extensionSettings.enableSpotifyMusic);
+    if (showDividerAfterAvatarStats) {
+        $('#rpg-divider-avatar-stats').show();
+    } else {
+        $('#rpg-divider-avatar-stats').hide();
+    }
+
     // Divider after Info Box: shown if Info Box is visible AND at least one section after it is visible
     const showDividerAfterInfo = extensionSettings.showInfoBox &&
-        (extensionSettings.showCharacterThoughts || extensionSettings.showInventory || extensionSettings.showQuests);
+        (extensionSettings.showCharacterThoughts || extensionSettings.showParty || extensionSettings.showInventory || extensionSettings.showQuests);
     if (showDividerAfterInfo) {
         $('#rpg-divider-info').show();
     } else {
@@ -346,11 +375,20 @@ export function updateSectionVisibility() {
 
     // Divider after Thoughts: shown if Thoughts is visible AND at least one section after it is visible
     const showDividerAfterThoughts = extensionSettings.showCharacterThoughts &&
-        (extensionSettings.showInventory || extensionSettings.showQuests || extensionSettings.enableSpotifyMusic);
+        (extensionSettings.showParty || extensionSettings.showInventory || extensionSettings.showQuests || extensionSettings.enableSpotifyMusic);
     if (showDividerAfterThoughts) {
         $('#rpg-divider-thoughts').show();
     } else {
         $('#rpg-divider-thoughts').hide();
+    }
+
+    // Divider after Party: shown if Party is visible AND at least one section after it is visible
+    const showDividerAfterParty = extensionSettings.showParty &&
+        (extensionSettings.showInventory || extensionSettings.showQuests || extensionSettings.enableSpotifyMusic);
+    if (showDividerAfterParty) {
+        $('#rpg-divider-party').show();
+    } else {
+        $('#rpg-divider-party').hide();
     }
 
     // Divider after Inventory: shown if Inventory is visible AND (Quests or Music) is visible
@@ -398,6 +436,7 @@ export function updateSectionVisibility() {
         // Refresh container references
         setInventoryContainer($('#rpg-inventory'));
         setQuestsContainer($('#rpg-quests'));
+        setPartyContainer($('#rpg-party'));
     }
 }
 

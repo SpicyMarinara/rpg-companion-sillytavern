@@ -17,7 +17,37 @@ import {
 import { i18n } from '../../core/i18n.js';
 import { saveChatData, saveSettings } from '../../core/persistence.js';
 import { getSafeThumbnailUrl } from '../../utils/avatars.js';
+import { regenerateAvatar } from '../features/avatarGenerator.js';
 import { isItemLocked, setItemLock } from '../generation/lockManager.js';
+import { promoteNpcToCompanion } from '../features/partyManager.js';
+
+/**
+ * Opens a fullscreen lightbox showing the given avatar image.
+ * @param {string} src - Image URL or data URI
+ * @param {string} name - Character name label
+ */
+function openAvatarLightbox(src, name) {
+    $('#rpg-avatar-lightbox').remove();
+    const escapedName = (name || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const $lb = $(`
+        <div id="rpg-avatar-lightbox">
+            <div class="rpg-avatar-lightbox-backdrop"></div>
+            <div class="rpg-avatar-lightbox-content">
+                <button class="rpg-avatar-lightbox-close" type="button" title="Close">×</button>
+                <img src="${src}" alt="${escapedName}" />
+                <div class="rpg-avatar-lightbox-name">${escapedName}</div>
+            </div>
+        </div>
+    `);
+    $('body').append($lb);
+
+    $lb.find('.rpg-avatar-lightbox-backdrop, .rpg-avatar-lightbox-close').on('click', function () {
+        $lb.remove();
+    });
+    $(document).one('keydown.rpg-lightbox', function (e) {
+        if (e.key === 'Escape') $lb.remove();
+    });
+}
 
 /**
  * Helper to generate lock icon HTML if setting is enabled
@@ -500,16 +530,22 @@ export function renderThoughts({ preserveScroll = false } = {}) {
 
                 debugLog(`[RPG Thoughts] Building HTML card for ${char.name}...`);
 
+                const isCompanion = (extensionSettings.partyMembers || []).some(m => m.name === char.name);
                 html += `
                     <div class="rpg-character-card" data-character-name="${char.name}">
                         <div class="rpg-character-header-row">
                             <div class="rpg-character-avatar rpg-avatar-upload" data-character="${char.name}" title="${i18n.getTranslation('thoughts.clickToUpload')}">
                                 <img src="${characterPortrait}" alt="${char.name}" onerror="this.style.opacity='0.5';this.onerror=null;" />
+                                <button class="rpg-avatar-view-full" data-character="${char.name}" type="button" title="View full portrait"><i class="fa-solid fa-expand"></i></button>
                                 ${hasRelationshipEnabled ? `<div class="rpg-relationship-badge rpg-editable" contenteditable="true" data-character="${char.name}" data-field="${relationshipFieldName}" title="${i18n.getTranslation('thoughts.clickToEdit')} (emoji: ⚔️ ⚖️ ⭐ ❤️)">${relationshipBadge}</div>` : ''}
                             </div>
                             <div class="rpg-character-header">
                                 <span class="rpg-character-emoji rpg-editable" contenteditable="true" data-character="${char.name}" data-field="emoji" title="${i18n.getTranslation('thoughts.clickToEdit')}">${char.emoji}</span>
                                 <span class="rpg-character-name rpg-editable" contenteditable="true" data-character="${char.name}" data-field="name" title="${i18n.getTranslation('thoughts.clickToEdit')}">${char.name}</span>
+                                <button class="rpg-avatar-regenerate" data-character="${char.name}" title="Regenerate avatar"><i class="fa-solid fa-image"></i></button>
+                                ${isCompanion
+                                    ? `<button class="rpg-promote-to-companion rpg-promote-to-companion--active" data-character="${char.name}" title="Already a companion" disabled><i class="fa-solid fa-user-check"></i></button>`
+                                    : `<button class="rpg-promote-to-companion" data-character="${char.name}" title="Add to party as companion"><i class="fa-solid fa-user-plus"></i></button>`}
                                 <button class="rpg-character-remove" data-character="${char.name}" title="${i18n.getTranslation('thoughts.removeCharacter')}">×</button>
                             </div>
                         </div>
@@ -650,6 +686,49 @@ export function renderThoughts({ preserveScroll = false } = {}) {
 
         const characterName = $(this).data('character');
         removeCharacter(characterName);
+    });
+
+    // Add event listener for avatar regenerate button
+    $thoughtsContainer.find('.rpg-avatar-regenerate').on('click', async function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const characterName = $(this).data('character');
+        const $btn = $(this);
+        $btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i>');
+
+        try {
+            const newUrl = await regenerateAvatar(characterName);
+            if (newUrl) {
+                const $avatar = $thoughtsContainer.find(`.rpg-avatar-upload[data-character="${characterName}"] img`);
+                $avatar.attr('src', newUrl);
+            }
+        } finally {
+            $btn.prop('disabled', false).html('<i class="fa-solid fa-image"></i>');
+        }
+    });
+
+    // Promote NPC to party companion
+    $thoughtsContainer.find('.rpg-promote-to-companion:not([disabled])').on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const charName = $(this).data('character');
+        promoteNpcToCompanion(charName);
+        // Update button to "already companion" state without full re-render
+        $(this)
+            .addClass('rpg-promote-to-companion--active')
+            .attr('disabled', true)
+            .attr('title', 'Already a companion')
+            .html('<i class="fa-solid fa-user-check"></i>');
+    });
+
+    // View full-size avatar
+    $thoughtsContainer.find('.rpg-avatar-view-full').on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const charName = $(this).data('character');
+        const src = $(this).siblings('img').attr('src');
+        if (src) openAvatarLightbox(src, charName);
     });
 
     // Add event listener for avatar upload clicks

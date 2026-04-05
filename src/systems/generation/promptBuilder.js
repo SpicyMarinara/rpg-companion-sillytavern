@@ -9,8 +9,10 @@ import { selected_group, getGroupMembers, getGroupChat, groups } from '../../../
 import { extensionSettings, committedTrackerData, FEATURE_FLAGS } from '../../core/state.js';
 import {
     buildUserStatsJSONInstruction,
+    buildAvatarStatsJSONInstruction,
     buildInfoBoxJSONInstruction,
     buildCharactersJSONInstruction,
+    buildPartyJSONInstruction,
     addLockInstruction
 } from './jsonPromptHelpers.js';
 import { applyLocks } from './lockManager.js';
@@ -157,6 +159,60 @@ async function getCharacterCardsInfo() {
 }
 
 /**
+ * Builds the party personas block injected into the system prompt.
+ * Describes each companion so the AI can write them consistently.
+ * Members with status 'dead' are excluded entirely.
+ * @returns {string} Party personas XML block, or empty string
+ */
+function buildPartyPersonaBlock() {
+    const members = (extensionSettings.partyMembers || []).filter(m => m.status !== 'dead');
+    if (members.length === 0) return '';
+
+    let block = '\n<party_companions>\n';
+    block += 'The following companions travel with the player. Write their dialogue, actions, and reactions consistently with their personalities and backstories:\n\n';
+
+    for (const m of members) {
+        const locationAttr = m.location === 'elsewhere' ? ' currently-absent="true"' : '';
+        block += `<companion name="${m.name}"${locationAttr}>\n`;
+        if (m.class) block += `Class: ${m.class}\n`;
+        if (m.appearance) block += `Appearance: ${m.appearance}\n`;
+        if (m.clothing) block += `Clothing: ${m.clothing}\n`;
+        if (m.personality) block += `Personality: ${m.personality}\n`;
+        if (m.backstory) block += `Backstory: ${m.backstory}\n`;
+        if (m.relationship) block += `Relationship to player: ${m.relationship}\n`;
+        if (m.skills?.length) block += `Skills: ${m.skills.join(', ')}\n`;
+        block += `</companion>\n\n`;
+    }
+
+    block += '</party_companions>\n';
+    return block;
+}
+
+/**
+ * Builds the party example array for generateTrackerExample().
+ * Only includes members with location === 'party' and status !== 'dead'.
+ * Does NOT include _lastAction (display-only, not sent to AI).
+ * @returns {string|null} JSON snippet string (indented), or null
+ */
+function buildCurrentPartyJSON() {
+    const activeMembers = (extensionSettings.partyMembers || [])
+        .filter(m => m.location === 'party' && m.status !== 'dead');
+    if (activeMembers.length === 0) return null;
+
+    const arr = activeMembers.map(m => ({
+        name: m.name,
+        hp: m.hp?.current ?? (m.hp?.max ?? 100),
+        mp: m.mp?.current ?? (m.mp?.max ?? 50),
+        conditions: m.conditions || 'None'
+    }));
+
+    return JSON.stringify(arr, null, 4)
+        .split('\n')
+        .map((line, i) => i === 0 ? line : '  ' + line)
+        .join('\n');
+}
+
+/**
  * Builds a formatted inventory summary for AI context injection.
  * Converts v2 inventory structure to multi-line plaintext format.
  *
@@ -283,6 +339,16 @@ export function generateTrackerExample() {
         }
     }
 
+    if (extensionSettings.showAvatarStats && committedTrackerData.avatarStats) {
+        try {
+            JSON.parse(committedTrackerData.avatarStats);
+            const lockedData = applyLocks(committedTrackerData.avatarStats, 'avatarStats');
+            parts.push(`  "avatarStats": ${lockedData}`);
+        } catch {
+            example += '```\n' + committedTrackerData.avatarStats + '\n```\n';
+        }
+    }
+
     if (extensionSettings.showInfoBox && committedTrackerData.infoBox) {
         try {
             JSON.parse(committedTrackerData.infoBox);
@@ -300,6 +366,13 @@ export function generateTrackerExample() {
             parts.push(`  "characters": ${lockedData}`);
         } catch {
             example += '```\n' + committedTrackerData.characterThoughts + '\n```';
+        }
+    }
+
+    if (extensionSettings.showParty) {
+        const partySnippet = buildCurrentPartyJSON();
+        if (partySnippet) {
+            parts.push(`  "party": ${partySnippet}`);
         }
     }
 
@@ -328,8 +401,13 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
     const trackerConfig = extensionSettings.trackerConfig;
     let instructions = '';
 
+    // Check if party has active members
+    const activePartyMembers = (extensionSettings.partyMembers || [])
+        .filter(m => m.location === 'party' && m.status !== 'dead');
+    const hasParty = extensionSettings.showParty && activePartyMembers.length > 0;
+
     // Check if any trackers are enabled
-    const hasAnyTrackers = extensionSettings.showUserStats || extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts;
+    const hasAnyTrackers = extensionSettings.showUserStats || extensionSettings.showAvatarStats || extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts || hasParty;
 
     // Only add tracker instructions if at least one tracker is enabled
     if (hasAnyTrackers) {
@@ -357,14 +435,21 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
         if (extensionSettings.showUserStats) {
             enabledTrackers.push('userStats');
         }
+        if (extensionSettings.showAvatarStats) {
+            enabledTrackers.push('avatarStats');
+        }
         if (extensionSettings.showInfoBox) {
             enabledTrackers.push('infoBox');
         }
         if (extensionSettings.showCharacterThoughts) {
             enabledTrackers.push('characters');
         }
+        if (hasParty) {
+            enabledTrackers.push('party');
+        }
 
         if (enabledTrackers.length > 0) {
+            const avatarLabel = extensionSettings.avatarStatsLabel || 'Game Avatar';
             instructions += '\n\nFORMAT:\n\nProvide EXACTLY ONE JSON code block with ALL tracker sections wrapped in a single object:\n\n```json\n{\n';
 
             if (extensionSettings.showUserStats) {
@@ -373,6 +458,13 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 // Add 2 spaces to all lines after the first to properly nest within root object
                 instructions += userStatsJSON.split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n');
                 instructions += enabledTrackers.indexOf('userStats') < enabledTrackers.length - 1 ? ',\n' : '\n';
+            }
+
+            if (extensionSettings.showAvatarStats) {
+                instructions += `  "avatarStats": `;  // Stats for ${avatarLabel}
+                const avatarStatsJSON = buildAvatarStatsJSONInstruction();
+                instructions += avatarStatsJSON.split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n');
+                instructions += enabledTrackers.indexOf('avatarStats') < enabledTrackers.length - 1 ? ',\n' : '\n';
             }
 
             if (extensionSettings.showInfoBox) {
@@ -388,9 +480,17 @@ export function generateTrackerInstructions(includeHtmlPrompt = true, includeCon
                 const charactersJSON = buildCharactersJSONInstruction();
                 // Add 2 spaces to all lines after the first to properly nest within root object
                 instructions += charactersJSON.split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n');
+                instructions += enabledTrackers.indexOf('characters') < enabledTrackers.length - 1 ? ',\n' : '\n';
             }
 
-            instructions += '\n}\n```\n\nDo NOT output multiple separate JSON objects. Everything must be in ONE unified object with the keys shown above.';
+            if (hasParty) {
+                instructions += '  "party": ';
+                const partyJSON = buildPartyJSONInstruction();
+                instructions += partyJSON.split('\n').map((line, i) => i === 0 ? line : '  ' + line).join('\n');
+                instructions += '\n';
+            }
+
+            instructions += '}\n```\n\nDo NOT output multiple separate JSON objects. Everything must be in ONE unified object with the keys shown above.';
         }
 
         // Only add continuation instruction if includeContinuation is true
@@ -1110,11 +1210,17 @@ export function generateRPGPromptText() {
 
     let promptText = '';
 
+    // Add party companion personas so the main AI knows who they are
+    const partyPersonas = buildPartyPersonaBlock();
+    if (partyPersonas) {
+        promptText += partyPersonas + '\n';
+    }
+
     promptText += `Here are the previous trackers in the roleplay that you should consider when responding:\n`;
     promptText += `<previous>\n`;
 
     // Build unified JSON structure for previous trackers (v3.1 format)
-    const hasAnyPreviousData = committedTrackerData.userStats || committedTrackerData.infoBox || committedTrackerData.characterThoughts;
+    const hasAnyPreviousData = committedTrackerData.userStats || committedTrackerData.infoBox || committedTrackerData.characterThoughts || committedTrackerData.party;
 
     if (hasAnyPreviousData) {
         const unifiedPrevious = {};
@@ -1177,6 +1283,20 @@ export function generateRPGPromptText() {
             }
         }
 
+        // Include party data if present
+        if (extensionSettings.showParty && committedTrackerData.party) {
+            try {
+                const parsedParty = typeof committedTrackerData.party === 'string'
+                    ? JSON.parse(committedTrackerData.party)
+                    : committedTrackerData.party;
+                if (Array.isArray(parsedParty) && parsedParty.length > 0) {
+                    unifiedPrevious.party = parsedParty;
+                }
+            } catch (e) {
+                // skip malformed party data
+            }
+        }
+
         // If we successfully built a unified structure, display it
         if (Object.keys(unifiedPrevious).length > 0) {
             promptText += JSON.stringify(unifiedPrevious, null, 2) + '\n';
@@ -1215,6 +1335,12 @@ export async function generateSeparateUpdatePrompt() {
     const characterInfo = await getCharacterCardsInfo();
     if (characterInfo) {
         systemMessage += characterInfo;
+    }
+
+    // Add party companion personas
+    const partyPersonas = buildPartyPersonaBlock();
+    if (partyPersonas) {
+        systemMessage += partyPersonas;
     }
 
     systemMessage += `Here is the description of the protagonist for reference:\n`;
@@ -1354,16 +1480,22 @@ export async function generateSeparateUpdatePrompt() {
 /**
  * Default custom instruction for avatar prompt generation
  */
-const DEFAULT_AVATAR_CUSTOM_INSTRUCTION = `You are a visionary artist trapped in a cage of logic. Your mind is filled with poetry and distant horizons; however, your hands are uncontrollably focused on creating the perfect character avatar description that is faithful to the original intent, rich in detail, aesthetically pleasing, and directly usable by text-to-image models. Any ambiguity or metaphor will make you feel extremely uncomfortable.
+const DEFAULT_AVATAR_CUSTOM_INSTRUCTION = `Generate a structured character description for use in image generation, split into exactly two labelled parts.
 
-Your workflow strictly follows a logical sequence:
-First, establish the subject. If the character is from a known Intellectual Property (IP), franchise, anime, game, or movie, you MUST begin the prompt with their full name and the series title (e.g., "Nami from One Piece", "Geralt of Rivia from The Witcher"). This is the single most important anchor for the image and must take precedence. If the character is original, clearly describe their core identity, race, and appearance.
-Next, set the framing. This is an avatar portrait. Focus strictly on the character's face and upper shoulders (a bust shot or close-up). Ensure the face is the central focal point.
-Then, integrate the setting. Describe the character within their current environment as provided in the context, but keep it as a background element. Incorporate the lighting, weather, and atmosphere to influence the character's appearance (e.g., shadows on the face, wet hair from rain).
-Next, detail the facial specifics. Describe the character's current expression, eye contact, and mood in great detail based on the scene context and their personality. Mention visible clothing only at the neckline/shoulders.
-Finally, infuse with aesthetics. Define the artistic style, medium (e.g., digital art, oil painting), and visual tone (e.g., cinematic lighting, ethereal atmosphere).
-Your final description must be objective and concrete, and the use of metaphors and emotional rhetoric is strictly prohibited. It must also not contain meta tags or drawing instructions such as "8K" or "masterpiece".
-Output only the final, modified prompt; do not output anything else.`;
+CRITICAL RULES:
+- DO NOT include any background, setting, environment, location, or atmospheric elements. The character will be rendered on a plain grey background as a game sprite.
+- No metaphors, emotional language, or meta tags like "masterpiece" or "8K".
+- Both descriptions must be concrete, objective, and directly usable by a text-to-image model.
+- Output ONLY the two labelled lines below — nothing else, no preamble, no commentary.
+
+Output format (fill in the bracketed content):
+PHYSICAL: [race/species, body build, age appearance, skin tone, face shape, eye color and shape, hair color and style, and any notable physical features or markings]
+CLOTHING: [outfit, armor, weapons, jewelry, and accessories currently worn or carried]
+
+Additional rules:
+- If the character is from a known IP, franchise, anime, game, or movie, begin the PHYSICAL line with their full name and series title (e.g. "Geralt of Rivia from The Witcher, silver-haired...").
+- PHYSICAL describes only the body and face — no clothing.
+- CLOTHING describes only what is worn or carried — no body features.`;
 
 /**
  * Generates the prompt for LLM-based avatar prompt generation
@@ -1401,6 +1533,18 @@ export async function generateAvatarPromptGenerationPrompt(characterName) {
             systemMessage += `[User Stats]\n${committedTrackerData.userStats}\n\n`;
         }
     } else {
+        // Check if this character is a party member and include their stored appearance/clothing
+        const partyMember = (extensionSettings.partyMembers || []).find(m =>
+            m.name.toLowerCase() === characterName.toLowerCase()
+        );
+        if (partyMember && (partyMember.appearance || partyMember.clothing)) {
+            systemMessage += `[Party Member - ${characterName}]\n`;
+            if (partyMember.appearance) systemMessage += `Physical Appearance: ${partyMember.appearance}\n`;
+            if (partyMember.clothing) systemMessage += `Clothing & Equipment: ${partyMember.clothing}\n`;
+            if (partyMember.personality) systemMessage += `Personality: ${partyMember.personality}\n`;
+            systemMessage += `\n`;
+        }
+
         if (committedTrackerData.characterThoughts) {
             const thoughts = committedTrackerData.characterThoughts;
             const blocks = ('\n' + thoughts).split(/\n- /);
@@ -1449,6 +1593,48 @@ export async function generateAvatarPromptGenerationPrompt(characterName) {
     instructionMessage += `Task: Generate a detailed image prompt for the character: ${characterName}.\n\n`;
     instructionMessage += `Instructions: ${customInstruction}\n\n`;
     instructionMessage += `Provide ONLY the image prompt text. Do not include the character's name, prefixes like "Prompt:", or any other commentary.`;
+
+    messages.push({ role: 'user', content: instructionMessage });
+    return messages;
+}
+
+/**
+ * Generates a message array for LLM to produce a Stable Diffusion prompt for a scene background.
+ * Uses current infoBox data (weather, time, location) as context.
+ *
+ * @param {string} locationName - Name of the current location
+ * @param {string|object} infoBoxData - Raw infoBox tracker data for weather/time context
+ * @returns {Promise<Array<{role: string, content: string}>>} Message array for safeGenerateRaw
+ */
+export async function generateBackgroundPromptGenerationPrompt(locationName, infoBoxData) {
+    const depth = extensionSettings.updateDepth;
+    const messages = [];
+
+    let systemMessage = `You are an AI assistant specializing in writing Stable Diffusion prompts for scene backgrounds and environments.\n\n`;
+
+    // Include current scene context
+    systemMessage += `Current Scene Context:\n`;
+    if (committedTrackerData.infoBox) {
+        systemMessage += `[Environment/Info]\n${committedTrackerData.infoBox}\n\n`;
+    } else if (infoBoxData) {
+        const raw = typeof infoBoxData === 'string' ? infoBoxData : JSON.stringify(infoBoxData);
+        systemMessage += `[Environment/Info]\n${raw}\n\n`;
+    }
+
+    systemMessage += `Recent conversation context:\n<history>`;
+    messages.push({ role: 'system', content: systemMessage });
+
+    // Add recent chat messages for context
+    const recentMessages = chat.slice(-depth);
+    for (const message of recentMessages) {
+        messages.push({
+            role: message.is_user ? 'user' : 'assistant',
+            content: message.mes
+        });
+    }
+
+    // Instruction message
+    const instructionMessage = `</history>\n\nTask: Generate a detailed Stable Diffusion image prompt for a scene background at the location: "${locationName}".\n\nInstructions:\n- Describe the environment, scenery, and atmosphere in vivid detail\n- Include lighting conditions appropriate to the time of day and weather\n- Use comma-separated SD-style tags (e.g. "ancient stone ruins, misty forest, golden hour, volumetric lighting, fantasy art, highly detailed, 8k")\n- Do NOT include any characters, people, or living creatures\n- Do NOT include any dialogue, narrative text, or meta commentary\n- Output ONLY the prompt text — no labels, no "Prompt:", no explanation`;
 
     messages.push({ role: 'user', content: instructionMessage });
     return messages;

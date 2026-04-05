@@ -160,8 +160,10 @@ function debugLog(message, data = null) {
 export function parseResponse(responseText) {
     const result = {
         userStats: null,
+        avatarStats: null,
         infoBox: null,
-        characterThoughts: null
+        characterThoughts: null,
+        party: null
     };
 
     // DEBUG: Log full response for troubleshooting
@@ -231,12 +233,15 @@ export function parseResponse(responseText) {
         // First, try to parse as unified JSON structure (new v3.1 format)
         if (extractedObjects.length === 1) {
             const parsed = repairJSON(extractedObjects[0]);
-            if (parsed && (parsed.userStats || parsed.infoBox || parsed.characters)) {
+            if (parsed && (parsed.userStats || parsed.avatarStats || parsed.infoBox || parsed.characters || parsed.party)) {
                 // console.log('[RPG Parser] ✓ Detected unified JSON structure (v3.1 format)');
 
                 if (parsed.userStats) {
                     result.userStats = JSON.stringify(parsed.userStats);
                     // console.log('[RPG Parser] ✓ Extracted userStats from unified structure');
+                }
+                if (parsed.avatarStats) {
+                    result.avatarStats = JSON.stringify(parsed.avatarStats);
                 }
                 if (parsed.infoBox) {
                     result.infoBox = JSON.stringify(parsed.infoBox);
@@ -246,8 +251,12 @@ export function parseResponse(responseText) {
                     result.characterThoughts = JSON.stringify(parsed.characters);
                     // console.log('[RPG Parser] ✓ Extracted characters from unified structure');
                 }
+                if (parsed.party && Array.isArray(parsed.party)) {
+                    result.party = JSON.stringify(parsed.party);
+                    // console.log('[RPG Parser] ✓ Extracted party from unified structure');
+                }
 
-                if (result.userStats || result.infoBox || result.characterThoughts) {
+                if (result.userStats || result.avatarStats || result.infoBox || result.characterThoughts || result.party) {
                     // console.log('[RPG Parser] ✓ Returning unified JSON parse results');
                     debugLog('[RPG Parser] Returning unified JSON parse results');
                     return result;
@@ -523,7 +532,7 @@ export function parseResponse(responseText) {
     debugLog('[RPG Parser] =======================================================');
 
     // Check if we found at least one section - if not, mark as parsing failure
-    if (!result.userStats && !result.infoBox && !result.characterThoughts) {
+    if (!result.userStats && !result.infoBox && !result.characterThoughts && !result.party) {
         result.parsingFailed = true;
         console.error('[RPG Parser] ❌ No tracker data found in response - parsing failed');
     }
@@ -838,6 +847,55 @@ export function parseUserStats(statsText) {
         console.error('[RPG Companion] Stack trace:', error.stack);
         debugLog('[RPG Parser] ERROR:', error.message);
         debugLog('[RPG Parser] Stack:', error.stack);
+    }
+}
+
+/**
+ * Parses avatar stats JSON and updates extensionSettings.avatarStats.
+ * Mirrors parseUserStats but for the secondary game-avatar stat panel.
+ *
+ * @param {string} statsText - JSON string from AI response (avatarStats block)
+ */
+export function parseAvatarStats(statsText) {
+    if (!statsText) return;
+
+    try {
+        const statsData = repairJSON(statsText);
+        if (!statsData) return;
+
+        const avatarStats = extensionSettings.avatarStats;
+        const avatarConfig = extensionSettings.trackerConfig?.avatarStats;
+
+        // Update numeric stats from the stats array
+        if (statsData.stats && Array.isArray(statsData.stats)) {
+            for (const stat of statsData.stats) {
+                if (stat && stat.id !== undefined) {
+                    const value = stat.value !== undefined ? stat.value : (stat.locked?.value !== undefined ? stat.locked.value : undefined);
+                    if (value !== undefined) {
+                        const numVal = parseInt(value);
+                        if (!isNaN(numVal)) {
+                            avatarStats[stat.id] = numVal;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Update status fields
+        if (statsData.status && typeof statsData.status === 'object') {
+            const customFields = avatarConfig?.statusSection?.customFields || [];
+            for (const fieldName of customFields) {
+                const fieldKey = fieldName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+                const rawVal = statsData.status[fieldKey];
+                if (rawVal !== undefined) {
+                    avatarStats[fieldKey] = Array.isArray(rawVal) ? rawVal.join(', ') : String(rawVal);
+                }
+            }
+        }
+
+        saveSettings();
+    } catch (error) {
+        console.warn('[RPG Companion] Error parsing avatar stats:', error);
     }
 }
 

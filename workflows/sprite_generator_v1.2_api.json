@@ -1,0 +1,847 @@
+{
+  "303": {
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    },
+    "inputs": {
+      "model_name": "segm/person_yolov8m-seg.pt"
+    }
+  },
+  "304": {
+    "class_type": "SAMLoader",
+    "_meta": {
+      "title": "SAMLoader"
+    },
+    "inputs": {
+      "model_name": "sam_vit_b_01ec64.pth",
+      "device_mode": "AUTO"
+    }
+  },
+  "295": {
+    "class_type": "ImpactSimpleDetectorSEGS",
+    "_meta": {
+      "title": "ImpactSimpleDetectorSEGS"
+    },
+    "inputs": {
+      "bbox_detector": [
+        "303",
+        0
+      ],
+      "image": [
+        "298",
+        0
+      ],
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 0,
+      "crop_factor": 3,
+      "drop_size": 10,
+      "sub_threshold": 0.5,
+      "sub_dilation": 0,
+      "sub_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7000000000000001,
+      "post_dilation": 0,
+      "sam_model_opt": [
+        "304",
+        0
+      ]
+    }
+  },
+  "97": {
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAEDecode"
+    },
+    "inputs": {
+      "samples": [
+        "85",
+        0
+      ],
+      "vae": [
+        "86",
+        2
+      ]
+    }
+  },
+  "782": {
+    "class_type": "SAMLoader",
+    "_meta": {
+      "title": "SAMLoader"
+    },
+    "inputs": {
+      "model_name": "sam_vit_b_01ec64.pth",
+      "device_mode": "AUTO"
+    }
+  },
+  "783": {
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    },
+    "inputs": {
+      "model_name": "segm/PitHandDetailer-v1b-seg.pt"
+    }
+  },
+  "75": {
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAEDecode"
+    },
+    "inputs": {
+      "samples": [
+        "277",
+        0
+      ],
+      "vae": [
+        "86",
+        2
+      ]
+    }
+  },
+  "74": {
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAEEncode"
+    },
+    "inputs": {
+      "pixels": [
+        "73",
+        0
+      ],
+      "vae": [
+        "86",
+        2
+      ]
+    }
+  },
+  "73": {
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "ImageScaleBy"
+    },
+    "inputs": {
+      "image": [
+        "75",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "scale_by": 1.5000000000000002
+    }
+  },
+  "299": {
+    "class_type": "ImpactMakeTileSEGS",
+    "_meta": {
+      "title": "ImpactMakeTileSEGS"
+    },
+    "inputs": {
+      "images": [
+        "298",
+        0
+      ],
+      "bbox_size": 1024,
+      "crop_factor": 1.4000000000000001,
+      "min_overlap": 200,
+      "filter_segs_dilation": 100,
+      "mask_irregularity": 0.7000000000000001,
+      "irregular_mask_mode": "Reuse fast",
+      "filter_in_segs_opt": [
+        "295",
+        0
+      ]
+    }
+  },
+  "78": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIPTextEncode"
+    },
+    "inputs": {
+      "text": [
+        "908",
+        0
+      ],
+      "clip": [
+        "305",
+        1
+      ]
+    }
+  },
+  "718": {
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    },
+    "inputs": {
+      "images": [
+        "784",
+        0
+      ],
+      "filename_prefix": "Sprite"
+    }
+  },
+  "907": {
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "StringConcatenate"
+    },
+    "inputs": {
+      "string_a": [
+        "487",
+        0
+      ],
+      "string_b": [
+        "906",
+        0
+      ],
+      "delimiter": ","
+    }
+  },
+  "908": {
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "StringConcatenate"
+    },
+    "inputs": {
+      "string_a": [
+        "907",
+        0
+      ],
+      "string_b": [
+        "909",
+        0
+      ],
+      "delimiter": ","
+    }
+  },
+  "548": {
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    },
+    "inputs": {
+      "model_name": "segm/Face YOLO v3.pt"
+    }
+  },
+  "321": {
+    "class_type": "ToBasicPipe",
+    "_meta": {
+      "title": "ToBasicPipe"
+    },
+    "inputs": {
+      "model": [
+        "305",
+        0
+      ],
+      "clip": [
+        "305",
+        1
+      ],
+      "vae": [
+        "86",
+        2
+      ],
+      "positive": [
+        "78",
+        0
+      ],
+      "negative": [
+        "87",
+        0
+      ]
+    }
+  },
+  "87": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Negative"
+    },
+    "inputs": {
+      "text": "text, watermark,",
+      "clip": [
+        "305",
+        1
+      ]
+    }
+  },
+  "957": {
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "Seed (rgthree)"
+    },
+    "inputs": {
+      "seed": 680072528306240
+    }
+  },
+  "958": {
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "Seed (rgthree)"
+    },
+    "inputs": {
+      "seed": 680072528306240
+    }
+  },
+  "920": {
+    "class_type": "DetailerForEachDebugPipe",
+    "_meta": {
+      "title": "Body DetailerDebug (SEGS/pipe)"
+    },
+    "inputs": {
+      "image": [
+        "917",
+        0
+      ],
+      "segs": [
+        "916",
+        0
+      ],
+      "guide_size": 64,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "seed": [
+        "958",
+        0
+      ],
+      "steps": 15,
+      "cfg": [
+        "940",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 0.4,
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "basic_pipe": [
+        "321",
+        0
+      ],
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 50,
+      "tiled_encode": true,
+      "tiled_decode": true
+    }
+  },
+  "556": {
+    "class_type": "FaceDetailer",
+    "_meta": {
+      "title": "FaceDetailer"
+    },
+    "inputs": {
+      "image": [
+        "920",
+        0
+      ],
+      "model": [
+        "305",
+        0
+      ],
+      "clip": [
+        "305",
+        1
+      ],
+      "vae": [
+        "86",
+        2
+      ],
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "seed": [
+        "959",
+        0
+      ],
+      "steps": 20,
+      "cfg": [
+        "940",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": [
+        "78",
+        0
+      ],
+      "negative": [
+        "87",
+        0
+      ],
+      "denoise": 0.5,
+      "feather": 5,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 10,
+      "bbox_crop_factor": 3,
+      "sam_detection_hint": "center-1",
+      "sam_dilation": 0,
+      "sam_threshold": 0.93,
+      "sam_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7,
+      "sam_mask_hint_use_negative": "False",
+      "drop_size": 10,
+      "bbox_detector": [
+        "548",
+        0
+      ],
+      "wildcard": "",
+      "cycle": 1,
+      "sam_model_opt": [
+        "549",
+        0
+      ],
+      "segm_detector_opt": [
+        "548",
+        1
+      ],
+      "inpaint_model": false,
+      "noise_mask_feather": 20,
+      "tiled_encode": true,
+      "tiled_decode": true
+    }
+  },
+  "549": {
+    "class_type": "SAMLoader",
+    "_meta": {
+      "title": "SAMLoader"
+    },
+    "inputs": {
+      "model_name": "sam_vit_b_01ec64.pth",
+      "device_mode": "AUTO"
+    }
+  },
+  "302": {
+    "class_type": "DetailerForEachDebugPipe",
+    "_meta": {
+      "title": "Body DetailerDebug (SEGS/pipe)"
+    },
+    "inputs": {
+      "image": [
+        "298",
+        0
+      ],
+      "segs": [
+        "299",
+        0
+      ],
+      "guide_size": 64,
+      "guide_size_for": true,
+      "max_size": 1024,
+      "seed": [
+        "957",
+        0
+      ],
+      "steps": 15,
+      "cfg": [
+        "940",
+        0
+      ],
+      "sampler_name": "dpmpp_2m_sde_gpu",
+      "scheduler": "karras",
+      "denoise": 0.45,
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "basic_pipe": [
+        "321",
+        0
+      ],
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 50,
+      "tiled_encode": true,
+      "tiled_decode": true
+    }
+  },
+  "960": {
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "Seed (rgthree)"
+    },
+    "inputs": {
+      "seed": 680072528306240
+    }
+  },
+  "959": {
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "Seed (rgthree)"
+    },
+    "inputs": {
+      "seed": 680072528306240
+    }
+  },
+  "784": {
+    "class_type": "FaceDetailer",
+    "_meta": {
+      "title": "HandDetailer"
+    },
+    "inputs": {
+      "image": [
+        "556",
+        0
+      ],
+      "model": [
+        "305",
+        0
+      ],
+      "clip": [
+        "305",
+        1
+      ],
+      "vae": [
+        "86",
+        2
+      ],
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "seed": [
+        "960",
+        0
+      ],
+      "steps": 20,
+      "cfg": [
+        "940",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": [
+        "78",
+        0
+      ],
+      "negative": [
+        "87",
+        0
+      ],
+      "denoise": 0.45,
+      "feather": 5,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 10,
+      "bbox_crop_factor": 3,
+      "sam_detection_hint": "center-1",
+      "sam_dilation": 0,
+      "sam_threshold": 0.93,
+      "sam_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7,
+      "sam_mask_hint_use_negative": "False",
+      "drop_size": 10,
+      "bbox_detector": [
+        "783",
+        0
+      ],
+      "wildcard": "",
+      "cycle": 1,
+      "sam_model_opt": [
+        "782",
+        0
+      ],
+      "segm_detector_opt": [
+        "783",
+        1
+      ],
+      "inpaint_model": false,
+      "noise_mask_feather": 20,
+      "tiled_encode": true,
+      "tiled_decode": true
+    }
+  },
+  "916": {
+    "class_type": "ImpactMakeTileSEGS",
+    "_meta": {
+      "title": "ImpactMakeTileSEGS"
+    },
+    "inputs": {
+      "images": [
+        "917",
+        0
+      ],
+      "bbox_size": 1024,
+      "crop_factor": 1.4000000000000001,
+      "min_overlap": 200,
+      "filter_segs_dilation": 100,
+      "mask_irregularity": 0.7000000000000001,
+      "irregular_mask_mode": "Reuse fast",
+      "filter_in_segs_opt": [
+        "915",
+        0
+      ]
+    }
+  },
+  "912": {
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    },
+    "inputs": {
+      "model_name": "segm/person_yolov8m-seg.pt"
+    }
+  },
+  "913": {
+    "class_type": "SAMLoader",
+    "_meta": {
+      "title": "SAMLoader"
+    },
+    "inputs": {
+      "model_name": "sam_vit_b_01ec64.pth",
+      "device_mode": "AUTO"
+    }
+  },
+  "915": {
+    "class_type": "ImpactSimpleDetectorSEGS",
+    "_meta": {
+      "title": "ImpactSimpleDetectorSEGS"
+    },
+    "inputs": {
+      "bbox_detector": [
+        "912",
+        0
+      ],
+      "image": [
+        "917",
+        0
+      ],
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 0,
+      "crop_factor": 3,
+      "drop_size": 10,
+      "sub_threshold": 0.5,
+      "sub_dilation": 0,
+      "sub_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7000000000000001,
+      "post_dilation": 0,
+      "sam_model_opt": [
+        "913",
+        0
+      ]
+    }
+  },
+  "917": {
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "ImageScaleBy"
+    },
+    "inputs": {
+      "image": [
+        "302",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "scale_by": 1.5
+    }
+  },
+  "298": {
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "ImageScaleBy"
+    },
+    "inputs": {
+      "image": [
+        "97",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "scale_by": 1.5
+    }
+  },
+  "86": {
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "CheckpointLoaderSimple"
+    },
+    "inputs": {
+      "ckpt_name": "SDXL\\IL\\divingIllustriousFlat_v50VAE.safetensors"
+    }
+  },
+  "909": {
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Style"
+    },
+    "inputs": {
+      "value": ", masterpiece, best quality, amazing quality, very aesthetic, highres, hi res, high quality,\n\nflat anime style, anime screencap,\n\n"
+    }
+  },
+  "940": {
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "cfg"
+    },
+    "inputs": {
+      "value": 3.5
+    }
+  },
+  "305": {
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": {
+      "title": "Power Lora Loader (rgthree)"
+    },
+    "inputs": {
+      "model": [
+        "86",
+        0
+      ],
+      "clip": [
+        "86",
+        1
+      ]
+    }
+  },
+  "85": {
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    },
+    "inputs": {
+      "model": [
+        "305",
+        0
+      ],
+      "seed": [
+        "955",
+        0
+      ],
+      "steps": 20,
+      "cfg": [
+        "940",
+        0
+      ],
+      "sampler_name": "dpmpp_2m_sde_gpu",
+      "scheduler": "karras",
+      "positive": [
+        "78",
+        0
+      ],
+      "negative": [
+        "87",
+        0
+      ],
+      "latent_image": [
+        "74",
+        0
+      ],
+      "denoise": 0.5
+    }
+  },
+  "282": {
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    },
+    "inputs": {
+      "model": [
+        "305",
+        0
+      ],
+      "scheduler": "simple",
+      "steps": 20,
+      "denoise": 1
+    }
+  },
+  "280": {
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    },
+    "inputs": {
+      "sampler_name": "dpmpp_2m"
+    }
+  },
+  "955": {
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "Seed (rgthree)"
+    },
+    "inputs": {
+      "seed": 680072528306240
+    }
+  },
+  "956": {
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "Seed (rgthree)"
+    },
+    "inputs": {
+      "seed": 998439038738263
+    }
+  },
+  "277": {
+    "class_type": "SamplerCustom",
+    "_meta": {
+      "title": "SamplerCustom"
+    },
+    "inputs": {
+      "model": [
+        "305",
+        0
+      ],
+      "add_noise": true,
+      "noise_seed": [
+        "956",
+        0
+      ],
+      "cfg": [
+        "940",
+        0
+      ],
+      "positive": [
+        "78",
+        0
+      ],
+      "negative": [
+        "87",
+        0
+      ],
+      "sampler": [
+        "280",
+        0
+      ],
+      "sigmas": [
+        "282",
+        0
+      ],
+      "latent_image": [
+        "979",
+        0
+      ]
+    }
+  },
+  "487": {
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Char prompt"
+    },
+    "inputs": {
+      "value": "1 girl, medieval villager"
+    }
+  },
+  "906": {
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Full body Sprite"
+    },
+    "inputs": {
+      "value": "(full body:1.1), just standing, looks at the viewer,\n\ngrey background, solid grey background, simple background, #aaaaaa, "
+    }
+  },
+  "979": {
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "EmptyLatentImage"
+    },
+    "inputs": {
+      "width": 704,
+      "height": 1024,
+      "batch_size": 1
+    }
+  }
+}

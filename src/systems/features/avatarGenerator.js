@@ -13,13 +13,26 @@ import { characters, this_chid } from '../../../../../../../script.js';
 import { safeGenerateRaw } from '../../utils/responseExtractor.js';
 import { executeSlashCommandsOnChatInput } from '../../../../../../../scripts/slash-commands.js';
 import { selected_group, getGroupMembers } from '../../../../../../group-chats.js';
-import { extensionSettings, sessionAvatarPrompts, setSessionAvatarPrompt } from '../../core/state.js';
+import { extensionSettings, sessionAvatarPrompts, setSessionAvatarPrompt, setSessionAvatarPhysical, setSessionAvatarClothing } from '../../core/state.js';
 import { saveSettings } from '../../core/persistence.js';
 import { generateAvatarPromptGenerationPrompt } from '../generation/promptBuilder.js';
 import { getCurrentPresetName, switchToPreset, generateWithExternalAPI } from '../generation/apiClient.js';
+import { generateSpriteWithComfyUI, saveImageToST } from './comfyUIClient.js';
+import { isBackgroundWorkerAvailable, runAvatarPipelineInBackground } from '../../utils/backgroundWorker.js';
 
 // Generation state - tracks characters currently being generated
 const pendingGenerations = new Set();
+
+// Main expressions to generate (subset of ST's full expression list)
+const MAIN_EXPRESSIONS = ['neutral', 'happy', 'sad', 'angry', 'surprised'];
+
+const EXPRESSION_MODIFIERS = {
+    neutral: 'neutral expression, calm, composed face',
+    happy: 'happy smiling expression, joyful, cheerful',
+    sad: 'sad expression, sorrowful, downcast eyes',
+    angry: 'angry expression, furious, furrowed brow, intense',
+    surprised: 'surprised expression, wide eyes, shocked, open mouth',
+};
 
 
 /**
@@ -118,6 +131,79 @@ export function hasExistingAvatar(characterName) {
     return false;
 }
 
+// Shared folder name sanitizer (must match npcSpriteDisplay.js toFolderName)
+function toFolderName(characterName) {
+    return characterName.replace(/[^a-zA-Z0-9 _-]/g, '').trim().replace(/ /g, '_');
+}
+
+/**
+ * Runs a full avatar + expression pipeline for one character via the background worker.
+ * Loads the ComfyUI API workflow, builds LLM messages, and submits a single pipeline job.
+ * When the job completes, stores the avatar URL and expression paths in extension settings.
+ *
+ * @param {string} characterName
+ */
+async function generateSingleAvatarViaWorker(characterName) {
+    try {
+        // Load API workflow (same URL as comfyUIClient.js uses)
+        const workflowUrl = '/scripts/extensions/third-party/rpg-companion-sillytavern/workflows/sprite_generator_v1.2_api.json';
+        const workflowResp = await fetch(workflowUrl);
+        if (!workflowResp.ok) throw new Error(`Failed to load ComfyUI workflow (${workflowResp.status})`);
+        const apiWorkflow = await workflowResp.json();
+
+        // Build LLM messages for the avatar prompt
+        const llmMessages = await generateAvatarPromptGenerationPrompt(characterName);
+
+        const mode = extensionSettings.generationMode;
+        const { baseUrl, model, maxTokens, temperature } = extensionSettings.externalApiSettings || {};
+        const apiKey = localStorage.getItem('rpg_companion_external_api_key');
+
+        const folderName = toFolderName(characterName);
+        
+        let preGeneratedResponse = null;
+        if (mode !== 'external') {
+            preGeneratedResponse = await safeGenerateRaw({ prompt: llmMessages, quietToLoud: false });
+        }
+
+        const result = await runAvatarPipelineInBackground({
+            characterName,
+            folderName,
+            llmMessages,
+            preGeneratedResponse,
+            mode: mode === 'external' ? 'external' : 'st',
+            apiConfig: { baseUrl, model, maxTokens, temperature, apiKey },
+            imageConfig: {
+                comfyUrl: (extensionSettings.comfyUIUrl || 'http://127.0.0.1:8188').replace(/\/$/, ''),
+                apiWorkflow,
+                characterDescriptionNodeId: '487',
+                removeSpriteBg: extensionSettings.removeSpriteBg !== false,
+            },
+            expressionConfig: extensionSettings.autoGenerateExpressions && !hasExistingExpressions(characterName) ? {
+                enabled: true,
+                expressions: MAIN_EXPRESSIONS,
+                modifiers: EXPRESSION_MODIFIERS,
+            } : { enabled: false },
+        });
+
+        // Apply results to settings
+        if (result.imagePath) {
+            if (!extensionSettings.npcAvatars) extensionSettings.npcAvatars = {};
+            extensionSettings.npcAvatars[characterName] = result.imagePath;
+            setSessionAvatarPrompt(characterName, result.avatarPrompt);
+        }
+
+        if (result.expressionPaths && Object.keys(result.expressionPaths).length > 0) {
+            if (!extensionSettings.npcExpressionsGenerated) extensionSettings.npcExpressionsGenerated = {};
+            extensionSettings.npcExpressionsGenerated[characterName] = true;
+        }
+
+        saveSettings();
+        console.log(`[RPG Avatar] Background worker completed avatar pipeline for ${characterName}`);
+    } catch (err) {
+        console.error(`[RPG Avatar] Background worker pipeline failed for ${characterName}:`, err.message);
+    }
+}
+
 /**
  * Generates avatars for multiple characters and waits for all to complete.
  * This is the main entry point for auto-generation within a workflow.
@@ -164,6 +250,11 @@ export async function generateAvatarsForCharacters(characterNames, onStarted = n
         }
     }
 
+    // Check once whether we can offload to the background worker
+    const useBackgroundWorker = extensionSettings.useComfyUISpriteWorkflow
+        && (extensionSettings.generationMode === 'external' || extensionSettings.generationMode === 'separate')
+        && await isBackgroundWorkerAvailable();
+
     try {
         // Generate images one at a time, generating prompt on demand
         for (const characterName of needsGeneration) {
@@ -173,11 +264,18 @@ export async function generateAvatarsForCharacters(characterNames, onStarted = n
                 continue;
             }
 
-            // Generate LLM prompt for this character
-            const prompt = await generateAvatarPrompt(characterName);
+            if (useBackgroundWorker) {
+                await generateSingleAvatarViaWorker(characterName);
+            } else {
+                // Generate LLM prompt for this character
+                const prompt = await generateAvatarPrompt(characterName);
 
-            // Generate the image using the prompt
-            await generateSingleAvatar(characterName, prompt);
+                // Generate the image using the prompt
+                await generateSingleAvatar(characterName, prompt);
+
+                // Generate expressions if enabled (uses the same base prompt)
+                await generateExpressionsForCharacter(characterName, prompt || sessionAvatarPrompts[characterName]);
+            }
 
             pendingGenerations.delete(characterName);
 
@@ -210,25 +308,28 @@ export async function regenerateAvatar(characterName) {
     // Mark as pending immediately
     pendingGenerations.add(characterName);
 
-    // Clear existing avatar
-    if (extensionSettings.npcAvatars && extensionSettings.npcAvatars[characterName]) {
+    // Clear existing avatar and prompt cache so the pipeline generates fresh ones
+    if (extensionSettings.npcAvatars?.[characterName]) {
         delete extensionSettings.npcAvatars[characterName];
         saveSettings();
     }
-
-    // Clear existing prompt cache
     if (sessionAvatarPrompts[characterName]) {
         delete sessionAvatarPrompts[characterName];
     }
 
     try {
-        // Generate new LLM prompt
-        const prompt = await generateAvatarPrompt(characterName);
+        // Route through background worker when ComfyUI is enabled so the generation
+        // survives browser closes (the worker calls ComfyUI directly, bypassing the
+        // ST proxy that would interrupt ComfyUI on socket close).
+        if (extensionSettings.useComfyUISpriteWorkflow && await isBackgroundWorkerAvailable()) {
+            await generateSingleAvatarViaWorker(characterName);
+            return extensionSettings.npcAvatars?.[characterName] ?? null;
+        }
 
-        // Generate the avatar
+        // Fallback: client-side path (A1111 / worker unavailable)
+        const prompt = await generateAvatarPrompt(characterName);
         return await generateSingleAvatar(characterName, prompt);
     } finally {
-        // Remove from pending when done
         pendingGenerations.delete(characterName);
     }
 }
@@ -262,12 +363,25 @@ async function generateAvatarPrompt(characterName) {
         }
 
         if (response) {
-            const prompt = response.trim();
-            // console.log(`[RPG Avatar] Generated prompt for ${characterName}:`, prompt);
+            const text = response.trim();
 
-            // Store prompt in session storage
-            setSessionAvatarPrompt(characterName, prompt);
-            return prompt;
+            // Parse structured PHYSICAL: / CLOTHING: output
+            const physicalMatch = text.match(/^PHYSICAL:\s*(.+)$/m);
+            const clothingMatch = text.match(/^CLOTHING:\s*(.+)$/m);
+
+            if (physicalMatch && clothingMatch) {
+                const physical = physicalMatch[1].trim();
+                const clothing = clothingMatch[1].trim();
+                setSessionAvatarPhysical(characterName, physical);
+                setSessionAvatarClothing(characterName, clothing);
+                const prompt = `${physical}, ${clothing}`;
+                setSessionAvatarPrompt(characterName, prompt);
+                return prompt;
+            }
+
+            // Fallback: treat whole response as prompt (e.g. custom instruction without structured output)
+            setSessionAvatarPrompt(characterName, text);
+            return text;
         }
     } catch (error) {
         console.error(`[RPG Avatar] Failed to generate LLM prompt for ${characterName}:`, error);
@@ -301,7 +415,164 @@ function buildFallbackPrompt(characterName) {
 }
 
 /**
- * Generates a single avatar using the /sd command
+ * Checks if a character already has expressions generated
+ * @param {string} characterName - Name of character to check
+ * @returns {boolean} True if expressions have been generated
+ */
+function hasExistingExpressions(characterName) {
+    return !!(extensionSettings.npcExpressionsGenerated && extensionSettings.npcExpressionsGenerated[characterName]);
+}
+
+/**
+ * Generates main expression sprites for a character and uploads them via /expression-upload.
+ * Saves to the character's sprite folder so ST's expression system can use them.
+ *
+ * @param {string} characterName - Name of character
+ * @param {string} basePrompt - The SD prompt describing the character's appearance
+ * @returns {Promise<void>}
+ */
+async function generateExpressionsForCharacter(characterName, basePrompt) {
+    if (!extensionSettings.autoGenerateExpressions) return;
+    if (hasExistingExpressions(characterName)) return;
+    if (!basePrompt) return;
+
+    // Dispatch to ComfyUI workflow if the setting is enabled
+    if (extensionSettings.useComfyUISpriteWorkflow) {
+        return await generateExpressionsForCharacterComfyUI(characterName, basePrompt);
+    }
+
+    // Sanitize folder name: strip non-alphanumeric (except spaces/hyphens), then replace spaces
+    // with underscores so the name is safe as a slash-command argument.
+    const folderName = characterName
+        .replace(/[^a-zA-Z0-9 _-]/g, '')
+        .trim()
+        .replace(/ /g, '_');
+    if (!folderName) return;
+
+    let uploadedCount = 0;
+
+    for (const expression of MAIN_EXPRESSIONS) {
+        const modifier = EXPRESSION_MODIFIERS[expression];
+        const expressionPrompt = `${basePrompt}, ${modifier}`;
+
+        try {
+            const sdResult = await executeSlashCommandsOnChatInput(
+                `/sd quiet=true ${expressionPrompt}`,
+                { clearChatInput: false }
+            );
+
+            const imageUrl = extractImageUrl(sdResult);
+            if (imageUrl) {
+                // Percent-encode spaces in the URL so the slash-command parser
+                // doesn't split the path on spaces (e.g. "/user/images/Game Master/...")
+                const safeUrl = imageUrl.replace(/ /g, '%20');
+                await executeSlashCommandsOnChatInput(
+                    `/expression-upload label=${expression} folder=${folderName} ${safeUrl}`,
+                    { clearChatInput: false }
+                );
+                uploadedCount++;
+            } else {
+                console.warn(`[RPG Avatar] No image URL from /sd for ${characterName}/${expression}`, sdResult);
+            }
+        } catch (error) {
+            console.error(`[RPG Avatar] Expression generation failed for ${characterName}/${expression}:`, error);
+        }
+
+        // Small delay between generations
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    // Only mark as done if at least one expression was actually uploaded —
+    // so that a completely failed run doesn't permanently block retries.
+    if (uploadedCount > 0) {
+        if (!extensionSettings.npcExpressionsGenerated) {
+            extensionSettings.npcExpressionsGenerated = {};
+        }
+        extensionSettings.npcExpressionsGenerated[characterName] = true;
+        saveSettings();
+    }
+}
+
+/**
+ * Generates a single avatar via the ComfyUI Sprite Generator workflow.
+ *
+ * @param {string} characterName
+ * @param {string} prompt - SD prompt describing the character
+ * @returns {Promise<string|null>} Avatar URL or null if failed
+ */
+async function generateSingleAvatarComfyUI(characterName, prompt) {
+    try {
+        const { format, data } = await generateSpriteWithComfyUI(prompt);
+        const filename = `avatar_${Date.now()}`;
+        const imagePath = await saveImageToST(data, format, characterName, filename);
+        if (imagePath) {
+            if (!extensionSettings.npcAvatars) extensionSettings.npcAvatars = {};
+            extensionSettings.npcAvatars[characterName] = imagePath;
+            saveSettings();
+            return imagePath;
+        }
+        console.warn(`[RPG ComfyUI] No image path returned for ${characterName}`);
+    } catch (error) {
+        console.error(`[RPG ComfyUI] Avatar generation failed for ${characterName}:`, error);
+    }
+    return null;
+}
+
+/**
+ * Generates expression sprites via ComfyUI and uploads them via /expression-upload.
+ *
+ * @param {string} characterName
+ * @param {string} basePrompt
+ * @returns {Promise<void>}
+ */
+async function generateExpressionsForCharacterComfyUI(characterName, basePrompt) {
+    if (!extensionSettings.autoGenerateExpressions) return;
+    if (hasExistingExpressions(characterName)) return;
+    if (!basePrompt) return;
+
+    const folderName = characterName
+        .replace(/[^a-zA-Z0-9 _-]/g, '')
+        .trim()
+        .replace(/ /g, '_');
+    if (!folderName) return;
+
+    let uploadedCount = 0;
+
+    for (const expression of MAIN_EXPRESSIONS) {
+        const modifier = EXPRESSION_MODIFIERS[expression];
+        const expressionPrompt = `${basePrompt}, ${modifier}`;
+
+        try {
+            const { format, data } = await generateSpriteWithComfyUI(expressionPrompt);
+            const filename = `${expression}_${Date.now()}`;
+            const imagePath = await saveImageToST(data, format, characterName, filename);
+
+            if (imagePath) {
+                const safeUrl = imagePath.replace(/ /g, '%20');
+                await executeSlashCommandsOnChatInput(
+                    `/expression-upload label=${expression} folder=${folderName} ${safeUrl}`,
+                    { clearChatInput: false }
+                );
+                uploadedCount++;
+            } else {
+                console.warn(`[RPG ComfyUI] No image path for ${characterName}/${expression}`);
+            }
+        } catch (error) {
+            console.error(`[RPG ComfyUI] Expression generation failed for ${characterName}/${expression}:`, error);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    if (uploadedCount > 0) {
+        if (!extensionSettings.npcExpressionsGenerated) extensionSettings.npcExpressionsGenerated = {};
+        extensionSettings.npcExpressionsGenerated[characterName] = true;
+        saveSettings();
+    }
+}
+
+/**
+ * Generates a single avatar using the /sd command (or ComfyUI if enabled)
  *
  * @param {string} characterName - Name of character to generate avatar for
  * @param {string|null} prompt - The prompt to use (optional, will fallback if null)
@@ -316,6 +587,11 @@ async function generateSingleAvatar(characterName, prompt = null) {
     if (!prompt) {
         // console.log(`[RPG Avatar] No LLM prompt for ${characterName}, using fallback prompt`);
         prompt = buildFallbackPrompt(characterName);
+    }
+
+    // Dispatch to ComfyUI workflow if the setting is enabled
+    if (extensionSettings.useComfyUISpriteWorkflow) {
+        return await generateSingleAvatarComfyUI(characterName, prompt);
     }
 
     // console.log(`[RPG Avatar] Starting image generation for: ${characterName}`);
