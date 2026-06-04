@@ -170,15 +170,20 @@ export function hideAddItemForm(field, location) {
 export function saveAddItem(field, location) {
     const inventory = extensionSettings.userStats.inventory;
     let inputId;
+    let qtyInputId;
 
     if (field === 'stored') {
         inputId = `.rpg-location-item-input[data-location="${location}"]`;
+        qtyInputId = `.rpg-location-qty-input[data-location="${location}"]`;
     } else {
         inputId = `#rpg-new-item-${field}`;
+        qtyInputId = `#rpg-new-item-qty-${field}`;
     }
 
     const input = $(inputId);
+    const qtyInput = $(qtyInputId);
     const rawItemName = input.val().trim();
+    const qty = parseInt(qtyInput.val()) || 1;
 
     if (!rawItemName) {
         hideAddItemForm(field, location);
@@ -193,6 +198,8 @@ export function saveAddItem(field, location) {
         return;
     }
 
+    const finalItemString = qty > 1 ? `${qty}x ${itemName}` : itemName;
+
     // Get current items, add new one, serialize back
     let currentString;
     if (field === 'stored') {
@@ -202,7 +209,7 @@ export function saveAddItem(field, location) {
     }
 
     const items = parseItems(currentString);
-    items.push(itemName);
+    items.push(finalItemString);
     const newString = serializeItems(items);
 
     // Save back to inventory
@@ -576,6 +583,47 @@ export function initInventoryEventListeners() {
         const field = $(this).data('field');
         const view = $(this).data('view');
         switchViewMode(field, view);
+    });
+
+    // Handle inline quantity updates
+    $(document).on('change', '.rpg-item-qty-edit', function() {
+        const $el = $(this);
+        const field = $el.data('field');
+        const location = $el.data('location');
+        const index = parseInt($el.data('index'));
+        const newQty = parseInt($el.val()) || 1;
+
+        // Retrieve the existing item name from the sibling span
+        const itemName = $el.siblings('.rpg-item-name').text().trim();
+        const newItemString = newQty > 1 ? `${newQty}x ${itemName}` : itemName;
+
+        // Logic to update the extension settings state
+        const inventory = extensionSettings.userStats.inventory;
+        let currentString;
+        if (field === 'stored') {
+            currentString = inventory.stored[location] || 'None';
+        } else {
+            currentString = inventory[field] || 'None';
+        }
+
+        const items = parseItems(currentString);
+        items[index] = newItemString;
+        const newString = serializeItems(items);
+
+        // Save back to inventory
+        if (field === 'stored') {
+            inventory.stored[location] = newString;
+        } else {
+            inventory[field] = newString;
+        }
+
+        updateLastGeneratedDataInventory();
+        saveSettings();
+        saveChatData();
+        updateMessageSwipeData();
+
+        // Trigger UI refresh to ensure LockManager consistency
+        renderInventory();
     });
 
     // console.log('[RPG Companion] Inventory event listeners initialized');
