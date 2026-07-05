@@ -106,8 +106,13 @@ function applyUserStatsLocks(data, lockedItems) {
             if (!lockedItems.inventory[category]) return items;
 
             return items.map((item) => {
-                // Get item name (handle both string and object formats)
-                const itemName = typeof item === 'string' ? item : (item.item || item.name || '');
+                let itemName = '';
+                if (typeof item === 'string') {
+                    itemName = item;
+                } else {
+                    const baseName = item.item || item.name || '';
+                    itemName = (item.quantity && item.quantity > 1) ? `${item.quantity}x ${baseName}` : baseName;
+                }
 
                 // Check if this specific item name is locked
                 if (lockedItems.inventory[category][itemName]) {
@@ -139,7 +144,14 @@ function applyUserStatsLocks(data, lockedItems) {
             for (const location in data.inventory.stored) {
                 if (Array.isArray(data.inventory.stored[location]) && lockedItems.inventory.stored[location]) {
                     data.inventory.stored[location] = data.inventory.stored[location].map((item) => {
-                        const itemName = typeof item === 'string' ? item : (item.item || item.name || '');
+                        let itemName = '';
+                        if (typeof item === 'string') {
+                            itemName = item;
+                        } else {
+                            const baseName = item.item || item.name || '';
+                            itemName = (item.quantity && item.quantity > 1) ? `${item.quantity}x ${baseName}` : baseName;
+                        }
+
                         if (lockedItems.inventory.stored[location][itemName]) {
                             return typeof item === 'string'
                                 ? { item, locked: true }

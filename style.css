@@ -11908,3 +11908,23 @@ body.documentstyle .rpg-inline-thoughts {
     line-height: 1.45;
 }
 
+/* RPG COMPANION - Theme-Aware Mengen-Eingabefelder */
+.rpg-item-qty-edit {
+    /* Schriftfarbe passt sich dem Theme-Body an */
+    color: var(--SmartThemeBodyColor) !important;
+
+    /* Hintergrund nimmt eine dunkle oder helle Panel-Farbe des Themes */
+    /* Wir nutzen hier --SmartThemeBlurTintColor oder einen Fallback */
+    background-color: var(--SmartThemeBlurTintColor, rgba(0, 0, 0, 0.2)) !important;
+
+    border: 1px solid var(--SmartThemeBorderColor, #ccc);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-weight: normal;
+    width: 70px !important;
+}
+
+/* Optional: Damit das Feld beim Anklicken (Fokus) einen Effekt hat */
+.rpg-item-qty-edit:focus {
+    outline: 1px solid var(--SmartThemeQuoteColor, #e94560);
+}

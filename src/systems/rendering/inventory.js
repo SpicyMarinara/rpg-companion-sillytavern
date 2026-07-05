@@ -88,23 +88,39 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
             // Grid view: card-style items
             itemsHtml = items.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.onPerson.${item}`);
+                const match = item.match(/^(\d+)x\s+(.*)$/);
+                const qty = match ? match[1] : 1;
+                const name = match ? match[2] : item;
+
                 return `
                 <div class="rpg-item-card" data-field="onPerson" data-index="${index}">
                     ${lockIconHtml}
                     <button class="rpg-item-remove" data-action="remove-item" data-field="onPerson" data-index="${index}" title="${i18n.getTranslation('global.removeItem') || 'Remove item'}">
                         <i class="fa-solid fa-times"></i>
                     </button>
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(item)}</span>
+                    <input type="number" class="rpg-item-qty-edit" value="${qty}" min="1"
+                           style="width: 50px; margin-right: 5px; display: block; margin-bottom: 5px;"
+                           data-action="update-item-qty" data-field="onPerson"
+                           data-index="${index}" />
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(name)}</span>
                 </div>
             `}).join('');
         } else {
             // List view: full-width rows
             itemsHtml = items.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.onPerson.${item}`);
+                const match = item.match(/^(\d+)x\s+(.*)$/);
+                const qty = match ? match[1] : 1;
+                const name = match ? match[2] : item;
+
                 return `
                 <div class="rpg-item-row" data-field="onPerson" data-index="${index}">
                     ${lockIconHtml}
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(item)}</span>
+                    <input type="number" class="rpg-item-qty-edit" value="${qty}" min="1"
+                           style="width: 50px; margin-right: 5px;"
+                           data-action="update-item-qty" data-field="onPerson"
+                           data-index="${index}" />
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="onPerson" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(name)}</span>
                     <button class="rpg-item-remove" data-action="remove-item" data-field="onPerson" data-index="${index}" title="${i18n.getTranslation('global.removeItem') || 'Remove item'}">
                         <i class="fa-solid fa-times"></i>
                     </button>
@@ -135,6 +151,7 @@ export function renderOnPersonView(onPersonItems, viewMode = 'list') {
             </div>
             <div class="rpg-inventory-content">
                 <div class="rpg-inline-form" id="rpg-add-item-form-onPerson" style="display: none;">
+                    <input type="number" class="rpg-inline-input rpg-item-qty-input" id="rpg-new-item-qty-onPerson" value="1" min="1" style="width: 60px; margin-right: 8px;" title="Quantity" />
                     <input type="text" class="rpg-inline-input" id="rpg-new-item-onPerson" placeholder="${i18n.getTranslation('inventory.onPerson.addItemPlaceholder') || 'Enter item name...'}" />
                     <div class="rpg-inline-buttons">
                         <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-item" data-field="onPerson">
@@ -170,23 +187,39 @@ export function renderClothingView(clothingItems, viewMode = 'list') {
             // Grid view: card-style items
             itemsHtml = items.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.clothing.${item}`);
+                const match = item.match(/^(\d+)x\s+(.*)$/);
+                const qty = match ? match[1] : 1;
+                const name = match ? match[2] : item;
+
                 return `
                 <div class="rpg-item-card" data-field="clothing" data-index="${index}">
                     ${lockIconHtml}
                     <button class="rpg-item-remove" data-action="remove-item" data-field="clothing" data-index="${index}" title="${i18n.getTranslation('global.removeItem') || 'Remove item'}">
                         <i class="fa-solid fa-times"></i>
                     </button>
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(item)}</span>
+                    <input type="number" class="rpg-item-qty-edit" value="${qty}" min="1"
+                           style="width: 50px; margin-right: 5px; display: block; margin-bottom: 5px;"
+                           data-action="update-item-qty" data-field="clothing"
+                           data-index="${index}" />
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(name)}</span>
                 </div>
             `}).join('');
         } else {
             // List view: full-width rows
             itemsHtml = items.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.clothing.${item}`);
+                const match = item.match(/^(\d+)x\s+(.*)$/);
+                const qty = match ? match[1] : 1;
+                const name = match ? match[2] : item;
+
                 return `
                 <div class="rpg-item-row" data-field="clothing" data-index="${index}">
                     ${lockIconHtml}
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(item)}</span>
+                    <input type="number" class="rpg-item-qty-edit" value="${qty}" min="1"
+                           style="width: 50px; margin-right: 5px;"
+                           data-action="update-item-qty" data-field="clothing"
+                           data-index="${index}" />
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="clothing" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(name)}</span>
                     <button class="rpg-item-remove" data-action="remove-item" data-field="clothing" data-index="${index}" title="${i18n.getTranslation('global.removeItem') || 'Remove item'}">
                         <i class="fa-solid fa-times"></i>
                     </button>
@@ -217,6 +250,7 @@ export function renderClothingView(clothingItems, viewMode = 'list') {
             </div>
             <div class="rpg-inventory-content">
                 <div class="rpg-inline-form" id="rpg-add-item-form-clothing" style="display: none;">
+                    <input type="number" class="rpg-inline-input rpg-item-qty-input" id="rpg-new-item-qty-clothing" value="1" min="1" style="width: 60px; margin-right: 8px;" title="Quantity" />
                     <input type="text" class="rpg-inline-input" id="rpg-new-item-clothing" placeholder="${i18n.getTranslation('inventory.clothing.addItemPlaceholder') || 'Enter clothing item...'}" />
                     <div class="rpg-inline-buttons">
                         <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-item" data-field="clothing">
@@ -298,23 +332,39 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
                     // Grid view: card-style items
                     itemsHtml = items.map((item, index) => {
                         const lockIconHtml = getLockIconHtml('userStats', `inventory.stored.${location}.${item}`);
+                        const match = item.match(/^(\d+)x\s+(.*)$/);
+                        const qty = match ? match[1] : 1;
+                        const name = match ? match[2] : item;
+
                         return `
                         <div class="rpg-item-card" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
                             ${lockIconHtml}
                             <button class="rpg-item-remove" data-action="remove-item" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="${i18n.getTranslation('global.removeItem') || 'Remove item'}">
                                 <i class="fa-solid fa-times"></i>
                             </button>
-                            <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(item)}</span>
+                            <input type="number" class="rpg-item-qty-edit" value="${qty}" min="1"
+                                   style="width: 50px; margin-right: 5px; display: block; margin-bottom: 5px;"
+                                   data-action="update-item-qty" data-field="stored"
+                                   data-location="${escapeHtml(location)}" data-index="${index}" />
+                            <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(name)}</span>
                         </div>
                     `}).join('');
                 } else {
                     // List view: full-width rows
                     itemsHtml = items.map((item, index) => {
                         const lockIconHtml = getLockIconHtml('userStats', `inventory.stored.${location}.${item}`);
+                        const match = item.match(/^(\d+)x\s+(.*)$/);
+                        const qty = match ? match[1] : 1;
+                        const name = match ? match[2] : item;
+
                         return `
                         <div class="rpg-item-row" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}">
                             ${lockIconHtml}
-                            <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(item)}</span>
+                            <input type="number" class="rpg-item-qty-edit" value="${qty}" min="1"
+                                   style="width: 50px; margin-right: 5px;"
+                                   data-action="update-item-qty" data-field="stored"
+                                   data-location="${escapeHtml(location)}" data-index="${index}" />
+                            <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(name)}</span>
                             <button class="rpg-item-remove" data-action="remove-item" data-field="stored" data-location="${escapeHtml(location)}" data-index="${index}" title="${i18n.getTranslation('global.removeItem') || 'Remove item'}">
                                 <i class="fa-solid fa-times"></i>
                             </button>
@@ -340,6 +390,7 @@ export function renderStoredView(stored, collapsedLocations = [], viewMode = 'li
                     </div>
                     <div class="rpg-storage-content" ${isCollapsed ? 'style="display:none;"' : ''}>
                         <div class="rpg-inline-form" id="rpg-add-item-form-stored-${locationId}" style="display: none;">
+                            <input type="number" class="rpg-inline-input rpg-location-qty-input" data-location="${escapeHtml(location)}" value="1" min="1" style="width: 60px; margin-right: 8px;" title="Quantity" />
                             <input type="text" class="rpg-inline-input rpg-location-item-input" data-location="${escapeHtml(location)}" placeholder="${i18n.getTranslation('inventory.addItemPlaceholder') || 'Enter item name...'}" />
                             <div class="rpg-inline-buttons">
                                 <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-item" data-field="stored" data-location="${escapeHtml(location)}">
@@ -400,23 +451,39 @@ export function renderAssetsView(assets, viewMode = 'list') {
             // Grid view: card-style items
             itemsHtml = items.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.assets.${item}`);
+                const match = item.match(/^(\d+)x\s+(.*)$/);
+                const qty = match ? match[1] : 1;
+                const name = match ? match[2] : item;
+
                 return `
                 <div class="rpg-item-card" data-field="assets" data-index="${index}">
                     ${lockIconHtml}
                     <button class="rpg-item-remove" data-action="remove-item" data-field="assets" data-index="${index}" title="${i18n.getTranslation('inventory.assets.removeAssetTitle') || 'Remove asset'}">
                         <i class="fa-solid fa-times"></i>
                     </button>
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(item)}</span>
+                    <input type="number" class="rpg-item-qty-edit" value="${qty}" min="1"
+                           style="width: 50px; margin-right: 5px; display: block; margin-bottom: 5px;"
+                           data-action="update-item-qty" data-field="assets"
+                           data-index="${index}" />
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(name)}</span>
                 </div>
             `}).join('');
         } else {
             // List view: full-width rows
             itemsHtml = items.map((item, index) => {
                 const lockIconHtml = getLockIconHtml('userStats', `inventory.assets.${item}`);
+                const match = item.match(/^(\d+)x\s+(.*)$/);
+                const qty = match ? match[1] : 1;
+                const name = match ? match[2] : item;
+
                 return `
                 <div class="rpg-item-row" data-field="assets" data-index="${index}">
                     ${lockIconHtml}
-                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(item)}</span>
+                    <input type="number" class="rpg-item-qty-edit" value="${qty}" min="1"
+                           style="width: 50px; margin-right: 5px;"
+                           data-action="update-item-qty" data-field="assets"
+                           data-index="${index}" />
+                    <span class="rpg-item-name rpg-editable" contenteditable="true" data-field="assets" data-index="${index}" title="${i18n.getTranslation('global.clickToEdit') || 'Click to edit'}">${escapeHtml(name)}</span>
                     <button class="rpg-item-remove" data-action="remove-item" data-field="assets" data-index="${index}" title="${i18n.getTranslation('inventory.assets.removeAssetTitle') || 'Remove asset'}">
                         <i class="fa-solid fa-times"></i>
                     </button>
@@ -447,7 +514,8 @@ export function renderAssetsView(assets, viewMode = 'list') {
             </div>
             <div class="rpg-inventory-content">
                 <div class="rpg-inline-form" id="rpg-add-item-form-assets" style="display: none;">
-                    <input type="text class="rpg-inline-input" id="rpg-new-item-assets" placeholder="${i18n.getTranslation('inventory.assets.addAssetPlaceholder') || 'Enter asset name...'}" />
+                    <input type="number" class="rpg-inline-input rpg-item-qty-input" id="rpg-new-item-qty-assets" value="1" min="1" style="width: 60px; margin-right: 8px;" title="Quantity" />
+                    <input type="text" class="rpg-inline-input" id="rpg-new-item-assets" placeholder="${i18n.getTranslation('inventory.assets.addAssetPlaceholder') || 'Enter asset name...'}" />
                     <div class="rpg-inline-buttons">
                         <button class="rpg-inline-btn rpg-inline-cancel" data-action="cancel-add-item" data-field="assets">
                             <i class="fa-solid fa-times"></i> ${i18n.getTranslation('global.cancel') || 'Cancel'}
