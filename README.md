@@ -291,6 +291,3 @@ SpicyMarinara, Paperboygold, Munimunigamer, Subarashimo, Lilminzyu, Claude, IDea
 ---
 
 Made with ❤️ by Marinara
-
-PS I'm looking for a job or a sponsor to fund my custom AI frontend, contact me if interested:
-[mgrabower97@gmail.com](mailto:mgrabower97@gmail.com)
