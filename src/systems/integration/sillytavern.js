@@ -709,8 +709,10 @@ export function onMessageSwiped(messageIndex) {
         return;
     }
 
-    const currentSwipeId = resolveActiveSwipeId(message);
     const swipeCount = Array.isArray(message.swipes) ? message.swipes.length : 0;
+    const rawSwipeId = Number(message.swipe_id ?? 0);
+    // New swipe. mes is still the old text here, so go by swipe_id
+    const currentSwipeId = rawSwipeId >= swipeCount ? rawSwipeId : resolveActiveSwipeId(message);
 
     // Only set flag to true if this swipe will trigger a NEW generation
     // Check if the swipe already exists (has content in the swipes array)

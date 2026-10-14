@@ -608,12 +608,19 @@ export async function onGenerationStarted(type, data, dryRun) {
     // Ensure checkpoint is applied before generation
     await restoreCheckpointOnLoad();
 
+    const isSwipeOrRegenerate = type === 'swipe' || type === 'regenerate';
+
     // If this is a new generation (not a swipe and not the tracker update pass),
     // commit the tracker data from the last assistant message (N-1 rule).
     // Passing chat.length ensures we start searching backwards from the end of the chat,
     // correctly finding the latest valid assistant state regardless of where the user message is.
-    if (!lastActionWasSwipe && !isGenerating) {
+    if (!lastActionWasSwipe && !isGenerating && !isSwipeOrRegenerate) {
         commitTrackerDataFromPriorMessage(chat ? chat.length : 0);
+    }
+
+    // The old reply is still the last message here, skip it
+    if (isSwipeOrRegenerate && !isGenerating) {
+        commitTrackerDataFromPriorMessage(chat ? chat.length - 1 : 0);
     }
 
     // Use the committed tracker data as source for generation
