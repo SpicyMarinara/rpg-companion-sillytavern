@@ -310,7 +310,9 @@ export let extensionSettings = {
     presetManager: {
         // Map of preset ID to preset data (contains name and trackerConfig)
         presets: {},
-        // Map of character/group entity to preset ID (e.g., "char_0": "preset_123", "group_abc": "preset_456")
+        // Map of character/group entity to preset ID (e.g., "char_0": "preset_123", "group_abc": "preset_456").
+        // New character associations are stored in the character card (data.extensions.rpg_companion);
+        // "char_{id}" entries are only read as a fallback for associations saved by older versions.
         // Note: This is stored separately and NOT exported with presets
         characterAssociations: {},
         // Currently active preset ID
