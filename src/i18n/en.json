@@ -322,6 +322,7 @@
     "preset.defaultPresetDescription": "This is the default preset",
     "preset.label": "Preset:",
     "preset.useThisPresetFor": "Use this preset for: ",
+    "preset.chatOnlyHint": "Without the checkbox, the preset is saved for this chat only.",
     "stats.showLevel": "Show Level",
     "dateFormat.weekdayMonthYear": "Weekday, Month, Year",
     "dateFormat.dayNumericalMonthYear": "Day (Numerical), Month, Year",

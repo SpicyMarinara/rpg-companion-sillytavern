@@ -25,7 +25,9 @@ import {
     getCurrentEntityKey,
     getCurrentEntityName,
     exportPresets,
-    importPresets
+    importPresets,
+    getChatPresetId,
+    setChatPresetId
 } from '../../core/persistence.js';
 import { renderUserStats } from '../rendering/userStats.js';
 import { renderInfoBox } from '../rendering/infoBox.js';
@@ -224,10 +226,13 @@ export function initTrackerEditor() {
         } else {
             // Store pending removal (don't save yet)
             tempAssociation = { presetId: null, entityKey: entityKey };
-            const defaultPresetId = getDefaultPresetId();
-            const defaultPreset = getPreset(defaultPresetId);
-            if (defaultPreset && defaultPresetId !== activePresetId) {
-                toastr.info(`Association will be removed when saved. Default preset "${defaultPreset.name}" will apply on next character switch.`);
+            // Preset that other chats will use after saving (see applyTrackerConfig)
+            const associatedPresetId = getPresetForCurrentEntity();
+            const fallbackPresetId = getFallbackPresetId(associatedPresetId === activePresetId ? null : associatedPresetId);
+            if (activePresetId && activePresetId !== fallbackPresetId) {
+                const fallbackPreset = getPreset(fallbackPresetId);
+                const otherChats = fallbackPreset ? `Other chats use "${fallbackPreset.name}".` : 'Other chats are not affected.';
+                toastr.info(`"${preset?.name || 'Unknown'}" will be kept for this chat only when saved. ${otherChats}`);
             } else {
                 toastr.info(`Association will be removed for ${entityName} when saved.`);
             }
@@ -323,6 +328,19 @@ function closeTrackerEditor() {
 }
 
 /**
+ * Gets the preset a chat uses when it has no preset of its own
+ * @param {string|null} associatedPresetId - The character/group preset
+ * @returns {string|null} The character/group preset if it exists, otherwise the default preset (if it exists)
+ */
+function getFallbackPresetId(associatedPresetId) {
+    if (associatedPresetId && getPreset(associatedPresetId)) {
+        return associatedPresetId;
+    }
+    const defaultPresetId = getDefaultPresetId();
+    return defaultPresetId && getPreset(defaultPresetId) ? defaultPresetId : null;
+}
+
+/**
  * Apply the tracker configuration and refresh all trackers
  */
 function applyTrackerConfig() {
@@ -335,13 +353,25 @@ function applyTrackerConfig() {
             associatePresetWithCurrentEntity();
             const preset = getPreset(tempAssociation.presetId);
             toastr.success(`"${preset?.name || 'Unknown'}" is now associated with ${getCurrentEntityName()}.`);
-        } else {
-            // Remove association
+        } else if (getPresetForCurrentEntity() === getActivePresetId()) {
+            // Remove the association only if it points to the active preset; an association with another preset
+            // stays, so the active preset can deviate for this chat (see below) without losing the character preset
             removePresetAssociationForCurrentEntity();
         }
         tempAssociation = null;
     }
     originalAssociation = null;
+
+    // Remember the active preset for this chat when it differs from the preset the chat would get anyway
+    // (character/group preset, otherwise the default preset); otherwise remove an existing chat preset
+    const activePresetId = getActivePresetId();
+    const chatPresetId = activePresetId && activePresetId !== getFallbackPresetId(getPresetForCurrentEntity())
+        ? activePresetId
+        : null;
+    const previousChatPresetId = getChatPresetId();
+    if (setChatPresetId(chatPresetId) && chatPresetId && chatPresetId !== previousChatPresetId) {
+        toastr.info(`"${getPreset(chatPresetId)?.name || 'Unknown'}" is saved for this chat.`);
+    }
 
     // Save to the current preset
     const currentPresetId = getActivePresetId();
