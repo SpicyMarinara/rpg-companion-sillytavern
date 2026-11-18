@@ -1375,6 +1375,8 @@ function migrateToTrackerConfig() {
 
 /**
  * Gets the entity key for the current character or group
+ * For characters, the key is only used for the settings-map fallback (associations saved by older versions);
+ * new character associations are stored in the character card (see getCardPresetId).
  * @returns {string|null} Entity key in format "char_{id}" or "group_{id}", or null if no character selected
  */
 export function getCurrentEntityKey() {
@@ -1625,6 +1627,7 @@ export function deletePreset(presetId) {
     }
 
     // Remove any character associations using this preset
+    // (settings map only; a card that still references this preset counts as "no association")
     const associations = extensionSettings.presetManager.characterAssociations;
     for (const entityKey of Object.keys(associations)) {
         if (associations[entityKey] === presetId) {
@@ -1648,6 +1651,49 @@ export function deletePreset(presetId) {
     return true;
 }
 
+/** Key of this extension's data in the character card (Character Card V2 `data.extensions`). */
+const CARD_EXTENSION_KEY = 'rpg_companion';
+
+/**
+ * Reads the preset association stored in the current character's card.
+ * Character associations used to be stored only in `characterAssociations` under "char_{id}", where the id is the
+ * index into SillyTavern's character list. That index shifts when characters are imported, created or deleted, so
+ * new associations are stored in the card, which stays with the character (also when it is renamed).
+ * @returns {string|null|undefined} The preset ID, null for "explicitly no association", or undefined when the card
+ *   holds nothing (then the old index-based entry is used as a fallback)
+ */
+function getCardPresetId() {
+    const context = getContext();
+    if (context.groupId || context.characterId === undefined || context.characterId === null) {
+        return undefined;
+    }
+    const data = context.characters?.[context.characterId]?.data?.extensions?.[CARD_EXTENSION_KEY];
+    if (!data || typeof data !== 'object' || !('presetId' in data)) {
+        return undefined;
+    }
+    return typeof data.presetId === 'string' ? data.presetId : null;
+}
+
+/**
+ * Stores the preset association in the current character's card.
+ * @param {string|null} presetId - The preset ID, or null for "no association"
+ * @returns {boolean} False for groups, without a character, or when SillyTavern has no writeExtensionField
+ */
+function writeCardPresetId(presetId) {
+    const context = getContext();
+    const characterId = context.characterId;
+    if (context.groupId || characterId === undefined || characterId === null || !context.characters?.[characterId]
+        || typeof context.writeExtensionField !== 'function') {
+        return false;
+    }
+    // Updates the character in memory right away, then saves the card on the server
+    Promise.resolve(context.writeExtensionField(characterId, CARD_EXTENSION_KEY, { presetId })).catch(error => {
+        console.error('[RPG Companion] Failed to save the preset association in the character card:', error);
+        toastr.error('Failed to save the preset association in the character card.');
+    });
+    return true;
+}
+
 /**
  * Associates the current preset with the current character/group
  */
@@ -1656,7 +1702,13 @@ export function associatePresetWithCurrentEntity() {
     const activePresetId = extensionSettings.presetManager.activePresetId;
 
     if (entityKey && activePresetId) {
-        extensionSettings.presetManager.characterAssociations[entityKey] = activePresetId;
+        if (writeCardPresetId(activePresetId)) {
+            // The card takes precedence; drop the old index-based entry so no other character picks it up later
+            delete extensionSettings.presetManager.characterAssociations[entityKey];
+        } else {
+            // Settings map: groups, and SillyTavern versions without writeExtensionField
+            extensionSettings.presetManager.characterAssociations[entityKey] = activePresetId;
+        }
         saveSettings();
         // console.log(`[RPG Companion] Associated preset ${activePresetId} with ${entityKey}`);
     }
@@ -1667,7 +1719,11 @@ export function associatePresetWithCurrentEntity() {
  */
 export function removePresetAssociationForCurrentEntity() {
     const entityKey = getCurrentEntityKey();
-    if (entityKey && extensionSettings.presetManager.characterAssociations[entityKey]) {
+    if (!entityKey) return;
+    // "No association" is stored in the card too, so the old index-based fallback no longer applies
+    writeCardPresetId(null);
+    // Settings map: the group association, or a character association saved by an older version
+    if (extensionSettings.presetManager.characterAssociations[entityKey]) {
         delete extensionSettings.presetManager.characterAssociations[entityKey];
         saveSettings();
         // console.log(`[RPG Companion] Removed preset association for ${entityKey}`);
@@ -1679,6 +1735,14 @@ export function removePresetAssociationForCurrentEntity() {
  * @returns {string|null} The associated preset ID or null
  */
 export function getPresetForCurrentEntity() {
+    const cardPresetId = getCardPresetId();
+    if (cardPresetId !== undefined) {
+        // The card decides. An unknown preset (deleted, or a card shared from another installation) means no association.
+        return cardPresetId && extensionSettings.presetManager.presets[cardPresetId] ? cardPresetId : null;
+    }
+
+    // Fallback: settings map. Used for groups, and for character associations saved by older versions
+    // (index-based "char_{id}" key) as long as the card holds nothing.
     const entityKey = getCurrentEntityKey();
     if (entityKey) {
         return extensionSettings.presetManager.characterAssociations[entityKey] || null;
@@ -1691,6 +1755,11 @@ export function getPresetForCurrentEntity() {
  * @returns {boolean} True if there's an association
  */
 export function hasPresetAssociation() {
+    if (getCardPresetId() !== undefined) {
+        return getPresetForCurrentEntity() !== null;
+    }
+
+    // Fallback: settings map (groups, and character associations saved by older versions)
     const entityKey = getCurrentEntityKey();
     return entityKey && extensionSettings.presetManager.characterAssociations[entityKey] !== undefined;
 }
@@ -1703,7 +1772,7 @@ export function isAssociatedWithCurrentPreset() {
     const entityKey = getCurrentEntityKey();
     const activePresetId = extensionSettings.presetManager?.activePresetId;
     if (!entityKey || !activePresetId) return false;
-    return extensionSettings.presetManager.characterAssociations[entityKey] === activePresetId;
+    return getPresetForCurrentEntity() === activePresetId;
 }
 
 /**
@@ -1720,8 +1789,10 @@ export function autoSwitchPresetForEntity() {
         if (extensionSettings.presetManager.presets[associatedPresetId]) {
             return loadPreset(associatedPresetId);
         } else {
-            // Preset was deleted, remove the stale association
-            removePresetAssociationForCurrentEntity();
+            // Preset was deleted, remove the stale settings-map entry (group, or character association saved by an
+            // older version). Card values never get here: an unknown preset in the card already counts as no association.
+            delete extensionSettings.presetManager.characterAssociations[getCurrentEntityKey()];
+            saveSettings();
         }
     }
 
