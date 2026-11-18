@@ -4224,6 +4224,12 @@ body:has(.rpg-panel.rpg-position-left) #sheld {
     font-weight: 600;
 }
 
+.rpg-preset-association-hint {
+    margin-top: 0.25em;
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
 /* Editor tabs */
 .rpg-editor-tabs {
     display: flex;

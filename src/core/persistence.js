@@ -1707,11 +1707,21 @@ export function isAssociatedWithCurrentPreset() {
 }
 
 /**
- * Auto-switches to the preset associated with the current character/group
- * Called when character changes. Falls back to default preset if no association.
+ * Auto-switches to the preset for the open chat and the current character/group
+ * Called when the chat or character changes. Priority: the preset saved for this chat, then the preset
+ * associated with the character/group, then the default preset.
  * @returns {boolean} True if a preset was switched, false otherwise
  */
 export function autoSwitchPresetForEntity() {
+    // A preset saved for this chat takes precedence over the character/group association
+    const chatPresetId = getChatPresetId();
+    if (chatPresetId) {
+        if (chatPresetId !== extensionSettings.presetManager.activePresetId) {
+            return loadPreset(chatPresetId);
+        }
+        return false;
+    }
+
     const associatedPresetId = getPresetForCurrentEntity();
 
     // If there's a character-specific preset, use it
@@ -1736,6 +1746,47 @@ export function autoSwitchPresetForEntity() {
     }
 
     return false;
+}
+
+/** Key in the chat metadata for the preset saved for a single chat (kept apart from `rpg_companion`, which
+ * saveChatData() overwrites as a whole). */
+const CHAT_METADATA_KEY = 'rpg_companion_preset';
+
+/**
+ * Gets the preset saved for the open chat
+ * @returns {string|null} The preset ID, or null without an open chat, without a chat preset, or when the preset
+ *   no longer exists
+ */
+export function getChatPresetId() {
+    if (!getCurrentChatId() || !chat_metadata || typeof chat_metadata !== 'object') {
+        return null;
+    }
+    const presetId = chat_metadata[CHAT_METADATA_KEY]?.presetId;
+    if (typeof presetId !== 'string' || !extensionSettings.presetManager?.presets?.[presetId]) {
+        return null;
+    }
+    return presetId;
+}
+
+/**
+ * Saves a preset for the open chat, or removes the chat preset
+ * @param {string|null} presetId - The preset ID, or null to remove the chat preset
+ * @returns {boolean} False when no chat is open (nothing is stored), true otherwise
+ */
+export function setChatPresetId(presetId) {
+    if (!getCurrentChatId() || !chat_metadata || typeof chat_metadata !== 'object') {
+        return false;
+    }
+    const storedPresetId = chat_metadata[CHAT_METADATA_KEY]?.presetId;
+    if (presetId) {
+        if (storedPresetId === presetId) return true;
+        chat_metadata[CHAT_METADATA_KEY] = { presetId };
+    } else {
+        if (!(CHAT_METADATA_KEY in chat_metadata)) return true;
+        delete chat_metadata[CHAT_METADATA_KEY];
+    }
+    saveChatDebounced();
+    return true;
 }
 
 /**

@@ -322,6 +322,7 @@
     "preset.defaultPresetDescription": "这是默认预设",
     "preset.label": "预设：",
     "preset.useThisPresetFor": "将此预设用于：",
+    "preset.chatOnlyHint": "不勾选此项时，预设仅保存到当前聊天。",
     "stats.showLevel": "显示等级",
     "dateFormat.weekdayMonthYear": "星期，月份，年份",
     "dateFormat.dayNumericalMonthYear": "日（数字），月份，年份",
