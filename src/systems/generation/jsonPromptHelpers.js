@@ -5,7 +5,7 @@
 
 import { extensionSettings, committedTrackerData } from '../../core/state.js';
 import { getContext } from '../../../../../../extensions.js';
-import { getWeatherKeywordsAsPromptString } from '../ui/weatherEffects.js';
+import { getWeatherKeywordsAsPromptString } from '../features/weatherKeywords.js';
 import { i18n } from '../../core/i18n.js';
 
 /**

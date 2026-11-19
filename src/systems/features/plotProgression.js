@@ -20,46 +20,19 @@ export function setupPlotButtons(handlePlotClick, handleEncounterClick) {
 
     // Create wrapper if it doesn't exist (shared with other extensions like Spotify)
     if ($('#extension-buttons-wrapper').length === 0) {
-        $('#send_form').prepend('<div id="extension-buttons-wrapper" style="text-align: center; margin: 5px auto;"></div>');
+        $('#send_form').prepend('<div id="extension-buttons-wrapper"></div>');
     }
 
     // Create the button container
     const buttonHtml = `
         <span id="rpg-plot-buttons" style="display: none;">
-            <button id="rpg-plot-random" class="menu_button interactable" style="
-                background-color: #e94560;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-size: 13px;
-                cursor: pointer;
-                margin: 0 2px;
-            " tabindex="0" role="button" title="${i18n.getTranslation('plotProgression.tooltips.randomizedPlot') || 'Generate a random plot twist or event'}">
+            <button id="rpg-plot-random" class="menu_button interactable rpg-plot-btn" tabindex="0" role="button" title="${i18n.getTranslation('plotProgression.tooltips.randomizedPlot') || 'Generate a random plot twist or event'}">
                 <i class="fa-solid fa-dice"></i>&nbsp;<span class="rpg-btn-text">${i18n.getTranslation('plotProgression.buttons.randomizedPlot') || 'Randomized Plot'}</span>
             </button>
-            <button id="rpg-plot-natural" class="menu_button interactable" style="
-                background-color: #4a90e2;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-size: 13px;
-                cursor: pointer;
-                margin: 0 2px;
-            " tabindex="0" role="button" title="${i18n.getTranslation('plotProgression.tooltips.naturalPlot') || 'Continue the story naturally without twists'}">
+            <button id="rpg-plot-natural" class="menu_button interactable rpg-plot-btn" tabindex="0" role="button" title="${i18n.getTranslation('plotProgression.tooltips.naturalPlot') || 'Continue the story naturally without twists'}">
                 <i class="fa-solid fa-forward"></i>&nbsp;<span class="rpg-btn-text">${i18n.getTranslation('plotProgression.buttons.naturalPlot') || 'Natural Plot'}</span>
             </button>
-            <button id="rpg-encounter-button" class="menu_button interactable" style="
-                background-color: #cc3333;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 4px;
-                font-size: 13px;
-                cursor: pointer;
-                margin: 0 2px;
-            " tabindex="0" role="button" title="${i18n.getTranslation('plotProgression.tooltips.enterEncounter') || 'Enter combat encounter'}">
+            <button id="rpg-encounter-button" class="menu_button interactable rpg-plot-btn" tabindex="0" role="button" title="${i18n.getTranslation('plotProgression.tooltips.enterEncounter') || 'Enter combat encounter'}">
                 <i class="fa-solid fa-fire"></i>&nbsp;<span class="rpg-btn-text">${i18n.getTranslation('plotProgression.buttons.enterEncounter') || 'Enter Encounter'}</span>
             </button>
         </span>

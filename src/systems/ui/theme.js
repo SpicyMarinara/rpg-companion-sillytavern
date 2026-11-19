@@ -188,7 +188,6 @@ export function updateFeatureTogglesVisibility() {
     const $cyoaToggle = $('#rpg-cyoa-toggle-wrapper');
     const $spotifyToggle = $('#rpg-spotify-toggle-wrapper');
 
-    const $dynamicWeatherToggle = $('#rpg-dynamic-weather-toggle-wrapper');
     const $narratorToggle = $('#rpg-narrator-toggle-wrapper');
     const $autoAvatarsToggle = $('#rpg-auto-avatars-toggle-wrapper');
 
@@ -200,7 +199,6 @@ export function updateFeatureTogglesVisibility() {
     $cyoaToggle.toggle(extensionSettings.showCYOAToggle ?? true);
     $spotifyToggle.toggle(extensionSettings.showSpotifyToggle);
 
-    $dynamicWeatherToggle.toggle(extensionSettings.showDynamicWeatherToggle);
     $narratorToggle.toggle(extensionSettings.showNarratorMode);
     $autoAvatarsToggle.toggle(extensionSettings.showAutoAvatars);
 
@@ -211,7 +209,6 @@ export function updateFeatureTogglesVisibility() {
                       (extensionSettings.showOmniscienceToggle ?? true) ||
                       (extensionSettings.showCYOAToggle ?? true) ||
                       extensionSettings.showSpotifyToggle ||
-                      extensionSettings.showDynamicWeatherToggle ||
                       extensionSettings.showNarratorMode ||
                       extensionSettings.showAutoAvatars;
     $featuresRow.toggle(anyVisible);

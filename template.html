@@ -1,17 +1,15 @@
 <div id="rpg-companion-panel" class="rpg-panel">
-    <!-- Collapse/Expand Toggle Button -->
-    <button class="rpg-collapse-toggle" id="rpg-collapse-toggle" title="Collapse/Expand Panel" data-i18n-title="global.collapseExpandPanel">
-        <i class="fa-solid fa-chevron-right"></i>
+    <!-- Edge handle: visible only while collapsed -->
+    <button id="rpg-expand-handle" class="rpg-expand-handle" type="button" title="Collapse/Expand Panel" data-i18n-title="global.collapseExpandPanel">
+        <i class="fa-solid fa-chevron-left"></i>
     </button>
 
-    <!-- Strip Widget Container (shown when collapsed with strip widgets enabled) -->
+    <!-- Strip widgets: compact readout shown while the docked panel is collapsed -->
     <div id="rpg-strip-widget-container" class="rpg-strip-widget-container">
-        <!-- Weather Icon Widget -->
         <div class="rpg-strip-widget rpg-strip-widget-weather" data-widget="weatherIcon">
             <span class="rpg-strip-widget-icon"></span>
             <span class="rpg-strip-widget-desc"></span>
         </div>
-        <!-- Clock Widget with animated face -->
         <div class="rpg-strip-widget rpg-strip-widget-clock" data-widget="clock">
             <div class="rpg-strip-clock-face">
                 <div class="rpg-strip-clock-hour"></div>
@@ -20,195 +18,122 @@
             </div>
             <span class="rpg-strip-widget-value"></span>
         </div>
-        <!-- Date Widget -->
         <div class="rpg-strip-widget rpg-strip-widget-date" data-widget="date">
             <i class="fa-solid fa-calendar"></i>
             <span class="rpg-strip-widget-value"></span>
         </div>
-        <!-- Location Widget -->
         <div class="rpg-strip-widget rpg-strip-widget-location" data-widget="location">
             <i class="fa-solid fa-location-dot"></i>
             <span class="rpg-strip-widget-value"></span>
         </div>
-        <!-- Stats Widget -->
         <div class="rpg-strip-widget rpg-strip-widget-stats" data-widget="stats">
             <div class="rpg-strip-stats-list"></div>
         </div>
-        <!-- Attributes Widget -->
         <div class="rpg-strip-widget rpg-strip-widget-attributes" data-widget="attributes">
             <div class="rpg-strip-attributes-grid"></div>
         </div>
-        <!-- Refresh Button (bottom) -->
-        <button id="rpg-strip-refresh" class="rpg-strip-refresh-btn" title="Refresh RPG Info" data-i18n-title="global.refreshRpgInfo">
+        <button id="rpg-strip-refresh" class="rpg-strip-refresh-btn" type="button" title="Refresh RPG Info" data-i18n-title="global.refreshRpgInfo">
             <i class="fa-solid fa-sync"></i>
         </button>
     </div>
 
-    <!-- Main Game Panel -->
     <div class="rpg-game-container">
-        <!-- Header with Controls -->
-        <div class="rpg-panel-header">
+        <header class="rpg-panel-header">
             <h3>
                 <i class="fa-solid fa-dice-d20"></i>
                 <span id="rpg-panel-title" data-i18n-key="template.mainPanel.title">RPG Companion</span>
             </h3>
+            <div class="rpg-header-actions">
+                <button id="rpg-open-tracker-editor" class="rpg-icon-btn" type="button" title="Edit Trackers" data-i18n-title="template.mainPanel.editTrackersButton">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+                <button id="rpg-open-settings" class="rpg-icon-btn" type="button" title="Settings" data-i18n-title="template.mainPanel.settingsButton">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <button id="rpg-collapse-toggle" class="rpg-icon-btn" type="button" title="Collapse/Expand Panel" data-i18n-title="global.collapseExpandPanel">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </header>
+
+        <div id="rpg-dice-display" class="rpg-dice-display" role="button" tabindex="0">
+            <i class="fa-solid fa-dice"></i>
+            <span id="rpg-last-roll-text"></span>
+            <button id="rpg-clear-dice" class="rpg-clear-dice-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
-        <div id="rpg-panel-content">
-            <!-- Dice Roll Display -->
-            <div id="rpg-dice-display" class="rpg-dice-display">
-                <i class="fa-solid fa-dice"></i>
-                <span id="rpg-last-roll-text"></span>
-                <button id="rpg-clear-dice" class="rpg-clear-dice-btn">×</button>
-            </div>
-
-            <!-- Unified Game Content Box -->
-            <div class="rpg-content-box">
-                <!-- User Stats Section with Portrait -->
-                <div id="rpg-user-stats" class="rpg-section rpg-stats-section">
-                    <!-- Content will be populated by JavaScript -->
-                </div>
-
-                <!-- Divider after User Stats -->
-                <div id="rpg-divider-stats" class="rpg-divider"></div>
-
-                <!-- Info Box Section -->
-                <div id="rpg-info-box" class="rpg-section rpg-info-section">
-                    <!-- Content will be populated by JavaScript -->
-                </div>
-
-                <!-- Divider after Info Box -->
-                <div id="rpg-divider-info" class="rpg-divider"></div>
-
-                <!-- Character Thoughts Section -->
-                <div id="rpg-thoughts" class="rpg-section rpg-thoughts-section">
-                    <!-- Content will be populated by JavaScript -->
-                </div>
-
-                <!-- Divider after Thoughts -->
-                <div id="rpg-divider-thoughts" class="rpg-divider"></div>
-
-                <!-- Inventory Section -->
-                <div id="rpg-inventory" class="rpg-section rpg-inventory-section">
-                    <!-- Content will be populated by JavaScript -->
-                </div>
-
-                <!-- Divider after Inventory -->
-                <div id="rpg-divider-inventory" class="rpg-divider"></div>
-
-                <!-- Quests Section -->
-                <div id="rpg-quests" class="rpg-section rpg-quests-section">
-                    <!-- Content will be populated by JavaScript -->
-                </div>
-
-                <!-- Divider after Quests -->
-                <div id="rpg-divider-quests" class="rpg-divider"></div>
-
-                <!-- Music Player Section -->
-                <div id="rpg-music-player" class="rpg-section rpg-music-section">
-                    <!-- Content will be populated by JavaScript -->
-                </div>
-            </div>
-
-            <!-- Feature Toggles Row -->
-            <div class="rpg-features-row" id="rpg-features-row">
-                <!-- HTML Prompt Toggle -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-html-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="Immersive HTML" data-i18n-title="template.mainPanel.immersiveHtml">
-                        <input type="checkbox" id="rpg-toggle-html-prompt">
-                        <i class="fa-solid fa-code"></i>
-                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.immersiveHtml">Immersive HTML</span>
-                    </label>
-                </div>
-
-                <!-- Dialogue Coloring Toggle -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-dialogue-coloring-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="Colored Dialogues" data-i18n-title="template.mainPanel.coloredDialogues">
-                        <input type="checkbox" id="rpg-toggle-dialogue-coloring">
-                        <i class="fa-solid fa-palette"></i>
-                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.coloredDialogues">Colored Dialogues</span>
-                    </label>
-                </div>
-
-                <!-- Deception System Toggle -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-deception-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="Deception System" data-i18n-title="template.mainPanel.deceptionSystem">
-                        <input type="checkbox" id="rpg-toggle-deception">
-                        <i class="fa-solid fa-masks-theater"></i>
-                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.deceptionSystem">Deception System</span>
-                    </label>
-                </div>
-
-                <!-- Omniscience Filter Toggle -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-omniscience-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="Omniscience Filter" data-i18n-title="template.mainPanel.omniscienceFilter">
-                        <input type="checkbox" id="rpg-toggle-omniscience">
-                        <i class="fa-solid fa-eye-slash"></i>
-                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.omniscienceFilter">Omniscience Filter</span>
-                    </label>
-                </div>
-
-                <!-- CYOA Toggle -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-cyoa-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="CYOA" data-i18n-title="template.mainPanel.cyoa">
-                        <input type="checkbox" id="rpg-toggle-cyoa">
-                        <i class="fa-solid fa-list-ol"></i>
-                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.cyoa">CYOA</span>
-                    </label>
-                </div>
-
-                <!-- Spotify Music Toggle -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-spotify-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="Spotify Music" data-i18n-title="template.mainPanel.spotifyMusic">
-                        <input type="checkbox" id="rpg-toggle-spotify-music">
-                        <i class="fa-brands fa-spotify"></i>
-                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.spotifyMusic">Spotify Music</span>
-                    </label>
-                </div>
-
-                <!-- Dynamic Weather Toggle -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-dynamic-weather-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="Dynamic Weather Effects" data-i18n-title="template.mainPanel.dynamicWeatherEffects">
-                        <input type="checkbox" id="rpg-toggle-dynamic-weather">
-                        <i class="fa-solid fa-cloud-sun-rain"></i>
-                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.dynamicWeatherEffects">Dynamic Weather</span>
-                    </label>
-                </div>
-                <!-- Narrator Mode Toggle -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-narrator-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="Narrator Mode" data-i18n-title="template.mainPanel.narratorMode">
-                        <input type="checkbox" id="rpg-toggle-narrator">
-                        <i class="fa-solid fa-book-open"></i>
-                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.narratorMode">Narrator Mode</span>
-                    </label>
-                </div>
-                <!-- Auto-generate Avatars Toggle -->
-                <div class="rpg-toggle-container rpg-feature-col" id="rpg-auto-avatars-toggle-wrapper">
-                    <label class="rpg-toggle-label" title="Auto-generate Avatars" data-i18n-title="template.mainPanel.autoAvatars">
-                        <input type="checkbox" id="rpg-toggle-auto-avatars-panel">
-                        <i class="fa-solid fa-user-plus"></i>
-                        <span class="rpg-toggle-text" data-i18n-key="template.mainPanel.autoAvatars">Auto Avatars</span>
-                    </label>
-                </div>            </div>
-
-            <!-- Manual Update Button -->
-            <button id="rpg-manual-update" class="rpg-btn-primary rpg-manual-update-btn">
-                <i class="fa-solid fa-sync"></i> <span data-i18n-key="template.mainPanel.refreshRpgInfo">Refresh RPG
-                    Info</span>
+        <nav class="rpg-tabs-nav" role="tablist">
+            <button class="rpg-tab-btn active" type="button" role="tab" aria-selected="true" data-tab="status">
+                <i class="fa-solid fa-chart-simple"></i>
+                <span data-i18n-key="global.status">Status</span>
             </button>
+            <button class="rpg-tab-btn" type="button" role="tab" aria-selected="false" data-tab="inventory">
+                <i class="fa-solid fa-box"></i>
+                <span data-i18n-key="global.inventory">Inventory</span>
+            </button>
+            <button class="rpg-tab-btn" type="button" role="tab" aria-selected="false" data-tab="quests">
+                <i class="fa-solid fa-scroll"></i>
+                <span data-i18n-key="global.quests">Quests</span>
+            </button>
+        </nav>
 
-            <!-- Settings and Edit Trackers Buttons Row -->
-            <div class="rpg-settings-buttons-row">
-                <button id="rpg-open-tracker-editor" class="rpg-btn-settings rpg-btn-half">
-                    <i class="fa-solid fa-sliders"></i> <span data-i18n-key="template.mainPanel.editTrackersButton">Edit
-                        Trackers</span>
-                </button>
-                <button id="rpg-open-settings" class="rpg-btn-settings rpg-btn-half">
-                    <i class="fa-solid fa-gear"></i> <span
-                        data-i18n-key="template.mainPanel.settingsButton">Settings</span>
-                </button>
+        <div id="rpg-panel-content" class="rpg-content-box">
+            <div class="rpg-tab-content active" data-tab-content="status" role="tabpanel">
+                <div id="rpg-user-stats" class="rpg-section rpg-stats-section"></div>
+                <div id="rpg-info-box" class="rpg-section rpg-info-section"></div>
+                <div id="rpg-thoughts" class="rpg-section rpg-thoughts-section"></div>
+            </div>
+            <div class="rpg-tab-content" data-tab-content="inventory" role="tabpanel">
+                <div id="rpg-inventory" class="rpg-section rpg-inventory-section"></div>
+            </div>
+            <div class="rpg-tab-content" data-tab-content="quests" role="tabpanel">
+                <div id="rpg-quests" class="rpg-section rpg-quests-section"></div>
             </div>
         </div>
+
+        <div id="rpg-music-player" class="rpg-section rpg-music-section"></div>
+
+        <footer class="rpg-panel-footer">
+            <!-- Prompt feature toggles: icon chips, the label shows on hover -->
+            <div class="rpg-features-row" id="rpg-features-row">
+                <label class="rpg-feature-toggle" id="rpg-html-toggle-wrapper" title="Immersive HTML" data-i18n-title="template.mainPanel.immersiveHtml">
+                    <input type="checkbox" id="rpg-toggle-html-prompt">
+                    <i class="fa-solid fa-code"></i>
+                </label>
+                <label class="rpg-feature-toggle" id="rpg-dialogue-coloring-toggle-wrapper" title="Colored Dialogues" data-i18n-title="template.mainPanel.coloredDialogues">
+                    <input type="checkbox" id="rpg-toggle-dialogue-coloring">
+                    <i class="fa-solid fa-palette"></i>
+                </label>
+                <label class="rpg-feature-toggle" id="rpg-deception-toggle-wrapper" title="Deception System" data-i18n-title="template.mainPanel.deceptionSystem">
+                    <input type="checkbox" id="rpg-toggle-deception">
+                    <i class="fa-solid fa-masks-theater"></i>
+                </label>
+                <label class="rpg-feature-toggle" id="rpg-omniscience-toggle-wrapper" title="Omniscience Filter" data-i18n-title="template.mainPanel.omniscienceFilter">
+                    <input type="checkbox" id="rpg-toggle-omniscience">
+                    <i class="fa-solid fa-eye-slash"></i>
+                </label>
+                <label class="rpg-feature-toggle" id="rpg-cyoa-toggle-wrapper" title="CYOA" data-i18n-title="template.mainPanel.cyoa">
+                    <input type="checkbox" id="rpg-toggle-cyoa">
+                    <i class="fa-solid fa-list-ol"></i>
+                </label>
+                <label class="rpg-feature-toggle" id="rpg-spotify-toggle-wrapper" title="Spotify Music" data-i18n-title="template.mainPanel.spotifyMusic">
+                    <input type="checkbox" id="rpg-toggle-spotify-music">
+                    <i class="fa-brands fa-spotify"></i>
+                </label>
+                <label class="rpg-feature-toggle" id="rpg-narrator-toggle-wrapper" title="Narrator Mode" data-i18n-title="template.mainPanel.narratorMode">
+                    <input type="checkbox" id="rpg-toggle-narrator">
+                    <i class="fa-solid fa-book-open"></i>
+                </label>
+                <label class="rpg-feature-toggle" id="rpg-auto-avatars-toggle-wrapper" title="Auto-generate Avatars" data-i18n-title="template.mainPanel.autoAvatars">
+                    <input type="checkbox" id="rpg-toggle-auto-avatars-panel">
+                    <i class="fa-solid fa-user-plus"></i>
+                </label>
+            </div>
+
+            <button id="rpg-manual-update" class="menu_button rpg-manual-update-btn" type="button">
+                <i class="fa-solid fa-sync"></i> <span data-i18n-key="template.mainPanel.refreshRpgInfo">Refresh RPG Info</span>
+            </button>
+        </footer>
     </div>
 </div>
 
@@ -370,7 +295,7 @@
                     <input type="checkbox" id="rpg-toggle-user-stats" />
                     <span data-i18n-key="template.settingsModal.display.showUserStats">Show User Stats</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showUserStatsNote">
                     Enable User Stats that track your persona's statistics, mood, attributes, skills, etc.
                 </small>
@@ -379,7 +304,7 @@
                     <input type="checkbox" id="rpg-toggle-info-box" />
                     <span data-i18n-key="template.settingsModal.display.showInfoBox">Show Info Box</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showInfoBoxNote">
                     Display location, time, weather, and recent events.
                 </small>
@@ -389,7 +314,7 @@
                     <span data-i18n-key="template.settingsModal.display.showPresentCharacters">Show Present
                         Characters</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showPresentCharactersNote">
                     Display character portraits with their current thoughts and status.
                 </small>
@@ -398,7 +323,7 @@
                     <input type="checkbox" id="rpg-toggle-alt-present-characters" />
                     <span data-i18n-key="template.settingsModal.display.showBelowChatPresentCharacters">Show Below-Chat Present Characters</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showBelowChatPresentCharactersNote">
                     Display a compact Present Characters panel below the chat.
                 </small>
@@ -407,7 +332,7 @@
                     <input type="checkbox" id="rpg-toggle-thought-based-expressions" />
                     <span data-i18n-key="template.settingsModal.display.thoughtBasedExpressions">Thought-Based Expressions</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.thoughtBasedExpressionsNote">
                     Use SillyTavern Character Expressions to classify each present character's thoughts for the below-chat panel. May increase token usage depending on the selected Classifier API.
                 </small>
@@ -416,7 +341,7 @@
                     <input type="checkbox" id="rpg-toggle-hide-default-expressions" />
                     <span data-i18n-key="template.settingsModal.display.hideDefaultExpressionDisplay">Hide Default Expression Display</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.hideDefaultExpressionDisplayNote">
                     Hide SillyTavern's built-in Character Expressions display.
                 </small>
@@ -425,7 +350,7 @@
                     <input type="checkbox" id="rpg-toggle-thoughts-in-chat" />
                     <span data-i18n-key="template.settingsModal.display.showThoughtsInChat">Show Thoughts</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showThoughtsInChatNote">
                     Display character thoughts as overlay bubbles next to their messages.
                 </small>
@@ -434,7 +359,7 @@
                     <input type="checkbox" id="rpg-toggle-inline-thoughts" />
                     <span data-i18n-key="template.settingsModal.display.showInlineThoughts">Show Thoughts Below Message Text</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showInlineThoughtsNote">
                     Switch between the default corner thought bubbles and thought cards below the message text.
                 </small>
@@ -443,7 +368,7 @@
                     <input type="checkbox" id="rpg-toggle-inventory" />
                     <span data-i18n-key="template.settingsModal.display.showInventory">Show Inventory</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showInventoryNote">
                     Track items carried, clothing worn, stored items, and assets.
                 </small>
@@ -452,7 +377,7 @@
                     <input type="checkbox" id="rpg-toggle-quests" />
                     <span data-i18n-key="template.settingsModal.display.showQuests">Show Quests</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showQuestsNote">
                     Manage main and optional quests with objectives.
                 </small>
@@ -461,7 +386,7 @@
                     <input type="checkbox" id="rpg-toggle-lock-icons" />
                     <span data-i18n-key="template.settingsModal.display.showLockIcons">Show Locking/Unlocking Trackers</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showLockIconsNote">
                     Display lock/unlock icons on tracker items to prevent AI from modifying them.
                 </small>
@@ -470,7 +395,7 @@
                     <input type="checkbox" id="rpg-toggle-show-html-toggle" />
                     <span data-i18n-key="template.settingsModal.display.showImmersiveHtmlToggle">Show Immersive HTML</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showImmersiveHtmlToggleNote">
                     Display a toggle button to enable/disable HTML formatting in messages.
                 </small>
@@ -479,7 +404,7 @@
                     <input type="checkbox" id="rpg-toggle-show-dialogue-coloring-toggle" />
                     <span data-i18n-key="template.settingsModal.display.showDialogueColoringToggle">Show Colored Dialogues</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showDialogueColoringToggleNote">
                     Display a toggle button to enable/disable colored dialogue formatting.
                 </small>
@@ -488,7 +413,7 @@
                     <input type="checkbox" id="rpg-toggle-show-deception-toggle" />
                     <span data-i18n-key="template.settingsModal.display.showDeceptionToggle">Show Deception System</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showDeceptionToggleNote">
                     Display a toggle button to enable/disable special formatting of lies and deceptions crafted by the model, allowing it to easily track whenever one was committed, without showing it to the user.
                 </small>
@@ -497,7 +422,7 @@
                     <input type="checkbox" id="rpg-toggle-show-omniscience-toggle" />
                     <span data-i18n-key="template.settingsModal.display.showOmniscienceToggle">Show Omniscience Filter</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showOmniscienceToggleNote">
                     Display a toggle button to enable/disable the omniscience filter, which instructs the AI to hide information the player character cannot perceive (events behind them, in other rooms, etc.) in special tags.
                 </small>
@@ -506,7 +431,7 @@
                     <input type="checkbox" id="rpg-toggle-show-cyoa-toggle" />
                     <span data-i18n-key="template.settingsModal.display.showCYOAToggle">Show CYOA</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showCYOAToggleNote">
                     Display a toggle button to enable/disable "Choose Your Own Adventure" formatting instruction that makes the model produce five possible actions/dialogues for you to choose from at the end of the output.
                 </small>
@@ -515,46 +440,16 @@
                     <input type="checkbox" id="rpg-toggle-show-spotify-toggle" />
                     <span data-i18n-key="template.settingsModal.display.showSpotifyMusicToggle">Show Spotify Music</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showSpotifyMusicToggleNote">
                     Display Spotify music player with AI-suggested scene-appropriate tracks.
                 </small>
 
                 <label class="checkbox_label">
-                    <input type="checkbox" id="rpg-toggle-show-dynamic-weather-toggle" />
-                    <span data-i18n-key="template.settingsModal.display.showDynamicWeatherToggle">Show Dynamic Weather Effects</span>
-                </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
-                    data-i18n-key="template.settingsModal.display.showDynamicWeatherToggleNote">
-                    Display a toggle button to enable/disable animated weather effects.
-                </small>
-
-                <!-- Weather sub-options (shown when dynamic weather is enabled) -->
-                <div id="rpg-weather-suboptions" style="margin-left: 24px; margin-top: 8px;">
-                    <label class="checkbox_label">
-                        <input type="radio" name="rpg-weather-position" id="rpg-toggle-weather-background" />
-                        <span data-i18n-key="template.settingsModal.display.weatherPosition.background">Show in Background</span>
-                    </label>
-                    <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
-                        data-i18n-key="template.settingsModal.display.weatherPosition.backgroundNote">
-                        Display weather effects behind the chat (standard behavior).
-                    </small>
-
-                    <label class="checkbox_label">
-                        <input type="radio" name="rpg-weather-position" id="rpg-toggle-weather-foreground" />
-                        <span data-i18n-key="template.settingsModal.display.weatherPosition.foreground">Show in Foreground</span>
-                    </label>
-                    <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
-                        data-i18n-key="template.settingsModal.display.weatherPosition.foregroundNote">
-                        Display weather effects in front of the chat (experimental).
-                    </small>
-                </div>
-
-                <label class="checkbox_label">
                     <input type="checkbox" id="rpg-toggle-show-narrator-mode" />
                     <span data-i18n-key="template.settingsModal.display.showNarratorMode">Show Narrator Mode</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showNarratorModeNote">
                     Display a toggle button to enable/disable narrator mode (infer characters from context).
                 </small>
@@ -563,7 +458,7 @@
                     <input type="checkbox" id="rpg-toggle-show-auto-avatars" />
                     <span data-i18n-key="template.settingsModal.display.showAutoAvatars">Show Auto-generate Avatars</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showAutoAvatarsNote">
                     Display a toggle button to automatically generate avatars for characters without images.
                 </small>
@@ -572,7 +467,7 @@
                     <input type="checkbox" id="rpg-toggle-randomized-plot" />
                     <span data-i18n-key="template.settingsModal.display.showRandomizedPlot">Show Randomized Plot Progression</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showRandomizedPlotNote">
                     Display button for AI-generated random plot progression prompts.
                 </small>
@@ -581,7 +476,7 @@
                     <input type="checkbox" id="rpg-toggle-natural-plot" />
                     <span data-i18n-key="template.settingsModal.display.showNaturalPlot">Show Natural Plot Progression</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showNaturalPlotNote">
                     Display button for context-aware narrative continuation prompts.
                 </small>
@@ -590,7 +485,7 @@
                     <input type="checkbox" id="rpg-toggle-encounters" />
                     <span data-i18n-key="template.settingsModal.display.showStartEncounter">Show Start Encounter</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showStartEncounterNote">
                     Display button to initiate interactive combat encounters.
                 </small>
@@ -599,7 +494,7 @@
                     <input type="checkbox" id="rpg-toggle-dice-display" />
                     <span data-i18n-key="template.settingsModal.display.showDiceDisplay">Show Dice Roll Display</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.showDiceDisplayNote">
                     Display the "Last Roll" indicator in the panel
                 </small>
@@ -618,7 +513,7 @@
                     <input type="checkbox" id="rpg-toggle-fab-widgets-enabled" />
                     <span data-i18n-key="template.settingsModal.mobileFab.enabled">Enable Floating Mobile Widgets</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.mobileFab.enabledNote">
                     Master toggle to show info widgets around the mobile floating button.
                 </small>
@@ -673,7 +568,7 @@
                     <input type="checkbox" id="rpg-toggle-strip-widgets-enabled" />
                     <span data-i18n-key="template.settingsModal.desktopStrip.enabled">Enable Strip Widgets</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.desktopStrip.enabledNote">
                     Shows widgets in the collapsed panel strip for quick access to stats.
                 </small>
@@ -817,7 +712,7 @@
                     <span data-i18n-key="template.settingsModal.display.toggleAutoUpdate">Auto-update after
                         messages</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.display.toggleAutoUpdateNote">
                     Automatically refresh RPG info after each message.
                 </small>
@@ -833,7 +728,7 @@
                     <input type="checkbox" id="rpg-toggle-autosave-logs" />
                     <span data-i18n-key="template.settingsModal.advanced.autoSaveCombatLogs">Auto-save Combat Logs</span>
                 </label>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.advanced.autoSaveCombatLogsNote">
                     Save detailed combat logs to file for future reference and analysis.
                 </small>
@@ -853,7 +748,7 @@
                             guided or quiet prompts</option>
                     </select>
                 </div>
-                <small style="display: block; margin-left: 24px; margin-top: -8px; color: #888; font-size: 11px;"
+                <small class="rpg-note rpg-note-indented"
                     data-i18n-key="template.settingsModal.advanced.skipInjectionsNote">
                     When set, the extension will not inject tracker prompts, examples, or HTML instructions according to
                     the selected mode when a guided generation (via `instruct` or `quiet_prompt`) is detected. Useful
@@ -865,7 +760,7 @@
                     <button id="rpg-open-prompts-editor" class="rpg-btn-customize-prompts">
                         <i class="fa-solid fa-file-lines" aria-hidden="true"></i> <span data-i18n-key="template.promptsEditor.button">Customize Prompts</span>
                     </button>
-                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;"
+                    <small class="rpg-note"
                         data-i18n-key="template.promptsEditor.buttonNote">
                         Edit all AI prompts used for generation, plot progression, and combat encounters.
                     </small>
@@ -878,7 +773,7 @@
                             data-i18n-key="template.settingsModal.advanced.resetFabPositions">Reset Button
                             Positions</span>
                     </button>
-                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;"
+                    <small class="rpg-note"
                         data-i18n-key="template.settingsModal.advanced.resetFabPositionsNote">
                         Resets all floating action buttons (toggle, refresh) to default top-left positions.
                         Useful if buttons are off-screen.
@@ -891,7 +786,7 @@
                         <i class="fa-solid fa-trash" aria-hidden="true"></i> <span
                             data-i18n-key="template.settingsModal.advanced.clearCache">Clear Extension Cache</span>
                     </button>
-                    <small style="display: block; margin-top: 8px; color: #888; font-size: 11px;"
+                    <small class="rpg-note"
                         data-i18n-key="template.settingsModal.advanced.clearCacheNote">
                         Clears committed and displayed tracker data for your currently active chat.
                     </small>
@@ -1074,10 +969,10 @@
 
             <!-- HTML Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-html" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-html" class="rpg-field-label">
                     <i class="fa-solid fa-code"></i> <span data-i18n-key="template.promptsEditor.htmlPrompt.title">HTML Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;"
+                <small class="rpg-note"
                     data-i18n-key="template.promptsEditor.htmlPrompt.note">
                     Injected when "Enable Immersive HTML" is enabled. Affects all generation modes.
                 </small>
@@ -1089,10 +984,10 @@
 
             <!-- Dialogue Coloring Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-dialogue-coloring" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-dialogue-coloring" class="rpg-field-label">
                     <i class="fa-solid fa-palette"></i> <span data-i18n-key="template.promptsEditor.dialogueColoringPrompt.title">Dialogue Coloring Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;"
+                <small class="rpg-note"
                     data-i18n-key="template.promptsEditor.dialogueColoringPrompt.note">
                     Injected when "Enable Dialogue Coloring" is enabled. Affects all generation modes.
                 </small>
@@ -1104,10 +999,10 @@
 
             <!-- Deception System Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-deception" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-deception" class="rpg-field-label">
                     <i class="fa-solid fa-masks-theater"></i> <span data-i18n-key="template.promptsEditor.deceptionPrompt.title">Deception System Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.deceptionPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.deceptionPrompt.note">
                     Injected when "Enable Deception System" is enabled. Instructs AI to mark lies and deceptions with hidden tags.
                 </small>
                 <textarea id="rpg-prompt-deception" class="rpg-prompt-textarea" rows="4"></textarea>
@@ -1118,10 +1013,10 @@
 
             <!-- Omniscience Filter Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-omniscience" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-omniscience" class="rpg-field-label">
                     <i class="fa-solid fa-eye-slash"></i> <span data-i18n-key="template.promptsEditor.omnisciencePrompt.title">Omniscience Filter Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.omnisciencePrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.omnisciencePrompt.note">
                     Injected when "Enable Omniscience Filter" is enabled. Instructs AI to separate information the player character cannot perceive into hidden &lt;ofilter&gt; tags.
                 </small>
                 <textarea id="rpg-prompt-omniscience" class="rpg-prompt-textarea" rows="6"></textarea>
@@ -1132,10 +1027,10 @@
 
             <!-- CYOA Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-cyoa" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-cyoa" class="rpg-field-label">
                     <i class="fa-solid fa-list-ol"></i> <span data-i18n-key="template.promptsEditor.cyoaPrompt.title">CYOA Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.cyoaPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.cyoaPrompt.note">
                     Injected when "Enable CYOA" is enabled. Instructs AI to end responses with numbered action choices. Uses very high priority (depth 102) to ensure it's the last instruction.
                 </small>
                 <textarea id="rpg-prompt-cyoa" class="rpg-prompt-textarea" rows="4"></textarea>
@@ -1146,10 +1041,10 @@
 
             <!-- Spotify Music Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-spotify" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-spotify" class="rpg-field-label">
                     <i class="fa-brands fa-spotify"></i> <span data-i18n-key="template.promptsEditor.spotifyPrompt.title">Spotify Music Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.spotifyPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.spotifyPrompt.note">
                     Injected when "Enable Spotify Music" is enabled. Asks AI to suggest appropriate music for the scene.
                 </small>
                 <textarea id="rpg-prompt-spotify" class="rpg-prompt-textarea" rows="4"></textarea>
@@ -1160,10 +1055,10 @@
 
             <!-- Narrator Mode Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-narrator" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-narrator" class="rpg-field-label">
                     <i class="fa-solid fa-book-open"></i> <span data-i18n-key="template.promptsEditor.narratorPrompt.title">Narrator Mode Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.narratorPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.narratorPrompt.note">
                     Injected when "Narrator Mode" is enabled. Instructs AI to infer characters from context.
                 </small>
                 <textarea id="rpg-prompt-narrator" class="rpg-prompt-textarea" rows="3"></textarea>
@@ -1174,10 +1069,10 @@
 
             <!-- Context Instructions Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-context-instructions" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-context-instructions" class="rpg-field-label">
                     <i class="fa-solid fa-comment-dots"></i> <span data-i18n-key="template.promptsEditor.contextPrompt.title">Context Instructions Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.contextPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.contextPrompt.note">
                     Injected in Separate/External mode after the context summary. Tells the AI how to use the context.
                 </small>
                 <textarea id="rpg-prompt-context-instructions" class="rpg-prompt-textarea" rows="4"></textarea>
@@ -1188,10 +1083,10 @@
 
             <!-- Random Plot Progression Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-plot-random" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-plot-random" class="rpg-field-label">
                     <i class="fa-solid fa-dice"></i> <span data-i18n-key="template.promptsEditor.randomPlotPrompt.title">Random Plot Progression Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.randomPlotPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.randomPlotPrompt.note">
                     Injected when the "Randomized Plot" button is clicked. Introduces random elements to the story.
                 </small>
                 <textarea id="rpg-prompt-plot-random" class="rpg-prompt-textarea" rows="6"></textarea>
@@ -1202,10 +1097,10 @@
 
             <!-- Natural Plot Progression Prompt -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-plot-natural" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-plot-natural" class="rpg-field-label">
                     <i class="fa-solid fa-forward"></i> <span data-i18n-key="template.promptsEditor.naturalPlotPrompt.title">Natural Plot Progression Prompt</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.naturalPlotPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.naturalPlotPrompt.note">
                     Injected when the "Natural Plot" button is clicked. Progresses the story naturally.
                 </small>
                 <textarea id="rpg-prompt-plot-natural" class="rpg-prompt-textarea" rows="4"></textarea>
@@ -1216,10 +1111,10 @@
 
             <!-- Avatar Generation Instruction -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-avatar" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-avatar" class="rpg-field-label">
                     <i class="fa-solid fa-user-circle"></i> <span data-i18n-key="template.promptsEditor.avatarPrompt.title">Avatar Generation Instruction</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.avatarPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.avatarPrompt.note">
                     Instructions for LLM when generating avatar image prompts. Used by Auto-generate Missing Avatars feature.
                 </small>
                 <textarea id="rpg-prompt-avatar" class="rpg-prompt-textarea" rows="3"></textarea>
@@ -1230,10 +1125,10 @@
 
             <!-- Tracker Instructions -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-tracker-instructions" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-tracker-instructions" class="rpg-field-label">
                     <i class="fa-solid fa-list-check"></i> <span data-i18n-key="template.promptsEditor.trackerPrompt.title">Tracker Instructions</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.trackerPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.trackerPrompt.note">
                     Instruction portion only (format specification is hardcoded). {userName} will be replaced with the user's name.
                 </small>
                 <textarea id="rpg-prompt-tracker-instructions" class="rpg-prompt-textarea" rows="4"></textarea>
@@ -1244,10 +1139,10 @@
 
             <!-- Tracker Continuation Instruction -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-tracker-continuation" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-tracker-continuation" class="rpg-field-label">
                     <i class="fa-solid fa-arrow-right"></i> <span data-i18n-key="template.promptsEditor.trackerContinuationPrompt.title">Tracker Continuation Instruction</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.trackerContinuationPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.trackerContinuationPrompt.note">
                     Instructions added after tracker format specifications, telling the AI how to continue the narrative.
                 </small>
                 <textarea id="rpg-prompt-tracker-continuation" class="rpg-prompt-textarea" rows="4"></textarea>
@@ -1258,10 +1153,10 @@
 
             <!-- Combat Narrative Style Instruction -->
             <div class="rpg-prompt-editor-section">
-                <label for="rpg-prompt-combat-narrative" style="display: block; margin-bottom: 8px; font-weight: 600;">
+                <label for="rpg-prompt-combat-narrative" class="rpg-field-label">
                     <i class="fa-solid fa-fire"></i> <span data-i18n-key="template.promptsEditor.combatPrompt.title">Combat Narrative Style Instruction</span>
                 </label>
-                <small style="display: block; margin-bottom: 8px; color: #888; font-size: 11px;" data-i18n-key="template.promptsEditor.combatPrompt.note">
+                <small class="rpg-note" data-i18n-key="template.promptsEditor.combatPrompt.note">
                     Writing style instructions for combat encounters. Includes prose quality guidelines and anti-repetition rules. {userName} will be replaced with the user's name.
                 </small>
                 <textarea id="rpg-prompt-combat-narrative" class="rpg-prompt-textarea" rows="6"></textarea>

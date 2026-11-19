@@ -2301,9 +2301,26 @@ export function createThoughtPanel($message, thoughtsArray) {
             }, 100);
         }
     } else {
-        // Desktop: always start with panel expanded on page load/refresh
-        $thoughtPanel.css('display', 'block');
-        $thoughtIcon.addClass('rpg-force-hide').removeClass('rpg-collapsed-desktop');
+        // Desktop: start expanded if the bubble fits in the gutter beside the chat.
+        // Otherwise start as the collapsed icon, so the bubble never covers the chat.
+        const sheldRect = $('#sheld')[0]?.getBoundingClientRect();
+        const gutter = sheldRect
+            ? (isRightPanel ? sheldRect.left : window.innerWidth - sheldRect.right)
+            : Infinity;
+        const fitsBesideChat = gutter >= 200 + margin * 2;
+
+        if (fitsBesideChat) {
+            $thoughtPanel.css('display', 'block');
+            $thoughtIcon.addClass('rpg-force-hide').removeClass('rpg-collapsed-desktop');
+        } else {
+            $thoughtPanel.css('display', 'none');
+            $thoughtIcon.css({
+                top: `${getTopPosition()}px`,
+                left: isRightPanel ? `${margin / 2}px` : 'auto',
+                right: isRightPanel ? 'auto' : `${margin / 2}px`
+            });
+            $thoughtIcon.removeClass('rpg-force-hide rpg-hidden').addClass('rpg-collapsed-desktop');
+        }
     }
 
     // Handle viewport changes between mobile and desktop

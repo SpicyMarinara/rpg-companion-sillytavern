@@ -1,6 +1,18 @@
 /**
  * Layout Management Module
- * Handles panel visibility, section visibility, collapse/expand toggle, and panel positioning
+ *
+ * The panel never moves or resizes SillyTavern's own elements. Instead it picks
+ * one of three modes from the space actually available:
+ *
+ *  - docked:   the gutter beside the chat (#sheld) is wide enough, so the panel
+ *              fills it, like ST's own pinned side drawers. Collapses to a slim strip.
+ *  - floating: the gutter is too narrow (small laptops, wide chat setting), so the
+ *              panel becomes a drawer that slides over the edge of the chat and
+ *              starts collapsed to an edge handle.
+ *  - mobile:   at ST's own mobile breakpoint; same drawer, opened by the FAB,
+ *              with a backdrop.
+ *
+ * "top" position is always a floating drop-down under the top bar.
  */
 
 import {
@@ -9,8 +21,6 @@ import {
     $userStatsContainer,
     $infoBoxContainer,
     $thoughtsContainer,
-    $inventoryContainer,
-    $questsContainer,
     $musicPlayerContainer,
     setInventoryContainer,
     setQuestsContainer,
@@ -18,8 +28,190 @@ import {
     committedTrackerData
 } from '../../core/state.js';
 import { i18n } from '../../core/i18n.js';
-import { setupMobileTabs, removeMobileTabs } from './mobile.js';
-import { setupDesktopTabs, removeDesktopTabs, updateStripWidgets } from './desktop.js';
+import { updateStripWidgets } from './desktop.js';
+
+/** Matches SillyTavern's own mobile breakpoint (css/mobile-styles.css). */
+const MOBILE_BREAKPOINT = 1000;
+/** Narrowest gutter (in rem) the panel will dock into before switching to floating. */
+const MIN_DOCK_REM = 18;
+/** Widest the docked panel grows (in rem), even on very large screens. */
+const MAX_DOCK_REM = 30;
+
+let currentMode = null;
+let collapsed = false;
+let layoutObserverStarted = false;
+
+function remPx() {
+    return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+}
+
+function getPosition() {
+    const pos = extensionSettings.panelPosition;
+    return pos === 'left' || pos === 'top' ? pos : 'right';
+}
+
+/**
+ * Width of the free space between the chat column and the screen edge.
+ */
+function getGutterWidth(position) {
+    const sheld = document.getElementById('sheld');
+    if (!sheld) return 0;
+    const rect = sheld.getBoundingClientRect();
+    return position === 'left' ? rect.left : window.innerWidth - rect.right;
+}
+
+function computeMode() {
+    if (window.innerWidth <= MOBILE_BREAKPOINT) return 'mobile';
+    const position = getPosition();
+    if (position === 'top') return 'floating';
+    return getGutterWidth(position) >= MIN_DOCK_REM * remPx() ? 'docked' : 'floating';
+}
+
+export function isMobileLayout() {
+    return (currentMode ?? computeMode()) === 'mobile';
+}
+
+export function getLayoutMode() {
+    return currentMode ?? computeMode();
+}
+
+/**
+ * Applies mode, position, and docked width to the panel. Cheap; safe to call often.
+ */
+export function applyLayout() {
+    const panel = $panelContainer?.[0];
+    if (!panel) return;
+
+    const mode = computeMode();
+    const position = getPosition();
+    const modeChanged = mode !== currentMode;
+
+    if (modeChanged) {
+        // Floating and mobile start closed so they never cover the chat unasked;
+        // docked starts open since it only uses empty space.
+        collapsed = mode !== 'docked';
+        currentMode = mode;
+    }
+
+    panel.dataset.rpgMode = mode;
+    panel.classList.remove('rpg-position-left', 'rpg-position-right', 'rpg-position-top');
+    panel.classList.add(`rpg-position-${position}`);
+    panel.classList.toggle('rpg-collapsed', collapsed);
+
+    if (mode === 'docked') {
+        const width = Math.min(getGutterWidth(position), MAX_DOCK_REM * remPx());
+        panel.style.setProperty('--rpg-dock-width', `${Math.floor(width)}px`);
+    } else {
+        panel.style.removeProperty('--rpg-dock-width');
+    }
+
+    // The FAB is the opener on mobile; the edge handle everywhere else.
+    $('#rpg-mobile-toggle')
+        .css('display', extensionSettings.enabled && mode === 'mobile' ? 'flex' : 'none')
+        .toggleClass('active', mode === 'mobile' && !collapsed);
+    $('.rpg-mobile-overlay').toggle(mode === 'mobile' && !collapsed);
+    $('body').toggleClass('rpg-fab-panel-open', mode === 'mobile' && !collapsed);
+
+    updateCollapseToggleIcon();
+}
+
+/**
+ * Opens or closes the panel (strip / handle / drawer depending on mode).
+ * @param {boolean} [force] - true to collapse, false to expand
+ */
+export function togglePanelCollapsed(force) {
+    collapsed = typeof force === 'boolean' ? force : !collapsed;
+    if (collapsed) updateStripWidgets();
+    applyLayout();
+}
+
+/** Kept for callers that close the mobile drawer explicitly. */
+export function closeMobilePanelWithAnimation() {
+    togglePanelCollapsed(true);
+}
+
+/**
+ * Points the header chevron and edge handle in the direction the panel will move.
+ */
+export function updateCollapseToggleIcon() {
+    const position = getPosition();
+    const away = { left: 'fa-chevron-left', right: 'fa-chevron-right', top: 'fa-chevron-up' }[position];
+    const toward = { left: 'fa-chevron-right', right: 'fa-chevron-left', top: 'fa-chevron-down' }[position];
+    const all = 'fa-chevron-left fa-chevron-right fa-chevron-up fa-chevron-down';
+    $('#rpg-collapse-toggle i').removeClass(all).addClass(away);
+    $('#rpg-expand-handle i').removeClass(all).addClass(toward);
+}
+
+/**
+ * Wires the collapse controls, tabs, and the observers that keep the layout in sync.
+ */
+export function setupCollapseToggle() {
+    const collapseTitle = i18n.getTranslation('template.mainPanel.collapseExpand') || 'Collapse/Expand panel';
+    $('#rpg-collapse-toggle, #rpg-expand-handle').attr('title', collapseTitle);
+
+    $('#rpg-collapse-toggle').on('click', (e) => {
+        e.preventDefault();
+        togglePanelCollapsed(true);
+    });
+    $('#rpg-expand-handle').on('click', (e) => {
+        e.preventDefault();
+        togglePanelCollapsed(false);
+    });
+
+    if (!$('.rpg-mobile-overlay').length) {
+        $('<div class="rpg-mobile-overlay"></div>').hide().appendTo('body')
+            .on('click', () => togglePanelCollapsed(true));
+    }
+
+    setupPanelTabs();
+    startLayoutObserver();
+    applyLayout();
+}
+
+/**
+ * Tab bar. Tabs are static markup; this only switches the active pane.
+ */
+function setupPanelTabs() {
+    const $panel = $('#rpg-companion-panel');
+    $panel.on('click', '.rpg-tabs-nav .rpg-tab-btn', function () {
+        selectTab($(this).data('tab'));
+    });
+}
+
+function selectTab(tabName) {
+    const $panel = $('#rpg-companion-panel');
+    $panel.find('.rpg-tab-btn').each(function () {
+        const active = $(this).data('tab') === tabName;
+        $(this).toggleClass('active', active).attr('aria-selected', String(active));
+    });
+    $panel.find('.rpg-tab-content').each(function () {
+        $(this).toggleClass('active', $(this).data('tab-content') === tabName);
+    });
+}
+
+/**
+ * Re-evaluates the layout when the window or the chat column changes size
+ * (ST's chat-width slider resizes #sheld without a window resize).
+ */
+function startLayoutObserver() {
+    if (layoutObserverStarted) return;
+    layoutObserverStarted = true;
+
+    let frame = null;
+    const schedule = () => {
+        if (frame) return;
+        frame = requestAnimationFrame(() => {
+            frame = null;
+            applyLayout();
+        });
+    };
+
+    window.addEventListener('resize', schedule);
+    const sheld = document.getElementById('sheld');
+    if (sheld && 'ResizeObserver' in window) {
+        new ResizeObserver(schedule).observe(sheld);
+    }
+}
 
 /**
  * Toggles the visibility of plot buttons based on settings.
@@ -30,227 +222,14 @@ export function togglePlotButtons() {
         return;
     }
 
-    // Show/hide randomized plot button based on enableRandomizedPlot setting
-    if (extensionSettings.enableRandomizedPlot) {
-        $('#rpg-plot-random').show();
-    } else {
-        $('#rpg-plot-random').hide();
-    }
+    const showRandom = !!extensionSettings.enableRandomizedPlot;
+    const showNatural = !!extensionSettings.enableNaturalPlot;
+    const showEncounter = !!extensionSettings.encounterSettings?.enabled;
 
-    // Show/hide natural plot button based on enableNaturalPlot setting
-    if (extensionSettings.enableNaturalPlot) {
-        $('#rpg-plot-natural').show();
-    } else {
-        $('#rpg-plot-natural').hide();
-    }
-
-    // Show/hide encounter button independently based on encounter settings
-    if (extensionSettings.encounterSettings?.enabled) {
-        $('#rpg-encounter-button').show();
-    } else {
-        $('#rpg-encounter-button').hide();
-    }
-
-    // Show the container if at least one button is visible
-    const shouldShowContainer = extensionSettings.enableRandomizedPlot || extensionSettings.enableNaturalPlot || extensionSettings.encounterSettings?.enabled;
-    if (shouldShowContainer) {
-        $('#rpg-plot-buttons').show();
-    } else {
-        $('#rpg-plot-buttons').hide();
-    }
-}
-
-/**
- * Helper function to close the mobile panel with animation.
- */
-export function closeMobilePanelWithAnimation() {
-    const $panel = $('#rpg-companion-panel');
-    const $mobileToggle = $('#rpg-mobile-toggle');
-
-    // Add closing class to trigger slide-out animation
-    $panel.removeClass('rpg-mobile-open').addClass('rpg-mobile-closing');
-    $mobileToggle.removeClass('active');
-
-    // Wait for animation to complete before hiding
-    $panel.one('animationend', function() {
-        $panel.removeClass('rpg-mobile-closing');
-        $('.rpg-mobile-overlay').remove();
-    });
-}
-
-/**
- * Updates the collapse toggle icon direction based on panel position.
- */
-export function updateCollapseToggleIcon() {
-    const $collapseToggle = $('#rpg-collapse-toggle');
-    const $panel = $('#rpg-companion-panel');
-    const $icon = $collapseToggle.find('i');
-    const isMobile = window.innerWidth <= 1000;
-
-    if (isMobile) {
-        // Mobile: icon direction based on panel position and open state
-        const isOpen = $panel.hasClass('rpg-mobile-open');
-        const isLeftPanel = $panel.hasClass('rpg-position-left');
-
-        // console.log('[RPG Mobile] updateCollapseToggleIcon:', {
-        //     isMobile: true,
-        //     isOpen,
-        //     isLeftPanel,
-        //     settingIcon: isOpen ? (isLeftPanel ? 'chevron-left' : 'chevron-right') : (isLeftPanel ? 'chevron-right' : 'chevron-left')
-        // });
-
-        if (isLeftPanel) {
-            if (isOpen) {
-                // Left panel open - chevron points left (panel will slide left to close)
-                $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-right').addClass('fa-chevron-left');
-            } else {
-                // Left panel closed - chevron points left (panel is hidden on left)
-                $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-right').addClass('fa-chevron-left');
-            }
-        } else {
-            // Right panel (default)
-            if (isOpen) {
-                // Right panel open - chevron points right (panel will slide right to close)
-                $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-left').addClass('fa-chevron-right');
-            } else {
-                // Right panel closed - chevron points right (panel is hidden on right)
-                $icon.removeClass('fa-chevron-down fa-chevron-up fa-chevron-left').addClass('fa-chevron-right');
-            }
-        }
-    } else {
-        // Desktop: icon direction based on panel position and collapsed state
-        const isCollapsed = $panel.hasClass('rpg-collapsed');
-
-        if (isCollapsed) {
-            // When collapsed, arrow points inward (to expand)
-            if ($panel.hasClass('rpg-position-right')) {
-                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
-            } else if ($panel.hasClass('rpg-position-left')) {
-                $icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
-            }
-        } else {
-            // When expanded, arrow points outward (to collapse)
-            if ($panel.hasClass('rpg-position-right')) {
-                $icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
-            } else if ($panel.hasClass('rpg-position-left')) {
-                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
-            }
-        }
-    }
-}
-
-/**
- * Sets up the collapse/expand toggle button for side panels.
- */
-export function setupCollapseToggle() {
-    const $collapseToggle = $('#rpg-collapse-toggle');
-    $collapseToggle.attr('title', i18n.getTranslation('template.mainPanel.collapseExpand') || 'Collapse/Expand panel');
-    const $panel = $('#rpg-companion-panel');
-    const $icon = $collapseToggle.find('i');
-
-    $collapseToggle.on('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const isMobile = window.innerWidth <= 1000;
-
-        // On mobile: button toggles panel open/closed (same as desktop behavior)
-        if (isMobile) {
-            const isOpen = $panel.hasClass('rpg-mobile-open');
-            // console.log('[RPG Mobile] Collapse toggle clicked. Current state:', {
-            //     isOpen,
-            //     panelClasses: $panel.attr('class'),
-            //     inlineStyles: $panel.attr('style'),
-            //     panelPosition: {
-            //         top: $panel.css('top'),
-            //         bottom: $panel.css('bottom'),
-            //         transform: $panel.css('transform'),
-            //         visibility: $panel.css('visibility')
-            //     }
-            // });
-
-            if (isOpen) {
-                // Close panel with animation
-                // console.log('[RPG Mobile] Closing panel');
-                closeMobilePanelWithAnimation();
-            } else {
-                // Open panel
-                // console.log('[RPG Mobile] Opening panel');
-                $panel.addClass('rpg-mobile-open');
-                const $overlay = $('<div class="rpg-mobile-overlay"></div>');
-                $('body').append($overlay);
-
-                // Debug: Check state after animation should complete
-                setTimeout(() => {
-                    // console.log('[RPG Mobile] 500ms after opening:', {
-                    //     panelClasses: $panel.attr('class'),
-                    //     hasOpenClass: $panel.hasClass('rpg-mobile-open'),
-                    //     visibility: $panel.css('visibility'),
-                    //     transform: $panel.css('transform'),
-                    //     display: $panel.css('display'),
-                    //     opacity: $panel.css('opacity')
-                    // });
-                }, 500);
-
-                // Close when clicking overlay
-                $overlay.on('click', function() {
-                    // console.log('[RPG Mobile] Overlay clicked - closing panel');
-                    closeMobilePanelWithAnimation();
-                    updateCollapseToggleIcon();
-                });
-            }
-
-            // Update icon to reflect new state
-            updateCollapseToggleIcon();
-
-            // console.log('[RPG Mobile] After toggle:', {
-            //     panelClasses: $panel.attr('class'),
-            //     inlineStyles: $panel.attr('style'),
-            //     panelPosition: {
-            //         top: $panel.css('top'),
-            //         bottom: $panel.css('bottom'),
-            //         transform: $panel.css('transform'),
-            //         visibility: $panel.css('visibility')
-            //     },
-            //     gameContainer: {
-            //         opacity: $('.rpg-game-container').css('opacity'),
-            //         visibility: $('.rpg-game-container').css('visibility')
-            //     }
-            // });
-            return;
-        }
-
-        // Desktop behavior: collapse/expand side panel
-        const isCollapsed = $panel.hasClass('rpg-collapsed');
-
-        if (isCollapsed) {
-            // Expand panel
-            $panel.removeClass('rpg-collapsed');
-
-            // Update icon based on position
-            if ($panel.hasClass('rpg-position-right')) {
-                $icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
-            } else if ($panel.hasClass('rpg-position-left')) {
-                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
-            }
-        } else {
-            // Collapse panel
-            $panel.addClass('rpg-collapsed');
-
-            // Update icon based on position
-            if ($panel.hasClass('rpg-position-right')) {
-                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
-            } else if ($panel.hasClass('rpg-position-left')) {
-                $icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
-            }
-
-            // Update strip widgets when collapsing (they show in collapsed state)
-            updateStripWidgets();
-        }
-    });
-
-    // Set initial icon direction based on panel position
-    updateCollapseToggleIcon();
+    $('#rpg-plot-random').toggle(showRandom);
+    $('#rpg-plot-natural').toggle(showNatural);
+    $('#rpg-encounter-button').toggle(showEncounter);
+    $('#rpg-plot-buttons').toggle(showRandom || showNatural || showEncounter);
 }
 
 /**
@@ -259,201 +238,69 @@ export function setupCollapseToggle() {
 export function updatePanelVisibility() {
     if (extensionSettings.enabled) {
         $panelContainer.show();
-        togglePlotButtons(); // Update plot button visibility
-        $('#rpg-mobile-toggle').show(); // Show mobile FAB toggle
-        $('#rpg-collapse-toggle').show(); // Show collapse toggle
+        togglePlotButtons();
+        applyLayout();
     } else {
         $panelContainer.hide();
-        $('#rpg-plot-buttons').hide(); // Hide plot buttons when disabled
-        $('#rpg-mobile-toggle').hide(); // Hide mobile FAB toggle
-        $('#rpg-collapse-toggle').hide(); // Hide collapse toggle
+        $('#rpg-plot-buttons').hide();
+        $('#rpg-mobile-toggle').hide();
+        $('.rpg-mobile-overlay').hide();
     }
 }
 
 /**
- * Updates the visibility of individual sections.
+ * Updates the visibility of individual sections and their tabs.
  */
 export function updateSectionVisibility() {
-    // Refresh container references first (in case they were detached during tab operations)
     setInventoryContainer($('#rpg-inventory'));
     setQuestsContainer($('#rpg-quests'));
 
-    // Show/hide sections based on settings
-    // Use explicit .show()/.hide() instead of .toggle() to ensure proper state on reload
-    if (extensionSettings.showUserStats) {
-        $userStatsContainer.show();
-    } else {
-        $userStatsContainer.hide();
+    const hasInfoBoxData = !!(lastGeneratedData.infoBox || committedTrackerData.infoBox);
+
+    $userStatsContainer?.toggle(!!extensionSettings.showUserStats);
+    $infoBoxContainer?.toggle(!!extensionSettings.showInfoBox && hasInfoBoxData);
+    $thoughtsContainer?.toggle(!!extensionSettings.showCharacterThoughts);
+    $musicPlayerContainer?.toggle(!!extensionSettings.enableSpotifyMusic);
+
+    const tabs = {
+        status: !!(extensionSettings.showUserStats || extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts),
+        inventory: !!extensionSettings.showInventory,
+        quests: !!extensionSettings.showQuests
+    };
+    $('#rpg-inventory').toggle(tabs.inventory);
+    $('#rpg-quests').toggle(tabs.quests);
+
+    const $panel = $('#rpg-companion-panel');
+    for (const [name, visible] of Object.entries(tabs)) {
+        $panel.find(`.rpg-tab-btn[data-tab="${name}"]`).toggle(visible);
     }
+    // The tab bar is pointless with a single tab.
+    const visibleTabs = Object.keys(tabs).filter(name => tabs[name]);
+    $panel.find('.rpg-tabs-nav').toggle(visibleTabs.length > 1);
 
-    if (extensionSettings.showInfoBox) {
-        // Only show if there's data to display
-        const infoBoxData = lastGeneratedData.infoBox || committedTrackerData.infoBox;
-        if (infoBoxData) {
-            $infoBoxContainer.show();
-        } else {
-            $infoBoxContainer.hide();
-        }
-    } else {
-        $infoBoxContainer.hide();
-    }
-
-    if (extensionSettings.showCharacterThoughts) {
-        $thoughtsContainer.show();
-    } else {
-        $thoughtsContainer.hide();
-    }
-
-    // Use direct DOM selectors for inventory and quests to avoid stale references
-    if (extensionSettings.showInventory) {
-        $('#rpg-inventory').show();
-    } else {
-        $('#rpg-inventory').hide();
-    }
-
-    if (extensionSettings.showQuests) {
-        $('#rpg-quests').show();
-    } else {
-        $('#rpg-quests').hide();
-    }
-
-    if ($musicPlayerContainer) {
-        if (extensionSettings.enableSpotifyMusic) {
-            $musicPlayerContainer.show();
-        } else {
-            $musicPlayerContainer.hide();
-        }
-    }
-
-    // Show/hide dividers intelligently
-    // Divider after User Stats: shown if User Stats is visible AND at least one section after it is visible
-    const showDividerAfterStats = extensionSettings.showUserStats &&
-        (extensionSettings.showInfoBox || extensionSettings.showCharacterThoughts || extensionSettings.showInventory || extensionSettings.showQuests || extensionSettings.enableSpotifyMusic);
-    if (showDividerAfterStats) {
-        $('#rpg-divider-stats').show();
-    } else {
-        $('#rpg-divider-stats').hide();
-    }
-
-    // Divider after Info Box: shown if Info Box is visible AND at least one section after it is visible
-    const showDividerAfterInfo = extensionSettings.showInfoBox &&
-        (extensionSettings.showCharacterThoughts || extensionSettings.showInventory || extensionSettings.showQuests);
-    if (showDividerAfterInfo) {
-        $('#rpg-divider-info').show();
-    } else {
-        $('#rpg-divider-info').hide();
-    }
-
-    // Divider after Thoughts: shown if Thoughts is visible AND at least one section after it is visible
-    const showDividerAfterThoughts = extensionSettings.showCharacterThoughts &&
-        (extensionSettings.showInventory || extensionSettings.showQuests || extensionSettings.enableSpotifyMusic);
-    if (showDividerAfterThoughts) {
-        $('#rpg-divider-thoughts').show();
-    } else {
-        $('#rpg-divider-thoughts').hide();
-    }
-
-    // Divider after Inventory: shown if Inventory is visible AND (Quests or Music) is visible
-    const showDividerAfterInventory = extensionSettings.showInventory && (extensionSettings.showQuests || extensionSettings.enableSpotifyMusic);
-    if (showDividerAfterInventory) {
-        $('#rpg-divider-inventory').show();
-    } else {
-        $('#rpg-divider-inventory').hide();
-    }
-
-    // Divider after Quests: shown if Quests is visible AND Music is visible
-    const showDividerAfterQuests = extensionSettings.showQuests && extensionSettings.enableSpotifyMusic;
-    if (showDividerAfterQuests) {
-        $('#rpg-divider-quests').show();
-    } else {
-        $('#rpg-divider-quests').hide();
-    }
-
-    // Rebuild tabs to reflect visibility changes for inventory and quests
-    const isMobile = window.innerWidth <= 1000;
-    const hasMobileTabs = $('.rpg-mobile-container').length > 0;
-    const hasDesktopTabs = $('.rpg-tabs-nav').length > 0;
-
-    // Only rebuild if tabs currently exist
-    if (hasMobileTabs || hasDesktopTabs) {
-        // Remove existing tabs
-        if (hasMobileTabs) {
-            removeMobileTabs();
-            // Force remove any lingering mobile tab elements (but not the content sections!)
-            $('.rpg-mobile-container').remove();
-            $('.rpg-mobile-tabs').remove();
-        } else {
-            removeDesktopTabs();
-            // Force remove any lingering desktop tab structure (but not the content sections!)
-            // The removeDesktopTabs() function already detached and restored the sections
-        }
-
-        // Rebuild tabs immediately
-        if (isMobile) {
-            setupMobileTabs();
-        } else {
-            setupDesktopTabs();
-        }
-
-        // Refresh container references
-        setInventoryContainer($('#rpg-inventory'));
-        setQuestsContainer($('#rpg-quests'));
-    }
+    // If the active tab was just hidden, fall back to the first visible one.
+    const active = $panel.find('.rpg-tab-btn.active').data('tab');
+    if (visibleTabs.length && !tabs[active]) selectTab(visibleTabs[0]);
 }
 
 /**
  * Applies the selected panel position.
  */
 export function applyPanelPosition() {
-    if (!$panelContainer) return;
-
-    const isMobile = window.innerWidth <= 1000;
-
-    // Remove all position classes
-    $panelContainer.removeClass('rpg-position-left rpg-position-right rpg-position-top');
-    $('body').removeClass('rpg-panel-position-left rpg-panel-position-right rpg-panel-position-top');
-
-    // Add the appropriate position class
-    $panelContainer.addClass(`rpg-position-${extensionSettings.panelPosition}`);
-
-    // On mobile, also add body class for mobile-specific CSS
-    if (isMobile) {
-        $('body').addClass(`rpg-panel-position-${extensionSettings.panelPosition}`);
-        updateCollapseToggleIcon();
-        return;
-    }
-
-    // Desktop: Update collapse toggle icon direction for new position
-    updateCollapseToggleIcon();
+    // A position change can change the mode, so re-derive the collapsed default.
+    currentMode = null;
+    applyLayout();
 }
 
 /**
  * Updates the UI based on generation mode selection.
  */
 export function updateGenerationModeUI() {
-    if (extensionSettings.generationMode === 'together') {
-        // In "together" mode, manual update button is hidden
-        $('#rpg-manual-update').hide();
-        $('#rpg-strip-refresh').hide();
-        $('#rpg-external-api-settings').slideUp(200);
-        $('#rpg-separate-mode-settings').slideUp(200);
-        // Hide auto-update toggle (not applicable in together mode)
-        $('#rpg-auto-update-container').slideUp(200);
-    } else if (extensionSettings.generationMode === 'separate') {
-        // In "separate" mode, manual update button is visible
-        $('#rpg-manual-update').show();
-        $('#rpg-strip-refresh').show();
-        $('#rpg-external-api-settings').slideUp(200);
-        $('#rpg-separate-mode-settings').slideDown(200);
-        // Show auto-update toggle
-        $('#rpg-auto-update-container').slideDown(200);
-    } else if (extensionSettings.generationMode === 'external') {
-        // In "external" mode, manual update button is visible AND both settings are shown
-        $('#rpg-manual-update').show();
-        $('#rpg-strip-refresh').show();
-        $('#rpg-external-api-settings').slideDown(200);
-        $('#rpg-separate-mode-settings').slideDown(200);
-        // Show auto-update toggle for external mode too
-        $('#rpg-auto-update-container').slideDown(200);
-    }
+    const mode = extensionSettings.generationMode;
+    const usesSeparateRequest = mode === 'separate' || mode === 'external';
+
+    $('#rpg-manual-update, #rpg-strip-refresh').toggle(usesSeparateRequest);
+    $('#rpg-external-api-settings')[mode === 'external' ? 'slideDown' : 'slideUp'](200);
+    $('#rpg-separate-mode-settings')[usesSeparateRequest ? 'slideDown' : 'slideUp'](200);
+    $('#rpg-auto-update-container')[usesSeparateRequest ? 'slideDown' : 'slideUp'](200);
 }

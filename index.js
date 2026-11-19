@@ -71,8 +71,6 @@ import {
 import { renderInventory } from './src/systems/rendering/inventory.js';
 import { renderQuests } from './src/systems/rendering/quests.js';
 import { renderMusicPlayer } from './src/systems/rendering/musicPlayer.js';
-import { toggleSnowflakes, initSnowflakes } from './src/systems/ui/snowflakes.js';
-import { toggleDynamicWeather, initWeatherEffects, updateWeatherEffect } from './src/systems/ui/weatherEffects.js';
 
 // Interaction modules
 import { initInventoryEventListeners } from './src/systems/interaction/inventoryActions.js';
@@ -123,18 +121,12 @@ import {
 import {
     setupMobileToggle,
     constrainFabToViewport,
-    setupMobileTabs,
-    removeMobileTabs,
     setupMobileKeyboardHandling,
     setupContentEditableScrolling,
     updateMobileTabLabels,
     updateFabWidgets
 } from './src/systems/ui/mobile.js';
-import {
-    setupDesktopTabs,
-    removeDesktopTabs,
-    updateStripWidgets
-} from './src/systems/ui/desktop.js';
+import { updateStripWidgets } from './src/systems/ui/desktop.js';
 import {
     removeAlternatePresentCharactersPanel,
     renderAlternatePresentCharacters
@@ -192,15 +184,6 @@ setThoughtBasedExpressionsRefreshHandler(() => {
 // (applyTheme, applyCustomTheme, toggleCustomColors, toggleAnimations,
 //  updateSettingsPopupTheme, applyCustomThemeToSettingsPopup)
 
-// Layout functions removed - now imported from src/systems/ui/layout.js
-// (togglePlotButtons, updateCollapseToggleIcon, setupCollapseToggle,
-//  updatePanelVisibility, updateSectionVisibility, applyPanelPosition)
-// Note: closeMobilePanelWithAnimation is only used internally by mobile.js
-
-// Mobile UI functions removed - now imported from src/systems/ui/mobile.js
-// (setupMobileToggle, constrainFabToViewport, setupMobileTabs, removeMobileTabs,
-//  setupMobileKeyboardHandling, setupContentEditableScrolling)
-
 /**
  * Updates UI elements that are dynamically generated and not covered by data-i18n-key.
  */
@@ -240,12 +223,10 @@ async function addExtensionSettings() {
             cleanupCheckpointUI(); // Remove checkpoint buttons and indicators
             clearThoughtBasedExpressionsCache();
 
-            // Disable dynamic weather effects
-            toggleDynamicWeather(false);
-
             // Remove panel and toggle buttons
             $('#rpg-companion-panel').remove();
             $('#rpg-mobile-toggle').remove();
+            $('.rpg-mobile-overlay').remove();
             $('#rpg-collapse-toggle').remove();
             $('#rpg-plot-buttons').remove(); // Remove plot buttons
             removeAlternatePresentCharactersPanel();
@@ -301,11 +282,6 @@ async function initUI() {
         </button>
     `;
     $('body').append(mobileToggleHtml);
-
-    // Hide mobile toggle on desktop viewport (> 1000px)
-    if (window.innerWidth > 1000) {
-        $('#rpg-mobile-toggle').hide();
-    }
 
     // Cache UI elements using state setters
     setPanelContainer($('#rpg-companion-panel'));
@@ -455,21 +431,10 @@ async function initUI() {
 
 
 
-    $('#rpg-toggle-dynamic-weather').on('change', function() {
-        extensionSettings.enableDynamicWeather = $(this).prop('checked');
-        saveSettings();
-        toggleDynamicWeather(extensionSettings.enableDynamicWeather);
-    });
 
     $('#rpg-toggle-narrator').on('change', function() {
         extensionSettings.narratorMode = $(this).prop('checked');
         saveSettings();
-    });
-
-    $('#rpg-dismiss-promo').on('click', function() {
-        extensionSettings.dismissedHolidayPromo = true;
-        saveSettings();
-        $('#rpg-holiday-promo').fadeOut(300);
     });
 
     $('#rpg-skip-guided-mode').on('change', function() {
@@ -645,46 +610,6 @@ async function initUI() {
         extensionSettings.showSpotifyToggle = $(this).prop('checked');
         saveSettings();
         updateFeatureTogglesVisibility();
-    });
-
-    $('#rpg-toggle-show-dynamic-weather-toggle').on('change', function() {
-        extensionSettings.showDynamicWeatherToggle = $(this).prop('checked');
-        // Also disable the feature when hiding the toggle
-        if (!extensionSettings.showDynamicWeatherToggle) {
-            extensionSettings.enableDynamicWeather = false;
-            $('#rpg-toggle-dynamic-weather').prop('checked', false);
-            toggleDynamicWeather(false);
-        }
-        saveSettings();
-        updateFeatureTogglesVisibility();
-        updateWeatherSubOptionsVisibility();
-    });
-
-    // Weather sub-options (background and foreground) - radio buttons
-    $('#rpg-toggle-weather-background').on('change', function() {
-        if ($(this).prop('checked')) {
-            extensionSettings.weatherBackground = true;
-            extensionSettings.weatherForeground = false;
-            saveSettings();
-            // Re-apply weather effect
-            if (extensionSettings.enableDynamicWeather) {
-                toggleDynamicWeather(false);
-                toggleDynamicWeather(true);
-            }
-        }
-    });
-
-    $('#rpg-toggle-weather-foreground').on('change', function() {
-        if ($(this).prop('checked')) {
-            extensionSettings.weatherBackground = false;
-            extensionSettings.weatherForeground = true;
-            saveSettings();
-            // Re-apply weather effect
-            if (extensionSettings.enableDynamicWeather) {
-                toggleDynamicWeather(false);
-                toggleDynamicWeather(true);
-            }
-        }
     });
 
     $('#rpg-toggle-show-narrator-mode').on('change', function() {
@@ -1132,7 +1057,6 @@ async function initUI() {
     $('#rpg-toggle-cyoa').prop('checked', extensionSettings.enableCYOA ?? false);
     $('#rpg-toggle-spotify-music').prop('checked', extensionSettings.enableSpotifyMusic);
 
-    $('#rpg-toggle-dynamic-weather').prop('checked', extensionSettings.enableDynamicWeather);
     $('#rpg-toggle-narrator').prop('checked', extensionSettings.narratorMode);
 
     // Feature toggle visibility settings
@@ -1142,16 +1066,8 @@ async function initUI() {
     $('#rpg-toggle-show-omniscience-toggle').prop('checked', extensionSettings.showOmniscienceToggle ?? true);
     $('#rpg-toggle-show-cyoa-toggle').prop('checked', extensionSettings.showCYOAToggle ?? true);
     $('#rpg-toggle-show-spotify-toggle').prop('checked', extensionSettings.showSpotifyToggle ?? true);
-    $('#rpg-toggle-show-dynamic-weather-toggle').prop('checked', extensionSettings.showDynamicWeatherToggle ?? true);
-    $('#rpg-toggle-weather-background').prop('checked', extensionSettings.weatherBackground ?? true);
-    $('#rpg-toggle-weather-foreground').prop('checked', extensionSettings.weatherForeground ?? false);
     $('#rpg-toggle-show-narrator-mode').prop('checked', extensionSettings.showNarratorMode ?? true);
     $('#rpg-toggle-show-auto-avatars').prop('checked', extensionSettings.showAutoAvatars ?? true);
-
-    // Hide holiday promo if previously dismissed
-    if (extensionSettings.dismissedHolidayPromo) {
-        $('#rpg-holiday-promo').hide();
-    }
 
     $('#rpg-toggle-randomized-plot').prop('checked', extensionSettings.enableRandomizedPlot ?? true);
     $('#rpg-toggle-natural-plot').prop('checked', extensionSettings.enableNaturalPlot ?? true);
@@ -1251,20 +1167,10 @@ async function initUI() {
     toggleAnimations();
     updateFeatureTogglesVisibility();
     togglePlotButtons(); // Initialize plot buttons and encounter button visibility
-    initWeatherEffects(); // Initialize dynamic weather effects
 
-    // Setup mobile toggle button
-    setupMobileToggle();
-
-    // Setup tabs based on viewport
-    if (window.innerWidth > 1000) {
-        setupDesktopTabs();
-    } else {
-        setupMobileTabs();
-    }
-
-    // Setup collapse/expand toggle button
+    // Panel collapse/expand, tabs, and responsive layout; then the mobile FAB.
     setupCollapseToggle();
+    setupMobileToggle();
 
     // Render initial data if available
     renderUserStats();
@@ -1288,12 +1194,6 @@ async function initUI() {
     // Initialize chapter checkpoint UI
     initChapterCheckpointUI();
     injectCheckpointButton();
-
-    // Expose weather effect functions globally for cross-module access
-    if (!window.RPGCompanion) {
-        window.RPGCompanion = {};
-    }
-    window.RPGCompanion.updateWeatherEffect = updateWeatherEffect;
 }
 
 
@@ -1504,14 +1404,6 @@ jQuery(async () => {
         // Restore checkpoint state if one exists
         await restoreCheckpointOnLoad();
 
-        // Initialize snowflakes effect if enabled
-        try {
-            initSnowflakes();
-        } catch (error) {
-            console.error('[RPG Companion] Snowflakes initialization failed:', error);
-            // Non-critical - continue without it
-        }
-
         // Show deprecation notice once for this release; otherwise keep the old welcome flow.
         try {
             const deprecationModalShown = showDeprecationModalIfNeeded();
@@ -1536,17 +1428,3 @@ jQuery(async () => {
         );
     }
 });
-
-/**
- * Updates the visibility of weather sub-options in settings based on dynamic weather toggle
- */
-function updateWeatherSubOptionsVisibility() {
-    const $weatherSubOptions = $('#rpg-weather-suboptions');
-    const isDynamicWeatherEnabled = extensionSettings.showDynamicWeatherToggle ?? true;
-
-    if (isDynamicWeatherEnabled) {
-        $weatherSubOptions.show();
-    } else {
-        $weatherSubOptions.hide();
-    }
-}
